@@ -1,0 +1,347 @@
+import { useEffect, useMemo, useState } from 'react';
+import type { ChangeEvent, DragEvent } from 'react';
+import { parseExcelFile, parseTemuOrderExcelFile } from '../../../data-source/excelDataSource';
+import { orderImportStorageDataSource } from '../../../data-source/orderImportStorageDataSource';
+import type { ExcelImportPreview } from '../../../types/import';
+import type { TemuOrderDetail, TemuOrderImportBatch } from '../../../types/order';
+
+type ImportStatus = 'normal' | 'missing' | 'duplicate' | 'abnormal';
+
+interface ImportTableRow {
+  id: string;
+  batchId: string;
+  date: string;
+  storeName: string;
+  detailCount: number;
+  salesAmount: number;
+  firstOrderCount: number;
+  status: ImportStatus;
+  importedAt: string;
+  fileName: string;
+}
+
+const statusLabels: Record<ImportStatus, string> = {
+  normal: '正常',
+  missing: '缺失数据',
+  duplicate: '重复导入',
+  abnormal: '数据异常',
+};
+
+function formatMoney(value: number) {
+  return value.toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function toDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function getStatus(batch: TemuOrderImportBatch, orders: TemuOrderDetail[], storeName: string, date: string): ImportStatus {
+  if (!storeName || !date || orders.length === 0) {
+    return 'missing';
+  }
+
+  if (orders.some((order) => order.salesAmount < 0 || Number.isNaN(order.salesAmount))) {
+    return 'abnormal';
+  }
+
+  if (batch.duplicateRows > 0) {
+    return 'duplicate';
+  }
+
+  return 'normal';
+}
+
+function buildRows(batches: TemuOrderImportBatch[]): ImportTableRow[] {
+  return batches
+    .flatMap((batch) => {
+      const groups = new Map<string, TemuOrderDetail[]>();
+
+      for (const order of batch.orders) {
+        const date = order.orderDate || '-';
+        const storeName = order.storeName || '未知店铺';
+        const key = `${date}|${storeName}`;
+        groups.set(key, [...(groups.get(key) ?? []), order]);
+      }
+
+      return Array.from(groups.entries()).map(([key, orders]) => {
+        const [date, storeName] = key.split('|');
+
+        return {
+          id: `${batch.batchId}-${key}`,
+          batchId: batch.batchId,
+          date,
+          storeName,
+          detailCount: orders.length,
+          salesAmount: orderImportStorageDataSource.sumSales(orders),
+          firstOrderCount: orders.filter((order) => order.isFirstOrder).length,
+          status: getStatus(batch, orders, storeName, date),
+          importedAt: batch.importedAt,
+          fileName: batch.fileName,
+        };
+      });
+    })
+    .sort((first, second) => `${second.date} ${second.importedAt}`.localeCompare(`${first.date} ${first.importedAt}`));
+}
+
+function groupRowsByDate(rows: ImportTableRow[]) {
+  return rows.reduce<Array<[string, ImportTableRow[]]>>((groups, row) => {
+    const latest = groups.at(-1);
+
+    if (latest?.[0] === row.date) {
+      latest[1].push(row);
+      return groups;
+    }
+
+    return [...groups, [row.date, [row]]];
+  }, []);
+}
+
+function ExcelImportPage() {
+  const [preview, setPreview] = useState<ExcelImportPreview | null>(null);
+  const [batches, setBatches] = useState<TemuOrderImportBatch[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
+  const [dateFilter, setDateFilter] = useState('');
+  const [storeFilter, setStoreFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const rows = useMemo(() => buildRows(batches), [batches]);
+  const filteredRows = rows.filter((row) => {
+    return (
+      (!dateFilter || row.date === dateFilter) &&
+      (!storeFilter || row.storeName === storeFilter) &&
+      (!statusFilter || row.status === statusFilter)
+    );
+  });
+  const groupedRows = groupRowsByDate(filteredRows);
+  const dateOptions = Array.from(new Set(rows.map((row) => row.date)));
+  const storeOptions = Array.from(new Set(rows.map((row) => row.storeName))).sort();
+  const today = toDateKey(new Date());
+  const todayRows = rows.filter((row) => row.importedAt.slice(0, 10) === today);
+  const overview = {
+    todayStoreCount: new Set(todayRows.map((row) => row.storeName)).size,
+    todaySalesAmount: todayRows.reduce((total, row) => total + row.salesAmount, 0),
+    todayFirstOrderCount: todayRows.reduce((total, row) => total + row.firstOrderCount, 0),
+    batchCount: batches.length,
+    abnormalStoreCount: rows.filter((row) => row.status === 'abnormal').length,
+  };
+
+  const refreshSavedData = () => {
+    setBatches(orderImportStorageDataSource.loadStore().batches);
+  };
+
+  useEffect(() => {
+    refreshSavedData();
+  }, []);
+
+  const importFiles = async (files: File[]) => {
+    if (files.length === 0) {
+      return;
+    }
+
+    setError(null);
+    setIsParsing(true);
+
+    try {
+      for (const file of files) {
+        const [previewResult, orderImportResult] = await Promise.all([
+          parseExcelFile(file),
+          parseTemuOrderExcelFile(file),
+        ]);
+        orderImportStorageDataSource.save(orderImportResult);
+        setPreview(previewResult);
+      }
+      refreshSavedData();
+    } catch {
+      setPreview(null);
+      setError('Excel 解析失败，请检查文件格式和订单表头。');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    await importFiles(Array.from(event.target.files ?? []));
+    event.target.value = '';
+  };
+
+  const handleDrop = async (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    await importFiles(Array.from(event.dataTransfer.files));
+  };
+
+  const handleClearImportedData = () => {
+    orderImportStorageDataSource.clear();
+    setPreview(null);
+    refreshSavedData();
+    setError(null);
+  };
+
+  const handleDeleteBatch = (batchId: string) => {
+    orderImportStorageDataSource.deleteBatch(batchId);
+    refreshSavedData();
+  };
+
+  return (
+    <section className="excel-import-page">
+      <section className="import-overview-grid">
+        <article>
+          <span>今日已导入店铺</span>
+          <strong>{overview.todayStoreCount}</strong>
+        </article>
+        <article>
+          <span>今日总销售额</span>
+          <strong>¥ {formatMoney(overview.todaySalesAmount)}</strong>
+        </article>
+        <article>
+          <span>今日总首单</span>
+          <strong>{overview.todayFirstOrderCount}</strong>
+        </article>
+        <article>
+          <span>导入批次数量</span>
+          <strong>{overview.batchCount}</strong>
+        </article>
+        <article>
+          <span>异常店铺数量</span>
+          <strong>{overview.abnormalStoreCount}</strong>
+        </article>
+      </section>
+
+      <article className="excel-upload-panel">
+        <div>
+          <span className="admin-status">订单销售数据导入</span>
+          <h2>上传店铺 TEMU 订单 Excel</h2>
+          <p>按店铺和日期沉淀经营数据，同店铺同日期重新导入时会替换原数据。</p>
+        </div>
+        <label className="excel-upload-box" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
+          <input type="file" accept=".xlsx,.xls,.csv" multiple onChange={handleFileChange} />
+          <strong>{isParsing ? '解析中...' : '选择或拖入 Excel 文件'}</strong>
+          <span>支持批量上传 .xlsx / .xls / .csv</span>
+        </label>
+        {batches.length > 0 && (
+          <button className="excel-clear-button" type="button" onClick={handleClearImportedData}>
+            清空已导入数据
+          </button>
+        )}
+        {error && <div className="excel-import-error">{error}</div>}
+      </article>
+
+      <article className="excel-record-panel">
+        <header>
+          <div>
+            <h2>导入记录</h2>
+            <p>按日期分组展示店铺经营数据，文件名作为辅助信息保留。</p>
+          </div>
+          <span>{filteredRows.length} 条</span>
+        </header>
+
+        <section className="import-filter-bar">
+          <label>
+            日期
+            <select value={dateFilter} onChange={(event) => setDateFilter(event.target.value)}>
+              <option value="">全部日期</option>
+              {dateOptions.map((date) => (
+                <option key={date} value={date}>
+                  {date}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            店铺
+            <select value={storeFilter} onChange={(event) => setStoreFilter(event.target.value)}>
+              <option value="">全部店铺</option>
+              {storeOptions.map((storeName) => (
+                <option key={storeName} value={storeName}>
+                  {storeName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            状态
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <option value="">全部状态</option>
+              {Object.entries(statusLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </section>
+
+        <div className="import-record-table-wrap">
+          {groupedRows.map(([date, group], index) => (
+            <details key={date} className="import-date-group" open={index === 0}>
+              <summary>
+                <strong>{date}</strong>
+                <span>{group.length} 个店铺记录</span>
+              </summary>
+              <table className="import-record-table">
+                <thead>
+                  <tr>
+                    <th>日期</th>
+                    <th>店铺名称</th>
+                    <th>Excel明细数</th>
+                    <th>销售额</th>
+                    <th>首单数量</th>
+                    <th>数据状态</th>
+                    <th>导入时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.date}</td>
+                      <td>
+                        <strong>{row.storeName}</strong>
+                        <span className="import-file-name">{row.fileName}</span>
+                      </td>
+                      <td>{row.detailCount}</td>
+                      <td>¥ {formatMoney(row.salesAmount)}</td>
+                      <td>{row.firstOrderCount}</td>
+                      <td>
+                        <span className={`import-status import-status-${row.status}`}>{statusLabels[row.status]}</span>
+                      </td>
+                      <td>{row.importedAt.replace('T', ' ').slice(0, 19)}</td>
+                      <td>
+                        <button type="button" onClick={() => handleDeleteBatch(row.batchId)}>
+                          删除批次
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          ))}
+          {filteredRows.length === 0 && <div className="import-record-empty">暂无符合条件的导入记录</div>}
+        </div>
+      </article>
+
+      {preview && (
+        <article className="excel-preview-card compact-preview">
+          <header>
+            <div>
+              <h2>最近上传表头预览</h2>
+              <p>{preview.fileName}</p>
+            </div>
+            <span>{preview.sheets.length} 个工作表</span>
+          </header>
+          <div className="excel-header-tags">
+            {preview.sheets.flatMap((sheet) => sheet.headers.slice(0, 8)).map((header) => (
+              <span key={header}>{header}</span>
+            ))}
+          </div>
+        </article>
+      )}
+    </section>
+  );
+}
+
+export default ExcelImportPage;

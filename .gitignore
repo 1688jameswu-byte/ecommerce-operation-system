@@ -1,0 +1,8 @@
+node_modules/
+dist/
+artifacts/*.log
+artifacts/screenshots/
+.DS_Store
+*.local
+data/
+database/
