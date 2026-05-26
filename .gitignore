@@ -8,6 +8,8 @@ artifacts/screenshots/
 !.env.example
 *.local
 data/
+!src/data/
+!src/data/**
 data/backup/
 data/backups/
 database/

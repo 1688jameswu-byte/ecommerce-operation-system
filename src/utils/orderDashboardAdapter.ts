@@ -233,7 +233,7 @@ function buildFirstOrderWarnings(items: FirstOrderTrendItem[], importedAt: strin
 }
 
 function metric(id: string, value: number, overrides: Partial<MetricItem> = {}): MetricItem {
-  const fallback = mockDashboardData.metrics.find((item) => item.id === id);
+  const fallback = mockDashboardData.metrics.find((item: MetricItem) => item.id === id);
 
   return {
     ...fallback!,
