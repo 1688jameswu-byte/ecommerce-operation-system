@@ -51,6 +51,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     const standardSalesOrders = orderImportStorageDataSource.loadStandardSalesOrders();
     return {
       ...buildDashboardDataFromOrders(orderImportResult, standardSalesOrders),
+      dataSource: '真实数据',
       warnings: trafficWarnings,
       growthOpportunities,
     };
@@ -58,6 +59,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   return {
     ...(await dashboardDataSource.getDashboardData()),
+    dataSource: 'Mock 数据',
     warnings: trafficWarnings,
     growthOpportunities,
   };

@@ -1583,6 +1583,10 @@ function filterCollectionForUser(name, data, currentUser) {
 }
 
 function filterPersistentDataForUser(name, data, currentUser) {
+  if (!currentUser && ['orderImportStore', 'trafficConversionStore', 'trafficWarningRules', 'riskResults', 'growthOpportunities', 'businessAnalysisItems'].includes(name)) {
+    return data;
+  }
+
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
     return data;
   }
