@@ -6,27 +6,30 @@ import {
   trafficGrowthTypeLabels,
   trafficTypeLabels,
 } from '../../../data-source/trafficConversionDataSource';
-import { resolveSuggestionContent, taskSuggestionDataSource } from '../../../data-source/taskSuggestionDataSource';
+import { defaultTaskSuggestionTemplates, resolveSuggestionContent } from '../../../data-source/taskSuggestionDataSource';
 import {
-  orderImportStorageDataSource,
   subscribeOrderImportStorageChange,
 } from '../../../data-source/orderImportStorageDataSource';
-import { operatorDataSource } from '../../../data-source/operatorDataSource';
 import { taskDataSource } from '../../../data-source/taskDataSource';
 import type { AnalysisResultRecord, FactDataQualityReport, SalesOrderRecord } from '../../../types/fact';
 import type { OperatorRecord } from '../../../types/operator';
+import type { TemuOrderDetail, TemuOrderImportStore } from '../../../types/order';
 import type { OperationTaskRecord } from '../../../types/task';
 import type { TaskSuggestionProblemType, TaskSuggestionTemplate } from '../../../types/taskSuggestion';
+import type { StoreRecord } from '../../../types/store';
+import type { StoreOperatorRelation } from '../../../types/storeOperator';
 import type {
   TrafficAnalysisItem,
   TrafficAnalysisResultType,
+  TrafficAnalysisResultStore,
+  TrafficConversionRecord,
+  TrafficConversionStore,
   TrafficGrowthOpportunity,
   TrafficWarningLevel,
   TrafficWarningResult,
   TrafficWarningType,
 } from '../../../types/traffic';
-import { loadFactDataQualityReport } from '../../../utils/factDataQuality';
-import { buildStandardAnalysisResults, buildStandardSalesOrders } from '../../../utils/factDataStandardization';
+import { buildFactDataQualityReport } from '../../../utils/factDataQuality';
 import {
   buildGrowthOpportunityTaskDraft,
   buildRiskWarningTaskDraft,
@@ -37,7 +40,7 @@ import {
   trafficWarningLevelLabelMap,
 } from '../../../utils/operationLanguage';
 import { filterRecordsByPermission, filterTasksByPermission } from '../../../utils/permissionScope';
-import { analyzeStoreNameMatches, type StoreMatchCheckReport } from '../../../utils/storeStandardization';
+import { analyzeStoreNameMatches, createStoreMatcher, type StoreMatchCheckReport } from '../../../utils/storeStandardization';
 import { hasPermission } from '../../../auth/permissions';
 import type { CurrentUser } from '../../../types/auth';
 
@@ -74,6 +77,42 @@ type AutoRiskTaskRecord = OperationTaskRecord & {
   sourceRuleId?: string;
   recommendation?: string;
 };
+
+const DETAIL_RENDER_LIMIT = 100;
+
+const emptyDataQualityReport: FactDataQualityReport = {
+  totalRecords: 0,
+  missingStoreIdCount: 0,
+  missingOperatorIdCount: 0,
+  missingPlatformCount: 0,
+  missingDateCount: 0,
+  issueSamples: [],
+};
+
+const emptyStoreMatchReport: StoreMatchCheckReport = {
+  matchedCount: 0,
+  unmatchedStoreNames: [],
+};
+
+const emptyOperatorPerformance: OperatorPerformanceSummary = {
+  rows: [],
+  operatorCount: 0,
+  growthOperatorCount: 0,
+  riskOperatorCount: 0,
+  averageSales: 0,
+};
+
+function emptyAnalysisData() {
+  return {
+    riskResults: [] as TrafficWarningResult[],
+    growthResults: [] as TrafficGrowthOpportunity[],
+    analysisItems: [] as TrafficAnalysisItem[],
+    storeMatchReport: emptyStoreMatchReport,
+    factDataQualityReport: emptyDataQualityReport,
+    operatorPerformance: emptyOperatorPerformance,
+    suggestionTemplates: [] as TaskSuggestionTemplate[],
+  };
+}
 
 const levelLabels: Record<TrafficWarningLevel | 'normal' | 'opportunity', string> = {
   warning: trafficWarningLevelLabelMap.warning,
@@ -182,6 +221,152 @@ function previousDateKey(dateKey: string) {
   return formatDateKey(date);
 }
 
+async function fetchJson<T>(url: string, fallback: T): Promise<T> {
+  try {
+    const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`, {
+      cache: 'no-store',
+      credentials: 'include',
+    });
+    return response.ok ? (await response.json() as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function buildDateDimension(value: string) {
+  const date = String(value || '').slice(0, 10);
+  const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return { date, month: '', year: 0, week: '' };
+  }
+
+  const firstDay = new Date(parsed.getFullYear(), 0, 1);
+  const dayIndex = Math.floor((parsed.getTime() - firstDay.getTime()) / 86400000);
+  const weekNumber = Math.ceil((dayIndex + firstDay.getDay() + 1) / 7);
+  return {
+    date,
+    month: date.slice(0, 7),
+    year: parsed.getFullYear(),
+    week: `${parsed.getFullYear()}-W${String(weekNumber).padStart(2, '0')}`,
+  };
+}
+
+function findActiveRelation(relations: StoreOperatorRelation[], storeId: string, storeName: string, date: string) {
+  return relations.find((relation) =>
+    relation.status !== 'inactive' &&
+    (relation.storeId === storeId || relation.storeName === storeName) &&
+    (!relation.startDate || relation.startDate <= date) &&
+    (!relation.endDate || relation.endDate >= date),
+  );
+}
+
+function createFactResolver(stores: StoreRecord[], relations: StoreOperatorRelation[], operators: OperatorRecord[]) {
+  const matcher = createStoreMatcher(stores);
+  const storesById = new Map(stores.map((store) => [store.id, store]));
+  const storesByName = new Map(stores.map((store) => [store.storeName, store]));
+  const operatorsById = new Map(operators.map((operator) => [operator.id, operator]));
+
+  return (storeName: string, date: string, fallbackOperatorName = '') => {
+    const identity = matcher.match(storeName);
+    const store = (identity.storeId ? storesById.get(identity.storeId) : undefined) || storesByName.get(identity.storeName);
+    const relation = findActiveRelation(relations, store?.id || identity.storeId || identity.key, store?.storeName || identity.storeName, date);
+    const operator = relation ? operatorsById.get(relation.operatorId) : undefined;
+    const operatorName = operator?.operatorName || relation?.operatorName || fallbackOperatorName || '';
+
+    return {
+      storeId: store?.id || identity.storeId || identity.key,
+      storeName: store?.storeName || identity.storeName,
+      platform: store?.platform || 'Other',
+      operatorId: relation?.operatorId || (operatorName ? `operator-${operatorName}` : ''),
+      operatorName,
+    };
+  };
+}
+
+function standardizeOrders(
+  orders: Array<TemuOrderDetail & { batchId?: string }>,
+  stores: StoreRecord[],
+  relations: StoreOperatorRelation[],
+  operators: OperatorRecord[],
+): SalesOrderRecord[] {
+  const resolveFact = createFactResolver(stores, relations, operators);
+  return orders.map((order) => {
+    const dates = buildDateDimension(order.orderDate);
+    const fact = resolveFact(order.storeName, dates.date, order.operatorName);
+    return {
+      ...dates,
+      ...fact,
+      orderId: order.orderId || order.uniqueKey || '',
+      sku: order.productSku || order.skuCode || order.skc,
+      productName: order.productName,
+      salesAmount: order.salesAmount,
+      orderAmount: order.salesAmount,
+      quantity: order.quantity ?? 0,
+      isFirstOrder: Boolean(order.isFirstOrder),
+      sourceBatchId: order.batchId,
+      sourceKey: order.uniqueKey,
+    };
+  });
+}
+
+function standardizeTrafficRecords(
+  records: TrafficConversionRecord[],
+  stores: StoreRecord[],
+  relations: StoreOperatorRelation[],
+  operators: OperatorRecord[],
+) {
+  const resolveFact = createFactResolver(stores, relations, operators);
+  return records.map((record) => {
+    const dates = buildDateDimension(record.date);
+    return {
+      ...dates,
+      ...resolveFact(record.storeName, dates.date),
+      visitorCount: record.totalVisitors,
+      conversionRate: record.totalPayConversionRate,
+      orderCount: record.totalPayBuyers,
+      totalViews: record.totalViews,
+      totalVisitors: record.totalVisitors,
+      totalPayBuyers: record.totalPayBuyers,
+      totalPayConversionRate: record.totalPayConversionRate,
+      totalPayPieces: record.totalPayPieces,
+      productViews: record.productViews,
+      productVisitors: record.productVisitors,
+      detailPayBuyers: record.detailPayBuyers,
+      detailPayConversionRate: record.detailPayConversionRate,
+      storePageViews: record.storePageViews,
+      storePageVisitors: record.storePageVisitors,
+      storePagePayBuyers: record.storePagePayBuyers,
+      storePagePayConversionRate: record.storePagePayConversionRate,
+      sourceBatchId: record.batchId,
+    };
+  });
+}
+
+function standardizeAnalysisItems(
+  items: TrafficAnalysisItem[],
+  stores: StoreRecord[],
+  relations: StoreOperatorRelation[],
+  operators: OperatorRecord[],
+): AnalysisResultRecord[] {
+  const resolveFact = createFactResolver(stores, relations, operators);
+  return items.map((item) => {
+    const dates = buildDateDimension(item.date);
+    return {
+      ...dates,
+      ...resolveFact(item.storeName, dates.date),
+      analysisType: item.type,
+      metricField: item.metricField,
+      previous30Avg: item.previous30Avg,
+      recent7Avg: item.recent7Avg,
+      changeRate: item.changeRate,
+      resultType: item.resultType,
+      level: item.level,
+      content: item.content,
+      sourceId: item.id,
+    };
+  });
+}
+
 function buildOperatorPerformanceSummary(
   operators: OperatorRecord[],
   orders: SalesOrderRecord[],
@@ -280,32 +465,54 @@ function buildOperatorPerformanceSummary(
   };
 }
 
-function loadAnalysisData(currentUser: CurrentUser) {
-  const orderStore = safeLoad(() => orderImportStorageDataSource.loadStore(), { batches: [] });
-  const trafficStore = trafficConversionDataSource.loadStore();
-  const operators = safeLoad(() => operatorDataSource.load(), []);
-  const suggestionTemplates = safeLoad(() => taskSuggestionDataSource.load(), []);
+async function loadAnalysisData(currentUser: CurrentUser) {
+  const [
+    orderStore,
+    trafficStore,
+    riskStore,
+    growthStore,
+    analysisStore,
+    stores,
+    relations,
+    operators,
+    suggestionTemplates,
+  ] = await Promise.all([
+    fetchJson<TemuOrderImportStore>('/api/persistent-data/orderImportStore', { batches: [] }),
+    fetchJson<TrafficConversionStore>('/api/persistent-data/trafficConversionStore', { records: [], batches: [] }),
+    fetchJson<TrafficAnalysisResultStore<TrafficWarningResult>>('/api/persistent-data/riskResults', { items: [], updatedAt: '' }),
+    fetchJson<TrafficAnalysisResultStore<TrafficGrowthOpportunity>>('/api/persistent-data/growthOpportunities', { items: [], updatedAt: '' }),
+    fetchJson<TrafficAnalysisResultStore<TrafficAnalysisItem>>('/api/persistent-data/businessAnalysisItems', { items: [], updatedAt: '' }),
+    fetchJson<StoreRecord[]>('/api/stores', []),
+    fetchJson<StoreOperatorRelation[]>('/api/store-operator-relations', []),
+    fetchJson<OperatorRecord[]>('/api/operators', []),
+    fetchJson<TaskSuggestionTemplate[]>('/api/task-suggestion-templates', []),
+  ]);
   const orderRecords = orderStore.batches.flatMap((batch) =>
     batch.orders.map((order) => ({ ...order, batchId: batch.batchId })),
   );
-  const analysisItems = filterRecordsByPermission(trafficConversionDataSource.loadBusinessAnalysisItems(), currentUser);
-  const standardSalesOrders = filterRecordsByPermission(buildStandardSalesOrders(orderRecords), currentUser);
-  const standardAnalysisResults = filterRecordsByPermission(buildStandardAnalysisResults(analysisItems), currentUser);
+  const analysisItems = filterRecordsByPermission(analysisStore.items ?? [], currentUser);
+  const standardSalesOrders = filterRecordsByPermission(standardizeOrders(orderRecords, stores, relations, operators), currentUser);
+  const standardTrafficRecords = filterRecordsByPermission(standardizeTrafficRecords(trafficStore.records ?? [], stores, relations, operators), currentUser);
+  const standardAnalysisResults = filterRecordsByPermission(standardizeAnalysisItems(analysisItems, stores, relations, operators), currentUser);
   const storeNames = [
     ...orderRecords.map((order) => order.storeName),
     ...trafficStore.records.map((record) => record.storeName),
   ];
-  const riskResults = filterRecordsByPermission(trafficConversionDataSource.loadRiskResults(), currentUser).filter((item) => item.level !== 'insufficient').sort(riskSort);
-  const growthResults = filterRecordsByPermission(trafficConversionDataSource.loadGrowthOpportunities(999), currentUser);
+  const riskResults = filterRecordsByPermission(riskStore.items ?? [], currentUser).filter((item) => item.level !== 'insufficient').sort(riskSort);
+  const growthResults = filterRecordsByPermission(growthStore.items ?? [], currentUser).slice(0, 999);
 
   return {
     riskResults,
     growthResults,
     analysisItems,
     storeMatchReport: analyzeStoreNameMatches(storeNames),
-    factDataQualityReport: loadFactDataQualityReport(),
+    factDataQualityReport: buildFactDataQualityReport({
+      salesOrders: standardSalesOrders,
+      trafficRecords: standardTrafficRecords,
+      analysisResults: standardAnalysisResults,
+    }),
     operatorPerformance: buildOperatorPerformanceSummary(operators, standardSalesOrders, standardAnalysisResults),
-    suggestionTemplates,
+    suggestionTemplates: suggestionTemplates.length > 0 ? suggestionTemplates : defaultTaskSuggestionTemplates,
   };
 }
 
@@ -318,8 +525,8 @@ function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
     factDataQualityReport: FactDataQualityReport;
     operatorPerformance: OperatorPerformanceSummary;
     suggestionTemplates: TaskSuggestionTemplate[];
-  }>(() => loadAnalysisData(currentUser));
-  const [tasks, setTasks] = useState<OperationTaskRecord[]>(() => filterTasksByPermission(taskDataSource.load(), currentUser));
+  }>(() => emptyAnalysisData());
+  const [tasks, setTasks] = useState<OperationTaskRecord[]>([]);
   const [dateFilter, setDateFilter] = useState('');
   const [storeFilter, setStoreFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -328,14 +535,24 @@ function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
   const [isDataQualityExpanded, setIsDataQualityExpanded] = useState(false);
 
   useEffect(() => {
-    const refresh = () => {
-      setData(loadAnalysisData(currentUser));
-      setTasks(filterTasksByPermission(taskDataSource.load(), currentUser));
+    let cancelled = false;
+    const refresh = async () => {
+      const [nextData, nextTasks] = await Promise.all([
+        loadAnalysisData(currentUser),
+        fetchJson<OperationTaskRecord[]>('/api/tasks', []),
+      ]);
+
+      if (!cancelled) {
+        setData(nextData);
+        setTasks(filterTasksByPermission(nextTasks, currentUser));
+      }
     };
+    void refresh();
     const unsubscribeTraffic = subscribeTrafficConversionChange(refresh);
     const unsubscribeOrder = subscribeOrderImportStorageChange(refresh);
 
     return () => {
+      cancelled = true;
       unsubscribeTraffic();
       unsubscribeOrder();
     };
@@ -348,8 +565,12 @@ function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
     (!typeFilter || item.type === typeFilter) &&
     (!resultFilter || item.resultType === resultFilter),
   ), [analysisItems, dateFilter, resultFilter, storeFilter, typeFilter]);
+  const visibleFiltered = useMemo(() => filtered.slice(0, DETAIL_RENDER_LIMIT), [filtered]);
   const dates = useMemo(() => Array.from(new Set(analysisItems.map((item) => item.date))).sort().reverse(), [analysisItems]);
   const stores = useMemo(() => Array.from(new Set(analysisItems.map((item) => item.storeName))).sort(), [analysisItems]);
+  const riskStoreCount = useMemo(() => new Set(riskResults.map((item) => item.storeName)).size, [riskResults]);
+  const growthStoreCount = useMemo(() => new Set(growthResults.map((item) => item.storeName)).size, [growthResults]);
+  const criticalRiskCount = useMemo(() => riskResults.filter((item) => item.level === 'critical').length, [riskResults]);
   const maxGrowth = growthResults[0];
   const maxDrop = riskResults[0];
   // 后续可扩展运营总监、组长、分组权限、仅查看本组；当前先仅管理员可见。
@@ -362,10 +583,10 @@ function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
     factDataQualityReport.missingPlatformCount +
     factDataQualityReport.missingDateCount +
     storeMatchReport.unmatchedStoreNames.length;
-  const handleRegenerate = () => {
+  const handleRegenerate = async () => {
     try {
       trafficConversionDataSource.regenerateAnalysisResults();
-      setData(loadAnalysisData(currentUser));
+      setData(await loadAnalysisData(currentUser));
       setRefreshMessage('分析结果已重新生成');
     } catch (error) {
       setRefreshMessage(`分析结果生成失败：${error instanceof Error ? error.message : 'JSON 文件写入失败'}`);
@@ -407,15 +628,15 @@ function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
       <section className="import-overview-grid">
         <article>
           <span>风险店铺数</span>
-          <strong>{new Set(riskResults.map((item) => item.storeName)).size}</strong>
+          <strong>{riskStoreCount}</strong>
         </article>
         <article>
           <span>增长店铺数</span>
-          <strong>{new Set(growthResults.map((item) => item.storeName)).size}</strong>
+          <strong>{growthStoreCount}</strong>
         </article>
         <article>
           <span>严重风险数</span>
-          <strong>{riskResults.filter((item) => item.level === 'critical').length}</strong>
+          <strong>{criticalRiskCount}</strong>
         </article>
         <article>
           <span>最大增长店铺</span>
@@ -594,7 +815,7 @@ function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
             <h2>详细分析列表</h2>
             <p>包含风险问题、增长机会、数据不足和正常结果。</p>
           </div>
-          <span>{filtered.length} 条</span>
+          <span>{filtered.length > DETAIL_RENDER_LIMIT ? `${filtered.length} 条，显示前 ${DETAIL_RENDER_LIMIT} 条` : `${filtered.length} 条`}</span>
         </header>
         <section className="import-filter-bar">
           <label>
@@ -646,7 +867,7 @@ function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((item) => (
+              {visibleFiltered.map((item) => (
                 <tr key={item.id}>
                   <td>{item.date}</td>
                   <td><strong>{item.storeName}</strong></td>

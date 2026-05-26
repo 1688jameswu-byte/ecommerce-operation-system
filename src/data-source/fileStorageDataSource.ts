@@ -31,6 +31,36 @@ function request(method: string, name: string, body?: unknown): string | null {
   return null;
 }
 
+async function requestAsync(method: string, name: string, body?: unknown): Promise<string | null> {
+  const cacheBust = method === 'GET' ? `?t=${Date.now()}` : '';
+  const response = await fetch(`${apiBase}/${name}${cacheBust}`, {
+    method,
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    credentials: 'include',
+    cache: 'no-store',
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  if (response.ok) {
+    return response.text();
+  }
+
+  if (method === 'PUT') {
+    const text = await response.text();
+    try {
+      const data = JSON.parse(text) as { message?: string };
+      throw new Error(data.message || `JSON 文件写入失败：${name}`);
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        throw error;
+      }
+      throw new Error(text || `JSON 文件写入失败：${name}`);
+    }
+  }
+
+  return null;
+}
+
 export function logPersistentDataPath() {
   if (dataPathLogged || typeof window === 'undefined') {
     return;
@@ -69,6 +99,32 @@ export function writePersistentJson(name: string, value: unknown, options?: Writ
 
   logPersistentDataPath();
   request('PUT', name, options?.trafficImportSearchableText
+    ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText }
+    : value);
+}
+
+export async function readPersistentJsonAsync<T>(name: string, fallback: T): Promise<T> {
+  if (typeof window === 'undefined') {
+    return fallback;
+  }
+
+  logPersistentDataPath();
+
+  try {
+    const raw = await requestAsync('GET', name);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function writePersistentJsonAsync(name: string, value: unknown, options?: WritePersistentOptions) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  logPersistentDataPath();
+  await requestAsync('PUT', name, options?.trafficImportSearchableText
     ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText }
     : value);
 }
