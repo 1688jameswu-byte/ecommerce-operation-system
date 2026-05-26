@@ -1,4 +1,6 @@
 import type { TemuOrderDetail, TemuOrderImportBatch, TemuOrderImportResult, TemuOrderImportStore } from '../types/order';
+import type { SalesOrderRecord } from '../types/fact';
+import { buildStandardSalesOrders } from '../utils/factDataStandardization';
 import { readPersistentJson, writePersistentJson } from './fileStorageDataSource';
 
 export const TEMU_ORDER_IMPORT_STORAGE_KEY = 'temuOrderImportResult';
@@ -65,6 +67,48 @@ function recalcBatch(batch: TemuOrderImportBatch): TemuOrderImportBatch {
   };
 }
 
+function normalizeStoreName(value: unknown) {
+  const name = String(value ?? '')
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\ufeff]/g, '')
+    .trim();
+
+  if (!name) {
+    return '未知店铺';
+  }
+
+  if (name.includes('�')) {
+    const fallbackName = name.replace(/�+/g, '').trim();
+
+    if (/^[a-z0-9]+$/i.test(fallbackName)) {
+      return `${fallbackName}店`;
+    }
+  }
+
+  return name;
+}
+
+function normalizeStore(store: TemuOrderImportStore) {
+  let changed = false;
+  const batches = store.batches.map((batch) => ({
+    ...batch,
+    orders: batch.orders.map((order) => {
+      const storeName = normalizeStoreName(order.storeName);
+
+      if (storeName === order.storeName) {
+        return order;
+      }
+
+      changed = true;
+      return { ...order, storeName };
+    }),
+  }));
+
+  return {
+    changed,
+    store: changed ? ({ batches } satisfies TemuOrderImportStore) : store,
+  };
+}
+
 function getPairs(orders: TemuOrderDetail[]) {
   return new Set(orders.map((order) => `${order.storeName}|${order.orderDate}`));
 }
@@ -85,7 +129,13 @@ export const orderImportStorageDataSource = {
     const fileStore = readPersistentJson<TemuOrderImportStore>(ORDER_IMPORT_FILE_KEY, emptyStore());
 
     if (fileStore.batches.length > 0) {
-      return fileStore;
+      const normalized = normalizeStore(fileStore);
+
+      if (normalized.changed) {
+        writePersistentJson(ORDER_IMPORT_FILE_KEY, normalized.store);
+      }
+
+      return normalized.store;
     }
 
     const raw = window.localStorage.getItem(TEMU_ORDER_IMPORT_STORAGE_KEY);
@@ -98,12 +148,13 @@ export const orderImportStorageDataSource = {
       const parsed = JSON.parse(raw) as unknown;
 
       if (isStore(parsed)) {
-        writePersistentJson(ORDER_IMPORT_FILE_KEY, parsed);
-        return parsed;
+        const normalized = normalizeStore(parsed);
+        writePersistentJson(ORDER_IMPORT_FILE_KEY, normalized.store);
+        return normalized.store;
       }
 
       if (isLegacyImport(parsed)) {
-        const store = { batches: [toBatch(parsed)] };
+        const store = normalizeStore({ batches: [toBatch(parsed)] }).store;
         writePersistentJson(ORDER_IMPORT_FILE_KEY, store);
         return store;
       }
@@ -142,8 +193,16 @@ export const orderImportStorageDataSource = {
     };
   },
 
+  loadStandardSalesOrders(): SalesOrderRecord[] {
+    return buildStandardSalesOrders(
+      this.loadStore().batches.flatMap((batch) =>
+        batch.orders.map((order) => ({ ...order, batchId: batch.batchId })),
+      ),
+    );
+  },
+
   save(importResult: TemuOrderImportResult) {
-    const newBatch = toBatch(importResult);
+    const newBatch = normalizeStore({ batches: [toBatch(importResult)] }).store.batches[0];
     const replacePairs = getPairs(newBatch.orders);
     const batches = this.loadStore().batches
       .map((batch) =>
@@ -160,6 +219,28 @@ export const orderImportStorageDataSource = {
 
   deleteBatch(batchId: string) {
     const batches = this.loadStore().batches.filter((batch) => batch.batchId !== batchId);
+    writePersistentJson(ORDER_IMPORT_FILE_KEY, { batches });
+    notifyStorageChange();
+  },
+
+  deleteByScope(scope: { date?: string; storeName?: string }) {
+    if (!scope.date && !scope.storeName) {
+      return;
+    }
+
+    const batches = this.loadStore().batches
+      .map((batch) =>
+        recalcBatch({
+          ...batch,
+          orders: batch.orders.filter((order) => {
+            const matchedDate = !scope.date || order.orderDate === scope.date;
+            const matchedStore = !scope.storeName || order.storeName === scope.storeName;
+            return !(matchedDate && matchedStore);
+          }),
+        }),
+      )
+      .filter((batch) => batch.orders.length > 0);
+
     writePersistentJson(ORDER_IMPORT_FILE_KEY, { batches });
     notifyStorageChange();
   },

@@ -1,5 +1,18 @@
+export type StoreOperatorRole = string;
+export type StoreOperatorRelationStatus = 'active' | 'inactive';
+
 export interface StoreOperatorRelation {
-  storeName: string;
+  id: string;
+  storeId: string;
   operatorId: string;
-  operatorName: string;
+  role: StoreOperatorRole;
+  startDate: string;
+  endDate: string;
+  status: StoreOperatorRelationStatus;
+  remark: string;
+  createdAt: string;
+  updatedAt: string;
+  storeName?: string;
+  platform?: string;
+  operatorName?: string;
 }

@@ -1,7 +1,7 @@
 import type { DashboardConfig } from '../types/config';
 
 export const dashboardConfig: DashboardConfig = {
-  title: 'TEMU运营数据大屏',
+  title: 'TEMU运营中心',
   subtitle: '数据驱动增长，团队赢得未来',
   designWidth: 1920,
   designHeight: 1080,

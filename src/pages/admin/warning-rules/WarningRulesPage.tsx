@@ -22,8 +22,12 @@ function WarningRulesPage() {
   }, []);
 
   const save = () => {
-    trafficConversionDataSource.saveRuleStore(store);
-    setMessage('已保存');
+    try {
+      trafficConversionDataSource.saveRuleStore(store);
+      setMessage('已保存');
+    } catch (error) {
+      setMessage(`保存失败：${error instanceof Error ? error.message : 'JSON 文件写入失败'}`);
+    }
   };
 
   return (

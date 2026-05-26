@@ -39,7 +39,7 @@ function DashboardHeader({ title, subtitle, dashboardData }: DashboardHeaderProp
   return (
     <header className="dashboard-header">
       <div className="dashboard-brand">
-        <div className="dashboard-logo">TEMU</div>
+        <div className="dashboard-logo">电商</div>
         <div>
           <h1>{title}</h1>
           <p>{subtitle}</p>

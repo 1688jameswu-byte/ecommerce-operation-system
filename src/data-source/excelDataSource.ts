@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { ExcelImportPreview, ExcelSheetPreview } from '../types/import';
 import type { TemuOrderDetail, TemuOrderImportResult } from '../types/order';
+import { storeDataSource } from './storeDataSource';
 import type { ExternalDataSourceAdapter } from './sourceTypes';
 
 const PREVIEW_ROW_LIMIT = 5;
@@ -64,6 +65,66 @@ function getCell(row: Record<string, unknown>, header: string) {
   return row[header] ?? row[header.replace(/\s+/g, '')] ?? '';
 }
 
+const UNKNOWN_STORE_NAME = '未知店铺';
+
+function cleanStoreName(value: unknown) {
+  return String(value ?? '')
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\ufeff]/g, '')
+    .trim();
+}
+
+function normalizeStoreKey(value: string) {
+  return cleanStoreName(value).replace(/\s+/g, '').toLocaleLowerCase();
+}
+
+function loadStoreNames() {
+  try {
+    return storeDataSource.load().map((store) => store.storeName).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function normalizeImportedStoreName(value: unknown, storeNames: string[]) {
+  const rawName = cleanStoreName(value);
+  const name = rawName || UNKNOWN_STORE_NAME;
+  const normalizedKey = normalizeStoreKey(name);
+  const exactMatch = storeNames.find((storeName) => normalizeStoreKey(storeName) === normalizedKey);
+
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  if (name.includes('�')) {
+    const fallbackName = cleanStoreName(name.replace(/�+/g, ''));
+    const fallbackKey = normalizeStoreKey(fallbackName);
+    const fallbackMatches = storeNames.filter((storeName) => normalizeStoreKey(storeName).startsWith(fallbackKey));
+
+    if (fallbackKey && fallbackMatches.length === 1) {
+      return fallbackMatches[0];
+    }
+
+    if (/^[a-z0-9]+$/i.test(fallbackName)) {
+      return `${fallbackName}店`;
+    }
+  }
+
+  return name;
+}
+
+function logStoreNameNormalization(mappings: Map<string, string>) {
+  const isDev = Boolean((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV);
+
+  if (!isDev || mappings.size === 0) {
+    return;
+  }
+
+  console.info(
+    '[订单导入] 原始店铺名称 -> 标准化店铺名称',
+    Array.from(mappings.entries()).map(([rawName, normalizedName]) => `${rawName || '(空)'} -> ${normalizedName}`),
+  );
+}
+
 function parsePrice(value: unknown) {
   const normalized = String(value ?? '').replace(/CNY/i, '').replace(/,/g, '').trim();
   const parsed = Number(normalized);
@@ -104,10 +165,19 @@ function isBlankRow(row: Record<string, unknown>) {
   return Object.values(row).every((value) => String(value ?? '').trim() === '');
 }
 
-function normalizeOrderRow(row: Record<string, unknown>, rowIndex: number): TemuOrderDetail | null {
+function normalizeOrderRow(
+  row: Record<string, unknown>,
+  rowIndex: number,
+  storeNames: string[],
+  storeNameMappings: Map<string, string>,
+): TemuOrderDetail | null {
   if (isBlankRow(row)) {
     return null;
   }
+
+  const rawStoreName = cleanStoreName(getCell(row, orderFieldMap.storeName));
+  const storeName = normalizeImportedStoreName(rawStoreName, storeNames);
+  storeNameMappings.set(rawStoreName, storeName);
 
   const orderTimeDate = parseOrderTime(getCell(row, orderFieldMap.orderTime));
   const orderId = String(getCell(row, orderFieldMap.orderId)).trim();
@@ -135,7 +205,7 @@ function normalizeOrderRow(row: Record<string, unknown>, rowIndex: number): Temu
     orderDate,
     month,
     status: String(getCell(row, orderFieldMap.status)).trim(),
-    storeName: String(getCell(row, orderFieldMap.storeName)).trim() || '未知店铺',
+    storeName,
     salesAmount: Number((declarePrice * quantity).toFixed(2)),
     operatorName: '未分配运营',
     uniqueKey: String(rowIndex),
@@ -153,9 +223,12 @@ export async function parseTemuOrderExcelFile(file: File): Promise<TemuOrderImpo
       defval: '',
     }),
   );
+  const storeNames = loadStoreNames();
+  const storeNameMappings = new Map<string, string>();
   const orders = rows
-    .map((row, index) => normalizeOrderRow(row, index))
+    .map((row, index) => normalizeOrderRow(row, index, storeNames, storeNameMappings))
     .filter((order): order is TemuOrderDetail => Boolean(order));
+  logStoreNameNormalization(storeNameMappings);
 
   return {
     fileName: file.name,

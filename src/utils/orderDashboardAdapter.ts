@@ -1,5 +1,4 @@
 import { mockDashboardData } from '../data/mockDashboardData';
-import { storeOperatorDataSource } from '../data-source/storeOperatorDataSource';
 import type {
   DashboardData,
   FirstOrderDailyTrendItem,
@@ -11,6 +10,7 @@ import type {
   WarningItem,
 } from '../types/dashboard';
 import type { TemuOrderDetail, TemuOrderImportResult } from '../types/order';
+import type { SalesOrderRecord } from '../types/fact';
 
 const UNASSIGNED_OPERATOR = '未分配运营';
 
@@ -30,9 +30,15 @@ function getCurrentDate() {
   return new Date();
 }
 
-function getLatestOrderDate(orders: TemuOrderDetail[]) {
+function getYesterdayDate() {
+  const date = getCurrentDate();
+  date.setDate(date.getDate() - 1);
+  return toDateKey(date);
+}
+
+function getLatestOrderDate(orders: SalesOrderRecord[]) {
   const latestTime = orders.reduce((latest, order) => {
-    const time = new Date(order.orderDate).getTime();
+    const time = new Date(order.date).getTime();
 
     return Number.isNaN(time) ? latest : Math.max(latest, time);
   }, 0);
@@ -40,11 +46,11 @@ function getLatestOrderDate(orders: TemuOrderDetail[]) {
   return latestTime > 0 ? new Date(latestTime) : getCurrentDate();
 }
 
-function sumSales(orders: TemuOrderDetail[]) {
+function sumSales(orders: SalesOrderRecord[]) {
   return orders.reduce((total, order) => total + order.salesAmount, 0);
 }
 
-function countOrderRows(orders: TemuOrderDetail[]) {
+function countOrderRows(orders: SalesOrderRecord[]) {
   return orders.length;
 }
 
@@ -66,7 +72,7 @@ function buildRanking(
     }));
 }
 
-function groupSum(orders: TemuOrderDetail[], getKey: (order: TemuOrderDetail) => string) {
+function groupSum(orders: SalesOrderRecord[], getKey: (order: SalesOrderRecord) => string) {
   const result = new Map<string, number>();
 
   for (const order of orders) {
@@ -77,7 +83,7 @@ function groupSum(orders: TemuOrderDetail[], getKey: (order: TemuOrderDetail) =>
   return Array.from(result.entries());
 }
 
-function groupCount(orders: TemuOrderDetail[], getKey: (order: TemuOrderDetail) => string) {
+function groupCount(orders: SalesOrderRecord[], getKey: (order: SalesOrderRecord) => string) {
   const result = new Map<string, number>();
 
   for (const order of orders) {
@@ -88,21 +94,42 @@ function groupCount(orders: TemuOrderDetail[], getKey: (order: TemuOrderDetail) 
   return Array.from(result.entries());
 }
 
-function groupOperatorSales(orders: TemuOrderDetail[]) {
-  const relations = storeOperatorDataSource.load();
-  const operatorByStore = new Map(relations.map((item) => [item.storeName, item.operatorName]));
-
-  return groupSum(orders, (order) => operatorByStore.get(order.storeName) ?? UNASSIGNED_OPERATOR);
+function groupOperatorSales(orders: SalesOrderRecord[]) {
+  return groupSum(orders, (order) => order.operatorName || UNASSIGNED_OPERATOR);
 }
 
-function buildSalesTrend(orders: TemuOrderDetail[], endDate: Date): SalesTrendItem[] {
+function groupStoreSales(orders: SalesOrderRecord[]) {
+  const totals = new Map<string, { name: string; value: number }>();
+
+  for (const order of orders) {
+    const current = totals.get(order.storeId) ?? { name: order.storeName, value: 0 };
+    current.value += order.salesAmount;
+    totals.set(order.storeId, current);
+  }
+
+  return Array.from(totals.values()).map((item) => [item.name, item.value] as [string, number]);
+}
+
+function groupStoreCount(orders: SalesOrderRecord[]) {
+  const counts = new Map<string, { name: string; value: number }>();
+
+  for (const order of orders) {
+    const current = counts.get(order.storeId) ?? { name: order.storeName, value: 0 };
+    current.value += 1;
+    counts.set(order.storeId, current);
+  }
+
+  return Array.from(counts.values()).map((item) => [item.name, item.value] as [string, number]);
+}
+
+function buildSalesTrend(orders: SalesOrderRecord[], endDate: Date): SalesTrendItem[] {
   const dailySales = new Map<string, { salesAmount: number; orderIds: Set<string> }>();
 
   for (const order of orders) {
-    const daily = dailySales.get(order.orderDate) ?? { salesAmount: 0, orderIds: new Set<string>() };
+    const daily = dailySales.get(order.date) ?? { salesAmount: 0, orderIds: new Set<string>() };
     daily.salesAmount += order.salesAmount;
     daily.orderIds.add(order.orderId);
-    dailySales.set(order.orderDate, daily);
+    dailySales.set(order.date, daily);
   }
 
   return Array.from({ length: 30 }, (_, index) => {
@@ -145,27 +172,28 @@ function getFirstOrderStatus(recent7Avg: number, previous30Avg: number): FirstOr
   return 'normal';
 }
 
-function buildFirstOrderTrend(orders: TemuOrderDetail[], endDate: Date) {
+function buildFirstOrderTrend(orders: SalesOrderRecord[], endDate: Date) {
   const dateKeys30 = getRecentDateKeys(endDate, 30);
   const dateKeys7 = dateKeys30.slice(-7);
   const dateKeySet30 = new Set(dateKeys30);
   const storeDateCounts = new Map<string, Map<string, number>>();
+  const storeNameByKey = new Map<string, string>();
   const dailyCounts = new Map<string, number>();
 
   for (const order of orders) {
-    if (!order.isFirstOrder || !dateKeySet30.has(order.orderDate)) {
+    if (!order.isFirstOrder || !dateKeySet30.has(order.date)) {
       continue;
     }
 
-    const storeName = order.storeName || '未知店铺';
-    const dateCounts = storeDateCounts.get(storeName) ?? new Map<string, number>();
-    dateCounts.set(order.orderDate, (dateCounts.get(order.orderDate) ?? 0) + 1);
-    storeDateCounts.set(storeName, dateCounts);
-    dailyCounts.set(order.orderDate, (dailyCounts.get(order.orderDate) ?? 0) + 1);
+    const dateCounts = storeDateCounts.get(order.storeId) ?? new Map<string, number>();
+    dateCounts.set(order.date, (dateCounts.get(order.date) ?? 0) + 1);
+    storeDateCounts.set(order.storeId, dateCounts);
+    storeNameByKey.set(order.storeId, order.storeName);
+    dailyCounts.set(order.date, (dailyCounts.get(order.date) ?? 0) + 1);
   }
 
   const stores: FirstOrderTrendItem[] = Array.from(storeDateCounts.entries())
-    .map(([storeName, counts]) => {
+    .map(([storeKey, counts]) => {
       const previous30Total = dateKeys30.reduce((total, date) => total + (counts.get(date) ?? 0), 0);
       const recent7Total = dateKeys7.reduce((total, date) => total + (counts.get(date) ?? 0), 0);
       const previous30Avg = Number((previous30Total / 30).toFixed(2));
@@ -174,7 +202,7 @@ function buildFirstOrderTrend(orders: TemuOrderDetail[], endDate: Date) {
         previous30Avg > 0 ? Number((((recent7Avg - previous30Avg) / previous30Avg) * 100).toFixed(2)) : 0;
 
       return {
-        storeName,
+        storeName: storeNameByKey.get(storeKey) ?? storeKey,
         previous30Avg,
         recent7Avg,
         changeRate,
@@ -216,14 +244,39 @@ function metric(id: string, value: number, overrides: Partial<MetricItem> = {}):
   };
 }
 
-export function buildDashboardDataFromOrders(importResult: TemuOrderImportResult): DashboardData {
-  const orders = importResult.orders;
-  const displayOrders = importResult.displayOrders ?? orders;
+function toFallbackSalesOrder(order: TemuOrderDetail): SalesOrderRecord {
+  return {
+    platform: 'Other',
+    storeId: order.storeName,
+    storeName: order.storeName,
+    operatorId: order.operatorName ? `operator-${order.operatorName}` : '',
+    operatorName: order.operatorName,
+    date: order.orderDate,
+    month: order.month,
+    year: Number(order.orderDate.slice(0, 4)) || 0,
+    week: '',
+    orderId: order.orderId,
+    salesAmount: order.salesAmount,
+    quantity: order.quantity,
+    isFirstOrder: order.isFirstOrder,
+    sourceKey: order.uniqueKey,
+  };
+}
+
+export function buildDashboardDataFromOrders(
+  importResult: TemuOrderImportResult,
+  standardOrders: SalesOrderRecord[] = [],
+): DashboardData {
+  const orders = standardOrders.length > 0 ? standardOrders : importResult.orders.map(toFallbackSalesOrder);
+  const displaySourceKeys = new Set((importResult.displayOrders ?? importResult.orders).map((order) => order.uniqueKey || order.orderId));
+  const displayOrders = orders.filter((order) => displaySourceKeys.has(order.sourceKey || order.orderId));
+  const yesterdayDate = getYesterdayDate();
+  const yesterdayOrders = orders.filter((order) => order.date === yesterdayDate);
   const reportDate = getLatestOrderDate(orders);
   const currentMonth = toMonthKey(getCurrentDate());
 
   const monthOrders = orders.filter((order) => order.month === currentMonth);
-  const storeNames = new Set(orders.map((order) => order.storeName).filter(Boolean));
+  const storeKeys = new Set(orders.map((order) => order.storeId).filter(Boolean));
   const firstOrderRows = monthOrders.filter((order) => order.isFirstOrder);
   const firstOrderTrend = buildFirstOrderTrend(orders, reportDate);
   const firstOrderDangerCount = firstOrderTrend.stores.filter((item) => item.status === 'danger').length;
@@ -234,23 +287,23 @@ export function buildDashboardDataFromOrders(importResult: TemuOrderImportResult
     dataSource: `Excel订单数据：${importResult.fileName}`,
     statisticsPeriod: currentMonth,
     metrics: [
-      metric('yesterdaySalesAmount', sumSales(displayOrders), { compareText: '最新导入批次' }),
+      metric('yesterdaySalesAmount', sumSales(yesterdayOrders), { compareText: `订单日期 ${yesterdayDate}` }),
       metric('monthlySalesAmount', sumSales(monthOrders), { compareText: 'Excel订单明细' }),
-      metric('yesterdayOrderCount', countOrderRows(displayOrders), { compareText: '最新导入批次' }),
+      metric('yesterdayOrderCount', countOrderRows(yesterdayOrders), { compareText: `订单日期 ${yesterdayDate}` }),
       metric('monthlyOrderCount', countOrderRows(monthOrders), { compareText: 'Excel有效明细' }),
-      metric('storeCount', storeNames.size, { compareText: `订单店铺 ${storeNames.size}` }),
-      metric('abnormalStoreCount', firstOrderDangerCount, { compareText: '首单趋势危险' }),
+      metric('storeCount', storeKeys.size, { compareText: `订单店铺 ${storeKeys.size}` }),
+      metric('abnormalStoreCount', firstOrderDangerCount, { compareText: '首单趋势风险' }),
     ],
     operatorSalesRanking: buildRanking(groupOperatorSales(monthOrders), '¥'),
-    storeSalesRanking: buildRanking(groupSum(displayOrders, (order) => order.storeName || '未知店铺'), '¥'),
+    storeSalesRanking: buildRanking(groupStoreSales(monthOrders), '¥'),
     newProductRanking: mockDashboardData.newProductRanking,
-    firstOrderRanking: buildRanking(groupCount(firstOrderRows, (order) => order.storeName || '未知店铺'), '个'),
+    firstOrderRanking: buildRanking(groupStoreCount(firstOrderRows), '单'),
     salesTrend30Days: buildSalesTrend(orders, reportDate),
     firstOrderTrendStores: firstOrderTrend.stores,
     firstOrderTrend30Days: firstOrderTrend.dailyTrend,
     storeStatus: {
-      total: storeNames.size,
-      normal: Math.max(storeNames.size - firstOrderDangerCount, 0),
+      total: storeKeys.size,
+      normal: Math.max(storeKeys.size - firstOrderDangerCount, 0),
       abnormal: firstOrderDangerCount,
       closed: 0,
     },

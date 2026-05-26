@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import { parseExcelFile, parseTemuOrderExcelFile } from '../../../data-source/excelDataSource';
 import { orderImportStorageDataSource } from '../../../data-source/orderImportStorageDataSource';
 import type { ExcelImportPreview } from '../../../types/import';
 import type { TemuOrderDetail, TemuOrderImportBatch } from '../../../types/order';
+import ConfirmDeleteModal from '../ConfirmDeleteModal';
 
 type ImportStatus = 'normal' | 'missing' | 'duplicate' | 'abnormal';
 
@@ -18,6 +19,16 @@ interface ImportTableRow {
   status: ImportStatus;
   importedAt: string;
   fileName: string;
+}
+
+interface DeleteScopeSummary {
+  date?: string;
+  storeName?: string;
+  dateCount: number;
+  storeCount: number;
+  batchCount: number;
+  detailCount: number;
+  salesAmount: number;
 }
 
 const statusLabels: Record<ImportStatus, string> = {
@@ -36,6 +47,26 @@ function formatMoney(value: number) {
 
 function toDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function normalizeStoreName(value: unknown) {
+  const name = String(value ?? '')
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\ufeff]/g, '')
+    .trim();
+
+  if (!name) {
+    return '未知店铺';
+  }
+
+  if (name.includes('�')) {
+    const fallbackName = name.replace(/�+/g, '').trim();
+
+    if (/^[a-z0-9]+$/i.test(fallbackName)) {
+      return `${fallbackName}店`;
+    }
+  }
+
+  return name;
 }
 
 function getStatus(batch: TemuOrderImportBatch, orders: TemuOrderDetail[], storeName: string, date: string): ImportStatus {
@@ -61,7 +92,7 @@ function buildRows(batches: TemuOrderImportBatch[]): ImportTableRow[] {
 
       for (const order of batch.orders) {
         const date = order.orderDate || '-';
-        const storeName = order.storeName || '未知店铺';
+        const storeName = normalizeStoreName(order.storeName);
         const key = `${date}|${storeName}`;
         groups.set(key, [...(groups.get(key) ?? []), order]);
       }
@@ -99,6 +130,21 @@ function groupRowsByDate(rows: ImportTableRow[]) {
   }, []);
 }
 
+function summarizeRows(rows: ImportTableRow[], scope: { date?: string; storeName?: string }): DeleteScopeSummary {
+  return {
+    ...scope,
+    dateCount: new Set(rows.map((row) => row.date)).size,
+    storeCount: new Set(rows.map((row) => row.storeName)).size,
+    batchCount: new Set(rows.map((row) => row.batchId)).size,
+    detailCount: rows.reduce((total, row) => total + row.detailCount, 0),
+    salesAmount: rows.reduce((total, row) => total + row.salesAmount, 0),
+  };
+}
+
+function formatUnique(values: string[]) {
+  return Array.from(new Set(values)).join('、');
+}
+
 function ExcelImportPage() {
   const [preview, setPreview] = useState<ExcelImportPreview | null>(null);
   const [batches, setBatches] = useState<TemuOrderImportBatch[]>([]);
@@ -107,6 +153,8 @@ function ExcelImportPage() {
   const [dateFilter, setDateFilter] = useState('');
   const [storeFilter, setStoreFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [deleteBatchRow, setDeleteBatchRow] = useState<ImportTableRow | null>(null);
+  const [deleteScope, setDeleteScope] = useState<DeleteScopeSummary | null>(null);
 
   const rows = useMemo(() => buildRows(batches), [batches]);
   const filteredRows = rows.filter((row) => {
@@ -128,6 +176,16 @@ function ExcelImportPage() {
     batchCount: batches.length,
     abnormalStoreCount: rows.filter((row) => row.status === 'abnormal').length,
   };
+  const scopeDeleteLabel =
+    dateFilter && storeFilter
+      ? '删除当前日期 + 店铺数据'
+      : dateFilter
+        ? '删除当前日期数据'
+        : storeFilter
+          ? '删除当前店铺数据'
+          : '';
+  const deleteBatchRows = deleteBatchRow ? rows.filter((row) => row.batchId === deleteBatchRow.batchId) : [];
+  const deleteBatchSummary = deleteBatchRows.length > 0 ? summarizeRows(deleteBatchRows, {}) : null;
 
   const refreshSavedData = () => {
     setBatches(orderImportStorageDataSource.loadStore().batches);
@@ -155,9 +213,11 @@ function ExcelImportPage() {
         setPreview(previewResult);
       }
       refreshSavedData();
-    } catch {
+    } catch (error) {
       setPreview(null);
-      setError('Excel 解析失败，请检查文件格式和订单表头。');
+      setError(error instanceof Error && error.message === '当前账号无权导入该店铺数据'
+        ? error.message
+        : 'Excel 解析失败，请检查文件格式和订单表头。');
     } finally {
       setIsParsing(false);
     }
@@ -173,16 +233,48 @@ function ExcelImportPage() {
     await importFiles(Array.from(event.dataTransfer.files));
   };
 
-  const handleClearImportedData = () => {
-    orderImportStorageDataSource.clear();
-    setPreview(null);
+  const handleDeleteBatch = (batchId: string) => {
+    orderImportStorageDataSource.deleteBatch(batchId);
+    setDeleteBatchRow(null);
     refreshSavedData();
     setError(null);
   };
 
-  const handleDeleteBatch = (batchId: string) => {
-    orderImportStorageDataSource.deleteBatch(batchId);
+  const openDeleteScopeConfirm = () => {
+    const scope = { date: dateFilter || undefined, storeName: storeFilter || undefined };
+
+    if (!scope.date && !scope.storeName) {
+      setError('请先选择具体日期或具体店铺后再删除。');
+      return;
+    }
+
+    const matchedRows = rows.filter((row) => {
+      return (!scope.date || row.date === scope.date) && (!scope.storeName || row.storeName === scope.storeName);
+    });
+
+    if (matchedRows.length === 0) {
+      setError('当前范围内没有可删除的导入数据。');
+      return;
+    }
+
+    setError(null);
+    setDeleteScope(summarizeRows(matchedRows, scope));
+  };
+
+  const handleDeleteScope = () => {
+    if (!deleteScope || deleteScope.detailCount === 0 || (!deleteScope.date && !deleteScope.storeName)) {
+      setError('当前范围内没有可删除的导入数据。');
+      setDeleteScope(null);
+      return;
+    }
+
+    orderImportStorageDataSource.deleteByScope({
+      date: deleteScope.date,
+      storeName: deleteScope.storeName,
+    });
+    setDeleteScope(null);
     refreshSavedData();
+    setError(null);
   };
 
   return (
@@ -213,7 +305,7 @@ function ExcelImportPage() {
       <article className="excel-upload-panel">
         <div>
           <span className="admin-status">订单销售数据导入</span>
-          <h2>上传店铺 TEMU 订单 Excel</h2>
+          <h2>上传店铺订单 Excel</h2>
           <p>按店铺和日期沉淀经营数据，同店铺同日期重新导入时会替换原数据。</p>
         </div>
         <label className="excel-upload-box" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
@@ -221,11 +313,6 @@ function ExcelImportPage() {
           <strong>{isParsing ? '解析中...' : '选择或拖入 Excel 文件'}</strong>
           <span>支持批量上传 .xlsx / .xls / .csv</span>
         </label>
-        {batches.length > 0 && (
-          <button className="excel-clear-button" type="button" onClick={handleClearImportedData}>
-            清空已导入数据
-          </button>
-        )}
         {error && <div className="excel-import-error">{error}</div>}
       </article>
 
@@ -272,6 +359,13 @@ function ExcelImportPage() {
               ))}
             </select>
           </label>
+          {scopeDeleteLabel && (
+            <div className="import-filter-actions">
+              <button className="excel-clear-button danger-action-button" type="button" onClick={openDeleteScopeConfirm}>
+                {scopeDeleteLabel}
+              </button>
+            </div>
+          )}
         </section>
 
         <div className="import-record-table-wrap">
@@ -310,7 +404,7 @@ function ExcelImportPage() {
                       </td>
                       <td>{row.importedAt.replace('T', ' ').slice(0, 19)}</td>
                       <td>
-                        <button type="button" onClick={() => handleDeleteBatch(row.batchId)}>
+                        <button type="button" className="danger-action-button" onClick={() => setDeleteBatchRow(row)}>
                           删除批次
                         </button>
                       </td>
@@ -340,8 +434,39 @@ function ExcelImportPage() {
           </div>
         </article>
       )}
+      {deleteBatchRow && deleteBatchSummary && (
+        <ConfirmDeleteModal
+          title="确认删除该批次数据吗？"
+          description="删除后不可恢复。"
+          onCancel={() => setDeleteBatchRow(null)}
+          onConfirm={() => handleDeleteBatch(deleteBatchRow.batchId)}
+        >
+          <span>日期：{formatUnique(deleteBatchRows.map((row) => row.date))}</span>
+          <span>店铺名称：{formatUnique(deleteBatchRows.map((row) => row.storeName))}</span>
+          <span>文件名：{deleteBatchRow.fileName}</span>
+          <span>销售额：¥ {formatMoney(deleteBatchSummary.salesAmount)}</span>
+          <span>明细数：{deleteBatchSummary.detailCount}</span>
+        </ConfirmDeleteModal>
+      )}
+      {deleteScope && (
+        <ConfirmDeleteModal
+          title={`确认${scopeDeleteLabel}吗？`}
+          description="删除后不可恢复。"
+          onCancel={() => setDeleteScope(null)}
+          onConfirm={handleDeleteScope}
+        >
+          {deleteScope.date && <span>将删除的日期：{deleteScope.date}</span>}
+          {deleteScope.storeName && <span>店铺名称：{deleteScope.storeName}</span>}
+          {!deleteScope.storeName && <span>影响的店铺数：{deleteScope.storeCount}</span>}
+          {!deleteScope.date && <span>影响的日期数：{deleteScope.dateCount}</span>}
+          <span>影响的批次数：{deleteScope.batchCount}</span>
+          <span>影响的明细数：{deleteScope.detailCount}</span>
+          <span>销售额合计：¥ {formatMoney(deleteScope.salesAmount)}</span>
+        </ConfirmDeleteModal>
+      )}
     </section>
   );
 }
 
 export default ExcelImportPage;
+

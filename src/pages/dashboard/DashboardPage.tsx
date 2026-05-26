@@ -17,9 +17,9 @@ import type { DashboardData } from '../../types/dashboard';
 import './dashboard.css';
 
 const rankingPanelConfigs = [
+  { ruleId: 'newProductRanking', dataKey: 'newProductRanking' },
   { ruleId: 'operatorSalesRanking', dataKey: 'operatorSalesRanking' },
   { ruleId: 'storeSalesRanking', dataKey: 'storeSalesRanking' },
-  { ruleId: 'newProductRanking', dataKey: 'newProductRanking' },
 ] as const;
 
 function DashboardPage() {
@@ -65,7 +65,25 @@ function DashboardPage() {
           ))}
         </section>
         <section className="dashboard-content-grid">
-          {rankingPanelConfigs.map(({ ruleId, dataKey }) => {
+          {(() => {
+            const rule = rankingRules.find((item) => item.id === rankingPanelConfigs[0].ruleId);
+            return rule ? (
+              <RankingPanel
+                title={rule.title}
+                period={rule.period}
+                items={dashboardData?.newProductRanking ?? []}
+                showTopThreeBadge={rule.showTopThreeBadge}
+                showGrowth={rule.showGrowth}
+              />
+            ) : null;
+          })()}
+          <Panel title="首单趋势分析" extra={<span>近30天</span>} className="first-order-trend-panel">
+            <FirstOrderTrendChart
+              dailyData={dashboardData?.firstOrderTrend30Days ?? []}
+              stores={dashboardData?.firstOrderTrendStores ?? []}
+            />
+          </Panel>
+          {rankingPanelConfigs.slice(1).map(({ ruleId, dataKey }) => {
             const rule = rankingRules.find((item) => item.id === ruleId);
 
             if (!rule) {
@@ -83,12 +101,6 @@ function DashboardPage() {
               />
             );
           })}
-          <Panel title="首单趋势分析" extra={<span>近30天</span>} className="first-order-trend-panel">
-            <FirstOrderTrendChart
-              dailyData={dashboardData?.firstOrderTrend30Days ?? []}
-              stores={dashboardData?.firstOrderTrendStores ?? []}
-            />
-          </Panel>
           <Panel title="销售趋势" extra={<span>近30天</span>} className="sales-trend-panel">
             <SalesTrendChart data={dashboardData?.salesTrend30Days ?? []} />
           </Panel>

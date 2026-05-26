@@ -21,7 +21,7 @@ function toDashboardWarning(result: TrafficWarningResult): WarningItem {
 function getTrafficWarnings() {
   const ruleStore = trafficConversionDataSource.loadRuleStore();
   return trafficConversionDataSource
-    .computeResults()
+    .loadRiskResults()
     .filter((result) => result.level !== 'insufficient')
     .sort((first, second) => {
       const firstLevel = levelRank[toDashboardWarning(first).level];
@@ -33,7 +33,7 @@ function getTrafficWarnings() {
 }
 
 function getGrowthOpportunities(): GrowthOpportunityItem[] {
-  return trafficConversionDataSource.computeGrowthOpportunities().map((item) => ({
+  return trafficConversionDataSource.loadGrowthOpportunities().map((item) => ({
     id: item.id,
     type: item.type,
     storeName: item.storeName,
@@ -48,8 +48,9 @@ export async function getDashboardData(): Promise<DashboardData> {
   const growthOpportunities = getGrowthOpportunities();
 
   if (orderImportResult) {
+    const standardSalesOrders = orderImportStorageDataSource.loadStandardSalesOrders();
     return {
-      ...buildDashboardDataFromOrders(orderImportResult),
+      ...buildDashboardDataFromOrders(orderImportResult, standardSalesOrders),
       warnings: trafficWarnings,
       growthOpportunities,
     };

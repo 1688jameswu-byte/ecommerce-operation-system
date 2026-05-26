@@ -1,0 +1,13 @@
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[31merror when starting dev server:
+Error: spawn EPERM
+    at ChildProcess.spawn (node:internal/child_process:441:11)
+    at spawn (node:child_process:796:9)
+    at Object.execFile (node:child_process:349:17)
+    at exec (node:child_process:236:25)
+    at optimizeSafeRealPathSync (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:2230:2)
+    at windowsSafeRealPathSync (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:2216:3)
+    at getRealPath (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:32953:36)
+    at tryResolveRealFileOrType (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:32947:9)
+    at tryCleanFsResolve (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:32671:21)
+    at tryFsResolve (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:32664:14)[39m

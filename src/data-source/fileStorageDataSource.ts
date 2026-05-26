@@ -1,13 +1,34 @@
 const apiBase = '/api/persistent-data';
 let dataPathLogged = false;
 
+interface WritePersistentOptions {
+  trafficImportSearchableText?: string;
+}
+
 function request(method: string, name: string, body?: unknown): string | null {
   const xhr = new XMLHttpRequest();
-  xhr.open(method, `${apiBase}/${name}`, false);
+  const cacheBust = method === 'GET' ? `?t=${Date.now()}` : '';
+  xhr.open(method, `${apiBase}/${name}${cacheBust}`, false);
   xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
   xhr.send(body === undefined ? undefined : JSON.stringify(body));
 
-  return xhr.status >= 200 && xhr.status < 300 ? xhr.responseText : null;
+  if (xhr.status >= 200 && xhr.status < 300) {
+    return xhr.responseText;
+  }
+
+  if (method === 'PUT') {
+    try {
+      const data = JSON.parse(xhr.responseText) as { message?: string };
+      throw new Error(data.message || `JSON 文件写入失败：${name}`);
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        throw error;
+      }
+      throw new Error(xhr.responseText || `JSON 文件写入失败：${name}`);
+    }
+  }
+
+  return null;
 }
 
 export function logPersistentDataPath() {
@@ -41,11 +62,13 @@ export function readPersistentJson<T>(name: string, fallback: T): T {
   }
 }
 
-export function writePersistentJson(name: string, value: unknown) {
+export function writePersistentJson(name: string, value: unknown, options?: WritePersistentOptions) {
   if (typeof window === 'undefined') {
     return;
   }
 
   logPersistentDataPath();
-  request('PUT', name, value);
+  request('PUT', name, options?.trafficImportSearchableText
+    ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText }
+    : value);
 }

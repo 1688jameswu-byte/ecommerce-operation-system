@@ -1,0 +1,342 @@
+
+> ecommerce-operations-center@0.1.0 dev
+> vite --configLoader runner
+
+
+> ecommerce-operations-center@0.1.0 dev
+> vite --configLoader runner
+
+
+  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m579[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+
+> ecommerce-operations-center@0.1.0 dev
+> vite --configLoader runner
+
+
+  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m341[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m10:30:12[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:30:12[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:30:12[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:30:17[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:30:17[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:30:31[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:30:31[22m [36m[1m[vite][22m[39m server restarted.
+
+> ecommerce-operations-center@0.1.0 dev
+> vite --configLoader runner
+
+
+  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m398[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m10:37:24[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:37:24[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:37:34[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:37:34[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:38:12[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:38:12[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:38:16[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:38:16[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:38:20[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:38:20[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:38:23[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:38:23[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:38:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:39:08[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m10:39:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:39:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:40:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m10:40:12[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:40:12[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:40:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m10:40:23[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:40:23[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:40:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:40:47[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:40:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/login/LoginPage.tsx[22m
+[2m10:41:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/pages/login/LoginPage.tsx, /src/pages/admin/AdminLayout.tsx[22m
+[2m10:41:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m10:41:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:41:41[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:41:49[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:41:49[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:42:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:44:17[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:44:17[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:44:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m10:46:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:46:58[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:46:58[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:53:41[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:53:41[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:53:51[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:53:51[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:54:09[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:54:09[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:54:23[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m10:54:23[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:54:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:55:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:56:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:56:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:56:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m10:56:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m11:04:11[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:04:11[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:04:18[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:04:18[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:04:45[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:04:45[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:04:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m11:05:01[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m11:20:44[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:20:44[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:20:52[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:20:52[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:21:07[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:21:07[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:21:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m11:21:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m11:23:42[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m11:23:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m11:24:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m11:24:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m11:27:18[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:27:18[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:27:34[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:27:34[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:28:06[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:28:07[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:28:20[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:28:20[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:28:28[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:28:28[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:28:35[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:28:35[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:30:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m11:30:42[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m11:32:01[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:32:01[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:33:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m11:34:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m11:38:58[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:38:58[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:45:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m11:45:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m11:46:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m11:50:36[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m11:51:01[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m11:51:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx, /src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m11:52:05[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx, /src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m11:52:11[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m11:52:32[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m11:52:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m11:52:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m11:53:03[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m11:53:15[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m11:53:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m11:54:08[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m11:54:08[22m [36m[1m[vite][22m[39m server restarted.
+[2m12:02:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/pages/login/LoginPage.tsx, /src/pages/admin/AdminLayout.tsx[22m
+[2m12:02:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m12:03:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/login/LoginPage.tsx[22m
+[2m12:03:14[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m12:03:14[22m [36m[1m[vite][22m[39m server restarted.
+[2m12:03:26[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m12:03:27[22m [36m[1m[vite][22m[39m server restarted.
+[2m12:03:34[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m12:03:34[22m [36m[1m[vite][22m[39m server restarted.
+[2m12:03:50[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m12:03:50[22m [36m[1m[vite][22m[39m server restarted.
+[2m12:04:31[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m12:04:31[22m [36m[1m[vite][22m[39m server restarted.
+[2m12:04:39[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m12:04:39[22m [36m[1m[vite][22m[39m server restarted.
+[2m12:04:49[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m12:04:49[22m [36m[1m[vite][22m[39m server restarted.
+[2m12:05:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m12:05:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m12:06:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m12:06:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m12:08:36[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m12:19:11[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m12:19:12[22m [36m[1m[vite][22m[39m server restarted.
+[2m12:19:22[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m12:19:22[22m [36m[1m[vite][22m[39m server restarted.
+[2m12:19:41[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard/DashboardPage.tsx, /src/pages/admin/AdminLayout.tsx, /src/pages/admin/data-import/ExcelImportPage.tsx, /src/pages/admin/warning-results/WarningResultsPage.tsx, /src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx, /src/pages/admin/traffic-import/TrafficImportPage.tsx, /src/pages/admin/warning-rules/WarningRulesPage.tsx[22m
+[2m12:19:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/data-import/ExcelImportPage.tsx[22m
+[2m12:20:11[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/traffic-import/TrafficImportPage.tsx[22m
+[2m12:24:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard/DashboardPage.tsx[22m
+[2m12:24:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard/DashboardPage.tsx[22m
+[2m12:28:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/traffic-import/TrafficImportPage.tsx[22m
+[2m12:28:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m15:44:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m15:44:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m15:51:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m15:51:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m15:52:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m15:52:42[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m15:54:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m15:59:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:00:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:12:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:13:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:27:15[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:27:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:28:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:28:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:35:42[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:36:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:46:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:46:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:47:05[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:47:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:49:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:49:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:50:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m16:50:47[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:57:12[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m16:57:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m17:19:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m17:19:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m17:20:17[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m17:22:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m17:33:08[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:33:08[22m [36m[1m[vite][22m[39m server restarted.
+[2m17:33:33[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:33:33[22m [36m[1m[vite][22m[39m server restarted.
+
+> ecommerce-operations-center@0.1.0 dev
+> vite --configLoader runner
+
+
+  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m346[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m17:59:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m18:01:15[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m18:01:47[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m18:02:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m18:02:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m18:02:42[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m18:02:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx, /src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m18:02:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m18:03:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m18:04:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m18:05:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m18:07:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m18:08:15[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m18:33:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard/DashboardPage.tsx, /src/pages/admin/AdminLayout.tsx, /src/pages/admin/data-import/ExcelImportPage.tsx, /src/pages/admin/warning-results/WarningResultsPage.tsx, /src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx, /src/pages/admin/warning-rules/WarningRulesPage.tsx, /src/pages/admin/traffic-import/TrafficImportPage.tsx[22m
+[2m18:33:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard/DashboardPage.tsx, /src/pages/admin/AdminLayout.tsx, /src/pages/admin/warning-rules/WarningRulesPage.tsx, /src/pages/admin/traffic-import/TrafficImportPage.tsx, /src/pages/admin/warning-results/WarningResultsPage.tsx, /src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m18:34:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/traffic-import/TrafficImportPage.tsx[22m
+[2m18:35:03[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:35:03[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:35:27[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:35:27[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:39:57[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:39:57[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:40:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/traffic-import/TrafficImportPage.tsx[22m
+
+> ecommerce-operations-center@0.1.0 dev
+> vite --configLoader runner
+
+
+  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m4729[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m21:04:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m21:05:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m21:05:17[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m21:05:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m21:07:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m21:09:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m21:09:41[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m21:09:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m21:15:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m21:26:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m21:26:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m21:36:27[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m21:36:27[22m [36m[1m[vite][22m[39m server restarted.
+[2m21:36:38[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m21:36:38[22m [36m[1m[vite][22m[39m server restarted.
+[2m21:36:53[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m21:36:53[22m [36m[1m[vite][22m[39m server restarted.
+[2m21:37:15[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m21:37:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m21:37:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx, /src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m21:38:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m21:38:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m21:38:52[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m21:39:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m21:40:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m21:40:53[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m21:41:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m21:46:15[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m21:47:32[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m21:47:32[22m [36m[1m[vite][22m[39m server restarted.
+[2m21:53:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m21:54:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m21:54:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m21:55:15[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m21:55:32[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m21:55:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m21:56:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m22:21:12[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m22:21:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:25:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m22:25:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:26:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:26:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:42:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m22:43:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m22:43:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m22:43:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m22:44:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m22:44:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:44:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:48:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/account-management/AccountManagementPage.tsx, /src/pages/admin/AdminLayout.tsx[22m
+[2m22:49:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m22:49:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m22:52:02[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m22:57:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m22:57:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m22:58:08[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m22:58:36[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:58:36[22m [36m[1m[vite][22m[39m server restarted.
+[2m22:58:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:02:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:02:17[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:02:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:03:03[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:03:30[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m23:03:30[22m [36m[1m[vite][22m[39m server restarted.
+[2m23:03:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:05:12[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:06:52[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:10:32[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:12:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:17:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:29:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:29:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:30:05[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:30:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:50:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/warning-results/WarningResultsPage.tsx, /src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx, /src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:51:02[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/store-management/StoreManagementPage.tsx, /src/pages/admin/operator-management/OperatorManagementPage.tsx, /src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:51:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m23:51:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard/DashboardPage.tsx, /src/pages/admin/AdminLayout.tsx, /src/pages/admin/warning-rules/WarningRulesPage.tsx, /src/pages/admin/traffic-import/TrafficImportPage.tsx, /src/pages/admin/warning-results/WarningResultsPage.tsx, /src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx[22m
+[2m23:51:51[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m23:51:51[22m [36m[1m[vite][22m[39m server restarted.
+[2m23:53:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx, /src/pages/admin/warning-results/WarningResultsPage.tsx, /src/pages/admin/task-center/TaskCenterPage.tsx[22m
+[2m00:02:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard/DashboardPage.tsx, /src/pages/admin/AdminLayout.tsx, /src/pages/admin/warning-rules/WarningRulesPage.tsx, /src/pages/admin/traffic-import/TrafficImportPage.tsx, /src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx, /src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m00:02:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard/DashboardPage.tsx, /src/pages/admin/AdminLayout.tsx, /src/pages/admin/warning-rules/WarningRulesPage.tsx, /src/pages/admin/traffic-import/TrafficImportPage.tsx, /src/pages/admin/operation-diagnosis/OperationDiagnosisPage.tsx, /src/pages/admin/warning-results/WarningResultsPage.tsx[22m
+[2m00:04:43[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m00:04:43[22m [36m[1m[vite][22m[39m server restarted.

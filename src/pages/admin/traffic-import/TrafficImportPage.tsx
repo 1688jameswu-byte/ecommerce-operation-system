@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent } from 'react';
+import { useVisibleStores } from '../../../auth/useVisibleStores';
 import { parseTrafficConversionExcelFile, trafficConversionDataSource } from '../../../data-source/trafficConversionDataSource';
+import type { CurrentUser } from '../../../types/auth';
 import type { TrafficConversionRecord, TrafficConversionStore, TrafficImportBatch, TrafficImportStatus } from '../../../types/traffic';
 
 const statusLabels: Record<TrafficImportStatus, string> = {
@@ -18,8 +20,9 @@ function formatTime(value: string) {
   return value ? value.replace('T', ' ').slice(0, 19) : '-';
 }
 
-function TrafficImportPage() {
+function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const [storeName, setStoreName] = useState('');
+  const visibleStores = useVisibleStores(currentUser);
   const [store, setStore] = useState<TrafficConversionStore>({ records: [], batches: [] });
   const [message, setMessage] = useState('');
   const [isParsing, setIsParsing] = useState(false);
@@ -53,6 +56,22 @@ function TrafficImportPage() {
   );
 
   const stores = useMemo(() => Array.from(new Set(batches.map((batch) => batch.storeName))).sort(), [batches]);
+  const isAdmin = currentUser.role === 'admin';
+  const visibleStoreNames = useMemo(
+    () => visibleStores.stores.map((item) => item.storeName || item.id).filter(Boolean),
+    [visibleStores.stores],
+  );
+  const unauthorizedStoreNames = useMemo(() => {
+    if (isAdmin) {
+      return [];
+    }
+
+    const authorized = new Set(visibleStoreNames);
+    return store.records
+      .map((record) => record.storeName)
+      .filter((name, index, list) => name && !authorized.has(name) && list.indexOf(name) === index);
+  }, [isAdmin, store.records, visibleStoreNames]);
+  const canUpload = isAdmin || visibleStoreNames.length > 0;
   const selectedBatch = batches.find((batch) => batch.id === selectedBatchId);
   const detailRows = useMemo(
     () => store.records
@@ -60,6 +79,19 @@ function TrafficImportPage() {
       .sort((first, second) => first.date.localeCompare(second.date)),
     [selectedBatchId, store.records],
   );
+
+  function getImportStoreName(file: File) {
+    if (isAdmin) {
+      return storeName;
+    }
+
+    if (visibleStoreNames.length === 0) {
+      throw new Error('当前账号未配置可导入店铺，请联系管理员。');
+    }
+
+    const fileName = file.name.toLowerCase();
+    return visibleStoreNames.find((item) => fileName.includes(item.toLowerCase())) || visibleStoreNames[0];
+  }
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
@@ -71,14 +103,24 @@ function TrafficImportPage() {
     setMessage('');
 
     try {
+      if (!canUpload) {
+        throw new Error('当前账号未配置可导入店铺，请联系管理员。');
+      }
+
       let totalRows = 0;
       let coveredRows = 0;
       let newRows = 0;
       let lastBatchId = '';
 
       for (const file of files) {
-        const result = await parseTrafficConversionExcelFile(file, storeName);
-        const saveResult = trafficConversionDataSource.save(result.records);
+        const result = await parseTrafficConversionExcelFile(file, getImportStoreName(file));
+        const blockedStores = unauthorizedStoreNames.filter((name) =>
+          result.searchableText.replace(/\s+/g, '').toLowerCase().includes(name.replace(/\s+/g, '').toLowerCase()),
+        );
+        if (blockedStores.length > 0) {
+          throw new Error(`导入失败：当前文件包含未授权店铺【${blockedStores.join('、')}】，请重新检查文件。`);
+        }
+        const saveResult = trafficConversionDataSource.save(result.records, { searchableText: result.searchableText });
         totalRows += result.records.length;
         coveredRows += saveResult.coveredCount;
         newRows += saveResult.newCount;
@@ -88,8 +130,13 @@ function TrafficImportPage() {
       refresh();
       setSelectedBatchId(lastBatchId);
       setMessage(`导入 ${totalRows} 条，新增 ${newRows} 条，覆盖 ${coveredRows} 条。${coveredRows > 0 ? '已覆盖旧数据。' : ''}`);
-    } catch {
-      setMessage('导入失败，请检查 Excel 字段。');
+    } catch (error) {
+      setMessage(error instanceof Error && (
+        error.message.startsWith('导入失败：') ||
+        ['当前账号无权导入该店铺数据', '当前账号未配置可导入店铺，请联系管理员。'].includes(error.message)
+      )
+        ? error.message
+        : '导入失败，请检查 Excel 字段。');
     } finally {
       setIsParsing(false);
       event.target.value = '';
@@ -102,15 +149,29 @@ function TrafficImportPage() {
     }
 
     setIsDeleting(true);
-    await new Promise((resolve) => setTimeout(resolve, 150));
-    const deleted = trafficConversionDataSource.deleteBatch(confirmBatch.id);
-    refresh();
-    if (selectedBatchId === confirmBatch.id) {
-      setSelectedBatchId('');
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      const deleted = trafficConversionDataSource.deleteBatch(confirmBatch.id);
+      refresh();
+      if (selectedBatchId === confirmBatch.id) {
+        setSelectedBatchId('');
+      }
+      setMessage(deleted ? '删除成功' : '删除失败，未找到该批次。');
+    } catch (error) {
+      setMessage(`删除失败：${error instanceof Error ? error.message : 'JSON 文件写入失败'}`);
+    } finally {
+      setConfirmBatch(null);
+      setIsDeleting(false);
     }
-    setConfirmBatch(null);
-    setIsDeleting(false);
-    setMessage(deleted ? '删除成功' : '删除失败，未找到该批次。');
+  };
+
+  const handleRegenerate = () => {
+    try {
+      trafficConversionDataSource.regenerateAnalysisResults();
+      setMessage('分析结果已重新生成');
+    } catch (error) {
+      setMessage(`分析结果生成失败：${error instanceof Error ? error.message : 'JSON 文件写入失败'}`);
+    }
   };
 
   return (
@@ -119,20 +180,26 @@ function TrafficImportPage() {
         <div>
           <span className="admin-status">店铺流量转化数据导入</span>
           <h2>上传每日流量转化 Excel</h2>
-          <p>支持批量上传；如果 Excel 无店铺名称，可手动填写或从文件名识别。</p>
+          <p>{isAdmin ? '支持批量上传；如果 Excel 无店铺名称，可手动填写或从文件名识别。' : `将自动绑定当前账号可见店铺：${visibleStoreNames.join('、') || '未配置'}`}</p>
         </div>
-        <label className="traffic-store-input">
-          店铺名称
-          <input value={storeName} onChange={(event) => setStoreName(event.target.value)} placeholder="例如：K店" />
-        </label>
+        {isAdmin && (
+          <label className="traffic-store-input">
+            店铺名称
+            <input value={storeName} onChange={(event) => setStoreName(event.target.value)} placeholder="例如：K店" />
+          </label>
+        )}
         <label className="excel-upload-box traffic-upload-box">
-          <input type="file" accept=".xlsx,.xls,.csv" multiple onChange={handleFileChange} />
+          <input type="file" accept=".xlsx,.xls,.csv" multiple disabled={!canUpload || isParsing} onChange={handleFileChange} />
           <strong>{isParsing ? '解析中...' : '选择 Excel'}</strong>
-          <span>支持批量上传</span>
+          <span>{canUpload ? '支持批量上传' : '当前账号未配置可导入店铺，请联系管理员。'}</span>
         </label>
       </article>
 
       {message && <div className="excel-import-error traffic-import-message">{message}</div>}
+
+      <div className="analysis-maintenance-bar">
+        <button type="button" onClick={handleRegenerate}>重新生成分析结果</button>
+      </div>
 
       <article className="excel-record-panel">
         <header>

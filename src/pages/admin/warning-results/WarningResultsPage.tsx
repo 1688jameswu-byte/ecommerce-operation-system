@@ -6,6 +6,17 @@ import {
   trafficGrowthTypeLabels,
   trafficTypeLabels,
 } from '../../../data-source/trafficConversionDataSource';
+import { resolveSuggestionContent, taskSuggestionDataSource } from '../../../data-source/taskSuggestionDataSource';
+import {
+  orderImportStorageDataSource,
+  subscribeOrderImportStorageChange,
+} from '../../../data-source/orderImportStorageDataSource';
+import { operatorDataSource } from '../../../data-source/operatorDataSource';
+import { taskDataSource } from '../../../data-source/taskDataSource';
+import type { AnalysisResultRecord, FactDataQualityReport, SalesOrderRecord } from '../../../types/fact';
+import type { OperatorRecord } from '../../../types/operator';
+import type { OperationTaskRecord } from '../../../types/task';
+import type { TaskSuggestionProblemType, TaskSuggestionTemplate } from '../../../types/taskSuggestion';
 import type {
   TrafficAnalysisItem,
   TrafficAnalysisResultType,
@@ -14,20 +25,68 @@ import type {
   TrafficWarningResult,
   TrafficWarningType,
 } from '../../../types/traffic';
+import { loadFactDataQualityReport } from '../../../utils/factDataQuality';
+import {
+  buildGrowthOpportunityTaskDraft,
+  buildRiskWarningTaskDraft,
+  buildTaskCreateUrl,
+} from '../../../utils/operationTaskSourceAdapter';
+import {
+  trafficAnalysisResultTypeLabelMap,
+  trafficWarningLevelLabelMap,
+} from '../../../utils/operationLanguage';
+import { filterRecordsByPermission, filterTasksByPermission } from '../../../utils/permissionScope';
+import { analyzeStoreNameMatches, type StoreMatchCheckReport } from '../../../utils/storeStandardization';
+import { hasPermission } from '../../../auth/permissions';
+import type { CurrentUser } from '../../../types/auth';
+
+interface OperatorPerformanceRow {
+  operatorId: string;
+  operatorName: string;
+  groupName: string;
+  storeCount: number;
+  storeNames: string[];
+  monthlySales: number;
+  yesterdaySales: number;
+  monthlyOrderCount: number;
+  riskStoreCount: number;
+  growthStoreCount: number;
+  maxGrowthRate: number;
+  maxConversionDropRate: number;
+}
+
+interface OperatorPerformanceSummary {
+  rows: OperatorPerformanceRow[];
+  operatorCount: number;
+  growthOperatorCount: number;
+  riskOperatorCount: number;
+  averageSales: number;
+  highestRisk?: OperatorPerformanceRow;
+  fastestGrowth?: OperatorPerformanceRow;
+  biggestConversionDrop?: OperatorPerformanceRow;
+}
+
+type AutoRiskTaskRecord = OperationTaskRecord & {
+  autoCreated?: boolean;
+  riskLevel?: TrafficWarningLevel;
+  anomalyType?: string;
+  sourceRuleId?: string;
+  recommendation?: string;
+};
 
 const levelLabels: Record<TrafficWarningLevel | 'normal' | 'opportunity', string> = {
-  warning: '警告',
-  critical: '严重',
-  insufficient: '数据不足',
-  normal: '正常',
-  opportunity: '机会',
+  warning: trafficWarningLevelLabelMap.warning,
+  critical: trafficWarningLevelLabelMap.critical,
+  insufficient: trafficWarningLevelLabelMap.insufficient,
+  normal: trafficWarningLevelLabelMap.normal,
+  opportunity: trafficWarningLevelLabelMap.opportunity,
 };
 
 const resultTypeLabels: Record<TrafficAnalysisResultType, string> = {
-  risk: '风险',
-  opportunity: '机会',
-  insufficient: '数据不足',
-  normal: '正常',
+  risk: trafficAnalysisResultTypeLabelMap.risk,
+  opportunity: trafficAnalysisResultTypeLabelMap.opportunity,
+  insufficient: trafficAnalysisResultTypeLabelMap.insufficient,
+  normal: trafficAnalysisResultTypeLabelMap.normal,
 };
 
 function riskSort(first: TrafficWarningResult, second: TrafficWarningResult) {
@@ -36,32 +95,249 @@ function riskSort(first: TrafficWarningResult, second: TrafficWarningResult) {
   return levelRank[first.level] - levelRank[second.level] || second.dropRate - first.dropRate || typeRank[first.type] - typeRank[second.type];
 }
 
-function loadAnalysisData() {
+function safeLoad<T>(loader: () => T, fallback: T) {
+  try {
+    return loader();
+  } catch {
+    return fallback;
+  }
+}
+
+function formatAmount(value: number) {
+  return value.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+}
+
+function formatMetricValue(metricName: string, value: number) {
+  const isRateMetric = /转化率|rate|conversion/i.test(metricName);
+  return isRateMetric ? `${(value * 100).toFixed(2)}%` : value.toFixed(2);
+}
+
+function formatDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function buildOperationSuggestion(
+  type: TrafficWarningType,
+  sourceType: 'warning' | 'opportunity',
+  templates: TaskSuggestionTemplate[],
+) {
+  const problemType: TaskSuggestionProblemType = sourceType === 'opportunity' ? 'opportunity' : type;
+  return resolveSuggestionContent(templates, problemType);
+}
+
+function isOpenTask(task: OperationTaskRecord) {
+  return task.status === 'todo' || task.status === 'doing';
+}
+
+function isSameRiskTask(task: AutoRiskTaskRecord, warning: TrafficWarningResult) {
+  return task.storeName === warning.storeName &&
+    task.riskLevel === warning.level &&
+    task.anomalyType === warning.metricField;
+}
+
+function wasCreatedWithinHours(task: OperationTaskRecord, hours: number) {
+  return Boolean(task.createdAt && Date.now() - Date.parse(task.createdAt) < hours * 60 * 60 * 1000);
+}
+
+function getAutoCreatedTask(tasks: OperationTaskRecord[], warning: TrafficWarningResult) {
+  return (tasks as AutoRiskTaskRecord[]).find((task) => task.autoCreated && isSameRiskTask(task, warning));
+}
+
+function canAutoCreateCriticalTask(tasks: OperationTaskRecord[], warning: TrafficWarningResult) {
+  if (warning.level !== 'critical') {
+    return false;
+  }
+
+  const sameTasks = (tasks as AutoRiskTaskRecord[]).filter((task) => isSameRiskTask(task, warning));
+  return !sameTasks.some(isOpenTask) && !sameTasks.some((task) => task.autoCreated && wasCreatedWithinHours(task, 24));
+}
+
+function buildAutoCriticalTask(warning: TrafficWarningResult, recommendation: string): Partial<AutoRiskTaskRecord> {
+  const metricName = metricFieldLabels[warning.metricField];
+
   return {
-    riskResults: trafficConversionDataSource.computeResults().filter((item) => item.level !== 'insufficient').sort(riskSort),
-    growthResults: trafficConversionDataSource.computeGrowthOpportunities(999),
-    analysisItems: trafficConversionDataSource.computeAnalysisItems(),
+    title: `${warning.storeName} ${metricName}严重异常`,
+    storeName: warning.storeName,
+    riskLevel: warning.level,
+    anomalyType: warning.metricField,
+    sourceRuleId: warning.type,
+    sourceType: 'risk_warning',
+    sourceId: warning.id,
+    sourceContent: `最近7日数据较30日均值下降 ${warning.dropRate.toFixed(2)}% ，达到严重风险阈值。`,
+    recommendation,
+    suggestion: recommendation,
+    autoCreated: true,
+    priority: 'high',
+    status: 'todo',
   };
 }
 
-function WarningResultsPage() {
+function previousDateKey(dateKey: string) {
+  const date = new Date(`${dateKey}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  date.setDate(date.getDate() - 1);
+  return formatDateKey(date);
+}
+
+function buildOperatorPerformanceSummary(
+  operators: OperatorRecord[],
+  orders: SalesOrderRecord[],
+  analysisResults: AnalysisResultRecord[],
+): OperatorPerformanceSummary {
+  const activeOperators = operators.filter((operator) => operator.status !== 'inactive');
+  const latestOrderDate = orders.map((order) => order.date).sort().at(-1) || formatDateKey(new Date());
+  const monthKey = latestOrderDate.slice(0, 7);
+  const yesterdayKey = previousDateKey(latestOrderDate);
+  const operatorStores = new Map<string, Map<string, string>>();
+
+  activeOperators.forEach((operator) => operatorStores.set(operator.id, new Map()));
+
+  const monthlySales = new Map<string, number>();
+  const yesterdaySales = new Map<string, number>();
+  const monthlyOrders = new Map<string, Set<string>>();
+
+  orders.forEach((order) => {
+    if (!order.operatorId) {
+      return;
+    }
+
+    operatorStores.get(order.operatorId)?.set(order.storeId, order.storeName);
+    if (order.month === monthKey) {
+      monthlySales.set(order.operatorId, (monthlySales.get(order.operatorId) ?? 0) + order.salesAmount);
+      const orderIds = monthlyOrders.get(order.operatorId) ?? new Set<string>();
+      orderIds.add(order.orderId || order.sourceKey || `${order.storeId}-${order.date}-${order.salesAmount}`);
+      monthlyOrders.set(order.operatorId, orderIds);
+    }
+    if (order.date === yesterdayKey) {
+      yesterdaySales.set(order.operatorId, (yesterdaySales.get(order.operatorId) ?? 0) + order.salesAmount);
+    }
+  });
+
+  const riskStores = new Map<string, Set<string>>();
+  const growthStores = new Map<string, Set<string>>();
+  const growthRate = new Map<string, number>();
+  const conversionDropRate = new Map<string, number>();
+
+  analysisResults.forEach((item) => {
+    if (!item.operatorId) {
+      return;
+    }
+
+    operatorStores.get(item.operatorId)?.set(item.storeId, item.storeName);
+    if (item.resultType === 'risk') {
+      const storesSet = riskStores.get(item.operatorId) ?? new Set<string>();
+      storesSet.add(item.storeId);
+      riskStores.set(item.operatorId, storesSet);
+      if (item.analysisType === 'conversion') {
+        conversionDropRate.set(item.operatorId, Math.max(conversionDropRate.get(item.operatorId) ?? 0, item.changeRate));
+      }
+    }
+    if (item.resultType === 'opportunity') {
+      const storesSet = growthStores.get(item.operatorId) ?? new Set<string>();
+      storesSet.add(item.storeId);
+      growthStores.set(item.operatorId, storesSet);
+      growthRate.set(item.operatorId, Math.max(growthRate.get(item.operatorId) ?? 0, item.changeRate));
+    }
+  });
+
+  const rows = activeOperators
+    .map((operator) => {
+      const storesForOperator = Array.from(operatorStores.get(operator.id)?.values() ?? []);
+      return {
+        operatorId: operator.id,
+        operatorName: operator.operatorName,
+        groupName: operator.groupName || '-',
+        storeCount: storesForOperator.length,
+        storeNames: storesForOperator,
+        monthlySales: Number((monthlySales.get(operator.id) ?? 0).toFixed(2)),
+        yesterdaySales: Number((yesterdaySales.get(operator.id) ?? 0).toFixed(2)),
+        monthlyOrderCount: monthlyOrders.get(operator.id)?.size ?? 0,
+        riskStoreCount: riskStores.get(operator.id)?.size ?? 0,
+        growthStoreCount: growthStores.get(operator.id)?.size ?? 0,
+        maxGrowthRate: Number((growthRate.get(operator.id) ?? 0).toFixed(2)),
+        maxConversionDropRate: Number((conversionDropRate.get(operator.id) ?? 0).toFixed(2)),
+      } satisfies OperatorPerformanceRow;
+    })
+    .sort((first, second) => second.monthlySales - first.monthlySales || first.operatorName.localeCompare(second.operatorName));
+
+  const totalSales = rows.reduce((total, row) => total + row.monthlySales, 0);
+  const byRisk = rows.filter((row) => row.riskStoreCount > 0).sort((first, second) => second.riskStoreCount - first.riskStoreCount)[0];
+  const byGrowth = rows.filter((row) => row.maxGrowthRate > 0).sort((first, second) => second.maxGrowthRate - first.maxGrowthRate)[0];
+  const byConversionDrop = rows.filter((row) => row.maxConversionDropRate > 0).sort((first, second) => second.maxConversionDropRate - first.maxConversionDropRate)[0];
+
+  return {
+    rows,
+    operatorCount: activeOperators.length,
+    growthOperatorCount: rows.filter((row) => row.growthStoreCount > 0).length,
+    riskOperatorCount: rows.filter((row) => row.riskStoreCount > 0).length,
+    averageSales: activeOperators.length > 0 ? Number((totalSales / activeOperators.length).toFixed(2)) : 0,
+    highestRisk: byRisk,
+    fastestGrowth: byGrowth,
+    biggestConversionDrop: byConversionDrop,
+  };
+}
+
+function loadAnalysisData(currentUser: CurrentUser) {
+  const orderImportResult = orderImportStorageDataSource.load();
+  const trafficStore = trafficConversionDataSource.loadStore();
+  const operators = safeLoad(() => operatorDataSource.load(), []);
+  const suggestionTemplates = safeLoad(() => taskSuggestionDataSource.load(), []);
+  const standardSalesOrders = filterRecordsByPermission(orderImportStorageDataSource.loadStandardSalesOrders(), currentUser);
+  const standardAnalysisResults = filterRecordsByPermission(trafficConversionDataSource.loadStandardAnalysisResults(), currentUser);
+  const storeNames = [
+    ...(orderImportResult?.orders.map((order) => order.storeName) ?? []),
+    ...trafficStore.records.map((record) => record.storeName),
+  ];
+  const riskResults = filterRecordsByPermission(trafficConversionDataSource.loadRiskResults(), currentUser).filter((item) => item.level !== 'insufficient').sort(riskSort);
+  const growthResults = filterRecordsByPermission(trafficConversionDataSource.loadGrowthOpportunities(999), currentUser);
+
+  return {
+    riskResults,
+    growthResults,
+    analysisItems: filterRecordsByPermission(trafficConversionDataSource.loadBusinessAnalysisItems(), currentUser),
+    storeMatchReport: analyzeStoreNameMatches(storeNames),
+    factDataQualityReport: loadFactDataQualityReport(),
+    operatorPerformance: buildOperatorPerformanceSummary(operators, standardSalesOrders, standardAnalysisResults),
+    suggestionTemplates,
+  };
+}
+
+function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
   const [data, setData] = useState<{
     riskResults: TrafficWarningResult[];
     growthResults: TrafficGrowthOpportunity[];
     analysisItems: TrafficAnalysisItem[];
-  }>(() => loadAnalysisData());
+    storeMatchReport: StoreMatchCheckReport;
+    factDataQualityReport: FactDataQualityReport;
+    operatorPerformance: OperatorPerformanceSummary;
+    suggestionTemplates: TaskSuggestionTemplate[];
+  }>(() => loadAnalysisData(currentUser));
+  const [tasks, setTasks] = useState<OperationTaskRecord[]>(() => filterTasksByPermission(taskDataSource.load(), currentUser));
   const [dateFilter, setDateFilter] = useState('');
   const [storeFilter, setStoreFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [resultFilter, setResultFilter] = useState('');
+  const [refreshMessage, setRefreshMessage] = useState('');
+  const [isDataQualityExpanded, setIsDataQualityExpanded] = useState(false);
 
   useEffect(() => {
-    const refresh = () => setData(loadAnalysisData());
+    const refresh = () => {
+      setData(loadAnalysisData(currentUser));
+      setTasks(filterTasksByPermission(taskDataSource.load(), currentUser));
+    };
     refresh();
-    return subscribeTrafficConversionChange(refresh);
-  }, []);
+    const unsubscribeTraffic = subscribeTrafficConversionChange(refresh);
+    const unsubscribeOrder = subscribeOrderImportStorageChange(refresh);
 
-  const { riskResults, growthResults, analysisItems } = data;
+    return () => {
+      unsubscribeTraffic();
+      unsubscribeOrder();
+    };
+  }, [currentUser]);
+
+  const { riskResults, growthResults, analysisItems, storeMatchReport, factDataQualityReport, operatorPerformance, suggestionTemplates } = data;
   const filtered = analysisItems.filter((item) =>
     (!dateFilter || item.date === dateFilter) &&
     (!storeFilter || item.storeName === storeFilter) &&
@@ -72,9 +348,58 @@ function WarningResultsPage() {
   const stores = Array.from(new Set(analysisItems.map((item) => item.storeName))).sort();
   const maxGrowth = growthResults[0];
   const maxDrop = riskResults[0];
+  // 后续可扩展运营总监、组长、分组权限、仅查看本组；当前先仅管理员可见。
+  const isAdmin = currentUser.role === 'admin';
+  const canRerunAnalysis = hasPermission(currentUser, 'rerun-analysis');
+  const canViewDataQuality = hasPermission(currentUser, 'view-data-quality');
+  const canManageStoreData = hasPermission(currentUser, 'manage-store-data');
+  const dataQualityIssueCount = factDataQualityReport.missingStoreIdCount +
+    factDataQualityReport.missingOperatorIdCount +
+    factDataQualityReport.missingPlatformCount +
+    factDataQualityReport.missingDateCount +
+    storeMatchReport.unmatchedStoreNames.length;
+  const handleRegenerate = () => {
+    try {
+      trafficConversionDataSource.regenerateAnalysisResults();
+      setData(loadAnalysisData(currentUser));
+      setRefreshMessage('分析结果已重新生成');
+    } catch (error) {
+      setRefreshMessage(`分析结果生成失败：${error instanceof Error ? error.message : 'JSON 文件写入失败'}`);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAdmin) {
+      return;
+    }
+
+    let nextTasks = tasks;
+    let changed = false;
+
+    riskResults.forEach((warning) => {
+      if (!canAutoCreateCriticalTask(nextTasks, warning)) {
+        return;
+      }
+
+      const task = taskDataSource.create(buildAutoCriticalTask(
+        warning,
+        buildOperationSuggestion(warning.type, 'warning', suggestionTemplates),
+      ));
+      nextTasks = [...nextTasks, task];
+      changed = true;
+    });
+
+    if (changed) {
+      setTasks(nextTasks);
+    }
+  }, [isAdmin, riskResults, suggestionTemplates, tasks]);
 
   return (
     <section className="excel-import-page">
+      <div className="analysis-maintenance-bar">
+        {canRerunAnalysis && <button type="button" onClick={handleRegenerate}>重新生成分析结果</button>}
+        {refreshMessage && <span>{refreshMessage}</span>}
+      </div>
       <section className="import-overview-grid">
         <article>
           <span>风险店铺数</span>
@@ -85,7 +410,7 @@ function WarningResultsPage() {
           <strong>{new Set(growthResults.map((item) => item.storeName)).size}</strong>
         </article>
         <article>
-          <span>严重异常数</span>
+          <span>严重风险数</span>
           <strong>{riskResults.filter((item) => item.level === 'critical').length}</strong>
         </article>
         <article>
@@ -98,6 +423,99 @@ function WarningResultsPage() {
         </article>
       </section>
 
+      {canViewDataQuality && (
+      <article className="excel-record-panel store-match-check-panel">
+        <header className="data-quality-check-header">
+          <div>
+            <h2>数据质量检查（{dataQualityIssueCount}项）</h2>
+            <p>管理员维护信息，默认收起，不进入普通经营分析视野。</p>
+          </div>
+          <button type="button" onClick={() => setIsDataQualityExpanded((value) => !value)}>
+            {isDataQualityExpanded ? '收起' : '展开'}
+          </button>
+        </header>
+        {isDataQualityExpanded && (
+        <div className="data-quality-collapse-body">
+        <div className="store-match-check-body">
+          <section>
+            <strong>未匹配店铺名称</strong>
+            {storeMatchReport.unmatchedStoreNames.length > 0 ? (
+              <div className="store-match-tags">
+                {storeMatchReport.unmatchedStoreNames.map((storeName) => (
+                  <span key={storeName}>{storeName}</span>
+                ))}
+              </div>
+            ) : (
+              <p>暂无未匹配店铺。</p>
+            )}
+          </section>
+          {canManageStoreData && <a className="store-match-action" href="/admin/stores">去店铺管理新增或修正店铺名称</a>}
+        </div>
+        <section className="fact-quality-summary">
+          <article>
+            <span>标准记录</span>
+            <strong>{factDataQualityReport.totalRecords}</strong>
+          </article>
+          <article>
+            <span>缺店铺ID</span>
+            <strong>{factDataQualityReport.missingStoreIdCount}</strong>
+          </article>
+          <article>
+            <span>缺运营ID</span>
+            <strong>{factDataQualityReport.missingOperatorIdCount}</strong>
+          </article>
+          <article>
+            <span>缺平台</span>
+            <strong>{factDataQualityReport.missingPlatformCount}</strong>
+          </article>
+          <article>
+            <span>缺日期</span>
+            <strong>{factDataQualityReport.missingDateCount}</strong>
+          </article>
+        </section>
+        {factDataQualityReport.issueSamples.length > 0 && (
+          <details className="fact-quality-sample-panel">
+            <summary>
+              <strong>异常数据样本（{factDataQualityReport.issueSamples.length}条）</strong>
+              <span>展开查看</span>
+            </summary>
+            <div className="fact-quality-samples">
+              {factDataQualityReport.issueSamples.map((issue, index) => (
+                <span key={`${issue.kind}-${issue.storeName}-${issue.date}-${index}`}>
+                  {issue.kind} / {issue.storeName || '-'} / {issue.date || '-'}：{issue.missingFields.join(', ')}
+                </span>
+              ))}
+            </div>
+          </details>
+        )}
+        <section className="fact-quality-fix-panel">
+          <header>
+            <strong>修复建议</strong>
+            <div className="fact-quality-actions">
+              {canManageStoreData && <a className="store-match-action" href="/admin/stores">去店铺管理</a>}
+              {canManageStoreData && <a className="store-match-action" href="/admin/operators">去运营管理</a>}
+            </div>
+          </header>
+          <div className="fact-quality-fix-list">
+            <p className={factDataQualityReport.missingStoreIdCount > 0 ? 'need-fix' : 'is-ok'}>
+              缺 storeId：{factDataQualityReport.missingStoreIdCount > 0 ? '请到店铺管理中新增店铺或修正店铺名称' : '已正常'}
+            </p>
+            <p className={factDataQualityReport.missingPlatformCount > 0 ? 'need-fix' : 'is-ok'}>
+              缺 platform：{factDataQualityReport.missingPlatformCount > 0 ? '请到店铺管理中补充平台' : '已正常'}
+            </p>
+            <p className={factDataQualityReport.missingOperatorIdCount > 0 ? 'need-fix' : 'is-ok'}>
+              缺 operatorId：{factDataQualityReport.missingOperatorIdCount > 0 ? '请到运营管理中维护店铺-运营关系' : '已正常'}
+            </p>
+            <p className={factDataQualityReport.missingDateCount > 0 ? 'need-fix' : 'is-ok'}>
+              缺 date：{factDataQualityReport.missingDateCount > 0 ? '请检查对应导入源文件中的日期字段' : '已正常'}
+            </p>
+          </div>
+        </section>
+        </div>
+        )}
+      </article>
+      )}
+
       <section className="analysis-two-column">
         <article className="excel-record-panel">
           <header>
@@ -108,14 +526,30 @@ function WarningResultsPage() {
             <span>{riskResults.length} 条</span>
           </header>
           <div className="analysis-card-list">
-            {riskResults.slice(0, 8).map((item) => (
-              <section key={item.id} className={`analysis-card analysis-risk-${item.level}`}>
-                <strong>{trafficTypeLabels[item.type]}</strong>
-                <span>{item.storeName}</span>
-                <p>{item.content}</p>
-                <em>{levelLabels[item.level]} · {item.dropRate.toFixed(2)}%</em>
-              </section>
-            ))}
+            {riskResults.slice(0, 8).map((item) => {
+              const autoTask = getAutoCreatedTask(tasks, item);
+
+              return (
+                <section key={item.id} className={`analysis-card analysis-risk-${item.level}`}>
+                  <strong>{trafficTypeLabels[item.type]}</strong>
+                  <span>{item.storeName}</span>
+                  <p>{item.content}</p>
+                  <div className="analysis-card-actions">
+                    <em>{levelLabels[item.level]} · {item.dropRate.toFixed(2)}%</em>
+                    {autoTask ? (
+                      <button type="button" disabled>已自动创建</button>
+                    ) : (
+                      <a href={buildTaskCreateUrl({
+                        ...buildRiskWarningTaskDraft({
+                          warning: item,
+                          suggestion: buildOperationSuggestion(item.type, 'warning', suggestionTemplates),
+                        }),
+                      })}>创建任务</a>
+                    )}
+                  </div>
+                </section>
+              );
+            })}
             {riskResults.length === 0 && <div className="import-record-empty">暂无风险预警</div>}
           </div>
         </article>
@@ -134,7 +568,15 @@ function WarningResultsPage() {
                 <strong>{trafficGrowthTypeLabels[item.type]}</strong>
                 <span>{item.storeName}</span>
                 <p>{item.content}</p>
-                <em>{item.growthRate.toFixed(2)}%</em>
+                <div className="analysis-card-actions">
+                  <em>{item.growthRate.toFixed(2)}%</em>
+                  <a href={buildTaskCreateUrl({
+                    ...buildGrowthOpportunityTaskDraft({
+                      opportunity: item,
+                      suggestion: buildOperationSuggestion(item.type, 'opportunity', suggestionTemplates),
+                    }),
+                  })}>创建任务</a>
+                </div>
               </section>
             ))}
             {growthResults.length === 0 && <div className="import-record-empty">暂无增长机会</div>}
@@ -146,7 +588,7 @@ function WarningResultsPage() {
         <header>
           <div>
             <h2>详细分析列表</h2>
-            <p>包含风险、机会、数据不足和正常结果。</p>
+            <p>包含风险问题、增长机会、数据不足和正常结果。</p>
           </div>
           <span>{filtered.length} 条</span>
         </header>
@@ -194,7 +636,7 @@ function WarningResultsPage() {
                 <th>监控字段</th>
                 <th>前30日平均值</th>
                 <th>近7日平均值</th>
-                <th>变化比例</th>
+                <th>下降幅度</th>
                 <th>结果类型</th>
                 <th>说明</th>
               </tr>
@@ -206,8 +648,8 @@ function WarningResultsPage() {
                   <td><strong>{item.storeName}</strong></td>
                   <td>{item.resultType === 'opportunity' ? trafficGrowthTypeLabels[item.type] : trafficTypeLabels[item.type]}</td>
                   <td>{metricFieldLabels[item.metricField]}</td>
-                  <td>{item.previous30Avg.toFixed(4)}</td>
-                  <td>{item.recent7Avg.toFixed(4)}</td>
+                  <td>{formatMetricValue(metricFieldLabels[item.metricField], item.previous30Avg)}</td>
+                  <td>{formatMetricValue(metricFieldLabels[item.metricField], item.recent7Avg)}</td>
                   <td>{item.changeRate.toFixed(2)}%</td>
                   <td>
                     <span className={`import-status analysis-result-${item.resultType}`}>{resultTypeLabels[item.resultType]}</span>
@@ -220,6 +662,94 @@ function WarningResultsPage() {
           {filtered.length === 0 && <div className="import-record-empty">暂无详细分析数据</div>}
         </div>
       </article>
+
+      {isAdmin && (
+      <article className="excel-record-panel operator-performance-panel">
+        <header>
+          <div>
+            <h2>运营业绩分析</h2>
+            <p>基于运营负责店铺自动汇总计算</p>
+          </div>
+          <span>{operatorPerformance.rows.length} 人</span>
+        </header>
+
+        <section className="operator-kpi-grid">
+          <article>
+            <span>运营人数</span>
+            <strong>{operatorPerformance.operatorCount}</strong>
+          </article>
+          <article>
+            <span>增长运营数</span>
+            <strong>{operatorPerformance.growthOperatorCount}</strong>
+          </article>
+          <article>
+            <span>风险运营数</span>
+            <strong>{operatorPerformance.riskOperatorCount}</strong>
+          </article>
+          <article>
+            <span>人均销售额</span>
+            <strong>¥{formatAmount(operatorPerformance.averageSales)}</strong>
+          </article>
+        </section>
+
+        <div className="import-record-table-wrap operator-performance-table-wrap">
+          <table className="import-record-table operator-performance-table">
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>运营姓名</th>
+                <th>所属组别</th>
+                <th>负责店铺数</th>
+                <th>负责店铺名称</th>
+                <th>本月销售额</th>
+                <th>昨日销售额</th>
+                <th>本月订单数</th>
+                <th>风险店铺数</th>
+                <th>增长店铺数</th>
+              </tr>
+            </thead>
+            <tbody>
+              {operatorPerformance.rows.map((row, index) => (
+                <tr key={row.operatorId}>
+                  <td>{index + 1}</td>
+                  <td><strong>{row.operatorName}</strong></td>
+                  <td>{row.groupName}</td>
+                  <td>{row.storeCount}</td>
+                  <td><span className="operator-store-names">{row.storeNames.join('、') || '-'}</span></td>
+                  <td>¥{formatAmount(row.monthlySales)}</td>
+                  <td>¥{formatAmount(row.yesterdaySales)}</td>
+                  <td>{row.monthlyOrderCount}</td>
+                  <td>{row.riskStoreCount}</td>
+                  <td>{row.growthStoreCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {operatorPerformance.rows.length === 0 && <div className="import-record-empty">暂无运营业绩数据</div>}
+        </div>
+
+        <section className="operator-anomaly-section">
+          <h3>运营异常分析</h3>
+          <div className="operator-anomaly-grid">
+            <article>
+              <span>风险最高运营</span>
+              <strong>{operatorPerformance.highestRisk?.operatorName || '-'}</strong>
+              <p>{operatorPerformance.highestRisk ? `风险店铺 ${operatorPerformance.highestRisk.riskStoreCount} 个` : '暂无风险店铺'}</p>
+            </article>
+            <article>
+              <span>增长最快运营</span>
+              <strong>{operatorPerformance.fastestGrowth?.operatorName || '-'}</strong>
+              <p>{operatorPerformance.fastestGrowth ? `最高增长 ${operatorPerformance.fastestGrowth.maxGrowthRate.toFixed(2)}%` : '暂无增长店铺'}</p>
+            </article>
+            <article>
+              <span>转化下降最大运营</span>
+              <strong>{operatorPerformance.biggestConversionDrop?.operatorName || '-'}</strong>
+              <p>{operatorPerformance.biggestConversionDrop ? `最大下降 ${operatorPerformance.biggestConversionDrop.maxConversionDropRate.toFixed(2)}%` : '暂无转化下降'}</p>
+            </article>
+          </div>
+        </section>
+      </article>
+      )}
     </section>
   );
 }

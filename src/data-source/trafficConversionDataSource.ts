@@ -1,9 +1,16 @@
 import * as XLSX from 'xlsx';
 import { readPersistentJson, writePersistentJson } from './fileStorageDataSource';
+import { analyzeStoreNameMatches, createStoreMatcher } from '../utils/storeStandardization';
+import { storeDataSource } from './storeDataSource';
+import { buildStandardAnalysisResults, buildStandardTrafficRecords } from '../utils/factDataStandardization';
+import type { AnalysisResultRecord, TrafficMetricRecord } from '../types/fact';
 import type {
   TrafficAnalysisItem,
+  TrafficAnalysisResultStore,
   TrafficConversionRecord,
   TrafficConversionStore,
+  TrafficDailySummaryItem,
+  TrafficDailySummaryStore,
   TrafficGrowthOpportunity,
   TrafficGrowthRuleConfig,
   TrafficImportBatch,
@@ -17,7 +24,26 @@ import type {
 
 const DATA_KEY = 'trafficConversionStore';
 const RULE_KEY = 'trafficWarningRules';
+const TRAFFIC_SUMMARY_KEY = 'trafficDailySummary';
+const ORDER_SUMMARY_KEY = 'orderDailySummary';
+const RISK_RESULTS_KEY = 'riskResults';
+const GROWTH_RESULTS_KEY = 'growthOpportunities';
+const BUSINESS_ANALYSIS_KEY = 'businessAnalysisItems';
 const TRAFFIC_CONVERSION_CHANGE_EVENT = 'traffic-conversion-data-change';
+type StoreMatcher = ReturnType<typeof createStoreMatcher>;
+
+function getStoreSnapshot(storeName: string) {
+  const stores = storeDataSource.load();
+  const identity = createStoreMatcher(stores).match(storeName);
+  const store = stores.find((item) => item.id === identity.storeId || item.storeName === identity.storeName);
+
+  return {
+    storeId: store?.id || identity.storeId || '',
+    storeName: store?.storeName || identity.storeName || storeName,
+    platform: store?.platform || 'Other',
+    platformStoreId: store?.platformStoreId || '',
+  };
+}
 
 export const trafficTypeLabels: Record<TrafficWarningType, string> = {
   traffic: '流量异常',
@@ -106,7 +132,10 @@ export const defaultTrafficGrowthRules: TrafficGrowthRuleConfig[] = [
   },
 ];
 
-const headerMap: Record<string, keyof Omit<TrafficConversionRecord, 'batchId' | 'storeName' | 'importedAt' | 'fileName'>> = {
+type TrafficImportColumn = keyof Omit<TrafficConversionRecord, 'batchId' | 'platform' | 'storeId' | 'platformStoreId' | 'storeName' | 'importedAt' | 'fileName'>;
+type NumericTrafficImportColumn = Exclude<TrafficImportColumn, 'date'>;
+
+const headerMap: Record<string, TrafficImportColumn> = {
   日期: 'date',
   总浏览量: 'totalViews',
   总访客数: 'totalVisitors',
@@ -211,6 +240,26 @@ function average(records: TrafficConversionRecord[], field: TrafficMetricField, 
   };
 }
 
+function storeDateKey(record: Pick<TrafficConversionRecord, 'storeName' | 'date'>, storeMatcher: StoreMatcher) {
+  return `${storeMatcher.match(record.storeName).key}|${record.date}`;
+}
+
+function groupTrafficRecordsByStore(records: TrafficConversionRecord[]) {
+  const storeMatcher = createStoreMatcher();
+  const groups = new Map<string, { storeName: string; records: TrafficConversionRecord[] }>();
+
+  analyzeStoreNameMatches(records.map((record) => record.storeName));
+
+  for (const record of records) {
+    const identity = storeMatcher.match(record.storeName);
+    const current = groups.get(identity.key) ?? { storeName: identity.storeName, records: [] };
+    current.records.push(record);
+    groups.set(identity.key, current);
+  }
+
+  return Array.from(groups.entries()).map(([storeKey, group]) => ({ storeKey, ...group }));
+}
+
 function inferStoreName(fileName: string) {
   return fileName.replace(/\.(xlsx|xls|csv)$/i, '').replace(/销售数据|流量|转化|数据|\d+|\.|-/g, '').trim();
 }
@@ -229,8 +278,10 @@ function typePriority(type: TrafficWarningType) {
 
 function buildMetrics(storeRecords: TrafficConversionRecord[], latestDate: string, field: TrafficMetricField) {
   const endDate = new Date(latestDate);
-  const previous30Dates = dateKeys(endDate, 30);
-  const recent7Dates = previous30Dates.slice(-7);
+  const previousEndDate = new Date(endDate);
+  previousEndDate.setDate(endDate.getDate() - 7);
+  const previous30Dates = dateKeys(previousEndDate, 30);
+  const recent7Dates = dateKeys(endDate, 7);
   const previous30 = average(storeRecords, field, previous30Dates);
   const recent7 = average(storeRecords, field, recent7Dates);
   const hasEnoughData = previous30.count > 0 && recent7.count > 0 && previous30.value > 0;
@@ -248,6 +299,8 @@ function buildMetrics(storeRecords: TrafficConversionRecord[], latestDate: strin
 
 function buildBatch(records: TrafficConversionRecord[], coveredCount: number, batchId: string): TrafficImportBatch {
   const dates = records.map((record) => record.date).sort();
+  const firstRecord = records[0];
+  const snapshot = getStoreSnapshot(firstRecord?.storeName || '');
   const productVisitorsTotal = records.reduce((total, record) => total + record.productVisitors, 0);
   const totalPayBuyersTotal = records.reduce((total, record) => total + record.totalPayBuyers, 0);
   const detailPayConversionRateAvg = records.length
@@ -268,9 +321,12 @@ function buildBatch(records: TrafficConversionRecord[], coveredCount: number, ba
 
   return {
     id: batchId,
-    importedAt: records[0]?.importedAt ?? new Date().toISOString(),
-    storeName: records[0]?.storeName ?? '未知店铺',
-    fileName: records[0]?.fileName ?? '',
+    importedAt: firstRecord?.importedAt || new Date().toISOString(),
+    storeId: firstRecord?.storeId || snapshot.storeId,
+    storeName: firstRecord?.storeName || snapshot.storeName || '未知店铺',
+    platform: firstRecord?.platform || snapshot.platform,
+    platformStoreId: firstRecord?.platformStoreId || snapshot.platformStoreId,
+    fileName: firstRecord?.fileName || '',
     dateStart: dates[0] ?? '',
     dateEnd: dates.at(-1) ?? '',
     detailCount: records.length,
@@ -282,6 +338,53 @@ function buildBatch(records: TrafficConversionRecord[], coveredCount: number, ba
     status,
     recordKeys: records.map((record) => `${record.storeName}|${record.date}`),
   };
+}
+
+function emptySummaryStore(): TrafficDailySummaryStore {
+  return { items: [], updatedAt: '' };
+}
+
+function emptyResultStore<T>(): TrafficAnalysisResultStore<T> {
+  return { items: [], updatedAt: '' };
+}
+
+function buildTrafficDailySummary(records: TrafficConversionRecord[]): TrafficDailySummaryStore {
+  const updatedAt = new Date().toISOString();
+  const storeMatcher = createStoreMatcher();
+  const groups = new Map<string, { storeName: string; records: TrafficConversionRecord[] }>();
+
+  for (const record of records) {
+    const identity = storeMatcher.match(record.storeName);
+    const key = `${identity.key}|${record.date}`;
+    const current = groups.get(key) ?? { storeName: identity.storeName, records: [] };
+    current.records.push(record);
+    groups.set(key, current);
+  }
+
+  const items: TrafficDailySummaryItem[] = Array.from(groups.values())
+    .map((group) => {
+      const latest = group.records.slice().sort((first, second) => second.importedAt.localeCompare(first.importedAt))[0];
+      const avg = (field: 'detailPayConversionRate' | 'totalPayConversionRate') =>
+        group.records.length ? group.records.reduce((total, record) => total + record[field], 0) / group.records.length : 0;
+
+      return {
+        date: latest.date,
+        storeName: group.storeName,
+        productVisitors: group.records.reduce((total, record) => total + record.productVisitors, 0),
+        detailPayConversionRate: avg('detailPayConversionRate'),
+        totalPayBuyers: group.records.reduce((total, record) => total + record.totalPayBuyers, 0),
+        totalViews: group.records.reduce((total, record) => total + record.totalViews, 0),
+        totalVisitors: group.records.reduce((total, record) => total + record.totalVisitors, 0),
+        totalPayConversionRate: avg('totalPayConversionRate'),
+        productViews: group.records.reduce((total, record) => total + record.productViews, 0),
+        detailPayBuyers: group.records.reduce((total, record) => total + record.detailPayBuyers, 0),
+        importBatchId: latest.batchId ?? '',
+        updatedAt,
+      };
+    })
+    .sort((first, second) => first.date.localeCompare(second.date) || first.storeName.localeCompare(second.storeName));
+
+  return { items, updatedAt };
 }
 
 function notifyTrafficConversionChange() {
@@ -304,8 +407,10 @@ export async function parseTrafficConversionExcelFile(file: File, storeNameInput
   const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
   const importedAt = new Date().toISOString();
   const storeName = storeNameInput.trim() || inferStoreName(file.name) || '未知店铺';
+  const searchableParts = [file.name, ...workbook.SheetNames];
   const records = workbook.SheetNames.flatMap((sheetName) => {
     const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], { header: 1, defval: '' });
+    searchableParts.push(...rows.flatMap((row) => row.map((cell) => String(cell ?? ''))));
     const headerIndex = rows.findIndex((row) => row.some((cell) => normalizeHeader(cell) === '日期'));
     if (headerIndex < 0) {
       return [];
@@ -349,7 +454,7 @@ export async function parseTrafficConversionExcelFile(file: File, storeNameInput
         if (field === 'date') {
           record.date = parseDate(row[index]);
         } else if (field) {
-          record[field] = toNumber(row[index]);
+          record[field as NumericTrafficImportColumn] = toNumber(row[index]);
         }
       });
 
@@ -357,7 +462,7 @@ export async function parseTrafficConversionExcelFile(file: File, storeNameInput
     });
   });
 
-  return { records, storeName, importedAt, fileName: file.name };
+  return { records, storeName, importedAt, fileName: file.name, searchableText: searchableParts.join('\n') };
 }
 
 export const trafficConversionDataSource = {
@@ -365,20 +470,76 @@ export const trafficConversionDataSource = {
     return normalizeStore(readPersistentJson<TrafficConversionStore>(DATA_KEY, emptyStore()));
   },
 
-  save(records: TrafficConversionRecord[]) {
+  loadTrafficDailySummary(): TrafficDailySummaryStore {
+    return readPersistentJson<TrafficDailySummaryStore>(TRAFFIC_SUMMARY_KEY, emptySummaryStore());
+  },
+
+  loadStandardTrafficRecords(): TrafficMetricRecord[] {
+    return buildStandardTrafficRecords(this.loadStore().records);
+  },
+
+  loadRiskResults(): TrafficWarningResult[] {
+    const store = readPersistentJson<TrafficAnalysisResultStore<TrafficWarningResult>>(RISK_RESULTS_KEY, emptyResultStore<TrafficWarningResult>());
+    return store.updatedAt ? store.items ?? [] : this.regenerateAnalysisResults().riskResults;
+  },
+
+  loadGrowthOpportunities(limit = 5): TrafficGrowthOpportunity[] {
+    const store = readPersistentJson<TrafficAnalysisResultStore<TrafficGrowthOpportunity>>(GROWTH_RESULTS_KEY, emptyResultStore<TrafficGrowthOpportunity>());
+    const items = store.updatedAt ? store.items ?? [] : this.regenerateAnalysisResults().growthOpportunities;
+    return items.slice(0, limit);
+  },
+
+  loadBusinessAnalysisItems(): TrafficAnalysisItem[] {
+    const store = readPersistentJson<TrafficAnalysisResultStore<TrafficAnalysisItem>>(BUSINESS_ANALYSIS_KEY, emptyResultStore<TrafficAnalysisItem>());
+    return store.updatedAt ? store.items ?? [] : this.regenerateAnalysisResults().businessAnalysisItems;
+  },
+
+  loadStandardAnalysisResults(): AnalysisResultRecord[] {
+    return buildStandardAnalysisResults(this.loadBusinessAnalysisItems());
+  },
+
+  regenerateAnalysisResults() {
+    const updatedAt = new Date().toISOString();
+    const summary = buildTrafficDailySummary(this.loadStore().records);
+    const riskResults = this.computeResults();
+    const growthOpportunities = this.computeGrowthOpportunities(999);
+    const businessAnalysisItems = this.computeAnalysisItems();
+
+    writePersistentJson(ORDER_SUMMARY_KEY, readPersistentJson(ORDER_SUMMARY_KEY, { items: [], updatedAt }));
+    writePersistentJson(TRAFFIC_SUMMARY_KEY, summary);
+    writePersistentJson(RISK_RESULTS_KEY, { items: riskResults, updatedAt } satisfies TrafficAnalysisResultStore<TrafficWarningResult>);
+    writePersistentJson(GROWTH_RESULTS_KEY, { items: growthOpportunities, updatedAt } satisfies TrafficAnalysisResultStore<TrafficGrowthOpportunity>);
+    writePersistentJson(BUSINESS_ANALYSIS_KEY, { items: businessAnalysisItems, updatedAt } satisfies TrafficAnalysisResultStore<TrafficAnalysisItem>);
+    notifyTrafficConversionChange();
+
+    return { summary, riskResults, growthOpportunities, businessAnalysisItems };
+  },
+
+  save(records: TrafficConversionRecord[], options?: { searchableText?: string }) {
     const store = this.loadStore();
-    const incomingKeys = new Set(records.map((record) => `${record.storeName}|${record.date}`));
-    const coveredCount = store.records.filter((record) => incomingKeys.has(`${record.storeName}|${record.date}`)).length;
-    const existing = store.records.filter((record) => !incomingKeys.has(`${record.storeName}|${record.date}`));
+    const storeMatcher = createStoreMatcher();
+    const incomingKeys = new Set(records.map((record) => storeDateKey(record, storeMatcher)));
+    const coveredCount = store.records.filter((record) => incomingKeys.has(storeDateKey(record, storeMatcher))).length;
+    const existing = store.records.filter((record) => !incomingKeys.has(storeDateKey(record, storeMatcher)));
     const batchId = `traffic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const recordsWithBatch = records.map((record) => ({ ...record, batchId }));
+    const recordsWithBatch = records.map((record) => {
+      const snapshot = getStoreSnapshot(record.storeName);
+      return {
+        ...record,
+        batchId,
+        storeId: record.storeId || snapshot.storeId,
+        storeName: snapshot.storeName,
+        platform: record.platform || snapshot.platform,
+        platformStoreId: record.platformStoreId || snapshot.platformStoreId,
+      };
+    });
     const batch = buildBatch(recordsWithBatch, coveredCount, batchId);
 
     writePersistentJson(DATA_KEY, {
       records: [...existing, ...recordsWithBatch],
       batches: [...(store.batches ?? []), batch],
-    } satisfies TrafficConversionStore);
-    notifyTrafficConversionChange();
+    } satisfies TrafficConversionStore, { trafficImportSearchableText: options?.searchableText });
+    this.regenerateAnalysisResults();
 
     return { coveredCount, newCount: batch.newCount, batch };
   },
@@ -394,7 +555,7 @@ export const trafficConversionDataSource = {
       records: store.records.filter((record) => record.batchId !== batchId),
       batches: (store.batches ?? []).filter((item) => item.id !== batchId),
     } satisfies TrafficConversionStore);
-    notifyTrafficConversionChange();
+    this.regenerateAnalysisResults();
 
     return true;
   },
@@ -409,19 +570,14 @@ export const trafficConversionDataSource = {
 
   saveRuleStore(store: TrafficWarningRuleStore) {
     writePersistentJson(RULE_KEY, normalizeRuleStore(store));
-    notifyTrafficConversionChange();
+    this.regenerateAnalysisResults();
   },
 
   computeResults(): TrafficWarningResult[] {
     const { records } = this.loadStore();
     const { rules } = this.loadRuleStore();
-    const recordsByStore = new Map<string, TrafficConversionRecord[]>();
 
-    for (const record of records) {
-      recordsByStore.set(record.storeName, [...(recordsByStore.get(record.storeName) ?? []), record]);
-    }
-
-    return Array.from(recordsByStore.entries()).flatMap(([storeName, storeRecords]) => {
+    return groupTrafficRecordsByStore(records).flatMap(({ storeKey, storeName, records: storeRecords }) => {
       const latestDate = storeRecords.map((record) => record.date).sort().at(-1);
       if (!latestDate) {
         return [];
@@ -441,7 +597,7 @@ export const trafficConversionDataSource = {
           : `${metricFieldLabels[rule.metricField]}近7日均值较前30日下降 ${metrics.dropRate.toFixed(2)}%`;
 
         return {
-          id: `${storeName}-${rule.id}-${latestDate}`,
+          id: `${storeKey}-${rule.id}-${latestDate}`,
           date: latestDate,
           storeName,
           type: rule.type,
@@ -462,14 +618,9 @@ export const trafficConversionDataSource = {
   computeGrowthOpportunities(limit = 5): TrafficGrowthOpportunity[] {
     const { records } = this.loadStore();
     const { growthRules } = this.loadRuleStore();
-    const recordsByStore = new Map<string, TrafficConversionRecord[]>();
 
-    for (const record of records) {
-      recordsByStore.set(record.storeName, [...(recordsByStore.get(record.storeName) ?? []), record]);
-    }
-
-    return Array.from(recordsByStore.entries())
-      .flatMap(([storeName, storeRecords]) => {
+    return groupTrafficRecordsByStore(records)
+      .flatMap(({ storeKey, storeName, records: storeRecords }) => {
         const latestDate = storeRecords.map((record) => record.date).sort().at(-1);
         if (!latestDate) {
           return [];
@@ -482,7 +633,7 @@ export const trafficConversionDataSource = {
           }
 
           return [{
-            id: `${storeName}-${rule.id}-${latestDate}`,
+            id: `${storeKey}-${rule.id}-${latestDate}`,
             date: latestDate,
             storeName,
             type: rule.type,
@@ -502,13 +653,8 @@ export const trafficConversionDataSource = {
   computeAnalysisItems(): TrafficAnalysisItem[] {
     const { records } = this.loadStore();
     const { rules, growthRules } = this.loadRuleStore();
-    const recordsByStore = new Map<string, TrafficConversionRecord[]>();
 
-    for (const record of records) {
-      recordsByStore.set(record.storeName, [...(recordsByStore.get(record.storeName) ?? []), record]);
-    }
-
-    return Array.from(recordsByStore.entries()).flatMap(([storeName, storeRecords]) => {
+    return groupTrafficRecordsByStore(records).flatMap(({ storeKey, storeName, records: storeRecords }) => {
       const latestDate = storeRecords.map((record) => record.date).sort().at(-1);
       if (!latestDate) {
         return [];
@@ -544,7 +690,7 @@ export const trafficConversionDataSource = {
         }
 
         return {
-          id: `${storeName}-${riskRule.id}-analysis-${latestDate}`,
+          id: `${storeKey}-${riskRule.id}-analysis-${latestDate}`,
           date: latestDate,
           storeName,
           type: riskRule.type,

@@ -3,6 +3,11 @@ dist/
 artifacts/*.log
 artifacts/screenshots/
 .DS_Store
+.env
+.env.*
+!.env.example
 *.local
 data/
+data/backup/
+data/backups/
 database/

@@ -11,6 +11,9 @@ export type TrafficImportStatus = 'success' | 'covered' | 'abnormal' | 'missing'
 
 export interface TrafficConversionRecord {
   batchId?: string;
+  platform?: string;
+  storeId?: string;
+  platformStoreId?: string;
   storeName: string;
   date: string;
   totalViews: number;
@@ -33,6 +36,9 @@ export interface TrafficConversionRecord {
 export interface TrafficImportBatch {
   id: string;
   importedAt: string;
+  platform?: string;
+  storeId?: string;
+  platformStoreId?: string;
   storeName: string;
   fileName: string;
   dateStart: string;
@@ -50,6 +56,31 @@ export interface TrafficImportBatch {
 export interface TrafficConversionStore {
   records: TrafficConversionRecord[];
   batches?: TrafficImportBatch[];
+}
+
+export interface TrafficDailySummaryItem {
+  date: string;
+  storeName: string;
+  productVisitors: number;
+  detailPayConversionRate: number;
+  totalPayBuyers: number;
+  totalViews: number;
+  totalVisitors: number;
+  totalPayConversionRate: number;
+  productViews: number;
+  detailPayBuyers: number;
+  importBatchId: string;
+  updatedAt: string;
+}
+
+export interface TrafficDailySummaryStore {
+  items: TrafficDailySummaryItem[];
+  updatedAt: string;
+}
+
+export interface TrafficAnalysisResultStore<T> {
+  items: T[];
+  updatedAt: string;
 }
 
 export interface TrafficWarningRuleConfig {

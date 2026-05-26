@@ -1,0 +1,1810 @@
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[31merror when starting dev server:
+Error: spawn EPERM
+    at ChildProcess.spawn (node:internal/child_process:441:11)
+    at spawn (node:child_process:796:9)
+    at Object.execFile (node:child_process:349:17)
+    at exec (node:child_process:236:25)
+    at optimizeSafeRealPathSync (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:2230:2)
+    at windowsSafeRealPathSync (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:2216:3)
+    at getRealPath (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:32953:36)
+    at tryResolveRealFileOrType (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:32947:9)
+    at tryCleanFsResolve (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:32671:21)
+    at tryFsResolve (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:32664:14)[39m
+^C^C^C[2m11:51:33[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/pages/admin/menuKeys.ts (resolved id: F:/项目/TEMU运营数据大屏/src/pages/admin/menuKeys.ts) in F:/项目/TEMU运营数据大屏/src/pages/admin/routes.ts. Does the file exist?
+[2m11:51:33[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/pages/admin/menuKeys.ts (resolved id: F:/项目/TEMU运营数据大屏/src/pages/admin/menuKeys.ts) in F:/项目/TEMU运营数据大屏/src/pages/admin/routes.ts. Does the file exist?
+F:/项目/TEMU运营数据大屏/vite.config.js:348
+    permissionKeys: getPermissionKeys(user),
+                    ^
+
+ReferenceError: getPermissionKeys is not defined
+    at toCurrentUser (F:/项目/TEMU运营数据大屏/vite.config.js:348:21)
+    at handleAuthApi (F:/项目/TEMU运营数据大屏/vite.config.js:586:60)
+    at eval (F:/项目/TEMU运营数据大屏/vite.config.js:1738:9)
+    at call (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10621:5)
+    at next (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10574:4)
+    at next (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10563:86)
+    at hostValidationMiddleware$1$1 (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:20343:3)
+    at call (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10621:5)
+    at next (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10574:4)
+    at cors (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10925:5)
+    at file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10948:9
+    at originCallback (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10942:8)
+    at file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10944:27
+    at optionsCallback (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10932:5)
+    at corsMiddleware$2 (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10935:5)
+    at call (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10621:5)
+    at next (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10574:4)
+    at viteRejectInvalidRequestMiddleware (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:25365:10)
+    at call (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10621:5)
+    at next (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10574:4)
+    at app.handle (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10576:3)
+    at Server.app (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:10483:8)
+    at Server.emit (node:events:509:28)
+    at parserOnIncoming (node:_http_server:1213:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+
+Node.js v24.15.0
+[2m21:53:46[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:53:46[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:53:46[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:54:09[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:54:09[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:54:09[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:54:40[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:54:40[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:54:40[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:55:08[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[39m       ([33m![39mactiveTaskQuickFilter[33m.[39maiOnly [33m||[39m isAiGeneratedTask(task)) [33m&&[39m
+ [90m 428 |[39m       ([33m![39mactiveTaskQuickFilter[33m.[39mopenOnly [33m||[39m isOpenTask(task)))[33m,[39m
+[31m[1m>[22m[39m[90m 429 |[39m     )
+ [90m     |[39m     [31m[1m^[22m[39m
+ [90m 430 |[39m     [33m.[39msort((first[33m,[39m second) [33m=>[39m {
+ [90m 431 |[39m       [36mconst[39m statusRank[33m:[39m [33mRecord[39m[33m<[39m[33mOperationTaskStatus[39m[33m,[39m number[33m>[39m [33m=[39m { todo[33m:[39m [35m0[39m[33m,[39m doing[33m:[39m [35m1[39m[33m,[39m done[33m:[39m [35m2[39m[33m,[39m closed[33m:[39m [35m3[39m }[33m;[39m
+ [90m 432 |[39m       [36mconst[39m priorityRank[33m:[39m [33mRecord[39m[33m<[39m[33mOperationTaskPriority[39m[33m,[39m number[33m>[39m [33m=[39m { high[33m:[39m [35m0[39m[33m,[39m medium[33m:[39m [35m1[39m[33m,[39m low[33m:[39m [35m2[39m }[33m;[39m[0m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+[2m21:55:08[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:55:15[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[39m       ([33m![39mactiveTaskQuickFilter[33m.[39maiOnly [33m||[39m isAiGeneratedTask(task)) [33m&&[39m
+ [90m 428 |[39m       ([33m![39mactiveTaskQuickFilter[33m.[39mopenOnly [33m||[39m isOpenTask(task)))[33m,[39m
+[31m[1m>[22m[39m[90m 429 |[39m     )
+ [90m     |[39m     [31m[1m^[22m[39m
+ [90m 430 |[39m     [33m.[39msort((first[33m,[39m second) [33m=>[39m {
+ [90m 431 |[39m       [36mconst[39m statusRank[33m:[39m [33mRecord[39m[33m<[39m[33mOperationTaskStatus[39m[33m,[39m number[33m>[39m [33m=[39m { todo[33m:[39m [35m0[39m[33m,[39m doing[33m:[39m [35m1[39m[33m,[39m done[33m:[39m [35m2[39m[33m,[39m closed[33m:[39m [35m3[39m }[33m;[39m
+ [90m 432 |[39m       [36mconst[39m priorityRank[33m:[39m [33mRecord[39m[33m<[39m[33mOperationTaskPriority[39m[33m,[39m number[33m>[39m [33m=[39m { high[33m:[39m [35m0[39m[33m,[39m medium[33m:[39m [35m1[39m[33m,[39m low[33m:[39m [35m2[39m }[33m;[39m[0m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+[2m21:55:15[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:55:15[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:55:16[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:55:23[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:55:28[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:55:31[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:55:32[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[39m       ([33m![39mactiveTaskQuickFilter[33m.[39maiOnly [33m||[39m isAiGeneratedTask(task)) [33m&&[39m
+ [90m 428 |[39m       ([33m![39mactiveTaskQuickFilter[33m.[39mopenOnly [33m||[39m isOpenTask(task)))[33m,[39m
+[31m[1m>[22m[39m[90m 429 |[39m     )
+ [90m     |[39m     [31m[1m^[22m[39m
+ [90m 430 |[39m     [33m.[39msort((first[33m,[39m second) [33m=>[39m {
+ [90m 431 |[39m       [36mconst[39m statusRank[33m:[39m [33mRecord[39m[33m<[39m[33mOperationTaskStatus[39m[33m,[39m number[33m>[39m [33m=[39m { todo[33m:[39m [35m0[39m[33m,[39m doing[33m:[39m [35m1[39m[33m,[39m done[33m:[39m [35m2[39m[33m,[39m closed[33m:[39m [35m3[39m }[33m;[39m
+ [90m 432 |[39m       [36mconst[39m priorityRank[33m:[39m [33mRecord[39m[33m<[39m[33mOperationTaskPriority[39m[33m,[39m number[33m>[39m [33m=[39m { high[33m:[39m [35m0[39m[33m,[39m medium[33m:[39m [35m1[39m[33m,[39m low[33m:[39m [35m2[39m }[33m;[39m[0m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+[2m21:55:32[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:55:32[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:55:32[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m21:55:33[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\task-center\TaskCenterPage.tsx: Unexpected token (429:4)
+
+[0m [90m 427 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31maiOnly [33m||[31m isAiGeneratedTask(task)) [33m&&[31m
+ [90m 428 |[31m       ([33m![31mactiveTaskQuickFilter[33m.[31mopenOnly [33m||[31m isOpenTask(task)))[33m,[31m
+[31m[1m>[22m[31m[90m 429 |[31m     )
+ [90m     |[31m     [31m[1m^[22m[31m
+ [90m 430 |[31m     [33m.[31msort((first[33m,[31m second) [33m=>[31m {
+ [90m 431 |[31m       [36mconst[31m statusRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskStatus[31m[33m,[31m number[33m>[31m [33m=[31m { todo[33m:[31m [35m0[31m[33m,[31m doing[33m:[31m [35m1[31m[33m,[31m done[33m:[31m [35m2[31m[33m,[31m closed[33m:[31m [35m3[31m }[33m;[31m
+ [90m 432 |[31m       [36mconst[31m priorityRank[33m:[31m [33mRecord[31m[33m<[31m[33mOperationTaskPriority[31m[33m,[31m number[33m>[31m [33m=[31m { high[33m:[31m [35m0[31m[33m,[31m medium[33m:[31m [35m1[31m[33m,[31m low[33m:[31m [35m2[31m }[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/task-center/TaskCenterPage.tsx[39m:429:4
+[33m  427 |        (!activeTaskQuickFilter.aiOnly || isAiGeneratedTask(task)) &&
+  428 |        (!activeTaskQuickFilter.openOnly || isOpenTask(task))),
+  429 |      )
+      |      ^
+  430 |      .sort((first, second) => {
+  431 |        const statusRank: Record<OperationTaskStatus, number> = { todo: 0, doing: 1, done: 2, closed: 3 };[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.parseIdentifierName (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12220:12)
+      at TypeScriptParserMixin.parseIdentifier (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12198:23)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7373:17)
+      at TypeScriptParserMixin.parseBindingAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9959:18)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13419:21)
+      at TypeScriptParserMixin.parseVarId (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9769:11)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13400:12)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13247:10)
+      at TypeScriptParserMixin.parseVarStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9425:31)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12868:23)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+[2m23:51:40[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:40[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:40[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:40[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:40[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:40[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:40[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:40[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:40[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:40[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+      at failureErrorWithLog (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:1748:15)
+      at F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:1017:50
+      at responseCallbacks.<computed> (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:884:9)
+      at handleIncomingPacket (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:939:12)
+      at Socket.readFromStdout (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:862:7)
+      at Socket.emit (node:events:509:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+[2m23:51:40[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+      at failureErrorWithLog (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:1748:15)
+      at F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:1017:50
+      at responseCallbacks.<computed> (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:884:9)
+      at handleIncomingPacket (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:939:12)
+      at Socket.readFromStdout (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:862:7)
+      at Socket.emit (node:events:509:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+[2m23:51:40[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+      at failureErrorWithLog (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:1748:15)
+      at F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:1017:50
+      at responseCallbacks.<computed> (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:884:9)
+      at handleIncomingPacket (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:939:12)
+      at Socket.readFromStdout (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:862:7)
+      at Socket.emit (node:events:509:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+[2m23:51:52[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:52[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:52[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:52[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:52[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:52[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:52[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+      at failureErrorWithLog (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:1748:15)
+      at F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:1017:50
+      at responseCallbacks.<computed> (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:884:9)
+      at handleIncomingPacket (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:939:12)
+      at Socket.readFromStdout (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:862:7)
+      at Socket.emit (node:events:509:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+[2m23:51:52[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+      at failureErrorWithLog (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:1748:15)
+      at F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:1017:50
+      at responseCallbacks.<computed> (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:884:9)
+      at handleIncomingPacket (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:939:12)
+      at Socket.readFromStdout (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:862:7)
+      at Socket.emit (node:events:509:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+[2m23:51:52[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:52[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:52[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+[2m23:51:52[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:322:59: ERROR: Cannot use "||" with "??" without parentheses[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts[39m:322:59
+[33m  
+  [33mCannot use "||" with "??" without parentheses[33m
+  320 |      importedAt: records[0]?.importedAt ?? new Date().toISOString(),
+  321 |      storeId: records[0]?.storeId || snapshot.storeId,
+  322 |      storeName: records[0]?.storeName ?? snapshot.storeName || '未知店铺',
+      |                                                             ^
+  323 |      platform: records[0]?.platform || snapshot.platform,
+  324 |      platformStoreId: records[0]?.platformStoreId || snapshot.platformStoreId,
+  [39m
+      at failureErrorWithLog (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:1748:15)
+      at F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:1017:50
+      at responseCallbacks.<computed> (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:884:9)
+      at handleIncomingPacket (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:939:12)
+      at Socket.readFromStdout (F:\项目\TEMU运营数据大屏\node_modules\esbuild\lib\main.js:862:7)
+      at Socket.emit (node:events:509:28)
+      at addChunk (node:internal/streams/readable:563:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+      at Readable.push (node:internal/streams/readable:394:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
