@@ -1583,7 +1583,7 @@ function filterCollectionForUser(name, data, currentUser) {
 }
 
 function filterPersistentDataForUser(name, data, currentUser) {
-  if (!currentUser && ['orderImportStore', 'trafficConversionStore', 'trafficWarningRules', 'riskResults', 'growthOpportunities', 'businessAnalysisItems'].includes(name)) {
+  if (!currentUser && name === 'orderImportStore') {
     return data;
   }
 

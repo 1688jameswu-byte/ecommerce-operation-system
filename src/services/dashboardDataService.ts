@@ -9,11 +9,11 @@ const levelRank = { critical: 0, high: 1, medium: 2, low: 3 };
 
 function toDashboardWarning(result: TrafficWarningResult): WarningItem {
   return {
-    id: result.id,
-    type: result.type,
-    storeName: result.storeName,
-    content: result.content,
-    time: result.triggeredAt.replace('T', ' ').slice(11, 16),
+    id: result.id || `${result.storeName || 'unknown'}-${result.type || 'traffic'}-${result.date || Date.now()}`,
+    type: result.type || 'traffic',
+    storeName: result.storeName || '-',
+    content: result.content || '-',
+    time: (result.triggeredAt || result.date || '').replace('T', ' ').slice(11, 16),
     level: (result.level === 'critical' ? 'critical' : 'high') as WarningLevel,
   };
 }
@@ -34,27 +34,48 @@ function getTrafficWarnings() {
 
 function getGrowthOpportunities(): GrowthOpportunityItem[] {
   return trafficConversionDataSource.loadGrowthOpportunities().map((item) => ({
-    id: item.id,
-    type: item.type,
-    storeName: item.storeName,
-    content: item.content,
-    growthRate: item.growthRate,
+    id: item.id || `${item.storeName || 'unknown'}-${item.type || 'traffic'}-${Date.now()}`,
+    type: item.type || 'traffic',
+    storeName: item.storeName || '-',
+    content: item.content || '-',
+    growthRate: Number.isFinite(item.growthRate) ? item.growthRate : 0,
   }));
 }
 
-export async function getDashboardData(): Promise<DashboardData> {
-  const orderImportResult = orderImportStorageDataSource.load();
-  const trafficWarnings = getTrafficWarnings();
-  const growthOpportunities = getGrowthOpportunities();
+function safeTrafficWarnings() {
+  try {
+    return getTrafficWarnings();
+  } catch {
+    return [];
+  }
+}
 
-  if (orderImportResult) {
-    const standardSalesOrders = orderImportStorageDataSource.loadStandardSalesOrders();
-    return {
-      ...buildDashboardDataFromOrders(orderImportResult, standardSalesOrders),
-      dataSource: '真实数据',
-      warnings: trafficWarnings,
-      growthOpportunities,
-    };
+function safeGrowthOpportunities() {
+  try {
+    return getGrowthOpportunities();
+  } catch {
+    return [];
+  }
+}
+
+export async function getDashboardData(): Promise<DashboardData> {
+  const trafficWarnings = safeTrafficWarnings();
+  const growthOpportunities = safeGrowthOpportunities();
+
+  try {
+    const orderImportResult = orderImportStorageDataSource.load();
+
+    if (orderImportResult && orderImportResult.orders.length > 0) {
+      const standardSalesOrders = orderImportStorageDataSource.loadStandardSalesOrders();
+      return {
+        ...buildDashboardDataFromOrders(orderImportResult, standardSalesOrders),
+        dataSource: '真实数据',
+        warnings: trafficWarnings,
+        growthOpportunities,
+      };
+    }
+  } catch {
+    // Fall back to mock data when production JSON is missing or malformed.
   }
 
   return {
