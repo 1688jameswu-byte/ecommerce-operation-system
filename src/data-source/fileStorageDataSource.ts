@@ -66,6 +66,15 @@ export function logPersistentDataPath() {
     return;
   }
 
+  try {
+    const user = JSON.parse(window.localStorage.getItem('currentUser') || 'null') as { role?: string; allowedMenuKeys?: string[] } | null;
+    if (user?.role !== 'admin' && !(user?.allowedMenuKeys ?? []).includes('data-source')) {
+      return;
+    }
+  } catch {
+    return;
+  }
+
   dataPathLogged = true;
   fetch('/api/data-path')
     .then((response) => response.json())

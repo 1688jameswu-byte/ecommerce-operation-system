@@ -120,6 +120,16 @@ function safeLoad<T>(loader: () => T, fallback: T) {
   }
 }
 
+async function loadVisibleStores(): Promise<StoreRecord[]> {
+  try {
+    const response = await fetch('/api/auth/visible-stores', { cache: 'no-store', credentials: 'include' });
+    const data = await response.json() as { stores?: StoreRecord[] };
+    return response.ok ? data.stores ?? [] : [];
+  } catch {
+    return [];
+  }
+}
+
 function formatDateTime(value?: string) {
   if (!value) {
     return '-';
@@ -408,15 +418,21 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
       relation.status !== 'inactive' &&
       (relation.storeId === storeId || relation.storeName === storeName));
 
-  const refreshAll = () => {
-    setStores(safeLoad(() => storeDataSource.load(), []));
-    setOperators(safeLoad(() => operatorDataSource.load(), []));
-    setStoreRelations(safeLoad(() => storeOperatorDataSource.load(), []));
+  const refreshAll = async () => {
+    if (isAdmin) {
+      setStores(safeLoad(() => storeDataSource.load(), []));
+      setOperators(safeLoad(() => operatorDataSource.load(), []));
+      setStoreRelations(safeLoad(() => storeOperatorDataSource.load(), []));
+    } else {
+      setStores(await loadVisibleStores());
+      setOperators([]);
+      setStoreRelations([]);
+    }
     setTasks(filterTasksByPermission(safeLoad(() => taskDataSource.load(), []), currentUser));
   };
 
   useEffect(() => {
-    refreshAll();
+    void refreshAll();
   }, []);
 
   const todayKey = formatDateKey(new Date());

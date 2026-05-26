@@ -79,6 +79,7 @@ type AutoRiskTaskRecord = OperationTaskRecord & {
 };
 
 const DETAIL_RENDER_LIMIT = 100;
+const ORDER_IMPORT_FIRST_PAINT_URL = '/api/persistent-data/orderImportStore?recentDays=7&limit=500';
 
 const emptyDataQualityReport: FactDataQualityReport = {
   totalRecords: 0,
@@ -231,6 +232,15 @@ async function fetchJson<T>(url: string, fallback: T): Promise<T> {
   } catch {
     return fallback;
   }
+}
+
+async function fetchVisibleStoresFallback(currentUser: CurrentUser): Promise<StoreRecord[]> {
+  if (currentUser.role === 'admin') {
+    return fetchJson<StoreRecord[]>('/api/stores', []);
+  }
+
+  const result = await fetchJson<{ stores?: StoreRecord[] }>('/api/auth/visible-stores', { stores: [] });
+  return result.stores ?? [];
 }
 
 function buildDateDimension(value: string) {
@@ -477,14 +487,14 @@ async function loadAnalysisData(currentUser: CurrentUser) {
     operators,
     suggestionTemplates,
   ] = await Promise.all([
-    fetchJson<TemuOrderImportStore>('/api/persistent-data/orderImportStore', { batches: [] }),
+    fetchJson<TemuOrderImportStore>(ORDER_IMPORT_FIRST_PAINT_URL, { batches: [] }),
     fetchJson<TrafficConversionStore>('/api/persistent-data/trafficConversionStore', { records: [], batches: [] }),
     fetchJson<TrafficAnalysisResultStore<TrafficWarningResult>>('/api/persistent-data/riskResults', { items: [], updatedAt: '' }),
     fetchJson<TrafficAnalysisResultStore<TrafficGrowthOpportunity>>('/api/persistent-data/growthOpportunities', { items: [], updatedAt: '' }),
     fetchJson<TrafficAnalysisResultStore<TrafficAnalysisItem>>('/api/persistent-data/businessAnalysisItems', { items: [], updatedAt: '' }),
-    fetchJson<StoreRecord[]>('/api/stores', []),
-    fetchJson<StoreOperatorRelation[]>('/api/store-operator-relations', []),
-    fetchJson<OperatorRecord[]>('/api/operators', []),
+    fetchVisibleStoresFallback(currentUser),
+    currentUser.role === 'admin' ? fetchJson<StoreOperatorRelation[]>('/api/store-operator-relations', []) : Promise.resolve([]),
+    currentUser.role === 'admin' ? fetchJson<OperatorRecord[]>('/api/operators', []) : Promise.resolve([]),
     fetchJson<TaskSuggestionTemplate[]>('/api/task-suggestion-templates', []),
   ]);
   const orderRecords = orderStore.batches.flatMap((batch) =>
@@ -505,7 +515,7 @@ async function loadAnalysisData(currentUser: CurrentUser) {
     riskResults,
     growthResults,
     analysisItems,
-    storeMatchReport: analyzeStoreNameMatches(storeNames),
+    storeMatchReport: analyzeStoreNameMatches(storeNames, stores),
     factDataQualityReport: buildFactDataQualityReport({
       salesOrders: standardSalesOrders,
       trafficRecords: standardTrafficRecords,

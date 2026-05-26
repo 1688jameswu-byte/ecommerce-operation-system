@@ -1193,19 +1193,41 @@ async function handleCollectionApi(req, res, name, prefix) {
 
   try {
     const menuKey = getCollectionMenuKey(name);
+    const currentUser = toCurrentUser(findCurrentUser(req));
+
+    if (req.method === 'GET' && ['stores', 'operators', 'storeOperatorRelations'].includes(name) && menuKey) {
+      if (currentUser?.role === 'admin' || userCanAccessMenu(findCurrentUser(req), menuKey)) {
+        const data = name === 'stores' ? getStores() : name === 'operators' ? getOperators() : readCollection(name);
+        res.end(JSON.stringify(filterCollectionForUser(name, data, currentUser)));
+        return;
+      }
+
+      if (name === 'stores') {
+        res.end(JSON.stringify(getVisibleStores(currentUser)));
+        return;
+      }
+
+      if (name === 'storeOperatorRelations') {
+        res.end(JSON.stringify(filterCollectionForUser(name, readCollection(name), currentUser)));
+        return;
+      }
+
+      res.end(JSON.stringify([]));
+      return;
+    }
+
     if (menuKey && !requireMenu(req, res, menuKey)) {
       return;
     }
 
     if (req.method === 'GET') {
       const data = name === 'stores' ? getStores() : name === 'operators' ? getOperators() : readCollection(name);
-      res.end(JSON.stringify(filterCollectionForUser(name, data, toCurrentUser(findCurrentUser(req)))));
+      res.end(JSON.stringify(filterCollectionForUser(name, data, currentUser)));
       return;
     }
 
     const id = decodeURIComponent((req.url ?? '').split('?')[0].replace(/^\/+/, ''));
     const collection = readCollection(name);
-    const currentUser = toCurrentUser(findCurrentUser(req));
 
     if (req.method === 'POST') {
       const body = JSON.parse((await readBody(req)) || '{}');
@@ -1621,6 +1643,89 @@ function filterPersistentDataForUser(name, data, currentUser) {
   return data;
 }
 
+function getOrderDateKey(order) {
+  return String(order?.orderDate ?? order?.date ?? order?.orderTime ?? '').slice(0, 10);
+}
+
+function formatOrderDateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function resolveOrderDateRange(data, searchParams) {
+  const start = searchParams.get('dateStart') || searchParams.get('startDate') || '';
+  const end = searchParams.get('dateEnd') || searchParams.get('endDate') || '';
+
+  if (start || end) {
+    return { start, end };
+  }
+
+  const recentDays = Number(searchParams.get('recentDays') || searchParams.get('days') || 0);
+  if (!Number.isFinite(recentDays) || recentDays <= 0) {
+    return { start: '', end: '' };
+  }
+
+  const latest = (data?.batches ?? [])
+    .flatMap((batch) => batch.orders ?? [])
+    .map(getOrderDateKey)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+
+  if (!latest) {
+    return { start: '', end: '' };
+  }
+
+  const startDate = new Date(`${latest}T00:00:00`);
+  startDate.setDate(startDate.getDate() - recentDays + 1);
+  return { start: formatOrderDateKey(startDate), end: latest };
+}
+
+function filterOrderImportStoreByQuery(data, searchParams) {
+  const hasQuery = ['limit', 'dateStart', 'startDate', 'dateEnd', 'endDate', 'recentDays', 'days', 'summaryOnly']
+    .some((key) => searchParams.has(key));
+
+  if (!hasQuery || !data?.batches) {
+    return data;
+  }
+
+  const { start, end } = resolveOrderDateRange(data, searchParams);
+  const limit = Math.max(0, Number(searchParams.get('limit') || 0));
+  let remaining = limit || Number.POSITIVE_INFINITY;
+
+  const batches = [...data.batches]
+    .sort((first, second) => String(second.importedAt ?? '').localeCompare(String(first.importedAt ?? '')))
+    .map((batch) => {
+      if (remaining <= 0) {
+        return { ...batch, orders: [] };
+      }
+
+      const orders = (batch.orders ?? [])
+        .filter((order) => {
+          const date = getOrderDateKey(order);
+          return (!start || date >= start) && (!end || date <= end);
+        })
+        .slice(0, remaining);
+
+      remaining -= orders.length;
+      return { ...batch, orders, validRows: orders.length };
+    })
+    .filter((batch) => batch.orders.length > 0);
+
+  if (searchParams.get('summaryOnly') === 'true') {
+    return {
+      summaryOnly: true,
+      dateStart: start,
+      dateEnd: end,
+      totalBatches: batches.length,
+      totalOrders: batches.reduce((total, batch) => total + batch.orders.length, 0),
+      storeNames: unique(batches.flatMap((batch) => batch.orders.map((order) => order.storeName).filter(Boolean))),
+      batches: batches.map((batch) => ({ ...batch, orders: [], orderCount: batch.orders.length })),
+    };
+  }
+
+  return { ...data, batches };
+}
+
 function getCollectionMenuKey(name) {
   if (name === 'stores') {
     return menuKeys.storeManagement;
@@ -1835,7 +1940,15 @@ function localDataPlugin() {
     configureServer(server) {
       server.middlewares.use('/api/data-path', (_req, res) => {
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        if (!requireMenu(_req, res, menuKeys.dataSource)) {
+        const user = findCurrentUser(_req);
+        if (!user) {
+          res.statusCode = 403;
+          res.end(JSON.stringify({ success: false, message: '鏃犳潈璁块棶' }));
+          return;
+        }
+
+        if (!userCanAccessMenu(user, menuKeys.dataSource)) {
+          res.end(JSON.stringify({ path: '' }));
           return;
         }
 
@@ -1984,7 +2097,8 @@ function localDataPlugin() {
       ));
 
       server.middlewares.use('/api/persistent-data/', async (req, res) => {
-        const name = req.url?.split('?')[0].replace(/^\/+/, '');
+        const requestUrl = new URL(req.url ?? '/', 'http://local');
+        const name = requestUrl.pathname.replace(/^\/+/, '');
 
         if (!name || !(name in dataFiles)) {
           res.statusCode = 404;
@@ -2005,7 +2119,10 @@ function localDataPlugin() {
         if (req.method === 'GET') {
           try {
             const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-            res.end(JSON.stringify(filterPersistentDataForUser(name, data, toCurrentUser(findCurrentUser(req)))));
+            const scopedData = filterPersistentDataForUser(name, data, toCurrentUser(findCurrentUser(req)));
+            res.end(JSON.stringify(name === 'orderImportStore'
+              ? filterOrderImportStoreByQuery(scopedData, requestUrl.searchParams)
+              : scopedData));
           } catch (error) {
             res.statusCode = 500;
             res.end(`Read failed: ${error instanceof Error ? error.message : String(error)}`);

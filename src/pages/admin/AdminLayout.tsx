@@ -1,12 +1,13 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { adminRoutes, type AdminRoute } from './routes';
 import PlaceholderPage from './PlaceholderPage';
-import { orderImportStorageDataSource } from '../../data-source/orderImportStorageDataSource';
 import { taskDataSource } from '../../data-source/taskDataSource';
 import { trafficConversionDataSource } from '../../data-source/trafficConversionDataSource';
 import { useVisibleStores } from '../../auth/useVisibleStores';
 import { logoutCurrentUser } from '../../auth/currentUser';
 import type { CurrentUser, UserRole } from '../../types/auth';
+import type { SalesOrderRecord } from '../../types/fact';
+import type { TemuOrderDetail, TemuOrderImportStore } from '../../types/order';
 import type { OperationTaskPriority, OperationTaskRecord, OperationTaskStatus } from '../../types/task';
 import type { TrafficWarningLevel, TrafficWarningResult, TrafficWarningType } from '../../types/traffic';
 import './admin.css';
@@ -117,6 +118,18 @@ function safeLoad<T>(loader: () => T, fallback: T) {
   }
 }
 
+async function fetchAdminJson<T>(url: string, fallback: T): Promise<T> {
+  try {
+    const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`, {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+    return response.ok ? await response.json() as T : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function formatDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -143,6 +156,31 @@ function sortWarnings(first: TrafficWarningResult, second: TrafficWarningResult)
   return levelRank[first.level] - levelRank[second.level] || second.triggeredAt.localeCompare(first.triggeredAt);
 }
 
+function toRecentSalesOrder(order: TemuOrderDetail & { batchId?: string }): SalesOrderRecord {
+  const date = String(order.orderDate || order.orderTime || '').slice(0, 10);
+  return {
+    date,
+    month: order.month || date.slice(0, 7),
+    year: Number(date.slice(0, 4)) || new Date().getFullYear(),
+    week: '',
+    platform: 'TEMU',
+    storeId: order.storeName,
+    storeName: order.storeName,
+    operatorId: order.operatorName,
+    operatorName: order.operatorName,
+    orderId: order.orderId,
+    sku: order.productSku || order.skuCode || order.skc,
+    productName: order.productName,
+    salesAmount: Number(order.salesAmount) || 0,
+    orderAmount: Number(order.salesAmount) || 0,
+    quantity: Number(order.quantity) || 0,
+    isFirstOrder: Boolean(order.isFirstOrder),
+    rawSource: order,
+    sourceBatchId: order.batchId,
+    sourceKey: order.uniqueKey,
+  };
+}
+
 function AdminHome({
   currentUser,
   visibleStoreIds,
@@ -156,7 +194,7 @@ function AdminHome({
   const yesterdayDate = new Date();
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
   const yesterday = formatDateKey(yesterdayDate);
-  const salesOrders = safeLoad(() => orderImportStorageDataSource.loadStandardSalesOrders(), []);
+  const [salesOrders, setSalesOrders] = useState<SalesOrderRecord[]>([]);
   const tasks = safeLoad(() => taskDataSource.load(), []);
   const riskWarnings = safeLoad(() => trafficConversionDataSource.loadRiskResults(), [])
     .filter((warning) => warning.level !== 'insufficient')
@@ -222,6 +260,22 @@ function AdminHome({
   const taskTitle = currentUser.role === 'operator' ? '我的待处理任务' : currentUser.role === 'leader' ? '组内待处理任务' : '待处理任务';
   const overdueTitle = currentUser.role === 'operator' ? '我的超期任务' : currentUser.role === 'leader' ? '组内超期任务' : '已超期任务';
   const warningTitle = currentUser.role === 'operator' ? '我的最新预警' : currentUser.role === 'leader' ? '组内最新预警' : '最新预警';
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAdminJson<TemuOrderImportStore>('/api/persistent-data/orderImportStore?recentDays=7&limit=500', { batches: [] })
+      .then((store) => {
+        if (cancelled) {
+          return;
+        }
+        setSalesOrders(store.batches.flatMap((batch) =>
+          (batch.orders ?? []).map((order) => toRecentSalesOrder({ ...order, batchId: batch.batchId })),
+        ));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <section className="admin-home">
