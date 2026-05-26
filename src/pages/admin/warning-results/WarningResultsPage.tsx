@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   metricFieldLabels,
   subscribeTrafficConversionChange,
@@ -26,6 +26,7 @@ import type {
   TrafficWarningType,
 } from '../../../types/traffic';
 import { loadFactDataQualityReport } from '../../../utils/factDataQuality';
+import { buildStandardAnalysisResults, buildStandardSalesOrders } from '../../../utils/factDataStandardization';
 import {
   buildGrowthOpportunityTaskDraft,
   buildRiskWarningTaskDraft,
@@ -280,14 +281,18 @@ function buildOperatorPerformanceSummary(
 }
 
 function loadAnalysisData(currentUser: CurrentUser) {
-  const orderImportResult = orderImportStorageDataSource.load();
+  const orderStore = safeLoad(() => orderImportStorageDataSource.loadStore(), { batches: [] });
   const trafficStore = trafficConversionDataSource.loadStore();
   const operators = safeLoad(() => operatorDataSource.load(), []);
   const suggestionTemplates = safeLoad(() => taskSuggestionDataSource.load(), []);
-  const standardSalesOrders = filterRecordsByPermission(orderImportStorageDataSource.loadStandardSalesOrders(), currentUser);
-  const standardAnalysisResults = filterRecordsByPermission(trafficConversionDataSource.loadStandardAnalysisResults(), currentUser);
+  const orderRecords = orderStore.batches.flatMap((batch) =>
+    batch.orders.map((order) => ({ ...order, batchId: batch.batchId })),
+  );
+  const analysisItems = filterRecordsByPermission(trafficConversionDataSource.loadBusinessAnalysisItems(), currentUser);
+  const standardSalesOrders = filterRecordsByPermission(buildStandardSalesOrders(orderRecords), currentUser);
+  const standardAnalysisResults = filterRecordsByPermission(buildStandardAnalysisResults(analysisItems), currentUser);
   const storeNames = [
-    ...(orderImportResult?.orders.map((order) => order.storeName) ?? []),
+    ...orderRecords.map((order) => order.storeName),
     ...trafficStore.records.map((record) => record.storeName),
   ];
   const riskResults = filterRecordsByPermission(trafficConversionDataSource.loadRiskResults(), currentUser).filter((item) => item.level !== 'insufficient').sort(riskSort);
@@ -296,7 +301,7 @@ function loadAnalysisData(currentUser: CurrentUser) {
   return {
     riskResults,
     growthResults,
-    analysisItems: filterRecordsByPermission(trafficConversionDataSource.loadBusinessAnalysisItems(), currentUser),
+    analysisItems,
     storeMatchReport: analyzeStoreNameMatches(storeNames),
     factDataQualityReport: loadFactDataQualityReport(),
     operatorPerformance: buildOperatorPerformanceSummary(operators, standardSalesOrders, standardAnalysisResults),
@@ -327,7 +332,6 @@ function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
       setData(loadAnalysisData(currentUser));
       setTasks(filterTasksByPermission(taskDataSource.load(), currentUser));
     };
-    refresh();
     const unsubscribeTraffic = subscribeTrafficConversionChange(refresh);
     const unsubscribeOrder = subscribeOrderImportStorageChange(refresh);
 
@@ -338,14 +342,14 @@ function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
   }, [currentUser]);
 
   const { riskResults, growthResults, analysisItems, storeMatchReport, factDataQualityReport, operatorPerformance, suggestionTemplates } = data;
-  const filtered = analysisItems.filter((item) =>
+  const filtered = useMemo(() => analysisItems.filter((item) =>
     (!dateFilter || item.date === dateFilter) &&
     (!storeFilter || item.storeName === storeFilter) &&
     (!typeFilter || item.type === typeFilter) &&
     (!resultFilter || item.resultType === resultFilter),
-  );
-  const dates = Array.from(new Set(analysisItems.map((item) => item.date))).sort().reverse();
-  const stores = Array.from(new Set(analysisItems.map((item) => item.storeName))).sort();
+  ), [analysisItems, dateFilter, resultFilter, storeFilter, typeFilter]);
+  const dates = useMemo(() => Array.from(new Set(analysisItems.map((item) => item.date))).sort().reverse(), [analysisItems]);
+  const stores = useMemo(() => Array.from(new Set(analysisItems.map((item) => item.storeName))).sort(), [analysisItems]);
   const maxGrowth = growthResults[0];
   const maxDrop = riskResults[0];
   // 后续可扩展运营总监、组长、分组权限、仅查看本组；当前先仅管理员可见。
