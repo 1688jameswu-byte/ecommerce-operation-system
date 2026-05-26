@@ -1,8 +1,10 @@
-import DashboardPage from './pages/dashboard/DashboardPage';
-import AdminLayout from './pages/admin/AdminLayout';
+import { lazy, Suspense } from 'react';
 import ChangePasswordPage from './pages/login/ChangePasswordPage';
 import LoginPage from './pages/login/LoginPage';
 import { useCurrentUser } from './auth/currentUser';
+
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
 
 function App() {
   const { currentUser, loading, setCurrentUser } = useCurrentUser();
@@ -45,10 +47,18 @@ function App() {
       return null;
     }
 
-    return <AdminLayout currentUser={currentUser} />;
+    return (
+      <Suspense fallback={null}>
+        <AdminLayout currentUser={currentUser} />
+      </Suspense>
+    );
   }
 
-  return <DashboardPage />;
+  return (
+    <Suspense fallback={null}>
+      <DashboardPage />
+    </Suspense>
+  );
 }
 
 export default App;

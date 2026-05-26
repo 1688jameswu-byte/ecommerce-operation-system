@@ -1,24 +1,6 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { adminRoutes, type AdminRoute } from './routes';
-import ExcelImportPage from './data-import/ExcelImportPage';
-import DataBackupPage from './data-backup/DataBackupPage';
 import PlaceholderPage from './PlaceholderPage';
-import StoreManagementPage from './store-management/StoreManagementPage';
-import OperatorManagementPage from './operator-management/OperatorManagementPage';
-import TrafficImportPage from './traffic-import/TrafficImportPage';
-import WarningResultsPage from './warning-results/WarningResultsPage';
-import WarningRulesPage from './warning-rules/WarningRulesPage';
-import OperationDiagnosisPage from './operation-diagnosis/OperationDiagnosisPage';
-import TaskCenterPage from './task-center/TaskCenterPage';
-import TaskSuggestionsPage from './task-suggestions/TaskSuggestionsPage';
-import SalaryEmployeesPage from './salary/SalaryEmployeesPage';
-import SalaryPeriodsPage from './salary/SalaryPeriodsPage';
-import SalaryImportTemplatesPage from './salary/SalaryImportTemplatesPage';
-import AttendanceImportPage from './salary/AttendanceImportPage';
-import PieceworkImportPage from './salary/PieceworkImportPage';
-import SalaryDetailsPage from './salary/SalaryDetailsPage';
-import SalaryPlanPage from './salary/SalaryPlanPage';
-import AccountManagementPage from './account-management/AccountManagementPage';
 import { orderImportStorageDataSource } from '../../data-source/orderImportStorageDataSource';
 import { taskDataSource } from '../../data-source/taskDataSource';
 import { trafficConversionDataSource } from '../../data-source/trafficConversionDataSource';
@@ -28,6 +10,25 @@ import type { CurrentUser, UserRole } from '../../types/auth';
 import type { OperationTaskPriority, OperationTaskRecord, OperationTaskStatus } from '../../types/task';
 import type { TrafficWarningLevel, TrafficWarningResult, TrafficWarningType } from '../../types/traffic';
 import './admin.css';
+
+const ExcelImportPage = lazy(() => import('./data-import/ExcelImportPage'));
+const DataBackupPage = lazy(() => import('./data-backup/DataBackupPage'));
+const StoreManagementPage = lazy(() => import('./store-management/StoreManagementPage'));
+const OperatorManagementPage = lazy(() => import('./operator-management/OperatorManagementPage'));
+const TrafficImportPage = lazy(() => import('./traffic-import/TrafficImportPage'));
+const WarningResultsPage = lazy(() => import('./warning-results/WarningResultsPage'));
+const WarningRulesPage = lazy(() => import('./warning-rules/WarningRulesPage'));
+const OperationDiagnosisPage = lazy(() => import('./operation-diagnosis/OperationDiagnosisPage'));
+const TaskCenterPage = lazy(() => import('./task-center/TaskCenterPage'));
+const TaskSuggestionsPage = lazy(() => import('./task-suggestions/TaskSuggestionsPage'));
+const SalaryEmployeesPage = lazy(() => import('./salary/SalaryEmployeesPage'));
+const SalaryPeriodsPage = lazy(() => import('./salary/SalaryPeriodsPage'));
+const SalaryImportTemplatesPage = lazy(() => import('./salary/SalaryImportTemplatesPage'));
+const AttendanceImportPage = lazy(() => import('./salary/AttendanceImportPage'));
+const PieceworkImportPage = lazy(() => import('./salary/PieceworkImportPage'));
+const SalaryDetailsPage = lazy(() => import('./salary/SalaryDetailsPage'));
+const SalaryPlanPage = lazy(() => import('./salary/SalaryPlanPage'));
+const AccountManagementPage = lazy(() => import('./account-management/AccountManagementPage'));
 
 const roleLabels: Record<UserRole, string> = {
   admin: '管理员',
@@ -457,6 +458,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
               当前账号暂未绑定可见店铺，请联系管理员配置权限。
             </section>
           )}
+          <Suspense fallback={<div className="import-record-empty">加载中...</div>}>
           {!canAccessActiveRoute ? (
             <section className="excel-record-panel admin-permission-empty">
               当前账号无权访问此页面，请联系管理员。
@@ -502,6 +504,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
           ) : (
           <AdminHome currentUser={currentUser} visibleStoreIds={visibleStores.storeIds} visibleStoreNames={visibleStoreNames} />
         )}
+          </Suspense>
         </section>
       </section>
     </main>
