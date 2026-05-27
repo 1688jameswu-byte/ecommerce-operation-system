@@ -8,12 +8,13 @@ import {
 } from '../../../data-source/trafficConversionDataSource';
 import { defaultTaskSuggestionTemplates, resolveSuggestionContent } from '../../../data-source/taskSuggestionDataSource';
 import {
+  orderImportStorageDataSource,
   subscribeOrderImportStorageChange,
 } from '../../../data-source/orderImportStorageDataSource';
 import { taskDataSource } from '../../../data-source/taskDataSource';
 import type { AnalysisResultRecord, FactDataQualityReport, SalesOrderRecord } from '../../../types/fact';
 import type { OperatorRecord } from '../../../types/operator';
-import type { TemuOrderDetail, TemuOrderImportStore } from '../../../types/order';
+import type { TemuOrderDetail } from '../../../types/order';
 import type { OperationTaskRecord } from '../../../types/task';
 import type { TaskSuggestionProblemType, TaskSuggestionTemplate } from '../../../types/taskSuggestion';
 import type { StoreRecord } from '../../../types/store';
@@ -79,7 +80,6 @@ type AutoRiskTaskRecord = OperationTaskRecord & {
 };
 
 const DETAIL_RENDER_LIMIT = 100;
-const ORDER_IMPORT_FIRST_PAINT_URL = '/api/persistent-data/orderImportStore?recentDays=7&limit=500';
 
 const emptyDataQualityReport: FactDataQualityReport = {
   totalRecords: 0,
@@ -487,7 +487,7 @@ async function loadAnalysisData(currentUser: CurrentUser) {
     operators,
     suggestionTemplates,
   ] = await Promise.all([
-    fetchJson<TemuOrderImportStore>(ORDER_IMPORT_FIRST_PAINT_URL, { batches: [] }),
+    orderImportStorageDataSource.loadRecentStore({ recentDays: 7, limit: 500 }),
     fetchJson<TrafficConversionStore>('/api/persistent-data/trafficConversionStore', { records: [], batches: [] }),
     fetchJson<TrafficAnalysisResultStore<TrafficWarningResult>>('/api/persistent-data/riskResults', { items: [], updatedAt: '' }),
     fetchJson<TrafficAnalysisResultStore<TrafficGrowthOpportunity>>('/api/persistent-data/growthOpportunities', { items: [], updatedAt: '' }),

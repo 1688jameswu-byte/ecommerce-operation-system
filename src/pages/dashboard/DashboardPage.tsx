@@ -1,26 +1,59 @@
-﻿import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useDashboardScale } from './useDashboardScale';
 import { dashboardConfig } from '../../config/dashboardConfig';
 import { rankingRules } from '../../config/rankingRules';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import MetricCard from '../../components/dashboard/MetricCard';
 import Panel from '../../components/dashboard/Panel';
-import RankingPanel from '../../components/dashboard/RankingPanel';
-import FirstOrderTrendChart from '../../components/dashboard/FirstOrderTrendChart';
 import GrowthOpportunityList from '../../components/dashboard/GrowthOpportunityList';
-import SalesTrendChart from '../../components/dashboard/SalesTrendChart';
 import WarningList from '../../components/dashboard/WarningList';
-import { subscribeOrderImportStorageChange } from '../../data-source/orderImportStorageDataSource';
-import { subscribeTrafficConversionChange } from '../../data-source/trafficConversionDataSource';
-import { getDashboardData } from '../../services/dashboardDataService';
 import type { DashboardData } from '../../types/dashboard';
 import './dashboard.css';
+
+const TEMU_ORDER_IMPORT_STORAGE_KEY = 'temuOrderImportResult';
+const TEMU_ORDER_IMPORT_STORAGE_EVENT = 'temu-order-import-storage-change';
+const TEMU_ORDER_IMPORT_BROADCAST_CHANNEL = 'temu-order-import-storage';
+const TRAFFIC_CONVERSION_CHANGE_EVENT = 'traffic-conversion-data-change';
+
+const RankingPanel = lazy(() => import('../../components/dashboard/RankingPanel'));
+const FirstOrderTrendChart = lazy(() => import('../../components/dashboard/FirstOrderTrendChart'));
+const SalesTrendChart = lazy(() => import('../../components/dashboard/SalesTrendChart'));
 
 const rankingPanelConfigs = [
   { ruleId: 'newProductRanking', dataKey: 'newProductRanking' },
   { ruleId: 'operatorSalesRanking', dataKey: 'operatorSalesRanking' },
   { ruleId: 'storeSalesRanking', dataKey: 'storeSalesRanking' },
 ] as const;
+
+function subscribeOrderImportStorageChange(callback: () => void) {
+  const handleCustomEvent = () => callback();
+  const handleStorageEvent = (event: StorageEvent) => {
+    if (event.key === TEMU_ORDER_IMPORT_STORAGE_KEY) {
+      callback();
+    }
+  };
+  const channel = 'BroadcastChannel' in window ? new BroadcastChannel(TEMU_ORDER_IMPORT_BROADCAST_CHANNEL) : null;
+
+  channel?.addEventListener('message', handleCustomEvent);
+  window.addEventListener(TEMU_ORDER_IMPORT_STORAGE_EVENT, handleCustomEvent);
+  window.addEventListener('storage', handleStorageEvent);
+  window.addEventListener('focus', handleCustomEvent);
+  document.addEventListener('visibilitychange', handleCustomEvent);
+
+  return () => {
+    channel?.removeEventListener('message', handleCustomEvent);
+    channel?.close();
+    window.removeEventListener(TEMU_ORDER_IMPORT_STORAGE_EVENT, handleCustomEvent);
+    window.removeEventListener('storage', handleStorageEvent);
+    window.removeEventListener('focus', handleCustomEvent);
+    document.removeEventListener('visibilitychange', handleCustomEvent);
+  };
+}
+
+function subscribeTrafficConversionChange(callback: () => void) {
+  window.addEventListener(TRAFFIC_CONVERSION_CHANGE_EVENT, callback);
+  return () => window.removeEventListener(TRAFFIC_CONVERSION_CHANGE_EVENT, callback);
+}
 
 function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -31,7 +64,9 @@ function DashboardPage() {
 
   useEffect(() => {
     const refreshDashboardData = (force = false) => {
-      void getDashboardData(force).then(setDashboardData);
+      void import('../../services/dashboardDataService')
+        .then((module) => module.getDashboardData(force))
+        .then(setDashboardData);
     };
 
     refreshDashboardData();
@@ -68,20 +103,24 @@ function DashboardPage() {
           {(() => {
             const rule = rankingRules.find((item) => item.id === rankingPanelConfigs[0].ruleId);
             return rule ? (
-              <RankingPanel
-                title={rule.title}
-                period={rule.period}
-                items={dashboardData?.newProductRanking ?? []}
-                showTopThreeBadge={rule.showTopThreeBadge}
-                showGrowth={rule.showGrowth}
-              />
+              <Suspense fallback={null}>
+                <RankingPanel
+                  title={rule.title}
+                  period={rule.period}
+                  items={dashboardData?.newProductRanking ?? []}
+                  showTopThreeBadge={rule.showTopThreeBadge}
+                  showGrowth={rule.showGrowth}
+                />
+              </Suspense>
             ) : null;
           })()}
           <Panel title="首单趋势分析" extra={<span>近30天</span>} className="first-order-trend-panel">
-            <FirstOrderTrendChart
-              dailyData={dashboardData?.firstOrderTrend30Days ?? []}
-              stores={dashboardData?.firstOrderTrendStores ?? []}
-            />
+            <Suspense fallback={null}>
+              <FirstOrderTrendChart
+                dailyData={dashboardData?.firstOrderTrend30Days ?? []}
+                stores={dashboardData?.firstOrderTrendStores ?? []}
+              />
+            </Suspense>
           </Panel>
           {rankingPanelConfigs.slice(1).map(({ ruleId, dataKey }) => {
             const rule = rankingRules.find((item) => item.id === ruleId);
@@ -91,18 +130,21 @@ function DashboardPage() {
             }
 
             return (
-              <RankingPanel
-                key={ruleId}
-                title={rule.title}
-                period={rule.period}
-                items={dashboardData?.[dataKey] ?? []}
-                showTopThreeBadge={rule.showTopThreeBadge}
-                showGrowth={rule.showGrowth}
-              />
+              <Suspense key={ruleId} fallback={null}>
+                <RankingPanel
+                  title={rule.title}
+                  period={rule.period}
+                  items={dashboardData?.[dataKey] ?? []}
+                  showTopThreeBadge={rule.showTopThreeBadge}
+                  showGrowth={rule.showGrowth}
+                />
+              </Suspense>
             );
           })}
           <Panel title="销售趋势" extra={<span>近30天</span>} className="sales-trend-panel">
-            <SalesTrendChart data={dashboardData?.salesTrend30Days ?? []} />
+            <Suspense fallback={null}>
+              <SalesTrendChart data={dashboardData?.salesTrend30Days ?? []} />
+            </Suspense>
           </Panel>
           <Panel title="今日预警提醒" extra={<span>{dashboardData?.warnings.length ?? 0} 条</span>} className="warning-list-panel">
             <WarningList warnings={dashboardData?.warnings ?? []} />

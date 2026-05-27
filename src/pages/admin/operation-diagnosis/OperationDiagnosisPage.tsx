@@ -41,7 +41,7 @@ import { createTaskFromOperationAnomaly } from '../../../utils/operationTaskSour
 import { filterTasksByPermission } from '../../../utils/permissionScope';
 import { hasPermission } from '../../../auth/permissions';
 import type { CurrentUser } from '../../../types/auth';
-import { loadOperationDiagnosisDataSet } from './operationDiagnosisDataService';
+import { createEmptyOperationDiagnosisDataSet, loadOperationDiagnosisDataSetAsync } from './operationDiagnosisDataService';
 
 const taskStatusLabels: Record<OperationTaskStatus, string> = {
   todo: '待处理',
@@ -194,8 +194,7 @@ function firstText(values: Array<string | undefined>) {
   return values.find((value) => Boolean(value && value.trim()));
 }
 
-function loadDiagnosisState(currentUser: CurrentUser) {
-  const dataSet = loadOperationDiagnosisDataSet(currentUser);
+function buildDiagnosisState(dataSet: ReturnType<typeof createEmptyOperationDiagnosisDataSet>) {
 
   return {
     diagnosis: runOperationDiagnosis(dataSet),
@@ -203,7 +202,11 @@ function loadDiagnosisState(currentUser: CurrentUser) {
   };
 }
 
-type DiagnosisAuditState = ReturnType<typeof loadDiagnosisState>['auditReport'];
+async function loadDiagnosisState(currentUser: CurrentUser) {
+  return buildDiagnosisState(await loadOperationDiagnosisDataSetAsync(currentUser));
+}
+
+type DiagnosisAuditState = ReturnType<typeof buildDiagnosisState>['auditReport'];
 
 function getAuditRule(report: DiagnosisAuditState, ruleId: string) {
   return report.ruleAudits.find((rule) => rule.ruleId === ruleId);
@@ -373,7 +376,7 @@ function renderRuleSource(knowledge: OperationKnowledge | null) {
 }
 
 function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
-  const [diagnosisState, setDiagnosisState] = useState(() => loadDiagnosisState(currentUser));
+  const [diagnosisState, setDiagnosisState] = useState(() => buildDiagnosisState(createEmptyOperationDiagnosisDataSet(currentUser)));
   const [tasks, setTasks] = useState<OperationTaskRecord[]>(() => filterTasksByPermission(taskDataSource.load(), currentUser));
   const [taskMessages, setTaskMessages] = useState<Record<string, string>>({});
   const [aiActionTaskMessages, setAiActionTaskMessages] = useState<Record<string, string>>({});
@@ -400,15 +403,22 @@ function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
   });
 
   useEffect(() => {
+    let cancelled = false;
     const refresh = () => {
-      setDiagnosisState(loadDiagnosisState(currentUser));
+      void loadDiagnosisState(currentUser).then((next) => {
+        if (!cancelled) {
+          setDiagnosisState(next);
+        }
+      });
       setTasks(filterTasksByPermission(taskDataSource.load(), currentUser));
     };
+    refresh();
     const unsubscribeOrders = subscribeOrderImportStorageChange(refresh);
     const unsubscribeTraffic = subscribeTrafficConversionChange(refresh);
     window.addEventListener('focus', refresh);
 
     return () => {
+      cancelled = true;
       unsubscribeOrders();
       unsubscribeTraffic();
       window.removeEventListener('focus', refresh);

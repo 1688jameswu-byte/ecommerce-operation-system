@@ -7,8 +7,10 @@ export const TEMU_ORDER_IMPORT_STORAGE_KEY = 'temuOrderImportResult';
 export const TEMU_ORDER_IMPORT_STORAGE_EVENT = 'temu-order-import-storage-change';
 const TEMU_ORDER_IMPORT_BROADCAST_CHANNEL = 'temu-order-import-storage';
 const ORDER_IMPORT_FILE_KEY = 'orderImportStore';
+const recentStoreCache = new Map<string, Promise<TemuOrderImportStore>>();
 
 function notifyStorageChange() {
+  recentStoreCache.clear();
   window.dispatchEvent(new Event(TEMU_ORDER_IMPORT_STORAGE_EVENT));
 
   if ('BroadcastChannel' in window) {
@@ -198,24 +200,43 @@ export const orderImportStorageDataSource = {
       return emptyStore();
     }
 
-    try {
-      const params = new URLSearchParams({
-        recentDays: String(options.recentDays ?? 30),
-        limit: String(options.limit ?? 500),
-      });
-      const response = await fetch(`/api/persistent-data/${ORDER_IMPORT_FILE_KEY}?${params.toString()}&t=${Date.now()}`, {
-        credentials: 'include',
-        cache: 'no-store',
-      });
-      const data = response.ok ? await response.json() as unknown : emptyStore();
-      return isStore(data) ? normalizeStore(data).store : emptyStore();
-    } catch {
-      return emptyStore();
+    const params = new URLSearchParams({
+      recentDays: String(options.recentDays ?? 30),
+      limit: String(options.limit ?? 500),
+    });
+    const cacheKey = params.toString();
+    const cached = recentStoreCache.get(cacheKey);
+    if (cached) {
+      return cached;
     }
+
+    const request = (async () => {
+      try {
+        const response = await fetch(`/api/persistent-data/${ORDER_IMPORT_FILE_KEY}?${params.toString()}&t=${Date.now()}`, {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const data = response.ok ? await response.json() as unknown : emptyStore();
+        return isStore(data) ? normalizeStore(data).store : emptyStore();
+      } catch {
+        return emptyStore();
+      }
+    })();
+
+    recentStoreCache.set(cacheKey, request);
+    return request;
   },
 
   buildImportResult(store: TemuOrderImportStore): TemuOrderImportResult | null {
     return buildImportResult(store);
+  },
+
+  buildStandardSalesOrdersFromStore(store: TemuOrderImportStore): SalesOrderRecord[] {
+    return buildStandardSalesOrders(
+      store.batches.flatMap((batch) =>
+        batch.orders.map((order) => ({ ...order, batchId: batch.batchId })),
+      ),
+    );
   },
 
   load(): TemuOrderImportResult | null {
@@ -247,11 +268,7 @@ export const orderImportStorageDataSource = {
   },
 
   loadStandardSalesOrders(): SalesOrderRecord[] {
-    return buildStandardSalesOrders(
-      this.loadStore().batches.flatMap((batch) =>
-        batch.orders.map((order) => ({ ...order, batchId: batch.batchId })),
-      ),
-    );
+    return this.buildStandardSalesOrdersFromStore(this.loadStore());
   },
 
   save(importResult: TemuOrderImportResult) {
