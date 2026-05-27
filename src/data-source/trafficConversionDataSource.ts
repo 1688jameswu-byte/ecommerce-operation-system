@@ -198,6 +198,10 @@ function toNumber(value: unknown) {
   return raw.includes('%') ? parsed / 100 : parsed;
 }
 
+function formatDateParts(year: number, month: number, day: number) {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 function parseDate(value: unknown) {
   if (value instanceof Date) {
     return formatDate(value);
@@ -206,13 +210,17 @@ function parseDate(value: unknown) {
   if (typeof value === 'number') {
     const parsed = XLSX.SSF.parse_date_code(value);
     if (parsed) {
-      return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`;
+      return formatDateParts(parsed.y, parsed.m, parsed.d);
     }
   }
 
-  const text = String(value ?? '').trim().replace(/\//g, '-');
-  const date = new Date(text);
-  return Number.isNaN(date.getTime()) ? text : formatDate(date);
+  const text = String(value ?? '').trim();
+  const matched = text.match(/^(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})日?$/);
+  if (matched) {
+    return formatDateParts(Number(matched[1]), Number(matched[2]), Number(matched[3]));
+  }
+
+  return '';
 }
 
 function formatDate(date: Date) {
@@ -404,10 +412,11 @@ export function subscribeTrafficConversionChange(callback: () => void) {
 
 export async function parseTrafficConversionExcelFile(file: File, storeNameInput: string) {
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+  const workbook = XLSX.read(buffer, { type: 'array', cellDates: false });
   const importedAt = new Date().toISOString();
   const storeName = storeNameInput.trim() || inferStoreName(file.name) || '未知店铺';
   const searchableParts = [file.name, ...workbook.SheetNames];
+  let hasDateColumn = false;
   const records = workbook.SheetNames.flatMap((sheetName) => {
     const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], { header: 1, defval: '' });
     searchableParts.push(...rows.flatMap((row) => row.map((cell) => String(cell ?? ''))));
@@ -421,6 +430,8 @@ export async function parseTrafficConversionExcelFile(file: File, storeNameInput
       ? rows[headerIndex].map((_cell, index) => (index === 0 ? '日期' : nextHeaders[index] || ''))
       : rows[headerIndex].map(normalizeHeader);
     const dataStartIndex = nextHeaders.includes('总浏览量') ? headerIndex + 2 : headerIndex + 1;
+
+    hasDateColumn = true;
 
     return rows.slice(dataStartIndex).flatMap((row) => {
       const dateIndex = headers.findIndex((header) => header === '日期');
@@ -461,6 +472,10 @@ export async function parseTrafficConversionExcelFile(file: File, storeNameInput
       return record.date ? [record] : [];
     });
   });
+
+  if (!hasDateColumn || records.length === 0) {
+    throw new Error('导入失败：未识别到有效日期列，请确认 Excel 中包含日期字段。');
+  }
 
   return { records, storeName, importedAt, fileName: file.name, searchableText: searchableParts.join('\n') };
 }

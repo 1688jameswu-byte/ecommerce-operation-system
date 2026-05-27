@@ -1,5 +1,6 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
+import { useVisibleStores } from '../../../auth/useVisibleStores';
 import { parseExcelFile, parseTemuOrderExcelFile } from '../../../data-source/excelDataSource';
 import { orderImportStorageDataSource } from '../../../data-source/orderImportStorageDataSource';
 import type { CurrentUser } from '../../../types/auth';
@@ -38,6 +39,8 @@ const statusLabels: Record<ImportStatus, string> = {
   duplicate: '重复导入',
   abnormal: '数据异常',
 };
+const IMPORT_RECORD_RENDER_LIMIT = 20;
+const MISSING_IMPORT_LIMIT = 10;
 
 function formatMoney(value: number) {
   return value.toLocaleString('zh-CN', {
@@ -48,6 +51,17 @@ function formatMoney(value: number) {
 
 function toDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function getRecentCheckDates(days = 7) {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(yesterday);
+    date.setDate(yesterday.getDate() - (days - 1 - index));
+    return toDateKey(date);
+  });
 }
 
 function normalizeStoreName(value: unknown) {
@@ -147,6 +161,8 @@ function formatUnique(values: string[]) {
 }
 
 function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
+  const uploadPanelRef = useRef<HTMLElement | null>(null);
+  const visibleStores = useVisibleStores(currentUser);
   const [preview, setPreview] = useState<ExcelImportPreview | null>(null);
   const [batches, setBatches] = useState<TemuOrderImportBatch[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -156,27 +172,29 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const [statusFilter, setStatusFilter] = useState('');
   const [deleteBatchRow, setDeleteBatchRow] = useState<ImportTableRow | null>(null);
   const [deleteScope, setDeleteScope] = useState<DeleteScopeSummary | null>(null);
+  const [showAllMissingDates, setShowAllMissingDates] = useState(false);
 
   const rows = useMemo(() => buildRows(batches), [batches]);
-  const filteredRows = rows.filter((row) => {
+  const filteredRows = useMemo(() => rows.filter((row) => {
     return (
       (!dateFilter || row.date === dateFilter) &&
       (!storeFilter || row.storeName === storeFilter) &&
       (!statusFilter || row.status === statusFilter)
     );
-  });
-  const groupedRows = groupRowsByDate(filteredRows);
-  const dateOptions = Array.from(new Set(rows.map((row) => row.date)));
-  const storeOptions = Array.from(new Set(rows.map((row) => row.storeName))).sort();
-  const today = toDateKey(new Date());
-  const todayRows = rows.filter((row) => row.importedAt.slice(0, 10) === today);
-  const overview = {
+  }), [dateFilter, rows, statusFilter, storeFilter]);
+  const visibleRows = useMemo(() => filteredRows.slice(0, IMPORT_RECORD_RENDER_LIMIT), [filteredRows]);
+  const groupedRows = useMemo(() => groupRowsByDate(visibleRows), [visibleRows]);
+  const dateOptions = useMemo(() => Array.from(new Set(rows.map((row) => row.date))), [rows]);
+  const storeOptions = useMemo(() => Array.from(new Set(rows.map((row) => row.storeName))).sort(), [rows]);
+  const today = useMemo(() => toDateKey(new Date()), []);
+  const todayRows = useMemo(() => rows.filter((row) => row.importedAt.slice(0, 10) === today), [rows, today]);
+  const overview = useMemo(() => ({
     todayStoreCount: new Set(todayRows.map((row) => row.storeName)).size,
     todaySalesAmount: todayRows.reduce((total, row) => total + row.salesAmount, 0),
     todayFirstOrderCount: todayRows.reduce((total, row) => total + row.firstOrderCount, 0),
     batchCount: batches.length,
     abnormalStoreCount: rows.filter((row) => row.status === 'abnormal').length,
-  };
+  }), [batches.length, rows, todayRows]);
   const scopeDeleteLabel =
     dateFilter && storeFilter
       ? '删除当前日期 + 店铺数据'
@@ -185,16 +203,38 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
         : storeFilter
           ? '删除当前店铺数据'
           : '';
-  const deleteBatchRows = deleteBatchRow ? rows.filter((row) => row.batchId === deleteBatchRow.batchId) : [];
-  const deleteBatchSummary = deleteBatchRows.length > 0 ? summarizeRows(deleteBatchRows, {}) : null;
+  const deleteBatchRows = useMemo(() => deleteBatchRow ? rows.filter((row) => row.batchId === deleteBatchRow.batchId) : [], [deleteBatchRow, rows]);
+  const deleteBatchSummary = useMemo(() => deleteBatchRows.length > 0 ? summarizeRows(deleteBatchRows, {}) : null, [deleteBatchRows]);
   const isAdmin = currentUser.role === 'admin';
+  const visibleStoreNames = useMemo(
+    () => visibleStores.stores.map((store) => store.storeName || store.id).filter(Boolean),
+    [visibleStores.stores],
+  );
+  const missingOrderItems = useMemo(() => {
+    const checkDates = getRecentCheckDates();
+    const importedKeys = new Set(rows.map((row) => `${normalizeStoreName(row.storeName)}|${row.date}`));
+    const storeNames = (visibleStoreNames.length > 0 ? visibleStoreNames : storeOptions).map(normalizeStoreName);
 
-  const refreshSavedData = () => {
-    setBatches(orderImportStorageDataSource.loadStore().batches);
+    return Array.from(new Set(storeNames)).flatMap((storeName) =>
+      checkDates.filter((date) => !importedKeys.has(`${storeName}|${date}`)).map((date) => ({ storeName, date })),
+    );
+  }, [rows, storeOptions, visibleStoreNames]);
+  const visibleMissingOrderItems = showAllMissingDates ? missingOrderItems : missingOrderItems.slice(0, MISSING_IMPORT_LIMIT);
+  const missingOrderGroups = useMemo(() => {
+    const groups = new Map<string, string[]>();
+    visibleMissingOrderItems.forEach((item) => groups.set(item.storeName, [...(groups.get(item.storeName) ?? []), item.date]));
+    return Array.from(groups.entries());
+  }, [visibleMissingOrderItems]);
+
+  const refreshSavedData = async (full = false) => {
+    const store = full
+      ? orderImportStorageDataSource.loadStore()
+      : await orderImportStorageDataSource.loadRecentStore({ recentDays: 30, limit: 500 });
+    setBatches(store.batches);
   };
 
   useEffect(() => {
-    refreshSavedData();
+    void refreshSavedData();
   }, []);
 
   const importFiles = async (files: File[]) => {
@@ -214,7 +254,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
         orderImportStorageDataSource.save(orderImportResult);
         setPreview(previewResult);
       }
-      refreshSavedData();
+      await refreshSavedData(true);
     } catch (error) {
       setPreview(null);
       setError(error instanceof Error && error.message === '当前账号无权导入该店铺数据'
@@ -238,7 +278,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const handleDeleteBatch = (batchId: string) => {
     orderImportStorageDataSource.deleteBatch(batchId);
     setDeleteBatchRow(null);
-    refreshSavedData();
+    void refreshSavedData();
     setError(null);
   };
 
@@ -275,7 +315,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
       storeName: deleteScope.storeName,
     });
     setDeleteScope(null);
-    refreshSavedData();
+    void refreshSavedData();
     setError(null);
   };
 
@@ -304,7 +344,33 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
         </article>
       </section>
 
-      <article className="excel-upload-panel">
+      <article className={`import-missing-card ${missingOrderItems.length > 0 ? 'has-missing' : ''}`}>
+        <header>
+          <div>
+            <h2>订单数据缺失提醒</h2>
+            <p>{missingOrderItems.length > 0 ? '以下订单销售数据尚未导入：' : '最近订单销售数据完整。'}</p>
+          </div>
+          {missingOrderItems.length > 0 && <span>{missingOrderItems.length} 条</span>}
+        </header>
+        {missingOrderGroups.map(([storeName, dates]) => (
+          <section key={storeName}>
+            <strong>{storeName}</strong>
+            <div>{dates.map((date) => <span key={date}>{date}</span>)}</div>
+          </section>
+        ))}
+        {missingOrderItems.length > MISSING_IMPORT_LIMIT && (
+          <button type="button" onClick={() => setShowAllMissingDates(!showAllMissingDates)}>
+            {showAllMissingDates ? '收起' : '展开更多'}
+          </button>
+        )}
+        {missingOrderItems.length > 0 && (
+          <button type="button" onClick={() => uploadPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            去上传
+          </button>
+        )}
+      </article>
+
+      <article className="excel-upload-panel" ref={uploadPanelRef}>
         <div>
           <span className="admin-status">订单销售数据导入</span>
           <h2>上传店铺订单 Excel</h2>
@@ -324,7 +390,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
             <h2>导入记录</h2>
             <p>按日期分组展示店铺经营数据，文件名作为辅助信息保留。</p>
           </div>
-          <span>{filteredRows.length} 条</span>
+          <span>{filteredRows.length > IMPORT_RECORD_RENDER_LIMIT ? `${filteredRows.length} 条，显示最近 ${IMPORT_RECORD_RENDER_LIMIT} 条` : `${filteredRows.length} 条`}</span>
         </header>
 
         <section className="import-filter-bar">

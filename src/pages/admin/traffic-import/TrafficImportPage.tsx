@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { useVisibleStores } from '../../../auth/useVisibleStores';
 import { parseTrafficConversionExcelFile, trafficConversionDataSource } from '../../../data-source/trafficConversionDataSource';
@@ -11,6 +11,22 @@ const statusLabels: Record<TrafficImportStatus, string> = {
   abnormal: '数据异常',
   missing: '缺少字段',
 };
+const MISSING_IMPORT_LIMIT = 10;
+
+function toDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function getRecentCheckDates(days = 7) {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(yesterday);
+    date.setDate(yesterday.getDate() - (days - 1 - index));
+    return toDateKey(date);
+  });
+}
 
 function formatPercent(value: number) {
   return `${(value * 100).toFixed(2)}%`;
@@ -21,6 +37,7 @@ function formatTime(value: string) {
 }
 
 function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
+  const uploadPanelRef = useRef<HTMLElement | null>(null);
   const [storeName, setStoreName] = useState('');
   const visibleStores = useVisibleStores(currentUser);
   const [store, setStore] = useState<TrafficConversionStore>({ records: [], batches: [] });
@@ -33,6 +50,7 @@ function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const [statusFilter, setStatusFilter] = useState('');
   const [confirmBatch, setConfirmBatch] = useState<TrafficImportBatch | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showAllMissingDates, setShowAllMissingDates] = useState(false);
 
   const refresh = () => setStore(trafficConversionDataSource.loadStore());
 
@@ -79,6 +97,21 @@ function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
       .sort((first, second) => first.date.localeCompare(second.date)),
     [selectedBatchId, store.records],
   );
+  const missingTrafficItems = useMemo(() => {
+    const checkDates = getRecentCheckDates();
+    const importedKeys = new Set(store.records.map((record) => `${record.storeName}|${record.date}`));
+    const storeNames = visibleStoreNames.length > 0 ? visibleStoreNames : stores;
+
+    return Array.from(new Set(storeNames)).flatMap((name) =>
+      checkDates.filter((date) => !importedKeys.has(`${name}|${date}`)).map((date) => ({ storeName: name, date })),
+    );
+  }, [store.records, stores, visibleStoreNames]);
+  const visibleMissingTrafficItems = showAllMissingDates ? missingTrafficItems : missingTrafficItems.slice(0, MISSING_IMPORT_LIMIT);
+  const missingTrafficGroups = useMemo(() => {
+    const groups = new Map<string, string[]>();
+    visibleMissingTrafficItems.forEach((item) => groups.set(item.storeName, [...(groups.get(item.storeName) ?? []), item.date]));
+    return Array.from(groups.entries());
+  }, [visibleMissingTrafficItems]);
 
   function getImportStoreName(file: File) {
     if (isAdmin) {
@@ -176,7 +209,33 @@ function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
 
   return (
     <section className="excel-import-page">
-      <article className="excel-upload-panel traffic-upload-panel">
+      <article className={`import-missing-card ${missingTrafficItems.length > 0 ? 'has-missing' : ''}`}>
+        <header>
+          <div>
+            <h2>流量数据缺失提醒</h2>
+            <p>{missingTrafficItems.length > 0 ? '以下流量转化数据尚未导入：' : '最近流量转化数据完整。'}</p>
+          </div>
+          {missingTrafficItems.length > 0 && <span>{missingTrafficItems.length} 条</span>}
+        </header>
+        {missingTrafficGroups.map(([name, dates]) => (
+          <section key={name}>
+            <strong>{name}</strong>
+            <div>{dates.map((date) => <span key={date}>{date}</span>)}</div>
+          </section>
+        ))}
+        {missingTrafficItems.length > MISSING_IMPORT_LIMIT && (
+          <button type="button" onClick={() => setShowAllMissingDates(!showAllMissingDates)}>
+            {showAllMissingDates ? '收起' : '展开更多'}
+          </button>
+        )}
+        {missingTrafficItems.length > 0 && (
+          <button type="button" onClick={() => uploadPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            去上传
+          </button>
+        )}
+      </article>
+
+      <article className="excel-upload-panel traffic-upload-panel" ref={uploadPanelRef}>
         <div>
           <span className="admin-status">店铺流量转化数据导入</span>
           <h2>上传每日流量转化 Excel</h2>

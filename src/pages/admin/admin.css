@@ -592,6 +592,66 @@
   white-space: nowrap;
 }
 
+.import-missing-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: 10px;
+  background: rgba(71, 45, 8, 0.18);
+  padding: 14px 18px;
+}
+
+.import-missing-card header,
+.import-missing-card section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.import-missing-card h2 {
+  margin: 0 0 4px;
+  color: #fde68a;
+  font-size: 18px;
+}
+
+.import-missing-card p {
+  margin: 0;
+  color: #d6b877;
+  font-size: 13px;
+}
+
+.import-missing-card header > span,
+.import-missing-card section span {
+  border: 1px solid rgba(251, 191, 36, 0.24);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: #fbbf24;
+  font-size: 12px;
+}
+
+.import-missing-card section strong {
+  color: #ffffff;
+  min-width: 80px;
+}
+
+.import-missing-card section div {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.import-missing-card button {
+  justify-self: start;
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.1);
+  color: #fde68a;
+  cursor: pointer;
+  padding: 6px 12px;
+}
+
 .excel-upload-panel,
 .excel-record-panel {
   border: 1px solid rgba(86, 154, 230, 0.28);
