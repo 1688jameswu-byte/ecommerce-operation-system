@@ -245,6 +245,19 @@ const menuKeys = {
   salaryPlan: 'salary-plan',
 };
 const allMenuKeys = Object.values(menuKeys);
+const menuKeyAliases = {
+  'store-data': menuKeys.storeBusinessCenter,
+  'store-business': menuKeys.storeBusinessCenter,
+  storeBusinessCenter: menuKeys.storeBusinessCenter,
+  'operation-data': menuKeys.operatorAnalysisCenter,
+  'operator-analysis': menuKeys.operatorAnalysisCenter,
+  operatorAnalysisCenter: menuKeys.operatorAnalysisCenter,
+  'operator-performance': menuKeys.operatorAnalysisCenter,
+};
+
+function normalizeMenuKey(value) {
+  return menuKeyAliases[value] ?? value;
+}
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
   const iterations = 100000;
@@ -374,7 +387,7 @@ function normalizeAllowedMenuKeys(value, role) {
   }
 
   return Array.isArray(value)
-    ? unique(value.map((item) => String(item ?? '').trim()).filter((item) => allMenuKeys.includes(item)))
+    ? unique(value.map((item) => normalizeMenuKey(String(item ?? '').trim())).filter((item) => allMenuKeys.includes(item)))
     : [];
 }
 

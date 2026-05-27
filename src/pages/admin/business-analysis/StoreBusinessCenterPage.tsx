@@ -10,6 +10,7 @@ import { createStoreMatcher } from '../../../utils/storeStandardization';
 
 type TrendKey = 'newProduct' | 'firstOrder' | 'sales' | 'traffic' | 'conversion';
 type TrendTone = 'up' | 'down' | 'flat';
+type TrendStatus = 'strongUp' | 'up' | 'stable' | 'down' | 'severeDown';
 
 interface StoreMetric {
   currentAvg: number;
@@ -18,6 +19,10 @@ interface StoreMetric {
   teamAverage: number;
   rank: number;
   series: number[];
+  recentValues: number[];
+  recentDates: string[];
+  baselineValues: number[];
+  baselineDates: string[];
   tone: TrendTone;
 }
 
@@ -111,6 +116,30 @@ function formatRate(value: number) {
   return `${value > 0 ? '+' : ''}${formatNumber(value, 1)}%`;
 }
 
+function getStatus(value: number): { key: TrendStatus; label: string } {
+  if (value >= 30) {
+    return { key: 'strongUp', label: '强增长' };
+  }
+  if (value >= 10) {
+    return { key: 'up', label: '增长' };
+  }
+  if (value <= -30) {
+    return { key: 'severeDown', label: '严重下降' };
+  }
+  if (value <= -10) {
+    return { key: 'down', label: '下降' };
+  }
+  return { key: 'stable', label: '稳定' };
+}
+
+function getComparisonLabel(value: number, teamAverage: number) {
+  const diff = value - teamAverage;
+  if (Math.abs(diff) < 1) {
+    return '接近团队平均';
+  }
+  return `${diff > 0 ? '高于团队' : '低于团队'} ${formatRate(diff)}`;
+}
+
 function normalizeStoreName(value: unknown) {
   return String(value ?? '').replace(/\s+/g, '').trim().toLowerCase();
 }
@@ -185,6 +214,10 @@ function buildMetric(
     baselineAvg,
     changeRate,
     series: [...baselineDates.slice(-23), ...recentDates].map((date) => values.get(date) ?? 0),
+    recentValues,
+    recentDates,
+    baselineValues,
+    baselineDates,
     tone: getTone(changeRate),
   };
 }
@@ -199,23 +232,120 @@ function rankMetric(rows: StoreTrendRow[], key: TrendKey) {
 function Sparkline({ values, tone }: { values: number[]; tone: TrendTone }) {
   const width = 96;
   const height = 30;
+  const safeValues = values.length > 0 ? values : [0];
   const min = Math.min(...values, 0);
   const max = Math.max(...values, 1);
   const range = max - min || 1;
-  const points = values.map((value, index) => {
-    const x = values.length <= 1 ? 0 : (index / (values.length - 1)) * width;
+  const points = safeValues.map((value, index) => {
+    const x = safeValues.length <= 1 ? 0 : (index / (safeValues.length - 1)) * width;
     const y = height - ((value - min) / range) * height;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
+  const areaPoints = `0,${height} ${points} ${width},${height}`;
 
   return (
     <svg className={`store-sparkline store-sparkline-${tone}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="微趋势图">
-      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      <polygon points={areaPoints} className="store-sparkline-area" />
+      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
+function DetailTrendChart({ metric, config }: { metric: StoreMetric; config: typeof trendConfigs[number] }) {
+  const width = 680;
+  const height = 240;
+  const padding = { top: 26, right: 28, bottom: 44, left: 54 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const values = metric.recentValues.length > 0 ? metric.recentValues : [0];
+  const valueRange = [...values, metric.baselineAvg];
+  const minValue = Math.min(...valueRange);
+  const maxValue = Math.max(...valueRange);
+  const minVisibleRange = config.percentValue ? 0.002 : 1;
+  const rawRange = maxValue - minValue;
+  const visibleRange = Math.max(rawRange, minVisibleRange);
+  const center = (maxValue + minValue) / 2;
+  const yMin = center - visibleRange / 2 - visibleRange * 0.18;
+  const yMax = center + visibleRange / 2 + visibleRange * 0.18;
+  const yRange = yMax - yMin || 1;
+  const toX = (index: number) => padding.left + (values.length <= 1 ? 0 : (index / (values.length - 1)) * chartWidth);
+  const toY = (value: number) => padding.top + chartHeight - ((value - yMin) / yRange) * chartHeight;
+  const points = values.map((value, index) => `${toX(index).toFixed(1)},${toY(value).toFixed(1)}`).join(' ');
+  const areaPoints = `${padding.left},${padding.top + chartHeight} ${points} ${padding.left + chartWidth},${padding.top + chartHeight}`;
+  const baselineY = toY(metric.baselineAvg);
+
+  return (
+    <svg className={`store-detail-chart store-sparkline-${metric.tone}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${config.label}放大趋势图`}>
+      <line x1={padding.left} y1={baselineY} x2={padding.left + chartWidth} y2={baselineY} className="store-detail-baseline" />
+      <text x={padding.left + chartWidth - 118} y={Math.max(14, baselineY - 8)} className="store-detail-chart-label">
+        前30日均值 {formatMetricValue(metric.baselineAvg, config)}
+      </text>
+      <polygon points={areaPoints} className="store-sparkline-area" />
+      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
+      {values.map((value, index) => (
+        <g key={`${metric.recentDates[index] ?? index}-${value}`}>
+          <circle cx={toX(index)} cy={toY(value)} r="4.2" className="store-detail-point" />
+          <text x={toX(index)} y={toY(value) - 10} textAnchor="middle" className="store-detail-chart-value">
+            {formatMetricValue(value, config)}
+          </text>
+          <text x={toX(index)} y={height - 14} textAnchor="middle" className="store-detail-chart-date">
+            {(metric.recentDates[index] ?? '').slice(5)}
+          </text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function MetricPanel({
+  config,
+  metric,
+  teamSize,
+  onExpand,
+  enlarged = false,
+}: {
+  config: typeof trendConfigs[number];
+  metric: StoreMetric;
+  teamSize: number;
+  onExpand?: () => void;
+  enlarged?: boolean;
+}) {
+  const status = getStatus(metric.changeRate);
+  return (
+    <div className={`store-metric store-metric-${status.key}${enlarged ? ' store-metric-large' : ''}`}>
+      <header>
+        <span>{config.label}</span>
+        <div>
+          <em>{status.label}</em>
+          {onExpand && (
+            <button type="button" className="store-metric-expand" onClick={onExpand}>
+              查看详情
+            </button>
+          )}
+        </div>
+      </header>
+      <strong className={`store-trend-value store-trend-value-${metric.tone}`}>
+        {metric.tone === 'up' ? '↑' : metric.tone === 'down' ? '↓' : '→'} {formatRate(metric.changeRate)}
+      </strong>
+      <b>排名 {metric.rank}/{teamSize}</b>
+      <Sparkline values={metric.series} tone={metric.tone} />
+      <div className="store-metric-meta">
+        <span>最近7日 {formatMetricValue(metric.currentAvg, config)}</span>
+        <span>前30日 {formatMetricValue(metric.baselineAvg, config)}</span>
+      </div>
+      <footer>
+        <span>团队平均 {formatRate(metric.teamAverage)}</span>
+        <strong>{getComparisonLabel(metric.changeRate, metric.teamAverage)}</strong>
+      </footer>
+    </div>
+  );
+}
+
 function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) {
+  const [selectedMetric, setSelectedMetric] = useState<{
+    row: StoreTrendRow;
+    config: typeof trendConfigs[number];
+  } | null>(null);
   const [data, setData] = useState<StoreBusinessData>({
     stores: [],
     orders: [],
@@ -346,18 +476,12 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
     return nextRows.sort((first, second) => second.score - first.score || first.storeName.localeCompare(second.storeName));
   }, [data]);
 
-  const overview = useMemo(() => trendConfigs.map((config) => {
-    const teamAverage = average(rows.map((row) => row.metrics[config.key].changeRate));
-    const series = rows.length === 0
-      ? []
-      : rows[0].metrics[config.key].series.map((_, index) => average(rows.map((row) => row.metrics[config.key].series[index] ?? 0)));
-    return { ...config, teamAverage, tone: getTone(teamAverage), series };
-  }), [rows]);
-
   const teamSize = rows.length || 1;
+  const isAdmin = currentUser.role === 'admin';
+  const useLargeLayout = !isAdmin && rows.length <= 4;
 
   return (
-    <section className="store-business-page">
+    <section className={`store-business-page${useLargeLayout ? ' store-business-page-large' : ''}`}>
       <section className="store-business-hero">
         <div>
           <span>店铺经营趋势分析中心</span>
@@ -366,44 +490,27 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
         <strong>{rows.length} 家店铺</strong>
       </section>
 
-      <section className="store-trend-overview">
-        {overview.map((item) => (
-          <article key={item.key} className={`store-trend-summary store-trend-${item.tone}`}>
-            <span>{item.label}</span>
-            <strong>{item.tone === 'up' ? '↑' : item.tone === 'down' ? '↓' : '→'} {formatRate(item.teamAverage)}</strong>
-            <small>最近7日 vs 前30日</small>
-            <Sparkline values={item.series} tone={item.tone} />
-          </article>
-        ))}
-      </section>
-
       <section className="store-card-list">
         {rows.map((row) => (
           <article key={row.storeId} className="store-business-card">
-            <aside className="store-card-identity">
-              <strong>{row.storeName}</strong>
-              <span>{row.platform || 'Other'}</span>
-              <em>{row.operatorName}</em>
-            </aside>
+            <header className="store-card-identity">
+              <div>
+                <strong>{row.storeName}</strong>
+                <span>{row.platform || 'Other'} · {row.operatorName}</span>
+              </div>
+              <em>{getStatus(Math.min(...trendConfigs.map((config) => row.metrics[config.key].changeRate))).label}</em>
+            </header>
             <section className="store-metric-grid">
               {trendConfigs.map((config) => {
                 const metric = row.metrics[config.key];
                 return (
-                  <div key={config.key} className={`store-metric store-trend-${metric.tone}`}>
-                    <header>
-                      <span>{config.label}</span>
-                      <strong>{metric.tone === 'up' ? '↑' : metric.tone === 'down' ? '↓' : '→'} {formatRate(metric.changeRate)}</strong>
-                    </header>
-                    <Sparkline values={metric.series} tone={metric.tone} />
-                    <div className="store-metric-meta">
-                      <span>7日 {formatMetricValue(metric.currentAvg, config)}</span>
-                      <span>30日 {formatMetricValue(metric.baselineAvg, config)}</span>
-                    </div>
-                    <footer>
-                      <span>团队 {formatRate(metric.teamAverage)}</span>
-                      <b>{metric.rank}/{teamSize}</b>
-                    </footer>
-                  </div>
+                  <MetricPanel
+                    key={config.key}
+                    config={config}
+                    metric={metric}
+                    teamSize={teamSize}
+                    onExpand={() => setSelectedMetric({ row, config })}
+                  />
                 );
               })}
             </section>
@@ -413,6 +520,46 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
           <article className="store-business-empty">暂无可见店铺经营趋势数据</article>
         )}
       </section>
+
+      {selectedMetric && (
+        <div className="store-detail-modal" role="dialog" aria-modal="true" aria-label="指标趋势详情">
+          <div className="store-detail-backdrop" onClick={() => setSelectedMetric(null)} />
+          <article className="store-detail-card">
+            <header>
+              <div>
+                <span>单项趋势详情</span>
+                <h3>{selectedMetric.row.storeName} · {selectedMetric.config.label}详情</h3>
+                <p>{selectedMetric.row.platform || 'Other'} · {selectedMetric.row.operatorName}</p>
+              </div>
+              <button type="button" className="store-expand-button" onClick={() => setSelectedMetric(null)}>
+                关闭
+              </button>
+            </header>
+            <section className="store-single-detail">
+              <MetricPanel
+                config={selectedMetric.config}
+                metric={selectedMetric.row.metrics[selectedMetric.config.key]}
+                teamSize={teamSize}
+                enlarged
+              />
+              <article className="store-detail-chart-panel">
+                <DetailTrendChart
+                  metric={selectedMetric.row.metrics[selectedMetric.config.key]}
+                  config={selectedMetric.config}
+                />
+                <div className="store-detail-daily-list">
+                  <strong>最近7日原始每日数据</strong>
+                  {selectedMetric.row.metrics[selectedMetric.config.key].recentValues.map((value, index) => (
+                    <span key={`${selectedMetric.row.metrics[selectedMetric.config.key].recentDates[index]}-${value}`}>
+                      {selectedMetric.row.metrics[selectedMetric.config.key].recentDates[index]}：{formatMetricValue(value, selectedMetric.config)}
+                    </span>
+                  ))}
+                </div>
+              </article>
+            </section>
+          </article>
+        </div>
+      )}
     </section>
   );
 }

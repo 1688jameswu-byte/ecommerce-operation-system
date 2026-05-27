@@ -168,7 +168,7 @@ export const adminRoutes: AdminRoute[] = [
   },
   {
     path: '/admin/operator-performance',
-    menuKey: menuKeys.operatorPerformance,
+    menuKey: menuKeys.operatorAnalysisCenter,
     parentMenuKey: menuKeys.businessAnalysis,
     label: '运营业绩分析',
     group: '经营分析',

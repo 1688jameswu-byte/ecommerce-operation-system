@@ -36,8 +36,22 @@ const emptyForm = {
   allowedMenuKeys: [] as string[],
 };
 
+const menuKeyAliases: Record<string, string> = {
+  'store-data': 'store-business-center',
+  'store-business': 'store-business-center',
+  'storeBusinessCenter': 'store-business-center',
+  'operation-data': 'operator-analysis-center',
+  'operator-analysis': 'operator-analysis-center',
+  'operatorAnalysisCenter': 'operator-analysis-center',
+  'operator-performance': 'operator-analysis-center',
+};
+
+function normalizeMenuKey(key: string) {
+  return menuKeyAliases[key] ?? key;
+}
+
 function expandMenuKeys(keys: string[]) {
-  const keySet = new Set(keys);
+  const keySet = new Set(keys.map(normalizeMenuKey));
   menuGroups.forEach((group) => {
     if (keySet.has(group.key)) {
       group.children.forEach((child) => keySet.add(child.key));
@@ -130,12 +144,16 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
         throw new Error('不能移除当前账号的账号管理权限');
       }
 
+      const payload = {
+        ...form,
+        allowedMenuKeys: Array.from(new Set(form.allowedMenuKeys.map(normalizeMenuKey))),
+      };
       const url = editingUserId ? `/api/auth/users/${encodeURIComponent(editingUserId)}` : '/api/auth/users';
       const response = await fetch(url, {
         method: editingUserId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await response.json() as { success: boolean; message?: string };
 

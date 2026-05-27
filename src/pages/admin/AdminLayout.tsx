@@ -381,7 +381,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
     Boolean(route.parentMenuKey && allowedMenuKeys.has(route.parentMenuKey))
   );
   const visibleAdminRoutes = adminRoutes.filter(canAccessRoute);
-  const menuAdminRoutes = visibleAdminRoutes.filter((route) => route.menuKey !== 'operator-performance');
+  const menuAdminRoutes = visibleAdminRoutes.filter((route) => route.path !== '/admin/operator-performance');
   const hasAnyMenuPermission = currentUser.role === 'admin' || visibleAdminRoutes.length > 0;
   const canAccessActiveRoute = canAccessRoute(activeRoute);
   const visibleStoreNames = visibleStores.stores.map((store) => store.storeName || store.id).filter(Boolean);
