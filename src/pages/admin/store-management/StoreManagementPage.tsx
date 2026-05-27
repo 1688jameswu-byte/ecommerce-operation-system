@@ -52,12 +52,17 @@ function StoreManagementPage() {
     && (!storeGroupFilter || getStoreGroup(store) === storeGroupFilter)
   )), [platformFilter, siteCountryFilter, statusFilter, storeGroupFilter, stores]);
 
-  const refreshStores = () => {
-    setStores(storeDataSource.load());
+  const refreshStores = async () => {
+    try {
+      const response = await fetch('/api/stores', { cache: 'no-store', credentials: 'include' });
+      setStores(response.ok ? await response.json() as StoreRecord[] : []);
+    } catch {
+      setStores([]);
+    }
   };
 
   useEffect(() => {
-    refreshStores();
+    void refreshStores();
   }, []);
 
   const updateForm = (key: keyof StoreForm, value: string) => {
@@ -91,7 +96,7 @@ function StoreManagementPage() {
     }
 
     resetForm();
-    refreshStores();
+    void refreshStores();
   };
 
   const handleEdit = (store: StoreRecord) => {
@@ -113,7 +118,7 @@ function StoreManagementPage() {
       resetForm();
     }
     setDeleteStoreId(null);
-    refreshStores();
+    void refreshStores();
   };
 
   return (

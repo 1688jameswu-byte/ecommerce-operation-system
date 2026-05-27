@@ -151,6 +151,16 @@ function findTaskByAnomaly(tasks: OperationTaskRecord[], anomalyId: string) {
   return tasks.find((task) => task.sourceType === 'operation_anomaly' && task.sourceId === anomalyId);
 }
 
+async function loadScopedTasks(currentUser: CurrentUser) {
+  try {
+    const response = await fetch('/api/tasks', { cache: 'no-store', credentials: 'include' });
+    const tasks = response.ok ? await response.json() as OperationTaskRecord[] : [];
+    return filterTasksByPermission(tasks, currentUser);
+  } catch {
+    return [];
+  }
+}
+
 function getStoreFilterKey(anomaly: AnomalyResult) {
   return anomaly.storeId || anomaly.storeName || 'unbound-store';
 }
@@ -377,7 +387,7 @@ function renderRuleSource(knowledge: OperationKnowledge | null) {
 
 function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
   const [diagnosisState, setDiagnosisState] = useState(() => buildDiagnosisState(createEmptyOperationDiagnosisDataSet(currentUser)));
-  const [tasks, setTasks] = useState<OperationTaskRecord[]>(() => filterTasksByPermission(taskDataSource.load(), currentUser));
+  const [tasks, setTasks] = useState<OperationTaskRecord[]>([]);
   const [taskMessages, setTaskMessages] = useState<Record<string, string>>({});
   const [aiActionTaskMessages, setAiActionTaskMessages] = useState<Record<string, string>>({});
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
@@ -410,7 +420,11 @@ function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
           setDiagnosisState(next);
         }
       });
-      setTasks(filterTasksByPermission(taskDataSource.load(), currentUser));
+      void loadScopedTasks(currentUser).then((next) => {
+        if (!cancelled) {
+          setTasks(next);
+        }
+      });
     };
     refresh();
     const unsubscribeOrders = subscribeOrderImportStorageChange(refresh);
@@ -620,7 +634,7 @@ function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
       status: 'todo',
     });
 
-    setTasks(filterTasksByPermission(taskDataSource.load(), currentUser));
+    void loadScopedTasks(currentUser).then(setTasks);
     setAiActionTaskMessages((current) => ({ ...current, [action.actionCode]: `任务草稿已生成：${task.title}` }));
   };
   const buildCurrentAiContext = () => {
@@ -1104,7 +1118,7 @@ function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
                               ruleTreeEvaluation: evaluation,
                               solutionMatch,
                             });
-                            setTasks(filterTasksByPermission(taskDataSource.load(), currentUser));
+                            void loadScopedTasks(currentUser).then(setTasks);
                             setTaskMessages((current) => ({ ...current, [anomaly.id]: result.message }));
                           }}
                         >

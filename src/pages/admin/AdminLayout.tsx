@@ -1,8 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { adminRoutes, type AdminRoute } from './routes';
 import PlaceholderPage from './PlaceholderPage';
-import { taskDataSource } from '../../data-source/taskDataSource';
-import { trafficConversionDataSource } from '../../data-source/trafficConversionDataSource';
 import { useVisibleStores } from '../../auth/useVisibleStores';
 import { logoutCurrentUser } from '../../auth/currentUser';
 import type { CurrentUser, UserRole } from '../../types/auth';
@@ -18,6 +16,8 @@ const StoreManagementPage = lazy(() => import('./store-management/StoreManagemen
 const OperatorManagementPage = lazy(() => import('./operator-management/OperatorManagementPage'));
 const TrafficImportPage = lazy(() => import('./traffic-import/TrafficImportPage'));
 const WarningResultsPage = lazy(() => import('./warning-results/WarningResultsPage'));
+const StoreBusinessCenterPage = lazy(() => import('./business-analysis/StoreBusinessCenterPage'));
+const OperatorAnalysisCenterPage = lazy(() => import('./business-analysis/OperatorAnalysisCenterPage'));
 const WarningRulesPage = lazy(() => import('./warning-rules/WarningRulesPage'));
 const OperationDiagnosisPage = lazy(() => import('./operation-diagnosis/OperationDiagnosisPage'));
 const TaskCenterPage = lazy(() => import('./task-center/TaskCenterPage'));
@@ -110,14 +110,6 @@ const warningTypeLabels: Record<TrafficWarningType, string> = {
   deal: '成交',
 };
 
-function safeLoad<T>(loader: () => T, fallback: T) {
-  try {
-    return loader();
-  } catch {
-    return fallback;
-  }
-}
-
 async function fetchAdminJson<T>(url: string, fallback: T): Promise<T> {
   try {
     const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`, {
@@ -195,10 +187,8 @@ function AdminHome({
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
   const yesterday = formatDateKey(yesterdayDate);
   const [salesOrders, setSalesOrders] = useState<SalesOrderRecord[]>([]);
-  const tasks = safeLoad(() => taskDataSource.load(), []);
-  const riskWarnings = safeLoad(() => trafficConversionDataSource.loadRiskResults(), [])
-    .filter((warning) => warning.level !== 'insufficient')
-    .sort(sortWarnings);
+  const [tasks, setTasks] = useState<OperationTaskRecord[]>([]);
+  const [riskWarnings, setRiskWarnings] = useState<TrafficWarningResult[]>([]);
   const isAdmin = currentUser.role === 'admin';
   const visibleStoreSet = new Set(visibleStoreIds.filter(Boolean));
   const visibleStoreNameSet = new Set(visibleStoreNames.filter(Boolean));
@@ -263,14 +253,21 @@ function AdminHome({
 
   useEffect(() => {
     let cancelled = false;
-    fetchAdminJson<TemuOrderImportStore>('/api/persistent-data/orderImportStore?recentDays=7&limit=500', { batches: [] })
-      .then((store) => {
+    Promise.all([
+      fetchAdminJson<TemuOrderImportStore>('/api/persistent-data/orderImportStore?recentDays=7&limit=500', { batches: [] }),
+      fetchAdminJson<OperationTaskRecord[]>('/api/tasks', []),
+      fetchAdminJson<{ items?: TrafficWarningResult[] }>('/api/persistent-data/riskResults', { items: [] }),
+    ]).then(([store, nextTasks, nextWarnings]) => {
         if (cancelled) {
           return;
         }
         setSalesOrders(store.batches.flatMap((batch) =>
           (batch.orders ?? []).map((order) => toRecentSalesOrder({ ...order, batchId: batch.batchId })),
         ));
+        setTasks(nextTasks);
+        setRiskWarnings((nextWarnings.items ?? [])
+          .filter((warning) => warning.level !== 'insufficient')
+          .sort(sortWarnings));
       });
     return () => {
       cancelled = true;
@@ -337,7 +334,7 @@ function AdminHome({
           <header>
             <div>
               <h2>{warningTitle}</h2>
-              <p>来自经营分析中心的风险预警。</p>
+              <p>来自风险诊断中心的风险预警。</p>
             </div>
             <span>{scopedWarnings.length} 条</span>
           </header>
@@ -397,7 +394,8 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const groupOrder = ['数据', '基础资料', '经营分析', '运营闭环', '规则中心', '数据源', '薪资绩效'];
   const groupLabels: Record<string, string> = { 数据: '数据中心' };
   const groups = groupOrder.filter((group) => menuAdminRoutes.some((route) => route.group === group));
-  const [openGroups, setOpenGroups] = useState<string[]>([activeRoute.group]);
+  const activeRouteGroup = groups.includes(activeRoute.group) ? activeRoute.group : null;
+  const [activeOpenGroup, setActiveOpenGroup] = useState<string | null>(activeRouteGroup);
   const isExcelImportPage = activeRoute.path === '/admin/import';
   const isStoreManagementPage = activeRoute.path === '/admin/stores';
   const isOperatorManagementPage = activeRoute.path === '/admin/operators';
@@ -405,7 +403,9 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const isTrafficImportPage = activeRoute.path === '/admin/traffic-import';
   const isDataBackupPage = activeRoute.path === '/admin/data-backup';
   const isWarningRulesPage = activeRoute.path === '/admin/config/warnings';
-  const isWarningResultsPage = activeRoute.path === '/admin/warning-results' || activeRoute.path === '/admin/operator-performance';
+  const isWarningResultsPage = activeRoute.path === '/admin/warning-results';
+  const isStoreBusinessCenterPage = activeRoute.path === '/admin/store-business';
+  const isOperatorAnalysisCenterPage = activeRoute.path === '/admin/operator-analysis' || activeRoute.path === '/admin/operator-performance';
   const isOperationDiagnosisPage = activeRoute.path === '/admin/operation-diagnosis';
   const isTaskCenterPage = activeRoute.path === '/admin/tasks';
   const isTaskSuggestionsPage = activeRoute.path === '/admin/task-suggestions';
@@ -424,6 +424,10 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
     window.location.replace('/login');
   }
 
+  useEffect(() => {
+    setActiveOpenGroup(activeRouteGroup);
+  }, [activeRouteGroup]);
+
   return (
     <main className="admin-shell">
       <aside className="admin-sidebar">
@@ -436,7 +440,11 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
             <span className="admin-no-menu">当前账号暂无可访问菜单，请联系管理员配置权限。</span>
           )}
           {dashboardRoute && (
-            <a className={dashboardRoute.path === activeRoute.path ? 'active' : ''} href={dashboardRoute.path}>
+            <a
+              className={dashboardRoute.path === activeRoute.path ? 'active' : ''}
+              href={dashboardRoute.path}
+              onClick={() => setActiveOpenGroup(null)}
+            >
               {dashboardRoute.label}
             </a>
           )}
@@ -445,14 +453,14 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
               <button
                 className="admin-nav-group-title"
                 type="button"
-                onClick={() => setOpenGroups((current) => (
-                  current.includes(group) ? current.filter((item) => item !== group) : [...current, group]
+                onClick={() => setActiveOpenGroup((current) => (
+                  current === group && activeRoute.group !== group ? null : group
                 ))}
               >
                 <span>{groupLabels[group] ?? group}</span>
-                <b>{openGroups.includes(group) ? '⌄' : '›'}</b>
+                <b>{activeOpenGroup === group ? '⌄' : '›'}</b>
               </button>
-              {openGroups.includes(group) && (
+              {activeOpenGroup === group && (
                 <div className="admin-nav-group-links">
                   {group === '数据' ? (
                     <DataCenterMenuLinks
@@ -512,7 +520,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
               当前账号暂未绑定可见店铺，请联系管理员配置权限。
             </section>
           )}
-          <Suspense fallback={<div className="import-record-empty">加载中...</div>}>
+          <Suspense fallback={<div className="admin-route-loading">加载中...</div>}>
           {!canAccessActiveRoute ? (
             <section className="excel-record-panel admin-permission-empty">
               当前账号无权访问此页面，请联系管理员。
@@ -527,6 +535,10 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
             <WarningRulesPage />
           ) : isWarningResultsPage ? (
             <WarningResultsPage currentUser={currentUser} />
+          ) : isStoreBusinessCenterPage ? (
+            <StoreBusinessCenterPage currentUser={currentUser} />
+          ) : isOperatorAnalysisCenterPage ? (
+            <OperatorAnalysisCenterPage currentUser={currentUser} />
           ) : isOperationDiagnosisPage ? (
             <OperationDiagnosisPage currentUser={currentUser} />
           ) : isTaskCenterPage ? (

@@ -36,12 +36,13 @@ function TaskSuggestionsPage() {
   const [form, setForm] = useState<TemplateForm>(emptyForm);
   const [message, setMessage] = useState('');
 
-  const refresh = () => {
-    setTemplates(taskSuggestionDataSource.load().sort((first, second) => first.sortWeight - second.sortWeight));
+  const refresh = async () => {
+    const nextTemplates = await taskSuggestionDataSource.loadAsync();
+    setTemplates(nextTemplates.sort((first, second) => first.sortWeight - second.sortWeight));
   };
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, []);
 
   const editTemplate = (template: TaskSuggestionTemplate) => {
@@ -67,7 +68,7 @@ function TaskSuggestionsPage() {
     setMessage('处理建议模板已保存。');
     setEditingId('');
     setForm(emptyForm);
-    refresh();
+    void refresh();
   };
 
   return (
@@ -156,7 +157,7 @@ function TaskSuggestionsPage() {
         <header>
           <div>
             <h2>模板预览</h2>
-            <p>当前启用模板会在经营分析中心创建任务时优先带入。</p>
+            <p>当前启用模板会在风险诊断中心创建任务时优先带入。</p>
           </div>
           <span>{templates.filter((template) => template.enabled).length} 个启用</span>
         </header>

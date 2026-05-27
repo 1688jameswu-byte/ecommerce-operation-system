@@ -6,6 +6,12 @@
   color: #edf6ff;
 }
 
+.admin-route-loading {
+  padding: 8px 0;
+  color: #8fb3d6;
+  font-size: 13px;
+}
+
 .admin-sidebar {
   position: sticky;
   top: 0;

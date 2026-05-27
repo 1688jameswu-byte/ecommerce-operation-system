@@ -54,14 +54,25 @@ function OperatorManagementPage() {
     (!statusFilter || relation.status === statusFilter)
   )), [operatorFilter, platformFilter, relations, statusFilter, storeByName, storeMap]);
 
-  const refreshAll = () => {
-    setStores(storeDataSource.load());
-    setOperators(operatorDataSource.load());
-    setRelations(storeOperatorDataSource.load());
+  const refreshAll = async () => {
+    try {
+      const [storeResponse, operatorResponse, relationResponse] = await Promise.all([
+        fetch('/api/stores', { cache: 'no-store', credentials: 'include' }),
+        fetch('/api/operators', { cache: 'no-store', credentials: 'include' }),
+        fetch('/api/store-operator-relations', { cache: 'no-store', credentials: 'include' }),
+      ]);
+      setStores(storeResponse.ok ? await storeResponse.json() as StoreRecord[] : []);
+      setOperators(operatorResponse.ok ? await operatorResponse.json() as OperatorRecord[] : []);
+      setRelations(relationResponse.ok ? await relationResponse.json() as StoreOperatorRelation[] : []);
+    } catch {
+      setStores([]);
+      setOperators([]);
+      setRelations([]);
+    }
   };
 
   useEffect(() => {
-    refreshAll();
+    void refreshAll();
   }, []);
 
   const saveOperator = (event: FormEvent<HTMLFormElement>) => {
@@ -81,7 +92,7 @@ function OperatorManagementPage() {
     setOperatorForm(emptyOperator);
     setEditingOperatorId('');
     setMessage('运营人员已保存。');
-    refreshAll();
+    void refreshAll();
   };
 
   const saveRelation = (event: FormEvent<HTMLFormElement>) => {
@@ -110,7 +121,7 @@ function OperatorManagementPage() {
     setRelationForm(emptyRelation);
     setEditingRelationId('');
     setMessage('店铺-运营关系已保存。');
-    refreshAll();
+    void refreshAll();
   };
 
   const editOperator = (operator: OperatorRecord) => {
@@ -147,7 +158,7 @@ function OperatorManagementPage() {
     }
     setMessage('运营人员已删除。');
     setDeleteTarget(null);
-    refreshAll();
+    void refreshAll();
   };
 
   const removeRelation = (id: string) => {
@@ -158,7 +169,7 @@ function OperatorManagementPage() {
     }
     setMessage('店铺-运营关系已删除。');
     setDeleteTarget(null);
-    refreshAll();
+    void refreshAll();
   };
 
   return (

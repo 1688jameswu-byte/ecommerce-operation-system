@@ -1,8 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { operatorDataSource } from '../../../data-source/operatorDataSource';
-import { storeDataSource } from '../../../data-source/storeDataSource';
-import { storeOperatorDataSource } from '../../../data-source/storeOperatorDataSource';
 import { taskDataSource } from '../../../data-source/taskDataSource';
 import type { OperatorRecord } from '../../../types/operator';
 import type { StoreRecord } from '../../../types/store';
@@ -111,14 +108,6 @@ function getInitialStatusFilter() {
 
 function getHighlightedTaskId() {
   return new URLSearchParams(window.location.search).get('taskId') || '';
-}
-
-function safeLoad<T>(loader: () => T, fallback: T) {
-  try {
-    return loader();
-  } catch {
-    return fallback;
-  }
 }
 
 async function loadVisibleStores(): Promise<StoreRecord[]> {
@@ -413,8 +402,10 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
   const [message, setMessage] = useState('');
   const [resultPreviewTask, setResultPreviewTask] = useState<OperationTaskRecord | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
-  // 后续可能开放运营总监、组长、AI自动派单；当前仅管理员可手动创建任务。
   const isAdmin = currentUser.role === 'admin';
+  // 后续可能开放运营总监、AI自动派单；当前管理员和组长可手动创建任务。
+  const currentRole = String(currentUser.role);
+  const canCreateTask = isAdmin || currentRole === 'leader' || currentRole === 'manager';
 
   const storeMap = useMemo(() => new Map(stores.map((store) => [store.id, store])), [stores]);
   const storeByName = useMemo(() => new Map(stores.map((store) => [store.storeName, store])), [stores]);
@@ -429,16 +420,30 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
       (relation.storeId === storeId || relation.storeName === storeName));
 
   const refreshAll = async () => {
-    if (isAdmin) {
-      setStores(safeLoad(() => storeDataSource.load(), []));
-      setOperators(safeLoad(() => operatorDataSource.load(), []));
-      setStoreRelations(safeLoad(() => storeOperatorDataSource.load(), []));
+    const loadJson = async <T,>(url: string, fallback: T) => {
+      try {
+        const response = await fetch(url, { cache: 'no-store', credentials: 'include' });
+        return response.ok ? await response.json() as T : fallback;
+      } catch {
+        return fallback;
+      }
+    };
+
+    if (canCreateTask) {
+      const [nextStores, nextOperators, nextRelations] = await Promise.all([
+        loadJson<StoreRecord[]>('/api/stores', []),
+        loadJson<OperatorRecord[]>('/api/operators', []),
+        loadJson<StoreOperatorRelation[]>('/api/store-operator-relations', []),
+      ]);
+      setStores(nextStores);
+      setOperators(nextOperators);
+      setStoreRelations(nextRelations);
     } else {
       setStores(await loadVisibleStores());
       setOperators([]);
       setStoreRelations([]);
     }
-    setTasks(filterTasksByPermission(safeLoad(() => taskDataSource.load(), []), currentUser));
+    setTasks(filterTasksByPermission(await loadJson<OperationTaskRecord[]>('/api/tasks', []), currentUser));
   };
 
   useEffect(() => {
@@ -1001,7 +1006,7 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
         setForm(emptyTask);
         setMessage('已取消编辑。');
       }} />}
-      {(isAdmin || editingId) && (
+      {(canCreateTask || editingId) && (
       <article className={`excel-record-panel task-editor-panel ${editingId ? 'task-editor-modal' : ''}`} ref={formPanelRef}>
         <header>
           <div>

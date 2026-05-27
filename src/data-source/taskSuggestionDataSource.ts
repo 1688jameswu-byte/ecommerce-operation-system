@@ -102,6 +102,20 @@ export const taskSuggestionDataSource = {
     }
   },
 
+  async loadAsync(): Promise<TaskSuggestionTemplate[]> {
+    if (typeof window === 'undefined') {
+      return defaultTaskSuggestionTemplates;
+    }
+
+    try {
+      const response = await fetch(`${apiBase}?t=${Date.now()}`, { cache: 'no-store', credentials: 'include' });
+      const templates = response.ok ? await response.json() as TaskSuggestionTemplate[] : [];
+      return templates.length > 0 ? templates : defaultTaskSuggestionTemplates;
+    } catch {
+      return defaultTaskSuggestionTemplates;
+    }
+  },
+
   update(id: string, template: Partial<TaskSuggestionTemplate>) {
     return request<TaskSuggestionTemplate>('PUT', `/${encodeURIComponent(id)}`, template);
   },

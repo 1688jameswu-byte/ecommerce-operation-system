@@ -36,7 +36,7 @@ function WarningRulesPage() {
         <header>
           <div>
             <h2>经营规则配置</h2>
-            <p>规则保存到项目 data 目录，前台大屏和经营分析中心共用同一份配置。</p>
+            <p>规则保存到项目 data 目录，前台大屏和风险诊断中心共用同一份配置。</p>
           </div>
           <label className="traffic-store-input compact-input">
             前台显示条数

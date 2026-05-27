@@ -7,6 +7,8 @@ import {
 } from '../../../data-source/trafficConversionDataSource';
 import { runOperationDiagnosis, type OperationDiagnosisResult } from '../../../rules/operationAnomaly';
 import type { CurrentUser } from '../../../types/auth';
+import type { TrafficAnalysisItem, TrafficAnalysisResultStore, TrafficConversionStore } from '../../../types/traffic';
+import { buildStandardAnalysisResults, buildStandardTrafficRecords } from '../../../utils/factDataStandardization';
 import { filterFactDataSetByPermission } from '../../../utils/permissionScope';
 
 function safeLoad<T>(loader: () => T, fallback: T) {
@@ -44,6 +46,15 @@ function buildDataSet(
   }, currentUser);
 }
 
+async function fetchPersistentJson<T>(name: string, fallback: T): Promise<T> {
+  try {
+    const response = await fetch(`/api/persistent-data/${name}`, { cache: 'no-store', credentials: 'include' });
+    return response.ok ? await response.json() as T : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export function createEmptyOperationDiagnosisDataSet(currentUser?: CurrentUser): StandardFactDataSet {
   return buildDataSet([], [], [], currentUser);
 }
@@ -56,12 +67,14 @@ export function loadOperationDiagnosisDataSet(currentUser?: CurrentUser): Standa
 }
 
 export async function loadOperationDiagnosisDataSetAsync(currentUser?: CurrentUser): Promise<StandardFactDataSet> {
-  const [orderStore, trafficMetrics, analysisResults] = await Promise.all([
+  const [orderStore, trafficStore, analysisStore] = await Promise.all([
     orderImportStorageDataSource.loadRecentStore({ recentDays: 30, limit: 500 }),
-    Promise.resolve(safeLoad(() => trafficConversionDataSource.loadStandardTrafficRecords(), [])),
-    Promise.resolve(safeLoad(() => trafficConversionDataSource.loadStandardAnalysisResults(), [])),
+    fetchPersistentJson<TrafficConversionStore>('trafficConversionStore', { records: [], batches: [] }),
+    fetchPersistentJson<TrafficAnalysisResultStore<TrafficAnalysisItem>>('businessAnalysisItems', { items: [], updatedAt: '' }),
   ]);
   const salesOrders = orderImportStorageDataSource.buildStandardSalesOrdersFromStore(orderStore);
+  const trafficMetrics = buildStandardTrafficRecords(trafficStore.records ?? []);
+  const analysisResults = buildStandardAnalysisResults(analysisStore.items ?? []);
 
   return buildDataSet(salesOrders, trafficMetrics, analysisResults, currentUser);
 }
