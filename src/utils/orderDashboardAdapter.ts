@@ -52,12 +52,36 @@ function getLatestOrderDate(orders: SalesOrderRecord[]) {
   return latestDateKey ? parseDateKey(latestDateKey) ?? getCurrentDate() : getCurrentDate();
 }
 
-function sumSales(orders: SalesOrderRecord[]) {
-  return orders.reduce((total, order) => total + order.salesAmount, 0);
+function getOrderQuantity(order: SalesOrderRecord) {
+  return Number(order.quantity) || 0;
 }
 
-function countOrderRows(orders: SalesOrderRecord[]) {
-  return orders.length;
+function getOrderSalesAmount(order: SalesOrderRecord) {
+  const salesAmount = Number(order.salesAmount);
+
+  if (Number.isFinite(salesAmount) && salesAmount > 0) {
+    return salesAmount;
+  }
+
+  const orderAmount = Number(order.orderAmount);
+
+  if (Number.isFinite(orderAmount) && orderAmount > 0) {
+    return orderAmount;
+  }
+
+  const rawOrder = order.rawSource as Partial<TemuOrderDetail> | undefined;
+  const declarePrice = Number(rawOrder?.declarePrice);
+  const quantity = getOrderQuantity(order);
+
+  return Number.isFinite(declarePrice) ? declarePrice * quantity : 0;
+}
+
+function sumSales(orders: SalesOrderRecord[]) {
+  return orders.reduce((total, order) => total + getOrderSalesAmount(order), 0);
+}
+
+function sumQuantity(orders: SalesOrderRecord[]) {
+  return orders.reduce((total, order) => total + getOrderQuantity(order), 0);
 }
 
 function buildRanking(
@@ -84,7 +108,7 @@ function groupSum(orders: SalesOrderRecord[], getKey: (order: SalesOrderRecord) 
 
   for (const order of orders) {
     const key = getKey(order);
-    result.set(key, (result.get(key) ?? 0) + order.salesAmount);
+    result.set(key, (result.get(key) ?? 0) + getOrderSalesAmount(order));
   }
 
   return Array.from(result.entries());
@@ -110,7 +134,7 @@ function groupStoreSales(orders: SalesOrderRecord[]) {
 
   for (const order of orders) {
     const current = totals.get(order.storeId) ?? { name: order.storeName, value: 0 };
-    current.value += order.salesAmount;
+    current.value += getOrderSalesAmount(order);
     totals.set(order.storeId, current);
   }
 
@@ -134,7 +158,7 @@ function buildSalesTrend(orders: SalesOrderRecord[], endDate: Date): SalesTrendI
 
   for (const order of orders) {
     const daily = dailySales.get(order.date) ?? { salesAmount: 0, orderIds: new Set<string>() };
-    daily.salesAmount += order.salesAmount;
+    daily.salesAmount += getOrderSalesAmount(order);
     daily.orderIds.add(order.orderId || order.sourceKey || `${order.storeId}-${order.date}-${daily.orderIds.size}`);
     dailySales.set(order.date, daily);
   }
@@ -302,11 +326,11 @@ export function buildDashboardDataFromOrders(
         unit: '¥',
         compareText: `${currentMonth} Excel订单明细`,
       }),
-      metric('yesterdayOrderCount', countOrderRows(reportDateOrders), {
+      metric('yesterdayOrderCount', sumQuantity(reportDateOrders), {
         title: '最新订单日订单数',
         compareText: `订单日期 ${reportDateKey}`,
       }),
-      metric('monthlyOrderCount', countOrderRows(monthOrders), {
+      metric('monthlyOrderCount', sumQuantity(monthOrders), {
         title: '本月订单数',
         compareText: `${currentMonth} Excel有效明细`,
       }),
