@@ -518,9 +518,9 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
               当前账号无权访问此页面，请联系管理员。
             </section>
           ) : isExcelImportPage ? (
-            <ExcelImportPage />
+            <ExcelImportPage currentUser={currentUser} />
           ) : isDataBackupPage ? (
-            <DataBackupPage />
+            <DataBackupPage currentUser={currentUser} />
           ) : isTrafficImportPage ? (
             <TrafficImportPage currentUser={currentUser} />
           ) : isWarningRulesPage ? (

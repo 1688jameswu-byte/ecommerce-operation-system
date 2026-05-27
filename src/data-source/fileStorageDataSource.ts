@@ -3,6 +3,7 @@ let dataPathLogged = false;
 
 interface WritePersistentOptions {
   trafficImportSearchableText?: string;
+  deleteImportData?: boolean;
 }
 
 function request(method: string, name: string, body?: unknown): string | null {
@@ -107,8 +108,8 @@ export function writePersistentJson(name: string, value: unknown, options?: Writ
   }
 
   logPersistentDataPath();
-  request('PUT', name, options?.trafficImportSearchableText
-    ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText }
+  request('PUT', name, options?.trafficImportSearchableText || options?.deleteImportData
+    ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText, __deleteImportData: options.deleteImportData }
     : value);
 }
 
@@ -133,7 +134,7 @@ export async function writePersistentJsonAsync(name: string, value: unknown, opt
   }
 
   logPersistentDataPath();
-  await requestAsync('PUT', name, options?.trafficImportSearchableText
-    ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText }
+  await requestAsync('PUT', name, options?.trafficImportSearchableText || options?.deleteImportData
+    ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText, __deleteImportData: options.deleteImportData }
     : value);
 }

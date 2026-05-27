@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { CurrentUser } from '../../../types/auth';
 import ConfirmDeleteModal from '../ConfirmDeleteModal';
 
 interface BackupResult {
@@ -38,20 +39,21 @@ async function loadBackups(): Promise<BackupItem[]> {
 
 async function deleteBackup(name: string) {
   const response = await fetch(`/api/data-backup/${encodeURIComponent(name)}`, { method: 'DELETE' });
-  const data = await response.json().catch(() => null) as { error?: string } | null;
+  const data = await response.json().catch(() => null) as { error?: string; message?: string } | null;
 
   if (!response.ok) {
-    throw new Error(data?.error || '备份删除失败');
+    throw new Error(data?.error || data?.message || '备份删除失败');
   }
 }
 
-function DataBackupPage() {
+function DataBackupPage({ currentUser }: { currentUser: CurrentUser }) {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [result, setResult] = useState<BackupResult | null>(null);
   const [backups, setBackups] = useState<BackupItem[]>([]);
   const [deletingName, setDeletingName] = useState('');
   const [deleteBackupItem, setDeleteBackupItem] = useState<BackupItem | null>(null);
   const [error, setError] = useState('');
+  const isAdmin = currentUser.role === 'admin';
 
   const refreshBackups = async () => {
     setBackups(await loadBackups());
@@ -80,7 +82,6 @@ function DataBackupPage() {
   };
 
   const handleDelete = async (backup: BackupItem) => {
-
     setDeletingName(backup.name);
     setError('');
 
@@ -150,9 +151,13 @@ function DataBackupPage() {
                   <td>{backup.fileCount}</td>
                   <td><span className="backup-path">{backup.path}</span></td>
                   <td>
-                    <button type="button" className="batch-delete-button" disabled={deletingName === backup.name} onClick={() => setDeleteBackupItem(backup)}>
-                      {deletingName === backup.name ? '删除中...' : '删除'}
-                    </button>
+                    {isAdmin ? (
+                      <button type="button" className="batch-delete-button" disabled={deletingName === backup.name} onClick={() => setDeleteBackupItem(backup)}>
+                        {deletingName === backup.name ? '删除中...' : '删除'}
+                      </button>
+                    ) : (
+                      <span className="backup-path">仅管理员可删除导入数据</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -171,4 +176,3 @@ function DataBackupPage() {
 }
 
 export default DataBackupPage;
-

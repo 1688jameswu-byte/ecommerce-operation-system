@@ -270,9 +270,13 @@ function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
                       <button type="button" className="batch-view-button" onClick={() => setSelectedBatchId(selectedBatchId === batch.id ? '' : batch.id)}>
                         {selectedBatchId === batch.id ? '收起明细' : '查看明细'}
                       </button>
-                      <button type="button" className="batch-delete-button" onClick={() => setConfirmBatch(batch)}>
-                        删除
-                      </button>
+                      {isAdmin ? (
+                        <button type="button" className="batch-delete-button" onClick={() => setConfirmBatch(batch)}>
+                          删除
+                        </button>
+                      ) : (
+                        <span className="import-file-name">仅管理员可删除导入数据</span>
+                      )}
                     </div>
                   </td>
                 </tr>

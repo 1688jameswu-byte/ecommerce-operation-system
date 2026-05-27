@@ -425,6 +425,17 @@ function requireMenu(req, res, menuKey) {
   return user;
 }
 
+function requireAdmin(req, res, message = '仅管理员可删除导入数据。') {
+  const user = findCurrentUser(req);
+  if (user?.role !== 'admin') {
+    res.statusCode = 403;
+    res.end(JSON.stringify({ ok: false, success: false, message, error: message }));
+    return null;
+  }
+
+  return user;
+}
+
 function normalizeUserPayload(payload, current) {
   const time = nowIso();
   const username = String(payload.username ?? current?.username ?? '').trim();
@@ -1979,6 +1990,9 @@ function localDataPlugin() {
           }
 
           if (_req.method === 'DELETE') {
+            if (!requireAdmin(_req, res)) {
+              return;
+            }
             const name = decodeURIComponent((_req.url ?? '').replace(/^\/+/, ''));
             res.end(JSON.stringify({ ok: true, ...deleteBackup(name) }));
             return;
@@ -2137,6 +2151,9 @@ function localDataPlugin() {
             const rawParsed = JSON.parse(bodyText || 'null');
             const hasGuardPayload = rawParsed && typeof rawParsed === 'object' && Object.prototype.hasOwnProperty.call(rawParsed, '__payload');
             const parsed = hasGuardPayload ? rawParsed.__payload : rawParsed;
+            if (hasGuardPayload && rawParsed.__deleteImportData && ['orderImportStore', 'trafficConversionStore'].includes(name) && !requireAdmin(req, res)) {
+              return;
+            }
             const searchableText = hasGuardPayload
               ? rawParsed.__trafficImportSearchableText ?? rawParsed.__trafficImportSearchText ?? ''
               : '';

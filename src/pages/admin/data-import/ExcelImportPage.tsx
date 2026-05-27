@@ -2,6 +2,7 @@
 import type { ChangeEvent, DragEvent } from 'react';
 import { parseExcelFile, parseTemuOrderExcelFile } from '../../../data-source/excelDataSource';
 import { orderImportStorageDataSource } from '../../../data-source/orderImportStorageDataSource';
+import type { CurrentUser } from '../../../types/auth';
 import type { ExcelImportPreview } from '../../../types/import';
 import type { TemuOrderDetail, TemuOrderImportBatch } from '../../../types/order';
 import ConfirmDeleteModal from '../ConfirmDeleteModal';
@@ -145,7 +146,7 @@ function formatUnique(values: string[]) {
   return Array.from(new Set(values)).join('、');
 }
 
-function ExcelImportPage() {
+function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const [preview, setPreview] = useState<ExcelImportPreview | null>(null);
   const [batches, setBatches] = useState<TemuOrderImportBatch[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -186,6 +187,7 @@ function ExcelImportPage() {
           : '';
   const deleteBatchRows = deleteBatchRow ? rows.filter((row) => row.batchId === deleteBatchRow.batchId) : [];
   const deleteBatchSummary = deleteBatchRows.length > 0 ? summarizeRows(deleteBatchRows, {}) : null;
+  const isAdmin = currentUser.role === 'admin';
 
   const refreshSavedData = () => {
     setBatches(orderImportStorageDataSource.loadStore().batches);
@@ -359,7 +361,7 @@ function ExcelImportPage() {
               ))}
             </select>
           </label>
-          {scopeDeleteLabel && (
+          {isAdmin && scopeDeleteLabel && (
             <div className="import-filter-actions">
               <button className="excel-clear-button danger-action-button" type="button" onClick={openDeleteScopeConfirm}>
                 {scopeDeleteLabel}
@@ -404,9 +406,13 @@ function ExcelImportPage() {
                       </td>
                       <td>{row.importedAt.replace('T', ' ').slice(0, 19)}</td>
                       <td>
-                        <button type="button" className="danger-action-button" onClick={() => setDeleteBatchRow(row)}>
-                          删除批次
-                        </button>
+                        {isAdmin ? (
+                          <button type="button" className="danger-action-button" onClick={() => setDeleteBatchRow(row)}>
+                            删除批次
+                          </button>
+                        ) : (
+                          <span className="import-file-name">仅管理员可删除导入数据</span>
+                        )}
                       </td>
                     </tr>
                   ))}

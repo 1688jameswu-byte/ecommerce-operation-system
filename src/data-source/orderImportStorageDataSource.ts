@@ -289,7 +289,7 @@ export const orderImportStorageDataSource = {
 
   deleteBatch(batchId: string) {
     const batches = this.loadStore().batches.filter((batch) => batch.batchId !== batchId);
-    writePersistentJson(ORDER_IMPORT_FILE_KEY, { batches });
+    writePersistentJson(ORDER_IMPORT_FILE_KEY, { batches }, { deleteImportData: true });
     notifyStorageChange();
   },
 
@@ -311,7 +311,7 @@ export const orderImportStorageDataSource = {
       )
       .filter((batch) => batch.orders.length > 0);
 
-    writePersistentJson(ORDER_IMPORT_FILE_KEY, { batches });
+    writePersistentJson(ORDER_IMPORT_FILE_KEY, { batches }, { deleteImportData: true });
     notifyStorageChange();
   },
 

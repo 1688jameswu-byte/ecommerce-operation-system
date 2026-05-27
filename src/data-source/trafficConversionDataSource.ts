@@ -554,7 +554,7 @@ export const trafficConversionDataSource = {
     writePersistentJson(DATA_KEY, {
       records: store.records.filter((record) => record.batchId !== batchId),
       batches: (store.batches ?? []).filter((item) => item.id !== batchId),
-    } satisfies TrafficConversionStore);
+    } satisfies TrafficConversionStore, { deleteImportData: true });
     this.regenerateAnalysisResults();
 
     return true;
