@@ -1,13 +1,21 @@
 import { dashboardDataSource } from '../data-source';
+import { operatorDataSource } from '../data-source/operatorDataSource';
 import { orderImportStorageDataSource } from '../data-source/orderImportStorageDataSource';
+import { storeDataSource } from '../data-source/storeDataSource';
+import { storeOperatorDataSource } from '../data-source/storeOperatorDataSource';
 import { trafficConversionDataSource } from '../data-source/trafficConversionDataSource';
 import type { DashboardData, GrowthOpportunityItem, WarningItem, WarningLevel } from '../types/dashboard';
 import type { SalesOrderRecord } from '../types/fact';
+import type { OperatorRecord } from '../types/operator';
 import type { TemuOrderDetail, TemuOrderImportStore } from '../types/order';
+import type { StoreRecord } from '../types/store';
+import type { StoreOperatorRelation } from '../types/storeOperator';
 import type { TrafficWarningResult } from '../types/traffic';
 import { buildDashboardDataFromOrders } from '../utils/orderDashboardAdapter';
+import { createStoreMatcher } from '../utils/storeStandardization';
 
 const levelRank = { critical: 0, high: 1, medium: 2, low: 3 };
+const UNBOUND_OPERATOR = '未绑定运营';
 let dashboardDataCache: DashboardData | null = null;
 let dashboardDataPromise: Promise<DashboardData> | null = null;
 
@@ -62,18 +70,67 @@ function safeGrowthOpportunities() {
   }
 }
 
-function toSalesOrder(order: TemuOrderDetail & { batchId?: string }): SalesOrderRecord {
+function safeLoad<T>(loader: () => T, fallback: T) {
+  try {
+    return loader();
+  } catch {
+    return fallback;
+  }
+}
+
+function relationActiveOnDate(relation: StoreOperatorRelation, date: string) {
+  return relation.status === 'active' &&
+    relation.role === 'primary' &&
+    (!relation.startDate || relation.startDate <= date) &&
+    (!relation.endDate || relation.endDate >= date);
+}
+
+function buildOrderOwnerContext() {
+  const stores = safeLoad<StoreRecord[]>(() => storeDataSource.load(), []);
+  const relations = safeLoad<StoreOperatorRelation[]>(() => storeOperatorDataSource.load(), []);
+  const operators = safeLoad<OperatorRecord[]>(() => operatorDataSource.load(), []);
+  const matcher = createStoreMatcher(stores);
+  const operatorById = new Map(operators.map((operator) => [operator.id, operator]));
+
+  return { matcher, relations, operatorById };
+}
+
+function resolvePrimaryOwner(
+  context: ReturnType<typeof buildOrderOwnerContext>,
+  storeId: string,
+  storeName: string,
+  date: string,
+) {
+  const relation = context.relations.find((item) =>
+    relationActiveOnDate(item, date) &&
+    (item.storeId === storeId || item.storeName === storeName),
+  );
+  const operator = relation ? context.operatorById.get(relation.operatorId) : undefined;
+  const operatorName = operator?.operatorName || relation?.operatorName || UNBOUND_OPERATOR;
+
+  return {
+    operatorId: relation?.operatorId || UNBOUND_OPERATOR,
+    operatorName,
+  };
+}
+
+function toSalesOrder(order: TemuOrderDetail & { batchId?: string }, context: ReturnType<typeof buildOrderOwnerContext>): SalesOrderRecord {
   const date = String(order.orderDate || order.orderTime || '').slice(0, 10);
+  const storeIdentity = context.matcher.match(order.storeName);
+  const storeId = storeIdentity.storeId || storeIdentity.key;
+  const storeName = storeIdentity.storeName;
+  const owner = resolvePrimaryOwner(context, storeId, storeName, date);
+
   return {
     date,
     month: order.month || date.slice(0, 7),
     year: Number(date.slice(0, 4)) || new Date().getFullYear(),
     week: '',
     platform: 'TEMU',
-    storeId: order.storeName,
-    storeName: order.storeName,
-    operatorId: order.operatorName,
-    operatorName: order.operatorName,
+    storeId,
+    storeName,
+    operatorId: owner.operatorId,
+    operatorName: owner.operatorName,
     orderId: order.orderId || order.uniqueKey,
     sku: order.productSku || order.skuCode || order.skc,
     productName: order.productName,
@@ -88,8 +145,10 @@ function toSalesOrder(order: TemuOrderDetail & { batchId?: string }): SalesOrder
 }
 
 function toStandardSalesOrders(store: TemuOrderImportStore): SalesOrderRecord[] {
+  const context = buildOrderOwnerContext();
+
   return store.batches.flatMap((batch) =>
-    (batch.orders ?? []).map((order) => toSalesOrder({ ...order, batchId: batch.batchId })),
+    (batch.orders ?? []).map((order) => toSalesOrder({ ...order, batchId: batch.batchId }, context)),
   );
 }
 

@@ -34,6 +34,7 @@ type TaskQuickFilterConfig = {
   status?: OperationTaskStatus;
   priority?: OperationTaskPriority;
   assignee?: string;
+  assigneeName?: string;
   storeKey?: string;
   source?: OperationTaskSourceType;
   dueType?: TaskDueFilter;
@@ -170,6 +171,15 @@ function isOpenTask(task: OperationTaskRecord) {
 
 function getAssigneeKey(task: OperationTaskRecord) {
   return task.operatorId || task.operatorName || 'unassigned';
+}
+
+function taskMatchesOperator(task: OperationTaskRecord, operatorId: string, operatorMap: Map<string, OperatorRecord>) {
+  if (!operatorId) {
+    return true;
+  }
+
+  const operator = operatorMap.get(operatorId);
+  return task.operatorId === operatorId || Boolean(operator?.operatorName && task.operatorName === operator.operatorName);
 }
 
 function getStoreKey(task: OperationTaskRecord) {
@@ -441,11 +451,13 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
       (statusFilter === 'active' ? task.status === 'todo' || task.status === 'doing' : !statusFilter || task.status === statusFilter) &&
       (!activeTaskQuickFilter.taskId || task.id === activeTaskQuickFilter.taskId) &&
       (!activeTaskQuickFilter.priority || task.priority === activeTaskQuickFilter.priority) &&
-      (!operatorFilter || task.operatorId === operatorFilter) &&
+      taskMatchesOperator(task, operatorFilter, operatorMap) &&
       (!sourceFilter || task.sourceType === sourceFilter) &&
       (!aiSourceFilter || (aiSourceFilter === 'ai' ? isAiGeneratedTask(task) : !isAiGeneratedTask(task))) &&
       (!activeTaskQuickFilter.status || task.status === activeTaskQuickFilter.status) &&
-      (!activeTaskQuickFilter.assignee || getAssigneeKey(task) === activeTaskQuickFilter.assignee) &&
+      (!activeTaskQuickFilter.assignee ||
+        getAssigneeKey(task) === activeTaskQuickFilter.assignee ||
+        Boolean(activeTaskQuickFilter.assigneeName && task.operatorName === activeTaskQuickFilter.assigneeName)) &&
       (!activeTaskQuickFilter.storeKey || getStoreKey(task) === activeTaskQuickFilter.storeKey) &&
       (!activeTaskQuickFilter.source || task.sourceType === activeTaskQuickFilter.source) &&
       (!activeTaskQuickFilter.dueType || getDueState(task) === activeTaskQuickFilter.dueType) &&
@@ -487,7 +499,7 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
     ? `${Math.round((reviewSummary.aiCompleted / reviewSummary.aiTotal) * 100)}%`
     : '-';
   const reportTasks = operatorFilter
-    ? tasks.filter((task) => task.operatorId === operatorFilter)
+    ? tasks.filter((task) => taskMatchesOperator(task, operatorFilter, operatorMap))
     : tasks;
   const reportSummary = {
     createdToday: reportTasks.filter((task) => isSameLocalDate(task.createdAt, todayKey)).length,
@@ -497,7 +509,9 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
     improved: reportTasks.filter((task) => task.reviewStatus === 'improved').length,
     watching: reportTasks.filter((task) => task.reviewStatus === 'watching').length,
   };
-  const reportAssigneeFilter = operatorFilter ? { assignee: operatorFilter } : {};
+  const reportAssigneeFilter = operatorFilter
+    ? { assignee: operatorFilter, assigneeName: operatorMap.get(operatorFilter)?.operatorName || '' }
+    : {};
   const dailyReportTasks = reportTasks
     .filter((task) =>
       isOpenTask(task) ||

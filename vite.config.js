@@ -1018,6 +1018,34 @@ function normalizeRelationPayload(payload, current) {
   };
 }
 
+function dateRangesOverlap(firstStart, firstEnd, secondStart, secondEnd) {
+  const startA = String(firstStart || '0000-01-01');
+  const endA = String(firstEnd || '9999-12-31');
+  const startB = String(secondStart || '0000-01-01');
+  const endB = String(secondEnd || '9999-12-31');
+  return startA <= endB && startB <= endA;
+}
+
+function assertUniquePrimaryRelation(relations, relation) {
+  if (relation.status === 'inactive' || relation.role !== 'primary') {
+    return;
+  }
+
+  const duplicate = relations.find((item) =>
+    item.id !== relation.id &&
+    item.status !== 'inactive' &&
+    item.role === 'primary' &&
+    String(item.storeId || item.storeName || '').trim() === String(relation.storeId || relation.storeName || '').trim() &&
+    dateRangesOverlap(item.startDate, item.endDate, relation.startDate, relation.endDate),
+  );
+
+  if (duplicate) {
+    const error = new Error('同一个店铺同一时间只能有一个 active primary 负责人');
+    error.statusCode = 409;
+    throw error;
+  }
+}
+
 function findTaskAssignee(storeId, storeName) {
   const storeKey = String(storeId || storeName || '').trim();
   if (!storeKey) {
@@ -1244,6 +1272,9 @@ async function handleCollectionApi(req, res, name, prefix) {
       const body = JSON.parse((await readBody(req)) || '{}');
       if (name === 'stores') {
         const next = normalizeStorePayload(body);
+        if (!requireStoreWriteScope(req, res, name, next, currentUser)) {
+          return;
+        }
         writeJsonFile(name, [...getStores(), next]);
         res.end(JSON.stringify(next));
         return;
@@ -1268,6 +1299,12 @@ async function handleCollectionApi(req, res, name, prefix) {
               updatedAt: nowIso(),
             }
         : { ...body, id: body.id || createId(prefix), createdAt: body.createdAt || nowIso(), updatedAt: nowIso() };
+      if (name === 'storeOperatorRelations') {
+        if (!requireStoreWriteScope(req, res, name, next, currentUser)) {
+          return;
+        }
+        assertUniquePrimaryRelation(collection, next);
+      }
       writeJsonFile(name, [...collection, next]);
       res.end(JSON.stringify(next));
       return;
@@ -1286,6 +1323,9 @@ async function handleCollectionApi(req, res, name, prefix) {
         }
 
         const next = normalizeStorePayload(body, current);
+        if (!requireStoreWriteScope(req, res, name, current, currentUser) || !requireStoreWriteScope(req, res, name, next, currentUser)) {
+          return;
+        }
         writeJsonFile(name, stores.map((item) => item.id === id ? next : item));
         res.end(JSON.stringify(next));
         return;
@@ -1336,8 +1376,14 @@ async function handleCollectionApi(req, res, name, prefix) {
               status: ['active', 'inactive'].includes(updateBody.status) ? updateBody.status : current.status ?? 'active',
               remark: String(updateBody.remark ?? current.remark ?? '').trim(),
               updatedAt: nowIso(),
-            }
+          }
         : { ...current, ...updateBody, id, updatedAt: nowIso() };
+      if (name === 'storeOperatorRelations') {
+        if (!requireStoreWriteScope(req, res, name, current, currentUser) || !requireStoreWriteScope(req, res, name, next, currentUser)) {
+          return;
+        }
+        assertUniquePrimaryRelation(collection, next);
+      }
       writeJsonFile(name, collection.map((item) => item.id === id ? next : item));
       res.end(JSON.stringify(next));
       return;
@@ -1350,6 +1396,30 @@ async function handleCollectionApi(req, res, name, prefix) {
         return;
       }
 
+      if (name === 'stores') {
+        const current = getStores().find((item) => item.id === id);
+        if (!current) {
+          res.statusCode = 404;
+          res.end('Not found');
+          return;
+        }
+        if (!requireStoreWriteScope(req, res, name, current, currentUser)) {
+          return;
+        }
+      }
+
+      if (name === 'storeOperatorRelations') {
+        const current = collection.find((item) => item.id === id);
+        if (!current) {
+          res.statusCode = 404;
+          res.end('Not found');
+          return;
+        }
+        if (!requireStoreWriteScope(req, res, name, current, currentUser)) {
+          return;
+        }
+      }
+
       writeJsonFile(name, (name === 'stores' ? getStores() : collection).filter((item) => item.id !== id));
       res.end(JSON.stringify({ ok: true }));
       return;
@@ -1358,10 +1428,11 @@ async function handleCollectionApi(req, res, name, prefix) {
     res.statusCode = 405;
     res.end('Method not allowed');
   } catch (error) {
-    res.statusCode = 500;
+    res.statusCode = error?.statusCode || 500;
     res.end(JSON.stringify({
       ok: false,
       error: error instanceof Error ? error.message : String(error),
+      message: error instanceof Error ? error.message : String(error),
     }));
   }
 }
@@ -1492,6 +1563,39 @@ function normalizeSearchText(value) {
 function itemMatchesVisibleStore(item, visibleStoreKeys) {
   return visibleStoreKeys.has(String(item?.storeId ?? '').trim()) ||
     visibleStoreKeys.has(String(item?.storeName ?? '').trim());
+}
+
+function itemMatchesVisibleStoreRecord(item, visibleStoreKeys) {
+  return visibleStoreKeys.has(String(item?.id ?? '').trim()) ||
+    visibleStoreKeys.has(String(item?.storeName ?? '').trim());
+}
+
+function canWriteStoreScopedItem(name, item, currentUser) {
+  if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
+    return true;
+  }
+
+  const visibleStoreKeys = getVisibleStoreKeys(currentUser);
+
+  if (name === 'stores') {
+    return itemMatchesVisibleStoreRecord(item, visibleStoreKeys);
+  }
+
+  if (name === 'storeOperatorRelations') {
+    return itemMatchesVisibleStore(item, visibleStoreKeys);
+  }
+
+  return true;
+}
+
+function requireStoreWriteScope(req, res, name, item, currentUser) {
+  if (canWriteStoreScopedItem(name, item, currentUser)) {
+    return true;
+  }
+
+  res.statusCode = 403;
+  res.end(JSON.stringify({ ok: false, success: false, message: '当前账号无权修改该店铺数据' }));
+  return false;
 }
 
 function itemMatchesVisibleTask(item, visibleStoreKeys, currentUser) {

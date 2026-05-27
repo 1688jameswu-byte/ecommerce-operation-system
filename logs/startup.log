@@ -77,3 +77,7 @@ Error: spawn EPERM
 [2026-05-25 20:51:10] starting dev server
 [2026-05-25 20:51:12] command: cd /d "F:\项目\TEMU运营数据大屏" && "C:\Program Files\nodejs\npm.cmd" run dev >> "F:\项目\TEMU运营数据大屏\logs\vite-out.log" 2>> "F:\项目\TEMU运营数据大屏\logs\vite-error.log"
 [2026-05-25 20:51:12] process started pid=25676
+[2026-05-27 20:27:16] starting dev server
+[2026-05-27 20:27:18] command: cd /d "F:\项目\TEMU运营数据大屏" && "C:\Program Files\nodejs\npm.cmd" run dev -- --host 127.0.0.1 --port 5176 >> "F:\项目\TEMU运营数据大屏\logs\vite-out.log" 2>> "F:\项目\TEMU运营数据大屏\logs\vite-error.log"
+[2026-05-27 20:27:18] process started pid=31408
+[2026-05-27 20:27:21] service ready, opening http://127.0.0.1:5176/admin

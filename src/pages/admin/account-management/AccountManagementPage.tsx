@@ -88,6 +88,20 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
     );
   }
 
+  function getAuthorizedStoreIds(user: Pick<ManagedUser, 'role' | 'allowedStoreIds'>) {
+    if (user.role === 'admin') {
+      return stores.map((store) => store.id || store.storeName).filter(Boolean);
+    }
+
+    const allowedKeys = new Set((user.allowedStoreIds ?? []).map(String));
+    const matchedStoreIds = stores
+      .filter((store) => allowedKeys.has(store.id) || allowedKeys.has(store.storeName))
+      .map((store) => store.id || store.storeName)
+      .filter(Boolean);
+
+    return matchedStoreIds.length > 0 ? matchedStoreIds : Array.from(allowedKeys);
+  }
+
   function startEdit(user: ManagedUser) {
     setEditingUserId(user.userId);
     setForm({
@@ -96,7 +110,7 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
       role: user.role,
       password: '',
       status: user.status,
-      allowedStoreIds: user.allowedStoreIds ?? [],
+      allowedStoreIds: getAuthorizedStoreIds(user),
       allowedMenuKeys: expandMenuKeys(user.allowedMenuKeys ?? []),
     });
     setMessage('正在编辑账号，留空密码则不修改密码。');
@@ -303,7 +317,7 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
             <section className="account-permission-card">
               <header>
                 <strong>授权店铺</strong>
-                <span>{form.allowedStoreIds.length} 个已选</span>
+                <span>{getAuthorizedStoreIds({ role: form.role, allowedStoreIds: form.allowedStoreIds }).length} 个已选</span>
               </header>
               <div className="account-checkbox-grid stores">
                 {stores.map((store) => {
@@ -384,7 +398,7 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
                   <td>{user.displayName}</td>
                   <td>{roleLabels[user.role]}</td>
                   <td>{statusLabels[user.status]}</td>
-                  <td>{user.allowedStoreIds?.length ?? 0}</td>
+                  <td>{getAuthorizedStoreIds(user).length}</td>
                   <td>{user.role === 'admin' ? allMenuKeys.length : user.allowedMenuKeys?.length ?? 0}</td>
                   <td>{user.forceChangePassword ? '需修改' : '正常'}</td>
                   <td>{formatPasswordTime(user.passwordUpdatedAt)}</td>
