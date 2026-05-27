@@ -157,7 +157,11 @@ async function buildDashboardData(): Promise<DashboardData> {
   const growthOpportunities = safeGrowthOpportunities();
 
   try {
-    const orderStore = await orderImportStorageDataSource.loadRecentStore({ recentDays: 30, limit: 500 });
+    // Dashboard aggregates need the full imported order history. Keep raw orders
+    // inside the service/adapter boundary; React only receives aggregated cards,
+    // Top N rankings, and 30-day series. If this grows past ~50k rows, move this
+    // aggregation behind the persistent-data API or add a persisted summary cache.
+    const orderStore = orderImportStorageDataSource.loadStore();
     const orderImportResult = orderImportStorageDataSource.buildImportResult(orderStore);
 
     if (orderImportResult && orderImportResult.orders.length > 0) {

@@ -1,7 +1,7 @@
 import type { DashboardData, RankingItem, SalesTrendItem } from '../types/dashboard';
 
 const operatorNames = ['张三', '李四', '王五', '赵六', '陈七', '刘八', '孙九', '周十', '吴十一', '郑十二'];
-const storeNames = ['A饰品店', 'B饰品店', 'C饰品店', 'D饰品店', 'E饰品店', 'F饰品店', 'G饰品店', 'H饰品店', 'I饰品店', 'J饰品店'];
+const storeNames = ['A店', 'B店', 'C店', 'D店', 'E店', 'F店', 'G店', 'H店', 'I店', 'J店'];
 
 function buildRanking(names: string[], baseValue: number, unit?: string): RankingItem[] {
   return names.map((name, index) => ({
@@ -95,8 +95,8 @@ export const mockDashboardData: DashboardData = {
   ],
   operatorSalesRanking: buildRanking(operatorNames, 856321, '¥'),
   storeSalesRanking: buildRanking(storeNames, 1256321, '¥'),
-  newProductRanking: buildRanking(operatorNames, 168, '款'),
-  firstOrderRanking: buildRanking(operatorNames, 87, '个'),
+  newProductRanking: buildRanking(operatorNames, 168, '次'),
+  firstOrderRanking: buildRanking(operatorNames, 87, '单'),
   salesTrend30Days: buildSalesTrend(),
   firstOrderTrendStores: [],
   firstOrderTrend30Days: [],
@@ -110,7 +110,7 @@ export const mockDashboardData: DashboardData = {
     {
       id: 'warning-001',
       type: 'shipping',
-      storeName: 'A饰品店',
+      storeName: 'A店',
       content: '延迟发货率 4.32%，超过阈值 2%',
       time: '11:20',
       level: 'high',
@@ -118,7 +118,7 @@ export const mockDashboardData: DashboardData = {
     {
       id: 'warning-002',
       type: 'afterSale',
-      storeName: 'B饰品店',
+      storeName: 'B店',
       content: '退款率 6.15%，超过阈值 5%',
       time: '11:18',
       level: 'medium',
@@ -126,7 +126,7 @@ export const mockDashboardData: DashboardData = {
     {
       id: 'warning-003',
       type: 'violation',
-      storeName: 'C饰品店',
+      storeName: 'C店',
       content: '3 个商品存在图片违规',
       time: '11:15',
       level: 'critical',
@@ -134,7 +134,7 @@ export const mockDashboardData: DashboardData = {
     {
       id: 'warning-004',
       type: 'stock',
-      storeName: 'D饰品店',
+      storeName: 'D店',
       content: '15 个 SKU 库存不足',
       time: '11:10',
       level: 'medium',
@@ -142,7 +142,7 @@ export const mockDashboardData: DashboardData = {
     {
       id: 'warning-005',
       type: 'campaign',
-      storeName: 'E饰品店',
+      storeName: 'E店',
       content: '活动报名未通过 2 个',
       time: '11:08',
       level: 'low',

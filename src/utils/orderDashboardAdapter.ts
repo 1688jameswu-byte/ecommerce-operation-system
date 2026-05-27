@@ -13,6 +13,8 @@ import type { TemuOrderDetail, TemuOrderImportResult } from '../types/order';
 import type { SalesOrderRecord } from '../types/fact';
 
 const UNASSIGNED_OPERATOR = '未分配运营';
+const RANKING_LIMIT = 10;
+const TREND_DAYS = 30;
 
 function toDateKey(date: Date) {
   const year = date.getFullYear();
@@ -26,24 +28,28 @@ function toMonthKey(date: Date) {
   return toDateKey(date).slice(0, 7);
 }
 
+function parseDateKey(dateKey: string) {
+  const [year, month, day] = dateKey.split('-').map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+}
+
 function getCurrentDate() {
   return new Date();
 }
 
-function getYesterdayDate() {
-  const date = getCurrentDate();
-  date.setDate(date.getDate() - 1);
-  return toDateKey(date);
-}
-
 function getLatestOrderDate(orders: SalesOrderRecord[]) {
-  const latestTime = orders.reduce((latest, order) => {
-    const time = new Date(order.date).getTime();
+  const latestDateKey = orders
+    .map((order) => order.date)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
 
-    return Number.isNaN(time) ? latest : Math.max(latest, time);
-  }, 0);
-
-  return latestTime > 0 ? new Date(latestTime) : getCurrentDate();
+  return latestDateKey ? parseDateKey(latestDateKey) ?? getCurrentDate() : getCurrentDate();
 }
 
 function sumSales(orders: SalesOrderRecord[]) {
@@ -58,14 +64,15 @@ function buildRanking(
   entries: Array<[string, number]>,
   unit: string,
   withGrowth = false,
+  limit = RANKING_LIMIT,
 ): RankingItem[] {
   return entries
     .sort((first, second) => second[1] - first[1])
-    .slice(0, 10)
+    .slice(0, limit)
     .map(([name, value], index) => ({
       rank: index + 1,
       name,
-      value,
+      value: Number(value.toFixed(2)),
       unit,
       trend: withGrowth ? 'up' : 'flat',
       growthPercent: withGrowth ? 0 : undefined,
@@ -128,13 +135,13 @@ function buildSalesTrend(orders: SalesOrderRecord[], endDate: Date): SalesTrendI
   for (const order of orders) {
     const daily = dailySales.get(order.date) ?? { salesAmount: 0, orderIds: new Set<string>() };
     daily.salesAmount += order.salesAmount;
-    daily.orderIds.add(order.orderId);
+    daily.orderIds.add(order.orderId || order.sourceKey || `${order.storeId}-${order.date}-${daily.orderIds.size}`);
     dailySales.set(order.date, daily);
   }
 
-  return Array.from({ length: 30 }, (_, index) => {
+  return Array.from({ length: TREND_DAYS }, (_, index) => {
     const date = new Date(endDate);
-    date.setDate(endDate.getDate() - (29 - index));
+    date.setDate(endDate.getDate() - (TREND_DAYS - 1 - index));
     const dateKey = toDateKey(date);
     const daily = dailySales.get(dateKey);
 
@@ -173,7 +180,7 @@ function getFirstOrderStatus(recent7Avg: number, previous30Avg: number): FirstOr
 }
 
 function buildFirstOrderTrend(orders: SalesOrderRecord[], endDate: Date) {
-  const dateKeys30 = getRecentDateKeys(endDate, 30);
+  const dateKeys30 = getRecentDateKeys(endDate, TREND_DAYS);
   const dateKeys7 = dateKeys30.slice(-7);
   const dateKeySet30 = new Set(dateKeys30);
   const storeDateCounts = new Map<string, Map<string, number>>();
@@ -196,7 +203,7 @@ function buildFirstOrderTrend(orders: SalesOrderRecord[], endDate: Date) {
     .map(([storeKey, counts]) => {
       const previous30Total = dateKeys30.reduce((total, date) => total + (counts.get(date) ?? 0), 0);
       const recent7Total = dateKeys7.reduce((total, date) => total + (counts.get(date) ?? 0), 0);
-      const previous30Avg = Number((previous30Total / 30).toFixed(2));
+      const previous30Avg = Number((previous30Total / TREND_DAYS).toFixed(2));
       const recent7Avg = Number((recent7Total / 7).toFixed(2));
       const changeRate =
         previous30Avg > 0 ? Number((((recent7Avg - previous30Avg) / previous30Avg) * 100).toFixed(2)) : 0;
@@ -209,7 +216,8 @@ function buildFirstOrderTrend(orders: SalesOrderRecord[], endDate: Date) {
         status: getFirstOrderStatus(recent7Avg, previous30Avg),
       };
     })
-    .sort((first, second) => first.changeRate - second.changeRate);
+    .sort((first, second) => first.changeRate - second.changeRate)
+    .slice(0, RANKING_LIMIT);
 
   const dailyTrend: FirstOrderDailyTrendItem[] = dateKeys30.map((date) => ({
     date: date.slice(5),
@@ -226,7 +234,7 @@ function buildFirstOrderWarnings(items: FirstOrderTrendItem[], importedAt: strin
       id: `first-order-${item.storeName}`,
       type: 'firstOrder',
       storeName: item.storeName,
-      content: `近7日首单均值较前30日下降 ${Math.abs(item.changeRate).toFixed(2)}%`,
+      content: `近7日首单均值较近30日下降 ${Math.abs(item.changeRate).toFixed(2)}%`,
       time: importedAt.replace('T', ' ').slice(11, 16),
       level: 'critical',
     }));
@@ -268,13 +276,10 @@ export function buildDashboardDataFromOrders(
   standardOrders: SalesOrderRecord[] = [],
 ): DashboardData {
   const orders = standardOrders.length > 0 ? standardOrders : importResult.orders.map(toFallbackSalesOrder);
-  const displaySourceKeys = new Set((importResult.displayOrders ?? importResult.orders).map((order) => order.uniqueKey || order.orderId));
-  const displayOrders = orders.filter((order) => displaySourceKeys.has(order.sourceKey || order.orderId));
-  const yesterdayDate = getYesterdayDate();
-  const yesterdayOrders = orders.filter((order) => order.date === yesterdayDate);
   const reportDate = getLatestOrderDate(orders);
-  const currentMonth = toMonthKey(getCurrentDate());
-
+  const reportDateKey = toDateKey(reportDate);
+  const reportDateOrders = orders.filter((order) => order.date === reportDateKey);
+  const currentMonth = toMonthKey(reportDate);
   const monthOrders = orders.filter((order) => order.month === currentMonth);
   const storeKeys = new Set(orders.map((order) => order.storeId).filter(Boolean));
   const firstOrderRows = monthOrders.filter((order) => order.isFirstOrder);
@@ -287,16 +292,36 @@ export function buildDashboardDataFromOrders(
     dataSource: `Excel订单数据：${importResult.fileName}`,
     statisticsPeriod: currentMonth,
     metrics: [
-      metric('yesterdaySalesAmount', sumSales(yesterdayOrders), { compareText: `订单日期 ${yesterdayDate}` }),
-      metric('monthlySalesAmount', sumSales(monthOrders), { compareText: 'Excel订单明细' }),
-      metric('yesterdayOrderCount', countOrderRows(yesterdayOrders), { compareText: `订单日期 ${yesterdayDate}` }),
-      metric('monthlyOrderCount', countOrderRows(monthOrders), { compareText: 'Excel有效明细' }),
-      metric('storeCount', storeKeys.size, { compareText: `订单店铺 ${storeKeys.size}` }),
-      metric('abnormalStoreCount', firstOrderDangerCount, { compareText: '首单趋势风险' }),
+      metric('yesterdaySalesAmount', sumSales(reportDateOrders), {
+        title: '最新订单日销售额',
+        unit: '¥',
+        compareText: `订单日期 ${reportDateKey}`,
+      }),
+      metric('monthlySalesAmount', sumSales(monthOrders), {
+        title: '本月销售额',
+        unit: '¥',
+        compareText: `${currentMonth} Excel订单明细`,
+      }),
+      metric('yesterdayOrderCount', countOrderRows(reportDateOrders), {
+        title: '最新订单日订单数',
+        compareText: `订单日期 ${reportDateKey}`,
+      }),
+      metric('monthlyOrderCount', countOrderRows(monthOrders), {
+        title: '本月订单数',
+        compareText: `${currentMonth} Excel有效明细`,
+      }),
+      metric('storeCount', storeKeys.size, {
+        title: '店铺数量',
+        compareText: `订单店铺 ${storeKeys.size}`,
+      }),
+      metric('abnormalStoreCount', firstOrderDangerCount, {
+        title: '异常店铺数',
+        compareText: '首单趋势风险',
+      }),
     ],
     operatorSalesRanking: buildRanking(groupOperatorSales(monthOrders), '¥'),
     storeSalesRanking: buildRanking(groupStoreSales(monthOrders), '¥'),
-    newProductRanking: mockDashboardData.newProductRanking,
+    newProductRanking: mockDashboardData.newProductRanking.slice(0, RANKING_LIMIT),
     firstOrderRanking: buildRanking(groupStoreCount(firstOrderRows), '单'),
     salesTrend30Days: buildSalesTrend(orders, reportDate),
     firstOrderTrendStores: firstOrderTrend.stores,
@@ -308,5 +333,6 @@ export function buildDashboardDataFromOrders(
       closed: 0,
     },
     warnings: [...buildFirstOrderWarnings(firstOrderTrend.stores, importResult.importedAt), ...mockDashboardData.warnings],
+    growthOpportunities: mockDashboardData.growthOpportunities,
   };
 }

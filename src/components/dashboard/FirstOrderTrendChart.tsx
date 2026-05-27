@@ -26,7 +26,7 @@ function FirstOrderTrendChart({ dailyData, stores }: FirstOrderTrendChartProps) 
         color: '#dceeff',
         fontSize: 13,
       },
-      valueFormatter: (value) => `${Number(value)} 个`,
+      valueFormatter: (value) => `${Number(value)} 单`,
     },
     grid: {
       left: 42,

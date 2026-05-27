@@ -219,6 +219,8 @@ const menuKeys = {
   accountManagement: 'account-management',
   businessAnalysis: 'business-analysis',
   businessAnalysisCenter: 'business-analysis-center',
+  storeBusinessCenter: 'store-business-center',
+  operatorAnalysisCenter: 'operator-analysis-center',
   operationDiagnosis: 'operation-diagnosis',
   aiOperationAnalysis: 'ai-operation-analysis',
   operatorPerformance: 'operator-performance',
