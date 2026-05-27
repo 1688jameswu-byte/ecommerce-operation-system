@@ -2,10 +2,14 @@ import { dashboardDataSource } from '../data-source';
 import { orderImportStorageDataSource } from '../data-source/orderImportStorageDataSource';
 import { trafficConversionDataSource } from '../data-source/trafficConversionDataSource';
 import type { DashboardData, GrowthOpportunityItem, WarningItem, WarningLevel } from '../types/dashboard';
-import { buildDashboardDataFromOrders } from '../utils/orderDashboardAdapter';
+import type { SalesOrderRecord } from '../types/fact';
+import type { TemuOrderDetail, TemuOrderImportStore } from '../types/order';
 import type { TrafficWarningResult } from '../types/traffic';
+import { buildDashboardDataFromOrders } from '../utils/orderDashboardAdapter';
 
 const levelRank = { critical: 0, high: 1, medium: 2, low: 3 };
+let dashboardDataCache: DashboardData | null = null;
+let dashboardDataPromise: Promise<DashboardData> | null = null;
 
 function toDashboardWarning(result: TrafficWarningResult): WarningItem {
   return {
@@ -58,17 +62,48 @@ function safeGrowthOpportunities() {
   }
 }
 
-export async function getDashboardData(): Promise<DashboardData> {
+function toSalesOrder(order: TemuOrderDetail & { batchId?: string }): SalesOrderRecord {
+  const date = String(order.orderDate || order.orderTime || '').slice(0, 10);
+  return {
+    date,
+    month: order.month || date.slice(0, 7),
+    year: Number(date.slice(0, 4)) || new Date().getFullYear(),
+    week: '',
+    platform: 'TEMU',
+    storeId: order.storeName,
+    storeName: order.storeName,
+    operatorId: order.operatorName,
+    operatorName: order.operatorName,
+    orderId: order.orderId || order.uniqueKey,
+    sku: order.productSku || order.skuCode || order.skc,
+    productName: order.productName,
+    salesAmount: Number(order.salesAmount) || 0,
+    orderAmount: Number(order.salesAmount) || 0,
+    quantity: Number(order.quantity) || 0,
+    isFirstOrder: Boolean(order.isFirstOrder),
+    rawSource: order,
+    sourceBatchId: order.batchId,
+    sourceKey: order.uniqueKey,
+  };
+}
+
+function toStandardSalesOrders(store: TemuOrderImportStore): SalesOrderRecord[] {
+  return store.batches.flatMap((batch) =>
+    (batch.orders ?? []).map((order) => toSalesOrder({ ...order, batchId: batch.batchId })),
+  );
+}
+
+async function buildDashboardData(): Promise<DashboardData> {
   const trafficWarnings = safeTrafficWarnings();
   const growthOpportunities = safeGrowthOpportunities();
 
   try {
-    const orderImportResult = orderImportStorageDataSource.load();
+    const orderStore = await orderImportStorageDataSource.loadRecentStore({ recentDays: 30, limit: 500 });
+    const orderImportResult = orderImportStorageDataSource.buildImportResult(orderStore);
 
     if (orderImportResult && orderImportResult.orders.length > 0) {
-      const standardSalesOrders = orderImportStorageDataSource.loadStandardSalesOrders();
       return {
-        ...buildDashboardDataFromOrders(orderImportResult, standardSalesOrders),
+        ...buildDashboardDataFromOrders(orderImportResult, toStandardSalesOrders(orderStore)),
         dataSource: '真实数据',
         warnings: trafficWarnings,
         growthOpportunities,
@@ -84,4 +119,25 @@ export async function getDashboardData(): Promise<DashboardData> {
     warnings: trafficWarnings,
     growthOpportunities,
   };
+}
+
+export async function getDashboardData(force = false): Promise<DashboardData> {
+  if (dashboardDataPromise) {
+    return dashboardDataPromise;
+  }
+
+  if (dashboardDataCache && !force) {
+    return dashboardDataCache;
+  }
+
+  dashboardDataPromise = buildDashboardData()
+    .then((data) => {
+      dashboardDataCache = data;
+      return data;
+    })
+    .finally(() => {
+      dashboardDataPromise = null;
+    });
+
+  return dashboardDataPromise;
 }

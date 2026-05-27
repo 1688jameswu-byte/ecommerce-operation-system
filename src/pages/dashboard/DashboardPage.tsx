@@ -30,13 +30,13 @@ function DashboardPage() {
   });
 
   useEffect(() => {
-    const refreshDashboardData = () => {
-      void getDashboardData().then(setDashboardData);
+    const refreshDashboardData = (force = false) => {
+      void getDashboardData(force).then(setDashboardData);
     };
 
     refreshDashboardData();
-    const unsubscribeOrder = subscribeOrderImportStorageChange(refreshDashboardData);
-    const unsubscribeTraffic = subscribeTrafficConversionChange(refreshDashboardData);
+    const unsubscribeOrder = subscribeOrderImportStorageChange(() => refreshDashboardData(true));
+    const unsubscribeTraffic = subscribeTrafficConversionChange(() => refreshDashboardData(true));
     return () => {
       unsubscribeOrder();
       unsubscribeTraffic();

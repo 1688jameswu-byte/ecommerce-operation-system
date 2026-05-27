@@ -120,6 +120,34 @@ function toBatch(importResult: TemuOrderImportResult): TemuOrderImportBatch {
   };
 }
 
+function buildImportResult(store: TemuOrderImportStore): TemuOrderImportResult | null {
+  const batches = store.batches;
+
+  if (batches.length === 0) {
+    return null;
+  }
+
+  const orders = batches.flatMap((batch) => batch.orders);
+  const latestImportedAt = batches
+    .map((batch) => batch.importedAt)
+    .sort()
+    .at(-1)!;
+  const latestImportDate = latestImportedAt.slice(0, 10);
+  const displayOrders = batches
+    .filter((batch) => batch.importedAt.slice(0, 10) === latestImportDate)
+    .flatMap((batch) => batch.orders);
+
+  return {
+    fileName: `${batches.length}个导入批次`,
+    importedAt: latestImportedAt,
+    totalRows: orders.length,
+    validRows: orders.length,
+    duplicateRows: 0,
+    orders,
+    displayOrders,
+  };
+}
+
 export const orderImportStorageDataSource = {
   loadStore(): TemuOrderImportStore {
     if (typeof window === 'undefined') {
@@ -163,6 +191,31 @@ export const orderImportStorageDataSource = {
     }
 
     return fileStore;
+  },
+
+  async loadRecentStore(options: { recentDays?: number; limit?: number } = {}): Promise<TemuOrderImportStore> {
+    if (typeof window === 'undefined') {
+      return emptyStore();
+    }
+
+    try {
+      const params = new URLSearchParams({
+        recentDays: String(options.recentDays ?? 30),
+        limit: String(options.limit ?? 500),
+      });
+      const response = await fetch(`/api/persistent-data/${ORDER_IMPORT_FILE_KEY}?${params.toString()}&t=${Date.now()}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      const data = response.ok ? await response.json() as unknown : emptyStore();
+      return isStore(data) ? normalizeStore(data).store : emptyStore();
+    } catch {
+      return emptyStore();
+    }
+  },
+
+  buildImportResult(store: TemuOrderImportStore): TemuOrderImportResult | null {
+    return buildImportResult(store);
   },
 
   load(): TemuOrderImportResult | null {
