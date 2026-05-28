@@ -1639,6 +1639,24 @@ function getImportStoreKeys(name, data) {
   return [];
 }
 
+function mergeOrderImportAppend(incoming) {
+  const existing = readJsonFile('orderImportStore');
+  const incomingBatches = Array.isArray(incoming?.batches) ? incoming.batches : [];
+  const replacePairs = new Set(incomingBatches.flatMap((batch) =>
+    (batch.orders ?? []).map((order) => `${String(order?.storeName ?? '').trim()}|${String(order?.orderDate ?? order?.date ?? '').slice(0, 10)}`),
+  ));
+  const batches = (existing?.batches ?? [])
+    .map((batch) => {
+      const orders = (batch.orders ?? []).filter((order) =>
+        !replacePairs.has(`${String(order?.storeName ?? '').trim()}|${String(order?.orderDate ?? order?.date ?? '').slice(0, 10)}`),
+      );
+      return { ...batch, orders, validRows: orders.length };
+    })
+    .filter((batch) => batch.orders.length > 0);
+
+  return { ...existing, batches: [...batches, ...incomingBatches] };
+}
+
 function assertTrafficImportSearchText(searchableText, currentUser) {
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
     return;
@@ -2277,7 +2295,9 @@ function localDataPlugin() {
               ? rawParsed.__trafficImportSearchableText ?? rawParsed.__trafficImportSearchText ?? ''
               : '';
             assertCanWriteImportData(name, parsed, currentUser, searchableText);
-            const nextData = mergeVisibleImportData(name, parsed, currentUser);
+            const nextData = rawParsed?.__appendImportBatch && name === 'orderImportStore'
+              ? mergeOrderImportAppend(parsed)
+              : mergeVisibleImportData(name, parsed, currentUser);
             fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
             res.end(JSON.stringify({ ok: true, path: filePath }));
           } catch (error) {

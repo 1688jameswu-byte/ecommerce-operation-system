@@ -1,7 +1,7 @@
 import type { TemuOrderDetail, TemuOrderImportBatch, TemuOrderImportResult, TemuOrderImportStore } from '../types/order';
 import type { SalesOrderRecord } from '../types/fact';
 import { buildStandardSalesOrders } from '../utils/factDataStandardization';
-import { readPersistentJson, writePersistentJson } from './fileStorageDataSource';
+import { readPersistentJson, writePersistentJson, writePersistentJsonAsync } from './fileStorageDataSource';
 
 export const TEMU_ORDER_IMPORT_STORAGE_KEY = 'temuOrderImportResult';
 export const TEMU_ORDER_IMPORT_STORAGE_EVENT = 'temu-order-import-storage-change';
@@ -284,6 +284,14 @@ export const orderImportStorageDataSource = {
       .filter((batch) => batch.orders.length > 0);
 
     writePersistentJson(ORDER_IMPORT_FILE_KEY, { batches: [...batches, newBatch] } satisfies TemuOrderImportStore);
+    notifyStorageChange();
+  },
+
+  async saveAsync(importResult: TemuOrderImportResult) {
+    const newBatch = normalizeStore({ batches: [toBatch(importResult)] }).store.batches[0];
+    await writePersistentJsonAsync(ORDER_IMPORT_FILE_KEY, { batches: [newBatch] } satisfies TemuOrderImportStore, {
+      appendImportBatch: true,
+    });
     notifyStorageChange();
   },
 

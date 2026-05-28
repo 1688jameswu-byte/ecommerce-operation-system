@@ -251,7 +251,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
           parseExcelFile(file),
           parseTemuOrderExcelFile(file),
         ]);
-        orderImportStorageDataSource.save(orderImportResult);
+        await orderImportStorageDataSource.saveAsync(orderImportResult);
         setPreview(previewResult);
       }
       await refreshSavedData(true);

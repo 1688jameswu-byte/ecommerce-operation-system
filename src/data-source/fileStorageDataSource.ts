@@ -4,6 +4,20 @@ let dataPathLogged = false;
 interface WritePersistentOptions {
   trafficImportSearchableText?: string;
   deleteImportData?: boolean;
+  appendImportBatch?: boolean;
+}
+
+function getWriteErrorMessage(status: number, text: string, name: string) {
+  if (status === 413 || /^\s*</.test(text)) {
+    return `JSON 文件写入失败：${name}。服务器返回了 HTML 错误页，通常是导入数据过大或接口未正确转发。`;
+  }
+
+  try {
+    const data = JSON.parse(text) as { message?: string };
+    return data.message || `JSON 文件写入失败：${name}`;
+  } catch {
+    return text || `JSON 文件写入失败：${name}`;
+  }
 }
 
 function request(method: string, name: string, body?: unknown): string | null {
@@ -18,15 +32,7 @@ function request(method: string, name: string, body?: unknown): string | null {
   }
 
   if (method === 'PUT') {
-    try {
-      const data = JSON.parse(xhr.responseText) as { message?: string };
-      throw new Error(data.message || `JSON 文件写入失败：${name}`);
-    } catch (error) {
-      if (error instanceof Error && error.message) {
-        throw error;
-      }
-      throw new Error(xhr.responseText || `JSON 文件写入失败：${name}`);
-    }
+    throw new Error(getWriteErrorMessage(xhr.status, xhr.responseText, name));
   }
 
   return null;
@@ -48,15 +54,7 @@ async function requestAsync(method: string, name: string, body?: unknown): Promi
 
   if (method === 'PUT') {
     const text = await response.text();
-    try {
-      const data = JSON.parse(text) as { message?: string };
-      throw new Error(data.message || `JSON 文件写入失败：${name}`);
-    } catch (error) {
-      if (error instanceof Error && error.message) {
-        throw error;
-      }
-      throw new Error(text || `JSON 文件写入失败：${name}`);
-    }
+    throw new Error(getWriteErrorMessage(response.status, text, name));
   }
 
   return null;
@@ -108,8 +106,8 @@ export function writePersistentJson(name: string, value: unknown, options?: Writ
   }
 
   logPersistentDataPath();
-  request('PUT', name, options?.trafficImportSearchableText || options?.deleteImportData
-    ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText, __deleteImportData: options.deleteImportData }
+  request('PUT', name, options?.trafficImportSearchableText || options?.deleteImportData || options?.appendImportBatch
+    ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText, __deleteImportData: options.deleteImportData, __appendImportBatch: options.appendImportBatch }
     : value);
 }
 
@@ -134,7 +132,7 @@ export async function writePersistentJsonAsync(name: string, value: unknown, opt
   }
 
   logPersistentDataPath();
-  await requestAsync('PUT', name, options?.trafficImportSearchableText || options?.deleteImportData
-    ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText, __deleteImportData: options.deleteImportData }
+  await requestAsync('PUT', name, options?.trafficImportSearchableText || options?.deleteImportData || options?.appendImportBatch
+    ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText, __deleteImportData: options.deleteImportData, __appendImportBatch: options.appendImportBatch }
     : value);
 }
