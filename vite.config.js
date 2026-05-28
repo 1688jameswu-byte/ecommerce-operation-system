@@ -1652,17 +1652,36 @@ function mergeOrderImportAppend(incoming) {
     const store = stores.find((item) => String(item?.storeName ?? '').replace(/\s+/g, '').toLowerCase() === key);
     return store?.storeName || name;
   };
+  const getOrderReplaceKey = (order) => {
+    const storeName = normalizeOrderStoreName(order?.storeName);
+    const orderDate = String(order?.orderDate ?? order?.date ?? '').slice(0, 10);
+    return storeName && orderDate ? `${storeName}|${orderDate}` : '';
+  };
   const replacePairs = new Set(incomingBatches.flatMap((batch) =>
-    (batch.orders ?? []).map((order) => `${normalizeOrderStoreName(order?.storeName)}|${String(order?.orderDate ?? order?.date ?? '').slice(0, 10)}`),
+    (batch.orders ?? []).map(getOrderReplaceKey).filter(Boolean),
   ));
+  let removedDataCount = 0;
   const batches = (existing?.batches ?? [])
     .map((batch) => {
-      const orders = (batch.orders ?? []).filter((order) =>
-        !replacePairs.has(`${normalizeOrderStoreName(order?.storeName)}|${String(order?.orderDate ?? order?.date ?? '').slice(0, 10)}`),
-      );
+      const oldOrders = batch.orders ?? [];
+      const orders = oldOrders.filter((order) => !replacePairs.has(getOrderReplaceKey(order)));
+      removedDataCount += oldOrders.length - orders.length;
       return { ...batch, orders, validRows: orders.length };
     })
     .filter((batch) => batch.orders.length > 0);
+  const existingDataCount = (existing?.batches ?? []).reduce((total, batch) => total + (batch.orders ?? []).length, 0);
+  const newDataCount = incomingBatches.reduce((total, batch) => total + (batch.orders ?? []).length, 0);
+  const finalDataCount = batches.reduce((total, batch) => total + (batch.orders ?? []).length, 0) + newDataCount;
+  const affectedKeys = Array.from(replacePairs);
+
+  console.info('[order-import-save]', {
+    existingDataCount,
+    removedDataCount,
+    newDataCount,
+    finalDataCount,
+    affectedStore: unique(affectedKeys.map((key) => key.split('|')[0]).filter(Boolean)),
+    affectedDates: unique(affectedKeys.map((key) => key.split('|')[1]).filter(Boolean)),
+  });
 
   return { ...existing, batches: [...batches, ...incomingBatches] };
 }
