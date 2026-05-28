@@ -1642,19 +1642,56 @@ function getImportStoreKeys(name, data) {
 function mergeOrderImportAppend(incoming) {
   const existing = readJsonFile('orderImportStore');
   const incomingBatches = Array.isArray(incoming?.batches) ? incoming.batches : [];
+  const stores = getStores();
+  const normalizeOrderStoreName = (value) => {
+    const name = String(value ?? '').trim();
+    const key = name.replace(/\s+/g, '').toLowerCase();
+    if (key === 'h点' || key === 'h店' || key === 'honeyjewels') {
+      return 'H店';
+    }
+    const store = stores.find((item) => String(item?.storeName ?? '').replace(/\s+/g, '').toLowerCase() === key);
+    return store?.storeName || name;
+  };
   const replacePairs = new Set(incomingBatches.flatMap((batch) =>
-    (batch.orders ?? []).map((order) => `${String(order?.storeName ?? '').trim()}|${String(order?.orderDate ?? order?.date ?? '').slice(0, 10)}`),
+    (batch.orders ?? []).map((order) => `${normalizeOrderStoreName(order?.storeName)}|${String(order?.orderDate ?? order?.date ?? '').slice(0, 10)}`),
   ));
   const batches = (existing?.batches ?? [])
     .map((batch) => {
       const orders = (batch.orders ?? []).filter((order) =>
-        !replacePairs.has(`${String(order?.storeName ?? '').trim()}|${String(order?.orderDate ?? order?.date ?? '').slice(0, 10)}`),
+        !replacePairs.has(`${normalizeOrderStoreName(order?.storeName)}|${String(order?.orderDate ?? order?.date ?? '').slice(0, 10)}`),
       );
       return { ...batch, orders, validRows: orders.length };
     })
     .filter((batch) => batch.orders.length > 0);
 
   return { ...existing, batches: [...batches, ...incomingBatches] };
+}
+
+function getTrafficRecordKeys(record) {
+  const date = String(record?.date ?? '').trim();
+  return unique([
+    String(record?.storeId ?? '').trim(),
+    String(record?.storeName ?? '').trim(),
+  ].filter(Boolean).map((storeKey) => `${storeKey}|${date}`));
+}
+
+function mergeTrafficConversionImport(incoming) {
+  const existing = readJsonFile('trafficConversionStore');
+  const incomingRecords = Array.isArray(incoming?.records) ? incoming.records : [];
+  const incomingKeys = new Set(incomingRecords.flatMap(getTrafficRecordKeys));
+  const records = [
+    ...(existing?.records ?? []).filter((record) => !getTrafficRecordKeys(record).some((key) => incomingKeys.has(key))),
+    ...incomingRecords,
+  ];
+  const batches = [
+    ...(existing?.batches ?? []).filter((batch) => {
+      const recordKeys = Array.isArray(batch?.recordKeys) ? batch.recordKeys : [];
+      return recordKeys.length === 0 || !recordKeys.every((key) => incomingKeys.has(String(key ?? '').trim()));
+    }),
+    ...(incoming?.batches ?? []),
+  ];
+
+  return { ...existing, ...incoming, records, batches };
 }
 
 function assertTrafficImportSearchText(searchableText, currentUser) {
@@ -1719,14 +1756,7 @@ function mergeVisibleImportData(name, incoming, currentUser) {
 
   return {
     ...incoming,
-    records: [
-      ...(existing?.records ?? []).filter((record) => !itemMatchesVisibleStore(record, visibleStoreKeys)),
-      ...(incoming?.records ?? []),
-    ],
-    batches: [
-      ...(existing?.batches ?? []).filter((batch) => !itemMatchesVisibleStore(batch, visibleStoreKeys)),
-      ...(incoming?.batches ?? []),
-    ],
+    ...mergeTrafficConversionImport(incoming),
   };
 }
 

@@ -36,6 +36,10 @@ function formatTime(value: string) {
   return value ? value.replace('T', ' ').slice(0, 19) : '-';
 }
 
+function normalizeSearchText(value: string) {
+  return value.replace(/\s+/g, '').toLowerCase();
+}
+
 function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const uploadPanelRef = useRef<HTMLElement | null>(null);
   const [storeName, setStoreName] = useState('');
@@ -113,7 +117,7 @@ function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
     return Array.from(groups.entries());
   }, [visibleMissingTrafficItems]);
 
-  function getImportStoreName(file: File) {
+  function getInitialImportStoreName() {
     if (isAdmin) {
       return storeName;
     }
@@ -122,8 +126,26 @@ function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
       throw new Error('当前账号未配置可导入店铺，请联系管理员。');
     }
 
-    const fileName = file.name.toLowerCase();
-    return visibleStoreNames.find((item) => fileName.includes(item.toLowerCase())) || visibleStoreNames[0];
+    return visibleStoreNames.length === 1 ? visibleStoreNames[0] : '';
+  }
+
+  function resolveImportStoreName(searchableText: string) {
+    if (isAdmin) {
+      return storeName;
+    }
+
+    if (visibleStoreNames.length === 1) {
+      return visibleStoreNames[0];
+    }
+
+    const searchable = normalizeSearchText(searchableText);
+    const matchedStores = visibleStoreNames.filter((name) => searchable.includes(normalizeSearchText(name)));
+
+    if (matchedStores.length !== 1) {
+      throw new Error('当前账号有多个可导入店铺，请确认文件名或表格内容包含明确店铺名称。');
+    }
+
+    return matchedStores[0];
   }
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -146,14 +168,16 @@ function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
       let lastBatchId = '';
 
       for (const file of files) {
-        const result = await parseTrafficConversionExcelFile(file, getImportStoreName(file));
+        const result = await parseTrafficConversionExcelFile(file, getInitialImportStoreName());
         const blockedStores = unauthorizedStoreNames.filter((name) =>
-          result.searchableText.replace(/\s+/g, '').toLowerCase().includes(name.replace(/\s+/g, '').toLowerCase()),
+          normalizeSearchText(result.searchableText).includes(normalizeSearchText(name)),
         );
         if (blockedStores.length > 0) {
           throw new Error(`导入失败：当前文件包含未授权店铺【${blockedStores.join('、')}】，请重新检查文件。`);
         }
-        const saveResult = trafficConversionDataSource.save(result.records, { searchableText: result.searchableText });
+        const importStoreName = resolveImportStoreName(result.searchableText);
+        const records = result.records.map((record) => ({ ...record, storeName: importStoreName }));
+        const saveResult = trafficConversionDataSource.save(records, { searchableText: result.searchableText });
         totalRows += result.records.length;
         coveredRows += saveResult.coveredCount;
         newRows += saveResult.newCount;
@@ -166,7 +190,7 @@ function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
     } catch (error) {
       setMessage(error instanceof Error && (
         error.message.startsWith('导入失败：') ||
-        ['当前账号无权导入该店铺数据', '当前账号未配置可导入店铺，请联系管理员。'].includes(error.message)
+        ['当前账号无权导入该店铺数据', '当前账号未配置可导入店铺，请联系管理员。', '当前账号有多个可导入店铺，请确认文件名或表格内容包含明确店铺名称。'].includes(error.message)
       )
         ? error.message
         : '导入失败，请检查 Excel 字段。');

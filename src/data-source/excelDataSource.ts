@@ -143,6 +143,16 @@ function normalizeStoreKey(value: string) {
   return cleanStoreName(value).replace(/\s+/g, '').toLocaleLowerCase();
 }
 
+function normalizeStoreAlias(value: string) {
+  const key = normalizeStoreKey(value);
+
+  if (key === 'h点' || key === 'h店' || key === 'honeyjewels') {
+    return 'H店';
+  }
+
+  return value;
+}
+
 function loadStoreNames() {
   try {
     return storeDataSource.load().map((store) => store.storeName).filter(Boolean);
@@ -153,7 +163,7 @@ function loadStoreNames() {
 
 function normalizeImportedStoreName(value: unknown, storeNames: string[]) {
   const rawName = cleanStoreName(value);
-  const name = rawName || UNKNOWN_STORE_NAME;
+  const name = normalizeStoreAlias(rawName || UNKNOWN_STORE_NAME);
   const normalizedKey = normalizeStoreKey(name);
   const exactMatch = storeNames.find((storeName) => normalizeStoreKey(storeName) === normalizedKey);
 

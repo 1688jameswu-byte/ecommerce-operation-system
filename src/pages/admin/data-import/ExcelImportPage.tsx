@@ -81,6 +81,11 @@ function normalizeStoreName(value: unknown) {
     }
   }
 
+  const key = name.replace(/\s+/g, '').toLowerCase();
+  if (key === 'h点' || key === 'h店' || key === 'honeyjewels') {
+    return 'H店';
+  }
+
   return name;
 }
 
