@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { allMenuKeys, menuGroups } from '../menuKeys';
+import { referenceDataService } from '../../../services/referenceDataService';
 import type { CurrentUser, UserRole } from '../../../types/auth';
 import type { StoreRecord } from '../../../types/store';
 
@@ -83,8 +84,7 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
 
   useEffect(() => {
     loadUsers().catch((error) => setMessage(error instanceof Error ? error.message : '账号读取失败'));
-    fetch('/api/stores', { cache: 'no-store' })
-      .then((response) => response.json() as Promise<StoreRecord[]>)
+    referenceDataService.loadStores()
       .then(setStores)
       .catch(() => setStores([]));
   }, []);

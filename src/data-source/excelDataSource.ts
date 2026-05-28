@@ -61,8 +61,74 @@ const orderFieldMap = {
   storeName: '店铺',
 } as const;
 
-function getCell(row: Record<string, unknown>, header: string) {
-  return row[header] ?? row[header.replace(/\s+/g, '')] ?? '';
+type OrderField = keyof typeof orderFieldMap;
+
+const requiredOrderFields: OrderField[] = ['orderId', 'orderTime', 'storeName', 'declarePrice', 'quantity'];
+const orderHeaderAliases: Record<OrderField, string[]> = {
+  orderId: ['订单号', '订单编号', '订单ID', 'Order ID'],
+  isFirstOrder: ['是否首单', '首单'],
+  skc: ['SKC'],
+  skcCode: ['SKC货号', 'SKC 货号'],
+  skuAttribute: ['SKU 属性', 'SKU属性'],
+  skuCode: ['SKU货号', 'SKU 货号', 'SKU编码'],
+  productSku: ['商品SKU', '商品 SKU'],
+  productName: ['商品名称', '商品名'],
+  declarePrice: ['申报价格', '申报金额', '商品单价', '单价', '价格'],
+  quantity: ['备货数量', '数量', '件数', '销量'],
+  orderTime: ['下单时间', '订单时间', '付款时间', '支付时间', '创建时间'],
+  status: ['状态', '订单状态'],
+  storeName: ['店铺', '店铺名称', '店铺名'],
+};
+
+function normalizeHeader(value: unknown) {
+  return String(value ?? '').replace(/\s+/g, '').trim().toLowerCase();
+}
+
+function getCell(row: Record<string, unknown>, field: OrderField) {
+  const aliases = orderHeaderAliases[field] ?? [orderFieldMap[field]];
+  const normalizedEntries = Object.entries(row).map(([key, value]) => [normalizeHeader(key), value] as const);
+
+  for (const alias of aliases) {
+    const value = row[alias] ?? row[alias.replace(/\s+/g, '')];
+    if (value !== undefined) {
+      return value;
+    }
+
+    const normalizedAlias = normalizeHeader(alias);
+    const matched = normalizedEntries.find(([key]) => key === normalizedAlias);
+    if (matched) {
+      return matched[1];
+    }
+  }
+
+  return '';
+}
+
+function buildRowsFromSheet(sheet: XLSX.WorkSheet) {
+  const rawRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+    header: 1,
+    defval: '',
+  });
+  const headerIndex = rawRows.findIndex((row) => {
+    const headers = new Set(row.map(normalizeHeader));
+    return requiredOrderFields.every((field) =>
+      orderHeaderAliases[field].some((alias) => headers.has(normalizeHeader(alias))),
+    );
+  });
+
+  if (headerIndex < 0) {
+    return { rows: [], missingHeaders: requiredOrderFields.map((field) => orderFieldMap[field]) };
+  }
+
+  const headers = rawRows[headerIndex].map((header) => String(header ?? '').trim());
+  const missingHeaders = requiredOrderFields
+    .filter((field) => !orderHeaderAliases[field].some((alias) => headers.some((header) => normalizeHeader(header) === normalizeHeader(alias))))
+    .map((field) => orderFieldMap[field]);
+  const rows = rawRows.slice(headerIndex + 1).map((rawRow) =>
+    Object.fromEntries(headers.map((header, index) => [header, rawRow[index] ?? ''])),
+  );
+
+  return { rows, missingHeaders };
 }
 
 const UNKNOWN_STORE_NAME = '未知店铺';
@@ -175,16 +241,16 @@ function normalizeOrderRow(
     return null;
   }
 
-  const rawStoreName = cleanStoreName(getCell(row, orderFieldMap.storeName));
+  const rawStoreName = cleanStoreName(getCell(row, 'storeName'));
   const storeName = normalizeImportedStoreName(rawStoreName, storeNames);
   storeNameMappings.set(rawStoreName, storeName);
 
-  const orderTimeDate = parseOrderTime(getCell(row, orderFieldMap.orderTime));
-  const orderId = String(getCell(row, orderFieldMap.orderId)).trim();
-  const skc = String(getCell(row, orderFieldMap.skc)).trim();
-  const skuCode = String(getCell(row, orderFieldMap.skuCode)).trim();
-  const declarePrice = parsePrice(getCell(row, orderFieldMap.declarePrice));
-  const quantity = parseQuantity(getCell(row, orderFieldMap.quantity));
+  const orderTimeDate = parseOrderTime(getCell(row, 'orderTime'));
+  const orderId = String(getCell(row, 'orderId')).trim();
+  const skc = String(getCell(row, 'skc')).trim();
+  const skuCode = String(getCell(row, 'skuCode')).trim();
+  const declarePrice = parsePrice(getCell(row, 'declarePrice'));
+  const quantity = parseQuantity(getCell(row, 'quantity'));
 
   const orderTime = orderTimeDate ? formatDateTime(orderTimeDate) : '';
   const orderDate = orderTime.slice(0, 10);
@@ -192,19 +258,19 @@ function normalizeOrderRow(
 
   return {
     orderId,
-    isFirstOrder: String(getCell(row, orderFieldMap.isFirstOrder)).trim() === '是',
+    isFirstOrder: String(getCell(row, 'isFirstOrder')).trim() === '是',
     skc,
-    skcCode: String(getCell(row, orderFieldMap.skcCode)).trim(),
-    skuAttribute: String(getCell(row, orderFieldMap.skuAttribute)).trim(),
+    skcCode: String(getCell(row, 'skcCode')).trim(),
+    skuAttribute: String(getCell(row, 'skuAttribute')).trim(),
     skuCode,
-    productSku: String(getCell(row, orderFieldMap.productSku)).trim(),
-    productName: String(getCell(row, orderFieldMap.productName)).trim(),
+    productSku: String(getCell(row, 'productSku')).trim(),
+    productName: String(getCell(row, 'productName')).trim(),
     declarePrice,
     quantity,
     orderTime,
     orderDate,
     month,
-    status: String(getCell(row, orderFieldMap.status)).trim(),
+    status: String(getCell(row, 'status')).trim(),
     storeName,
     salesAmount: Number((declarePrice * quantity).toFixed(2)),
     operatorName: '未分配运营',
@@ -218,17 +284,24 @@ export async function parseTemuOrderExcelFile(file: File): Promise<TemuOrderImpo
     type: 'array',
     cellDates: true,
   });
-  const rows = workbook.SheetNames.flatMap((sheetName) =>
-    XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[sheetName], {
-      defval: '',
-    }),
-  );
+  const parsedSheets = workbook.SheetNames.map((sheetName) => buildRowsFromSheet(workbook.Sheets[sheetName]));
+  const rows = parsedSheets.flatMap((sheet) => sheet.rows);
+
+  if (rows.length === 0) {
+    const missingHeaders = Array.from(new Set(parsedSheets.flatMap((sheet) => sheet.missingHeaders)));
+    throw new Error(`未识别到订单表头：${missingHeaders.join('、')}。请确认上传的是订单销售 Excel。`);
+  }
+
   const storeNames = loadStoreNames();
   const storeNameMappings = new Map<string, string>();
   const orders = rows
     .map((row, index) => normalizeOrderRow(row, index, storeNames, storeNameMappings))
     .filter((order): order is TemuOrderDetail => Boolean(order));
   logStoreNameNormalization(storeNameMappings);
+
+  if (orders.length === 0) {
+    throw new Error('未解析到有效订单明细，请检查订单表头和数据行是否为空。');
+  }
 
   return {
     fileName: file.name,

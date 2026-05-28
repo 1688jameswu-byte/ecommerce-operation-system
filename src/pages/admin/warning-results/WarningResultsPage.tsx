@@ -7,6 +7,7 @@ import {
   trafficTypeLabels,
 } from '../../../data-source/trafficConversionDataSource';
 import { defaultTaskSuggestionTemplates, resolveSuggestionContent } from '../../../data-source/taskSuggestionDataSource';
+import { referenceDataService } from '../../../services/referenceDataService';
 import {
   orderImportStorageDataSource,
   subscribeOrderImportStorageChange,
@@ -236,7 +237,7 @@ async function fetchJson<T>(url: string, fallback: T): Promise<T> {
 
 async function fetchVisibleStoresFallback(currentUser: CurrentUser): Promise<StoreRecord[]> {
   if (currentUser.role === 'admin') {
-    return fetchJson<StoreRecord[]>('/api/stores', []);
+    return referenceDataService.loadStores();
   }
 
   const result = await fetchJson<{ stores?: StoreRecord[] }>('/api/auth/visible-stores', { stores: [] });
@@ -493,8 +494,8 @@ async function loadAnalysisData(currentUser: CurrentUser) {
     fetchJson<TrafficAnalysisResultStore<TrafficGrowthOpportunity>>('/api/persistent-data/growthOpportunities', { items: [], updatedAt: '' }),
     fetchJson<TrafficAnalysisResultStore<TrafficAnalysisItem>>('/api/persistent-data/businessAnalysisItems', { items: [], updatedAt: '' }),
     fetchVisibleStoresFallback(currentUser),
-    currentUser.role === 'admin' ? fetchJson<StoreOperatorRelation[]>('/api/store-operator-relations', []) : Promise.resolve([]),
-    currentUser.role === 'admin' ? fetchJson<OperatorRecord[]>('/api/operators', []) : Promise.resolve([]),
+    currentUser.role === 'admin' ? referenceDataService.loadStoreOperatorRelations() : Promise.resolve([]),
+    currentUser.role === 'admin' ? referenceDataService.loadOperators() : Promise.resolve([]),
     fetchJson<TaskSuggestionTemplate[]>('/api/task-suggestion-templates', []),
   ]);
   const orderRecords = orderStore.batches.flatMap((batch) =>

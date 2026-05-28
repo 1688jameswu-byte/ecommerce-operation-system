@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { operatorDataSource } from '../../../data-source/operatorDataSource';
 import { storeDataSource } from '../../../data-source/storeDataSource';
 import { storeOperatorDataSource } from '../../../data-source/storeOperatorDataSource';
+import { referenceDataService } from '../../../services/referenceDataService';
 import type { OperatorRecord } from '../../../types/operator';
 import type { StoreRecord } from '../../../types/store';
 import type { StoreOperatorRelation, StoreOperatorRelationStatus, StoreOperatorRole } from '../../../types/storeOperator';
@@ -56,14 +57,10 @@ function OperatorManagementPage() {
 
   const refreshAll = async () => {
     try {
-      const [storeResponse, operatorResponse, relationResponse] = await Promise.all([
-        fetch('/api/stores', { cache: 'no-store', credentials: 'include' }),
-        fetch('/api/operators', { cache: 'no-store', credentials: 'include' }),
-        fetch('/api/store-operator-relations', { cache: 'no-store', credentials: 'include' }),
-      ]);
-      setStores(storeResponse.ok ? await storeResponse.json() as StoreRecord[] : []);
-      setOperators(operatorResponse.ok ? await operatorResponse.json() as OperatorRecord[] : []);
-      setRelations(relationResponse.ok ? await relationResponse.json() as StoreOperatorRelation[] : []);
+      const referenceData = await referenceDataService.loadAll();
+      setStores(referenceData.stores);
+      setOperators(referenceData.operators);
+      setRelations(referenceData.relations);
     } catch {
       setStores([]);
       setOperators([]);

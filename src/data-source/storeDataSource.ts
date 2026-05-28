@@ -1,11 +1,13 @@
 import type { StoreRecord } from '../types/store';
+import { referenceDataService } from '../services/referenceDataService';
 
 const apiBase = '/api/stores';
+let cachedStores: { data: StoreRecord[]; expiresAt: number } | null = null;
+const ttlMs = 5 * 60 * 1000;
 
 function request<T>(method: string, path = '', body?: unknown): T {
   const xhr = new XMLHttpRequest();
-  const cacheBust = method === 'GET' ? `?t=${Date.now()}` : '';
-  xhr.open(method, `${apiBase}${path}${cacheBust}`, false);
+  xhr.open(method, `${apiBase}${path}`, false);
   xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
   xhr.send(body === undefined ? undefined : JSON.stringify(body));
 
@@ -22,18 +24,31 @@ export const storeDataSource = {
       return [];
     }
 
-    return request<StoreRecord[]>('GET');
+    if (cachedStores && cachedStores.expiresAt > Date.now()) {
+      return cachedStores.data;
+    }
+    const data = request<StoreRecord[]>('GET');
+    cachedStores = { data, expiresAt: Date.now() + ttlMs };
+    return data;
   },
 
   create(store: Partial<StoreRecord>) {
-    return request<StoreRecord>('POST', '', store);
+    const result = request<StoreRecord>('POST', '', store);
+    cachedStores = null;
+    referenceDataService.invalidate('stores');
+    return result;
   },
 
   update(id: string, store: Partial<StoreRecord>) {
-    return request<StoreRecord>('PUT', `/${encodeURIComponent(id)}`, store);
+    const result = request<StoreRecord>('PUT', `/${encodeURIComponent(id)}`, store);
+    cachedStores = null;
+    referenceDataService.invalidate('stores');
+    return result;
   },
 
   remove(id: string) {
     request<{ ok: true }>('DELETE', `/${encodeURIComponent(id)}`);
+    cachedStores = null;
+    referenceDataService.invalidate('stores');
   },
 };

@@ -1,12 +1,14 @@
 import type { StoreOperatorRelation } from '../types/storeOperator';
+import { referenceDataService } from '../services/referenceDataService';
 
 const apiBase = '/api/store-operator-relations';
 const STORE_OPERATOR_STORAGE_KEY = 'temuStoreOperatorRelations';
+let cachedRelations: { data: StoreOperatorRelation[]; expiresAt: number } | null = null;
+const ttlMs = 5 * 60 * 1000;
 
 function request<T>(method: string, path = '', body?: unknown): T {
   const xhr = new XMLHttpRequest();
-  const cacheBust = method === 'GET' ? `?t=${Date.now()}` : '';
-  xhr.open(method, `${apiBase}${path}${cacheBust}`, false);
+  xhr.open(method, `${apiBase}${path}`, false);
   xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
   xhr.send(body === undefined ? undefined : JSON.stringify(body));
 
@@ -70,23 +72,36 @@ export const storeOperatorDataSource = {
     }
 
     try {
+      if (cachedRelations && cachedRelations.expiresAt > Date.now()) {
+        return cachedRelations.data;
+      }
       const relations = request<Array<Partial<StoreOperatorRelation>>>('GET').map(normalizeRelation);
-      return relations.length > 0 ? relations : loadLegacyRelations();
+      const data = relations.length > 0 ? relations : loadLegacyRelations();
+      cachedRelations = { data, expiresAt: Date.now() + ttlMs };
+      return data;
     } catch {
       return loadLegacyRelations();
     }
   },
 
   create(relation: Partial<StoreOperatorRelation>) {
-    return request<StoreOperatorRelation>('POST', '', relation);
+    const result = request<StoreOperatorRelation>('POST', '', relation);
+    cachedRelations = null;
+    referenceDataService.invalidate('store-operator-relations');
+    return result;
   },
 
   update(id: string, relation: Partial<StoreOperatorRelation>) {
-    return request<StoreOperatorRelation>('PUT', `/${encodeURIComponent(id)}`, relation);
+    const result = request<StoreOperatorRelation>('PUT', `/${encodeURIComponent(id)}`, relation);
+    cachedRelations = null;
+    referenceDataService.invalidate('store-operator-relations');
+    return result;
   },
 
   remove(id: string) {
     request<{ ok: true }>('DELETE', `/${encodeURIComponent(id)}`);
+    cachedRelations = null;
+    referenceDataService.invalidate('store-operator-relations');
   },
 
   getOperatorName(storeName: string) {

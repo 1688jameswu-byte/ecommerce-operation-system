@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { orderImportStorageDataSource } from '../../../data-source/orderImportStorageDataSource';
+import { referenceDataService } from '../../../services/referenceDataService';
 import type { CurrentUser } from '../../../types/auth';
 import type { OperatorRecord } from '../../../types/operator';
 import type { TemuOrderDetail } from '../../../types/order';
@@ -357,11 +358,11 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetchJson<StoreRecord[]>('/api/stores', []),
+      referenceDataService.loadStores(),
       orderImportStorageDataSource.loadRecentStore({ recentDays: 37, limit: 20000 }),
       fetchJson<TrafficConversionStore>('/api/persistent-data/trafficConversionStore', { records: [], batches: [] }),
-      fetchJson<StoreOperatorRelation[]>('/api/store-operator-relations', []),
-      fetchJson<OperatorRecord[]>('/api/operators', []),
+      referenceDataService.loadStoreOperatorRelations(),
+      referenceDataService.loadOperators(),
     ]).then(([stores, orderStore, trafficStore, relations, operators]) => {
       if (!cancelled) {
         setData({

@@ -257,9 +257,8 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
       await refreshSavedData(true);
     } catch (error) {
       setPreview(null);
-      setError(error instanceof Error && error.message === '当前账号无权导入该店铺数据'
-        ? error.message
-        : 'Excel 解析失败，请检查文件格式和订单表头。');
+      const message = error instanceof Error ? error.message : '';
+      setError(message || 'Excel 解析失败，请检查文件格式和订单表头。');
     } finally {
       setIsParsing(false);
     }

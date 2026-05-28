@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { storeDataSource } from '../../../data-source/storeDataSource';
+import { referenceDataService } from '../../../services/referenceDataService';
 import type { StorePlatform, StoreRecord, StoreStatus } from '../../../types/store';
 import { getStatusLabel } from '../../../utils/statusLabel';
 import ConfirmDeleteModal from '../ConfirmDeleteModal';
@@ -54,8 +55,7 @@ function StoreManagementPage() {
 
   const refreshStores = async () => {
     try {
-      const response = await fetch('/api/stores', { cache: 'no-store', credentials: 'include' });
-      setStores(response.ok ? await response.json() as StoreRecord[] : []);
+      setStores(await referenceDataService.loadStores());
     } catch {
       setStores([]);
     }

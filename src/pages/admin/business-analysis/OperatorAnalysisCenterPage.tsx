@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { referenceDataService } from '../../../services/referenceDataService';
 import type { CurrentUser } from '../../../types/auth';
 import type { OperatorRecord } from '../../../types/operator';
 import type { OperationTaskRecord } from '../../../types/task';
@@ -75,8 +76,8 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     let cancelled = false;
     Promise.all([
       fetchJson<TrafficAnalysisResultStore<TrafficAnalysisItem>>('/api/persistent-data/businessAnalysisItems', { items: [], updatedAt: '' }),
-      fetchJson<OperatorRecord[]>('/api/operators', []),
-      fetchJson<StoreOperatorRelation[]>('/api/store-operator-relations', []),
+      referenceDataService.loadOperators(),
+      referenceDataService.loadStoreOperatorRelations(),
       fetchJson<OperationTaskRecord[]>('/api/tasks', []),
     ]).then(([analysisStore, nextOperators, nextRelations, nextTasks]) => {
       if (cancelled) {

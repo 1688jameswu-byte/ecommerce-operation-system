@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { taskDataSource } from '../../../data-source/taskDataSource';
+import { referenceDataService } from '../../../services/referenceDataService';
 import type { OperatorRecord } from '../../../types/operator';
 import type { StoreRecord } from '../../../types/store';
 import type { StoreOperatorRelation } from '../../../types/storeOperator';
@@ -430,14 +431,10 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
     };
 
     if (canCreateTask) {
-      const [nextStores, nextOperators, nextRelations] = await Promise.all([
-        loadJson<StoreRecord[]>('/api/stores', []),
-        loadJson<OperatorRecord[]>('/api/operators', []),
-        loadJson<StoreOperatorRelation[]>('/api/store-operator-relations', []),
-      ]);
-      setStores(nextStores);
-      setOperators(nextOperators);
-      setStoreRelations(nextRelations);
+      const referenceData = await referenceDataService.loadAll();
+      setStores(referenceData.stores);
+      setOperators(referenceData.operators);
+      setStoreRelations(referenceData.relations);
     } else {
       setStores(await loadVisibleStores());
       setOperators([]);
