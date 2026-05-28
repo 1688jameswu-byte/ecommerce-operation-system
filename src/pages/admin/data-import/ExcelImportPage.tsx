@@ -53,6 +53,25 @@ function toDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+function parseDateTime(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDateTime(value: string) {
+  const date = parseDateTime(value);
+  if (!date) {
+    return '-';
+  }
+
+  return `${toDateKey(date)} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+}
+
+function toImportDateKey(value: string) {
+  const date = parseDateTime(value);
+  return date ? toDateKey(date) : '';
+}
+
 function getRecentCheckDates(days = 7) {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
@@ -192,7 +211,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const dateOptions = useMemo(() => Array.from(new Set(rows.map((row) => row.date))), [rows]);
   const storeOptions = useMemo(() => Array.from(new Set(rows.map((row) => row.storeName))).sort(), [rows]);
   const today = useMemo(() => toDateKey(new Date()), []);
-  const todayRows = useMemo(() => rows.filter((row) => row.importedAt.slice(0, 10) === today), [rows, today]);
+  const todayRows = useMemo(() => rows.filter((row) => toImportDateKey(row.importedAt) === today), [rows, today]);
   const overview = useMemo(() => ({
     todayStoreCount: new Set(todayRows.map((row) => row.storeName)).size,
     todaySalesAmount: todayRows.reduce((total, row) => total + row.salesAmount, 0),
@@ -474,7 +493,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
                       <td>
                         <span className={`import-status import-status-${row.status}`}>{statusLabels[row.status]}</span>
                       </td>
-                      <td>{row.importedAt.replace('T', ' ').slice(0, 19)}</td>
+                      <td>{formatDateTime(row.importedAt)}</td>
                       <td>
                         {isAdmin ? (
                           <button type="button" className="danger-action-button" onClick={() => setDeleteBatchRow(row)}>

@@ -151,6 +151,7 @@ const headerMap: Record<string, TrafficImportColumn> = {
   店铺页支付买家数: 'storePagePayBuyers',
   店铺页支付转化率: 'storePagePayConversionRate',
 };
+const defaultTrafficColumnOrder = Array.from(new Set(Object.values(headerMap)));
 
 function emptyStore(): TrafficConversionStore {
   return { records: [], batches: [] };
@@ -221,6 +222,54 @@ function parseDate(value: unknown) {
   }
 
   return '';
+}
+
+function isFirstColumnDate(rows: unknown[][]) {
+  return rows.slice(0, 5).filter((row) => parseDate(row[0])).length >= 3;
+}
+
+function buildTrafficRecord(
+  row: unknown[],
+  fields: Array<TrafficImportColumn | undefined>,
+  storeName: string,
+  importedAt: string,
+  fileName: string,
+) {
+  const dateIndex = fields.findIndex((field) => field === 'date');
+  const date = parseDate(row[dateIndex]);
+  if (!date) {
+    return null;
+  }
+
+  const record: TrafficConversionRecord = {
+    storeName,
+    date,
+    totalViews: 0,
+    totalVisitors: 0,
+    totalPayBuyers: 0,
+    totalPayConversionRate: 0,
+    totalPayPieces: 0,
+    productViews: 0,
+    productVisitors: 0,
+    detailPayBuyers: 0,
+    detailPayConversionRate: 0,
+    storePageViews: 0,
+    storePageVisitors: 0,
+    storePagePayBuyers: 0,
+    storePagePayConversionRate: 0,
+    importedAt,
+    fileName,
+  };
+
+  fields.forEach((field, index) => {
+    if (field === 'date') {
+      record.date = parseDate(row[index]);
+    } else if (field) {
+      record[field as NumericTrafficImportColumn] = toNumber(row[index]);
+    }
+  });
+
+  return record.date ? record : null;
 }
 
 function formatDate(date: Date) {
@@ -421,55 +470,25 @@ export async function parseTrafficConversionExcelFile(file: File, storeNameInput
     const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], { header: 1, defval: '' });
     searchableParts.push(...rows.flatMap((row) => row.map((cell) => String(cell ?? ''))));
     const headerIndex = rows.findIndex((row) => row.some((cell) => normalizeHeader(cell) === '日期'));
-    if (headerIndex < 0) {
+    const hasHeaderDate = headerIndex >= 0;
+    const hasFirstColumnDate = !hasHeaderDate && isFirstColumnDate(rows);
+    if (!hasHeaderDate && !hasFirstColumnDate) {
       return [];
     }
 
-    const nextHeaders = rows[headerIndex + 1]?.map(normalizeHeader) ?? [];
-    const headers = nextHeaders.includes('总浏览量')
-      ? rows[headerIndex].map((_cell, index) => (index === 0 ? '日期' : nextHeaders[index] || ''))
-      : rows[headerIndex].map(normalizeHeader);
-    const dataStartIndex = nextHeaders.includes('总浏览量') ? headerIndex + 2 : headerIndex + 1;
+    const nextHeaders = hasHeaderDate ? rows[headerIndex + 1]?.map(normalizeHeader) ?? [] : [];
+    const headers = hasFirstColumnDate
+      ? defaultTrafficColumnOrder
+      : nextHeaders.includes('总浏览量')
+        ? rows[headerIndex].map((_cell, index) => (index === 0 ? '日期' : nextHeaders[index] || '')).map((header) => headerMap[header])
+        : rows[headerIndex].map(normalizeHeader).map((header) => headerMap[header]);
+    const dataStartIndex = hasFirstColumnDate ? 0 : nextHeaders.includes('总浏览量') ? headerIndex + 2 : headerIndex + 1;
 
     hasDateColumn = true;
 
     return rows.slice(dataStartIndex).flatMap((row) => {
-      const dateIndex = headers.findIndex((header) => header === '日期');
-      const date = parseDate(row[dateIndex]);
-      if (!date) {
-        return [];
-      }
-
-      const record: TrafficConversionRecord = {
-        storeName,
-        date,
-        totalViews: 0,
-        totalVisitors: 0,
-        totalPayBuyers: 0,
-        totalPayConversionRate: 0,
-        totalPayPieces: 0,
-        productViews: 0,
-        productVisitors: 0,
-        detailPayBuyers: 0,
-        detailPayConversionRate: 0,
-        storePageViews: 0,
-        storePageVisitors: 0,
-        storePagePayBuyers: 0,
-        storePagePayConversionRate: 0,
-        importedAt,
-        fileName: file.name,
-      };
-
-      headers.forEach((header, index) => {
-        const field = headerMap[header];
-        if (field === 'date') {
-          record.date = parseDate(row[index]);
-        } else if (field) {
-          record[field as NumericTrafficImportColumn] = toNumber(row[index]);
-        }
-      });
-
-      return record.date ? [record] : [];
+      const record = buildTrafficRecord(row, headers, storeName, importedAt, file.name);
+      return record ? [record] : [];
     });
   });
 

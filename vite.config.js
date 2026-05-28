@@ -1669,17 +1669,24 @@ function mergeOrderImportAppend(incoming) {
       return { ...batch, orders, validRows: orders.length };
     })
     .filter((batch) => batch.orders.length > 0);
+  const existingBatchCount = (existing?.batches ?? []).length;
+  const incomingBatchCount = incomingBatches.length;
+  const finalBatchCount = batches.length + incomingBatchCount;
   const existingDataCount = (existing?.batches ?? []).reduce((total, batch) => total + (batch.orders ?? []).length, 0);
   const newDataCount = incomingBatches.reduce((total, batch) => total + (batch.orders ?? []).length, 0);
   const finalDataCount = batches.reduce((total, batch) => total + (batch.orders ?? []).length, 0) + newDataCount;
   const affectedKeys = Array.from(replacePairs);
 
   console.info('[order-import-save]', {
+    existingBatchCount,
+    removedBatchCount: existingBatchCount - batches.length,
+    incomingBatchCount,
+    finalBatchCount,
     existingDataCount,
     removedDataCount,
     newDataCount,
     finalDataCount,
-    affectedStore: unique(affectedKeys.map((key) => key.split('|')[0]).filter(Boolean)),
+    affectedStores: unique(affectedKeys.map((key) => key.split('|')[0]).filter(Boolean)),
     affectedDates: unique(affectedKeys.map((key) => key.split('|')[1]).filter(Boolean)),
   });
 
@@ -2344,7 +2351,7 @@ function localDataPlugin() {
               ? rawParsed.__trafficImportSearchableText ?? rawParsed.__trafficImportSearchText ?? ''
               : '';
             assertCanWriteImportData(name, parsed, currentUser, searchableText);
-            const nextData = rawParsed?.__appendImportBatch && name === 'orderImportStore'
+            const nextData = name === 'orderImportStore'
               ? mergeOrderImportAppend(parsed)
               : mergeVisibleImportData(name, parsed, currentUser);
             fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');

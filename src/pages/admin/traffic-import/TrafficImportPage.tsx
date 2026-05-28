@@ -32,8 +32,23 @@ function formatPercent(value: number) {
   return `${(value * 100).toFixed(2)}%`;
 }
 
+function parseDateTime(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function formatTime(value: string) {
-  return value ? value.replace('T', ' ').slice(0, 19) : '-';
+  const date = parseDateTime(value);
+  if (!date) {
+    return '-';
+  }
+
+  return `${toDateKey(date)} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+}
+
+function toImportDateKey(value: string) {
+  const date = parseDateTime(value);
+  return date ? toDateKey(date) : '';
 }
 
 function normalizeSearchText(value: string) {
@@ -70,7 +85,7 @@ function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const filteredBatches = useMemo(
     () => batches.filter((batch) =>
       (!storeFilter || batch.storeName === storeFilter) &&
-      (!importDateFilter || batch.importedAt.slice(0, 10) === importDateFilter) &&
+      (!importDateFilter || toImportDateKey(batch.importedAt) === importDateFilter) &&
       (!dataDateFilter || (batch.dateStart <= dataDateFilter && batch.dateEnd >= dataDateFilter)) &&
       (!statusFilter || batch.status === statusFilter),
     ),
