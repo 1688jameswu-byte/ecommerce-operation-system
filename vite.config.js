@@ -1641,7 +1641,14 @@ function getImportStoreKeys(name, data) {
 
 function mergeOrderImportAppend(incoming) {
   const existing = readJsonFile('orderImportStore');
-  const incomingBatches = Array.isArray(incoming?.batches) ? incoming.batches : [];
+  const incomingBatches = Array.isArray(incoming?.batches)
+    ? incoming.batches
+    : Array.isArray(incoming?.orders)
+      ? [{
+        ...incoming,
+        batchId: incoming.batchId || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      }]
+      : [];
   const stores = getStores();
   const normalizeOrderStoreName = (value) => {
     const name = String(value ?? '').trim();
@@ -1678,6 +1685,7 @@ function mergeOrderImportAppend(incoming) {
   const affectedKeys = Array.from(replacePairs);
 
   console.info('[order-import-save]', {
+    incomingShape: Array.isArray(incoming?.batches) ? 'batches' : Array.isArray(incoming?.orders) ? 'orders' : typeof incoming,
     existingBatchCount,
     removedBatchCount: existingBatchCount - batches.length,
     incomingBatchCount,
