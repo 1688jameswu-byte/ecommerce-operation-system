@@ -2149,7 +2149,7 @@ function filterOrderImportRecords(records, searchParams) {
 
 function buildOrderImportSummary(data, records, currentUser) {
   const today = formatOrderDateKey(new Date());
-  const todayRows = records.filter((row) => String(row.importedAt ?? '').slice(0, 10) === today);
+  const todayRows = records.filter((row) => row.orderDate === today);
   const importedKeys = new Set(records.map((row) => `${normalizeOrderImportStoreName(row.storeName)}|${row.orderDate}`));
   const storeOptions = unique(records.map((row) => row.storeName)).sort();
   const dateOptions = unique(records.map((row) => row.orderDate)).sort().reverse();
