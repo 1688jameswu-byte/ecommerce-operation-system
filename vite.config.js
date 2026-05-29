@@ -2037,8 +2037,147 @@ function getOrderDateKey(order) {
   return String(order?.orderDate ?? order?.date ?? order?.orderTime ?? '').slice(0, 10);
 }
 
+function normalizeOrderImportStoreName(value) {
+  const name = String(value ?? '')
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\ufeff]/g, '')
+    .trim();
+  if (!name) {
+    return '未知店铺';
+  }
+  const key = name.replace(/\s+/g, '').toLowerCase();
+  if (key === 'honeyjewels' || key === 'h点' || key === 'h店') {
+    return 'H店';
+  }
+  return name;
+}
+
 function formatOrderDateKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function getOrderImportStatus(batch, orders, storeName, date) {
+  if (!storeName || !date || orders.length === 0) {
+    return 'missing';
+  }
+  if (orders.some((order) => Number(order?.salesAmount) < 0 || Number.isNaN(Number(order?.salesAmount)))) {
+    return 'abnormal';
+  }
+  if (Number(batch?.duplicateRows ?? 0) > 0) {
+    return 'duplicate';
+  }
+  return 'normal';
+}
+
+function getRecentOrderCheckDates(days = 7) {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(yesterday);
+    date.setDate(yesterday.getDate() - (days - 1 - index));
+    return formatOrderDateKey(date);
+  });
+}
+
+function getVisibleOrderStoreNames(currentUser, data) {
+  if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
+    const stores = getStores().map((store) => normalizeOrderImportStoreName(store?.storeName || store?.id)).filter(Boolean);
+    return stores.length ? unique(stores) : unique((data?.batches ?? []).flatMap((batch) =>
+      (batch.orders ?? []).map((order) => normalizeOrderImportStoreName(order?.storeName)),
+    ));
+  }
+
+  const visible = getVisibleStores(currentUser).map((store) => normalizeOrderImportStoreName(store?.storeName || store?.id)).filter(Boolean);
+  return visible.length ? unique(visible) : unique((data?.batches ?? []).flatMap((batch) =>
+    (batch.orders ?? []).map((order) => normalizeOrderImportStoreName(order?.storeName)),
+  ));
+}
+
+function buildOrderImportRecords(data) {
+  return (data?.batches ?? []).flatMap((batch) => {
+    const groups = new Map();
+    for (const order of batch.orders ?? []) {
+      const date = getOrderDateKey(order);
+      const storeName = normalizeOrderImportStoreName(order?.storeName);
+      if (!date || !storeName) {
+        continue;
+      }
+      const key = `${date}|${storeName}`;
+      const current = groups.get(key) ?? [];
+      current.push(order);
+      groups.set(key, current);
+    }
+
+    return Array.from(groups.entries()).map(([key, orders]) => {
+      const [date, storeName] = key.split('|');
+      const salesAmount = Number(orders.reduce((total, order) => total + (Number(order?.salesAmount) || 0), 0).toFixed(2));
+      return {
+        id: `${batch.batchId}-${key}`,
+        batchId: batch.batchId,
+        date,
+        orderDate: date,
+        storeName,
+        fileName: String(batch.fileName ?? ''),
+        importedAt: String(batch.importedAt ?? ''),
+        importedBy: String(batch.importedBy ?? batch.operatorName ?? batch.username ?? '-'),
+        detailCount: orders.length,
+        salesAmount,
+        firstOrderCount: orders.filter((order) => Boolean(order?.isFirstOrder)).length,
+        status: getOrderImportStatus(batch, orders, storeName, date),
+      };
+    });
+  }).sort((first, second) =>
+    `${second.orderDate} ${second.importedAt}`.localeCompare(`${first.orderDate} ${first.importedAt}`),
+  );
+}
+
+function filterOrderImportRecords(records, searchParams) {
+  const storeName = normalizeOrderImportStoreName(searchParams.get('storeName') || '');
+  const orderDate = searchParams.get('orderDate') || searchParams.get('date') || '';
+  const importDate = searchParams.get('importDate') || '';
+  const fileName = String(searchParams.get('fileName') || '').trim().toLowerCase();
+  const status = searchParams.get('status') || '';
+
+  return records.filter((record) =>
+    (!storeName || record.storeName === storeName) &&
+    (!orderDate || record.orderDate === orderDate) &&
+    (!importDate || String(record.importedAt ?? '').slice(0, 10) === importDate) &&
+    (!fileName || record.fileName.toLowerCase().includes(fileName)) &&
+    (!status || record.status === status)
+  );
+}
+
+function buildOrderImportSummary(data, records, currentUser) {
+  const today = formatOrderDateKey(new Date());
+  const todayRows = records.filter((row) => String(row.importedAt ?? '').slice(0, 10) === today);
+  const importedKeys = new Set(records.map((row) => `${normalizeOrderImportStoreName(row.storeName)}|${row.orderDate}`));
+  const storeOptions = unique(records.map((row) => row.storeName)).sort();
+  const dateOptions = unique(records.map((row) => row.orderDate)).sort().reverse();
+  const visibleStoreNames = getVisibleOrderStoreNames(currentUser, data);
+  const missingOrderItems = visibleStoreNames.flatMap((storeName) =>
+    getRecentOrderCheckDates().filter((date) => !importedKeys.has(`${normalizeOrderImportStoreName(storeName)}|${date}`))
+      .map((date) => ({ storeName, date })),
+  );
+
+  return {
+    todayStoreCount: new Set(todayRows.map((row) => row.storeName)).size,
+    todaySalesAmount: Number(todayRows.reduce((total, row) => total + row.salesAmount, 0).toFixed(2)),
+    todayFirstOrderCount: todayRows.reduce((total, row) => total + row.firstOrderCount, 0),
+    batchCount: (data?.batches ?? []).length,
+    abnormalStoreCount: records.filter((row) => row.status === 'abnormal').length,
+    missingOrderItems,
+    storeOptions,
+    dateOptions,
+  };
+}
+
+function summarizeOrderImportRecords(records) {
+  return {
+    dateCount: new Set(records.map((row) => row.orderDate)).size,
+    storeCount: new Set(records.map((row) => row.storeName)).size,
+    batchCount: new Set(records.map((row) => row.batchId)).size,
+    detailCount: records.reduce((total, row) => total + row.detailCount, 0),
+    salesAmount: Number(records.reduce((total, row) => total + row.salesAmount, 0).toFixed(2)),
+  };
 }
 
 function resolveOrderDateRange(data, searchParams) {
@@ -2070,7 +2209,49 @@ function resolveOrderDateRange(data, searchParams) {
   return { start: formatOrderDateKey(startDate), end: latest };
 }
 
-function filterOrderImportStoreByQuery(data, searchParams) {
+function filterOrderImportStoreByQuery(data, searchParams, currentUser) {
+  const view = searchParams.get('view') || '';
+  if (view === 'records') {
+    const allRecords = buildOrderImportRecords(data);
+    const filteredRecords = filterOrderImportRecords(allRecords, searchParams);
+    const pageSize = Math.min(Math.max(1, Number(searchParams.get('pageSize') || 20)), 50);
+    const page = Math.max(1, Number(searchParams.get('page') || 1));
+    const start = (page - 1) * pageSize;
+
+    return {
+      records: filteredRecords.slice(start, start + pageSize),
+      total: filteredRecords.length,
+      page,
+      pageSize,
+      summary: buildOrderImportSummary(data, allRecords, currentUser),
+      filteredSummary: summarizeOrderImportRecords(filteredRecords),
+    };
+  }
+
+  if (view === 'detail') {
+    const batchId = String(searchParams.get('batchId') || '');
+    const storeName = normalizeOrderImportStoreName(searchParams.get('storeName') || '');
+    const orderDate = searchParams.get('orderDate') || searchParams.get('date') || '';
+    const pageSize = Math.min(Math.max(1, Number(searchParams.get('pageSize') || 50)), 100);
+    const page = Math.max(1, Number(searchParams.get('page') || 1));
+    const batch = (data?.batches ?? []).find((item) => String(item?.batchId ?? '') === batchId);
+    const orders = (batch?.orders ?? []).filter((order) =>
+      (!storeName || normalizeOrderImportStoreName(order?.storeName) === storeName) &&
+      (!orderDate || getOrderDateKey(order) === orderDate)
+    );
+    const start = (page - 1) * pageSize;
+
+    return {
+      batchId,
+      storeName,
+      orderDate,
+      orders: orders.slice(start, start + pageSize),
+      total: orders.length,
+      page,
+      pageSize,
+    };
+  }
+
   const hasQuery = ['limit', 'dateStart', 'startDate', 'dateEnd', 'endDate', 'recentDays', 'days', 'summaryOnly']
     .some((key) => searchParams.has(key));
 
@@ -2513,10 +2694,11 @@ function localDataPlugin() {
 
         if (req.method === 'GET') {
           try {
+            const currentUser = toCurrentUser(findCurrentUser(req));
             const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-            const scopedData = companyDashboardRead ? data : filterPersistentDataForUser(name, data, toCurrentUser(findCurrentUser(req)));
+            const scopedData = companyDashboardRead ? data : filterPersistentDataForUser(name, data, currentUser);
             res.end(JSON.stringify(name === 'orderImportStore'
-              ? filterOrderImportStoreByQuery(scopedData, requestUrl.searchParams)
+              ? filterOrderImportStoreByQuery(scopedData, requestUrl.searchParams, currentUser)
               : scopedData));
           } catch (error) {
             res.statusCode = 500;

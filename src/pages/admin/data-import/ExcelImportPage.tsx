@@ -1,27 +1,23 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
-import { useVisibleStores } from '../../../auth/useVisibleStores';
+import { Fragment } from 'react';
 import { parseExcelFile, parseTemuOrderExcelFile } from '../../../data-source/excelDataSource';
 import { orderImportStorageDataSource } from '../../../data-source/orderImportStorageDataSource';
 import type { CurrentUser } from '../../../types/auth';
 import type { ExcelImportPreview } from '../../../types/import';
-import type { TemuOrderDetail, TemuOrderImportBatch } from '../../../types/order';
+import type {
+  TemuOrderDetail,
+  TemuOrderImportBatch,
+  TemuOrderImportDetailPage,
+  TemuOrderImportRecord,
+  TemuOrderImportScopeSummary,
+  TemuOrderImportSummary,
+} from '../../../types/order';
 import ConfirmDeleteModal from '../ConfirmDeleteModal';
 
 type ImportStatus = 'normal' | 'missing' | 'duplicate' | 'abnormal';
 
-interface ImportTableRow {
-  id: string;
-  batchId: string;
-  date: string;
-  storeName: string;
-  detailCount: number;
-  salesAmount: number;
-  firstOrderCount: number;
-  status: ImportStatus;
-  importedAt: string;
-  fileName: string;
-}
+type ImportTableRow = TemuOrderImportRecord;
 
 interface DeleteScopeSummary {
   date?: string;
@@ -33,6 +29,13 @@ interface DeleteScopeSummary {
   salesAmount: number;
 }
 
+type DetailState = {
+  key: string;
+  page: number;
+  loading: boolean;
+  data: TemuOrderImportDetailPage | null;
+};
+
 const statusLabels: Record<ImportStatus, string> = {
   normal: '正常',
   missing: '缺失数据',
@@ -40,7 +43,20 @@ const statusLabels: Record<ImportStatus, string> = {
   abnormal: '数据异常',
 };
 const IMPORT_RECORD_RENDER_LIMIT = 20;
+const IMPORT_RECORD_PAGE_SIZE = 20;
+const IMPORT_DETAIL_PAGE_SIZE = 50;
 const MISSING_IMPORT_LIMIT = 10;
+
+const emptySummary: TemuOrderImportSummary = {
+  todayStoreCount: 0,
+  todaySalesAmount: 0,
+  todayFirstOrderCount: 0,
+  batchCount: 0,
+  abnormalStoreCount: 0,
+  missingOrderItems: [],
+  storeOptions: [],
+  dateOptions: [],
+};
 
 function formatMoney(value: number) {
   return value.toLocaleString('zh-CN', {
@@ -143,12 +159,14 @@ function buildRows(batches: TemuOrderImportBatch[]): ImportTableRow[] {
           id: `${batch.batchId}-${key}`,
           batchId: batch.batchId,
           date,
+          orderDate: date,
           storeName,
           detailCount: orders.length,
           salesAmount: orderImportStorageDataSource.sumSales(orders),
           firstOrderCount: orders.filter((order) => order.isFirstOrder).length,
           status: getStatus(batch, orders, storeName, date),
           importedAt: batch.importedAt,
+          importedBy: '-',
           fileName: batch.fileName,
         };
       });
@@ -186,39 +204,36 @@ function formatUnique(values: string[]) {
 
 function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const uploadPanelRef = useRef<HTMLElement | null>(null);
-  const visibleStores = useVisibleStores(currentUser);
   const [preview, setPreview] = useState<ExcelImportPreview | null>(null);
-  const [batches, setBatches] = useState<TemuOrderImportBatch[]>([]);
+  const [rows, setRows] = useState<ImportTableRow[]>([]);
+  const [summary, setSummary] = useState<TemuOrderImportSummary>(emptySummary);
+  const [filteredSummary, setFilteredSummary] = useState<TemuOrderImportScopeSummary>({
+    dateCount: 0,
+    storeCount: 0,
+    batchCount: 0,
+    detailCount: 0,
+    salesAmount: 0,
+  });
+  const [totalRows, setTotalRows] = useState(0);
+  const [page, setPage] = useState(1);
+  const [isLoadingRecords, setIsLoadingRecords] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [dateFilter, setDateFilter] = useState('');
   const [storeFilter, setStoreFilter] = useState('');
+  const [importDateFilter, setImportDateFilter] = useState('');
+  const [fileNameFilter, setFileNameFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [deleteBatchRow, setDeleteBatchRow] = useState<ImportTableRow | null>(null);
   const [deleteScope, setDeleteScope] = useState<DeleteScopeSummary | null>(null);
   const [showAllMissingDates, setShowAllMissingDates] = useState(false);
+  const [detailState, setDetailState] = useState<DetailState | null>(null);
 
-  const rows = useMemo(() => buildRows(batches), [batches]);
-  const filteredRows = useMemo(() => rows.filter((row) => {
-    return (
-      (!dateFilter || row.date === dateFilter) &&
-      (!storeFilter || row.storeName === storeFilter) &&
-      (!statusFilter || row.status === statusFilter)
-    );
-  }), [dateFilter, rows, statusFilter, storeFilter]);
-  const visibleRows = useMemo(() => filteredRows.slice(0, IMPORT_RECORD_RENDER_LIMIT), [filteredRows]);
-  const groupedRows = useMemo(() => groupRowsByDate(visibleRows), [visibleRows]);
-  const dateOptions = useMemo(() => Array.from(new Set(rows.map((row) => row.date))), [rows]);
-  const storeOptions = useMemo(() => Array.from(new Set(rows.map((row) => row.storeName))).sort(), [rows]);
-  const today = useMemo(() => toDateKey(new Date()), []);
-  const todayRows = useMemo(() => rows.filter((row) => toImportDateKey(row.importedAt) === today), [rows, today]);
-  const overview = useMemo(() => ({
-    todayStoreCount: new Set(todayRows.map((row) => row.storeName)).size,
-    todaySalesAmount: todayRows.reduce((total, row) => total + row.salesAmount, 0),
-    todayFirstOrderCount: todayRows.reduce((total, row) => total + row.firstOrderCount, 0),
-    batchCount: batches.length,
-    abnormalStoreCount: rows.filter((row) => row.status === 'abnormal').length,
-  }), [batches.length, rows, todayRows]);
+  const groupedRows = useMemo(() => groupRowsByDate(rows), [rows]);
+  const dateOptions = summary.dateOptions;
+  const storeOptions = summary.storeOptions;
+  const totalPages = Math.max(1, Math.ceil(totalRows / IMPORT_RECORD_PAGE_SIZE));
+  const overview = summary;
   const scopeDeleteLabel =
     dateFilter && storeFilter
       ? '删除当前日期 + 店铺数据'
@@ -227,22 +242,10 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
         : storeFilter
           ? '删除当前店铺数据'
           : '';
-  const deleteBatchRows = useMemo(() => deleteBatchRow ? rows.filter((row) => row.batchId === deleteBatchRow.batchId) : [], [deleteBatchRow, rows]);
+  const deleteBatchRows = useMemo(() => deleteBatchRow ? [deleteBatchRow] : [], [deleteBatchRow]);
   const deleteBatchSummary = useMemo(() => deleteBatchRows.length > 0 ? summarizeRows(deleteBatchRows, {}) : null, [deleteBatchRows]);
   const isAdmin = currentUser.role === 'admin';
-  const visibleStoreNames = useMemo(
-    () => visibleStores.stores.map((store) => store.storeName || store.id).filter(Boolean),
-    [visibleStores.stores],
-  );
-  const missingOrderItems = useMemo(() => {
-    const checkDates = getRecentCheckDates();
-    const importedKeys = new Set(rows.map((row) => `${normalizeStoreName(row.storeName)}|${row.date}`));
-    const storeNames = (visibleStoreNames.length > 0 ? visibleStoreNames : storeOptions).map(normalizeStoreName);
-
-    return Array.from(new Set(storeNames)).flatMap((storeName) =>
-      checkDates.filter((date) => !importedKeys.has(`${storeName}|${date}`)).map((date) => ({ storeName, date })),
-    );
-  }, [rows, storeOptions, visibleStoreNames]);
+  const missingOrderItems = summary.missingOrderItems;
   const visibleMissingOrderItems = showAllMissingDates ? missingOrderItems : missingOrderItems.slice(0, MISSING_IMPORT_LIMIT);
   const missingOrderGroups = useMemo(() => {
     const groups = new Map<string, string[]>();
@@ -250,16 +253,34 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
     return Array.from(groups.entries());
   }, [visibleMissingOrderItems]);
 
-  const refreshSavedData = async (full = false) => {
-    const store = full
-      ? orderImportStorageDataSource.loadStore()
-      : await orderImportStorageDataSource.loadRecentStore({ recentDays: 30, limit: 500 });
-    setBatches(store.batches);
+  const refreshSavedData = async (nextPage = page) => {
+    setIsLoadingRecords(true);
+    const result = await orderImportStorageDataSource.loadRecordPage({
+      page: nextPage,
+      pageSize: IMPORT_RECORD_PAGE_SIZE,
+      storeName: storeFilter,
+      orderDate: dateFilter,
+      importDate: importDateFilter,
+      fileName: fileNameFilter,
+      status: statusFilter,
+    });
+    setRows(result.records);
+    setTotalRows(result.total);
+    setPage(result.page);
+    setSummary(result.summary);
+    setFilteredSummary(result.filteredSummary ?? {
+      dateCount: 0,
+      storeCount: 0,
+      batchCount: 0,
+      detailCount: 0,
+      salesAmount: 0,
+    });
+    setIsLoadingRecords(false);
   };
 
   useEffect(() => {
-    void refreshSavedData();
-  }, []);
+    void refreshSavedData(1);
+  }, [dateFilter, fileNameFilter, importDateFilter, statusFilter, storeFilter]);
 
   const importFiles = async (files: File[]) => {
     if (files.length === 0) {
@@ -278,7 +299,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
         await orderImportStorageDataSource.saveAsync(orderImportResult);
         setPreview(previewResult);
       }
-      await refreshSavedData(true);
+      await refreshSavedData(1);
     } catch (error) {
       setPreview(null);
       const message = error instanceof Error ? error.message : '';
@@ -303,7 +324,8 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
     try {
       orderImportStorageDataSource.deleteBatch(batchId);
       setDeleteBatchRow(null);
-      void refreshSavedData(true);
+      setDetailState(null);
+      void refreshSavedData(page);
       setError(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : '未知错误';
@@ -319,17 +341,13 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
       return;
     }
 
-    const matchedRows = rows.filter((row) => {
-      return (!scope.date || row.date === scope.date) && (!scope.storeName || row.storeName === scope.storeName);
-    });
-
-    if (matchedRows.length === 0) {
+    if (filteredSummary.detailCount === 0) {
       setError('当前范围内没有可删除的导入数据。');
       return;
     }
 
     setError(null);
-    setDeleteScope(summarizeRows(matchedRows, scope));
+    setDeleteScope({ ...filteredSummary, ...scope });
   };
 
   const handleDeleteScope = () => {
@@ -344,8 +362,31 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
       storeName: deleteScope.storeName,
     });
     setDeleteScope(null);
-    void refreshSavedData();
+    setDetailState(null);
+    void refreshSavedData(1);
     setError(null);
+  };
+
+  const loadDetail = async (row: ImportTableRow, detailPage = 1) => {
+    const key = `${row.batchId}-${row.storeName}-${row.date}`;
+    setDetailState({ key, page: detailPage, loading: true, data: detailState?.key === key ? detailState.data : null });
+    const data = await orderImportStorageDataSource.loadBatchDetail({
+      batchId: row.batchId,
+      storeName: row.storeName,
+      orderDate: row.date,
+      page: detailPage,
+      pageSize: IMPORT_DETAIL_PAGE_SIZE,
+    });
+    setDetailState({ key, page: data.page, loading: false, data });
+  };
+
+  const toggleDetail = (row: ImportTableRow) => {
+    const key = `${row.batchId}-${row.storeName}-${row.date}`;
+    if (detailState?.key === key) {
+      setDetailState(null);
+      return;
+    }
+    void loadDetail(row, 1);
   };
 
   return (
@@ -417,9 +458,9 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
         <header>
           <div>
             <h2>导入记录</h2>
-            <p>按日期分组展示店铺经营数据，文件名作为辅助信息保留。</p>
+            <p>按批次和日期分页展示，订单明细点击后按需加载。</p>
           </div>
-          <span>{filteredRows.length > IMPORT_RECORD_RENDER_LIMIT ? `${filteredRows.length} 条，显示最近 ${IMPORT_RECORD_RENDER_LIMIT} 条` : `${filteredRows.length} 条`}</span>
+          <span>{isLoadingRecords ? '加载中...' : `${totalRows} 条，第 ${page}/${totalPages} 页`}</span>
         </header>
 
         <section className="import-filter-bar">
@@ -456,6 +497,14 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
               ))}
             </select>
           </label>
+          <label>
+            导入日期
+            <input type="date" value={importDateFilter} onChange={(event) => setImportDateFilter(event.target.value)} />
+          </label>
+          <label>
+            文件名
+            <input value={fileNameFilter} onChange={(event) => setFileNameFilter(event.target.value)} placeholder="输入文件名" />
+          </label>
           {isAdmin && scopeDeleteLabel && (
             <div className="import-filter-actions">
               <button className="excel-clear-button danger-action-button" type="button" onClick={openDeleteScopeConfirm}>
@@ -482,41 +531,116 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
                     <th>首单数量</th>
                     <th>数据状态</th>
                     <th>导入时间</th>
+                    <th>导入人</th>
                     <th>操作</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {group.map((row) => (
-                    <tr key={row.id}>
-                      <td>{row.date}</td>
-                      <td>
-                        <strong>{row.storeName}</strong>
-                        <span className="import-file-name">{row.fileName}</span>
-                      </td>
-                      <td>{row.detailCount}</td>
-                      <td>¥ {formatMoney(row.salesAmount)}</td>
-                      <td>{row.firstOrderCount}</td>
-                      <td>
-                        <span className={`import-status import-status-${row.status}`}>{statusLabels[row.status]}</span>
-                      </td>
-                      <td>{formatDateTime(row.importedAt)}</td>
-                      <td>
-                        {isAdmin ? (
-                          <button type="button" className="danger-action-button" onClick={() => setDeleteBatchRow(row)}>
-                            删除批次
-                          </button>
-                        ) : (
-                          <span className="import-file-name">仅管理员可删除导入数据</span>
+                  {group.map((row) => {
+                    const detailKey = `${row.batchId}-${row.storeName}-${row.date}`;
+                    const detailOpen = detailState?.key === detailKey;
+                    const detail = detailOpen ? detailState.data : null;
+                    const detailTotalPages = Math.max(1, Math.ceil((detail?.total ?? 0) / IMPORT_DETAIL_PAGE_SIZE));
+
+                    return (
+                      <Fragment key={row.id}>
+                        <tr>
+                          <td>{row.date}</td>
+                          <td>
+                            <strong>{row.storeName}</strong>
+                            <span className="import-file-name">{row.fileName}</span>
+                          </td>
+                          <td>{row.detailCount}</td>
+                          <td>¥ {formatMoney(row.salesAmount)}</td>
+                          <td>{row.firstOrderCount}</td>
+                          <td>
+                            <span className={`import-status import-status-${row.status}`}>{statusLabels[row.status]}</span>
+                          </td>
+                          <td>{formatDateTime(row.importedAt)}</td>
+                          <td>{row.importedBy || '-'}</td>
+                          <td>
+                            <button type="button" className="batch-view-button" onClick={() => toggleDetail(row)}>
+                              {detailOpen ? '收起明细' : '查看明细'}
+                            </button>
+                            {isAdmin ? (
+                              <button type="button" className="danger-action-button" onClick={() => setDeleteBatchRow(row)}>
+                                删除批次
+                              </button>
+                            ) : (
+                              <span className="import-file-name">仅管理员可删除导入数据</span>
+                            )}
+                          </td>
+                        </tr>
+                        {detailOpen && (
+                          <tr key={`${row.id}-detail`}>
+                            <td colSpan={9}>
+                              <div className="import-detail-panel">
+                                {detailState.loading && <div className="import-record-empty">订单明细加载中...</div>}
+                                {!detailState.loading && detail && (
+                                  <>
+                                    <div className="import-detail-toolbar">
+                                      <strong>订单明细</strong>
+                                      <span>{detail.total} 条，第 {detail.page}/{detailTotalPages} 页</span>
+                                      <button type="button" disabled={detail.page <= 1} onClick={() => loadDetail(row, detail.page - 1)}>
+                                        上一页
+                                      </button>
+                                      <button type="button" disabled={detail.page >= detailTotalPages} onClick={() => loadDetail(row, detail.page + 1)}>
+                                        下一页
+                                      </button>
+                                    </div>
+                                    <table className="import-record-table">
+                                      <thead>
+                                        <tr>
+                                          <th>订单号</th>
+                                          <th>下单时间</th>
+                                          <th>SKU</th>
+                                          <th>数量</th>
+                                          <th>销售额</th>
+                                          <th>首单</th>
+                                          <th>状态</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {detail.orders.map((order) => (
+                                          <tr key={order.uniqueKey || `${order.orderId}-${order.skuCode}`}>
+                                            <td>{order.orderId}</td>
+                                            <td>{order.orderTime}</td>
+                                            <td>
+                                              <strong>{order.skuCode || order.skcCode || '-'}</strong>
+                                              <span className="import-file-name">{order.skuAttribute || order.productName}</span>
+                                            </td>
+                                            <td>{order.quantity}</td>
+                                            <td>¥ {formatMoney(order.salesAmount)}</td>
+                                            <td>{order.isFirstOrder ? '是' : '否'}</td>
+                                            <td>{order.status || '-'}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
                         )}
-                      </td>
-                    </tr>
-                  ))}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </details>
           ))}
-          {filteredRows.length === 0 && <div className="import-record-empty">暂无符合条件的导入记录</div>}
+          {rows.length === 0 && <div className="import-record-empty">暂无符合条件的导入记录</div>}
         </div>
+        <footer className="import-pagination">
+          <button type="button" disabled={page <= 1 || isLoadingRecords} onClick={() => refreshSavedData(page - 1)}>
+            上一页
+          </button>
+          <span>共 {totalRows} 条</span>
+          <button type="button" disabled={page >= totalPages || isLoadingRecords} onClick={() => refreshSavedData(page + 1)}>
+            下一页
+          </button>
+        </footer>
       </article>
 
       {preview && (

@@ -36,3 +36,61 @@ export interface TemuOrderImportBatch extends TemuOrderImportResult {
 export interface TemuOrderImportStore {
   batches: TemuOrderImportBatch[];
 }
+
+export interface TemuOrderImportMissingItem {
+  storeName: string;
+  date: string;
+}
+
+export interface TemuOrderImportRecord {
+  id: string;
+  batchId: string;
+  date: string;
+  orderDate: string;
+  storeName: string;
+  fileName: string;
+  importedAt: string;
+  importedBy: string;
+  detailCount: number;
+  salesAmount: number;
+  firstOrderCount: number;
+  status: 'normal' | 'missing' | 'duplicate' | 'abnormal';
+}
+
+export interface TemuOrderImportSummary {
+  todayStoreCount: number;
+  todaySalesAmount: number;
+  todayFirstOrderCount: number;
+  batchCount: number;
+  abnormalStoreCount: number;
+  missingOrderItems: TemuOrderImportMissingItem[];
+  storeOptions: string[];
+  dateOptions: string[];
+}
+
+export interface TemuOrderImportScopeSummary {
+  dateCount: number;
+  storeCount: number;
+  batchCount: number;
+  detailCount: number;
+  salesAmount: number;
+}
+
+export interface TemuOrderImportRecordPage {
+  records: TemuOrderImportRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+  summary: TemuOrderImportSummary;
+  filteredSummary?: TemuOrderImportScopeSummary;
+}
+
+export interface TemuOrderImportDetailPage {
+  batchId: string;
+  storeName: string;
+  orderDate: string;
+  orders: TemuOrderDetail[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

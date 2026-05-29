@@ -2627,6 +2627,32 @@
   max-height: 360px;
 }
 
+.import-detail-panel {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(5, 20, 48, 0.62);
+}
+
+.import-detail-toolbar,
+.import-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  color: #9cc8ff;
+}
+
+.import-detail-toolbar strong {
+  margin-right: auto;
+  color: #ffffff;
+}
+
+.import-pagination {
+  padding-top: 14px;
+}
+
 .delete-modal-backdrop {
   position: fixed;
   inset: 0;

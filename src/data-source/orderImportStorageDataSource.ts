@@ -1,4 +1,11 @@
-import type { TemuOrderDetail, TemuOrderImportBatch, TemuOrderImportResult, TemuOrderImportStore } from '../types/order';
+import type {
+  TemuOrderDetail,
+  TemuOrderImportBatch,
+  TemuOrderImportDetailPage,
+  TemuOrderImportRecordPage,
+  TemuOrderImportResult,
+  TemuOrderImportStore,
+} from '../types/order';
 import type { SalesOrderRecord } from '../types/fact';
 import { buildStandardSalesOrders } from '../utils/factDataStandardization';
 import { readPersistentJson, writePersistentJson, writePersistentJsonAsync } from './fileStorageDataSource';
@@ -225,6 +232,105 @@ export const orderImportStorageDataSource = {
 
     recentStoreCache.set(cacheKey, request);
     return request;
+  },
+
+  async loadRecordPage(options: {
+    page?: number;
+    pageSize?: number;
+    storeName?: string;
+    orderDate?: string;
+    importDate?: string;
+    fileName?: string;
+    status?: string;
+  } = {}): Promise<TemuOrderImportRecordPage> {
+    const params = new URLSearchParams({
+      view: 'records',
+      page: String(options.page ?? 1),
+      pageSize: String(options.pageSize ?? 20),
+    });
+
+    if (options.storeName) params.set('storeName', options.storeName);
+    if (options.orderDate) params.set('orderDate', options.orderDate);
+    if (options.importDate) params.set('importDate', options.importDate);
+    if (options.fileName) params.set('fileName', options.fileName);
+    if (options.status) params.set('status', options.status);
+
+    try {
+      const response = await fetch(`/api/persistent-data/${ORDER_IMPORT_FILE_KEY}?${params.toString()}&t=${Date.now()}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        throw new Error('订单导入记录读取失败');
+      }
+
+      return await response.json() as TemuOrderImportRecordPage;
+    } catch {
+      return {
+        records: [],
+        total: 0,
+        page: options.page ?? 1,
+        pageSize: options.pageSize ?? 20,
+        summary: {
+          todayStoreCount: 0,
+          todaySalesAmount: 0,
+          todayFirstOrderCount: 0,
+          batchCount: 0,
+          abnormalStoreCount: 0,
+          missingOrderItems: [],
+          storeOptions: [],
+          dateOptions: [],
+        },
+        filteredSummary: {
+          dateCount: 0,
+          storeCount: 0,
+          batchCount: 0,
+          detailCount: 0,
+          salesAmount: 0,
+        },
+      };
+    }
+  },
+
+  async loadBatchDetail(options: {
+    batchId: string;
+    storeName: string;
+    orderDate: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<TemuOrderImportDetailPage> {
+    const params = new URLSearchParams({
+      view: 'detail',
+      batchId: options.batchId,
+      storeName: options.storeName,
+      orderDate: options.orderDate,
+      page: String(options.page ?? 1),
+      pageSize: String(options.pageSize ?? 50),
+    });
+
+    try {
+      const response = await fetch(`/api/persistent-data/${ORDER_IMPORT_FILE_KEY}?${params.toString()}&t=${Date.now()}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        throw new Error('订单明细读取失败');
+      }
+
+      return await response.json() as TemuOrderImportDetailPage;
+    } catch {
+      return {
+        batchId: options.batchId,
+        storeName: options.storeName,
+        orderDate: options.orderDate,
+        orders: [],
+        total: 0,
+        page: options.page ?? 1,
+        pageSize: options.pageSize ?? 50,
+      };
+    }
   },
 
   buildImportResult(store: TemuOrderImportStore): TemuOrderImportResult | null {
