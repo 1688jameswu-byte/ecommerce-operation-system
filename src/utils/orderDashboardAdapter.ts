@@ -141,16 +141,51 @@ function groupStoreSales(orders: SalesOrderRecord[]) {
   return Array.from(totals.values()).map((item) => [item.name, item.value] as [string, number]);
 }
 
-function groupStoreCount(orders: SalesOrderRecord[]) {
-  const counts = new Map<string, { name: string; value: number }>();
+function getFirstOrderProductKey(order: SalesOrderRecord) {
+  const rawOrder = order.rawSource as Partial<TemuOrderDetail> | undefined;
+  return String(
+    rawOrder?.skc ||
+    rawOrder?.skcCode ||
+    order.productId ||
+    order.sku ||
+    rawOrder?.productSku ||
+    rawOrder?.skuCode ||
+    order.productName ||
+    order.sourceKey ||
+    '',
+  ).trim().toLowerCase();
+}
+
+function buildFirstOrderProductRanking(orders: SalesOrderRecord[], endDate: Date) {
+  const dateKeySet30 = new Set(getRecentDateKeys(endDate, TREND_DAYS));
+  const grouped = new Map<string, { name: string; products: Set<string> }>();
 
   for (const order of orders) {
-    const current = counts.get(order.storeId) ?? { name: order.storeName, value: 0 };
-    current.value += 1;
-    counts.set(order.storeId, current);
+    if (!order.isFirstOrder || !dateKeySet30.has(order.date)) {
+      continue;
+    }
+
+    const productKey = getFirstOrderProductKey(order);
+    if (!productKey) {
+      continue;
+    }
+
+    const operatorName = order.operatorName && order.operatorName !== '未绑定运营'
+      ? order.operatorName
+      : UNASSIGNED_OPERATOR;
+    const operatorKey = order.operatorId && order.operatorId !== '未绑定运营'
+      ? order.operatorId
+      : operatorName;
+    const current = grouped.get(operatorKey) ?? { name: operatorName, products: new Set<string>() };
+    current.products.add(productKey);
+    grouped.set(operatorKey, current);
   }
 
-  return Array.from(counts.values()).map((item) => [item.name, item.value] as [string, number]);
+  return buildRanking(
+    Array.from(grouped.values()).map((item) => [item.name, item.products.size] as [string, number]),
+    '款',
+    false,
+  );
 }
 
 function buildSalesTrend(orders: SalesOrderRecord[], endDate: Date): SalesTrendItem[] {
@@ -306,7 +341,6 @@ export function buildDashboardDataFromOrders(
   const currentMonth = toMonthKey(reportDate);
   const monthOrders = orders.filter((order) => order.month === currentMonth);
   const storeKeys = new Set(orders.map((order) => order.storeId).filter(Boolean));
-  const firstOrderRows = monthOrders.filter((order) => order.isFirstOrder);
   const firstOrderTrend = buildFirstOrderTrend(orders, reportDate);
   const firstOrderDangerCount = firstOrderTrend.stores.filter((item) => item.status === 'danger').length;
 
@@ -346,7 +380,7 @@ export function buildDashboardDataFromOrders(
     operatorSalesRanking: buildRanking(groupOperatorSales(monthOrders), '¥'),
     storeSalesRanking: buildRanking(groupStoreSales(monthOrders), '¥'),
     newProductRanking: mockDashboardData.newProductRanking.slice(0, RANKING_LIMIT),
-    firstOrderRanking: buildRanking(groupStoreCount(firstOrderRows), '单'),
+    firstOrderRanking: buildFirstOrderProductRanking(orders, reportDate),
     salesTrend30Days: buildSalesTrend(orders, reportDate),
     firstOrderTrendStores: firstOrderTrend.stores,
     firstOrderTrend30Days: firstOrderTrend.dailyTrend,

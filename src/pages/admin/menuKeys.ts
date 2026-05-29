@@ -2,6 +2,7 @@ export const menuKeys = {
   dashboard: 'dashboard',
   dataCenter: 'data-center',
   orderSalesImport: 'order-sales-import',
+  effectiveNewListings: 'effective-new-listings',
   trafficConversionImport: 'traffic-conversion-import',
   dataManagement: 'data-management',
   dataBackup: 'data-backup',
@@ -48,6 +49,7 @@ export const menuGroups: { key: MenuKey; label: string; children: { key: MenuKey
     label: '数据中心',
     children: [
       { key: menuKeys.orderSalesImport, label: '订单销售导入' },
+      { key: menuKeys.effectiveNewListings, label: '有效上新录入' },
       { key: menuKeys.trafficConversionImport, label: '流量转化导入' },
       { key: menuKeys.dataManagement, label: '数据管理' },
       { key: menuKeys.dataBackup, label: '数据备份' },

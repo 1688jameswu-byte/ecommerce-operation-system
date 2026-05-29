@@ -38,6 +38,15 @@ export const adminRoutes: AdminRoute[] = [
     description: '上传店铺每日流量转化 Excel。',
   },
   {
+    path: '/admin/effective-new-listings',
+    menuKey: menuKeys.effectiveNewListings,
+    parentMenuKey: menuKeys.dataCenter,
+    label: '有效上新录入',
+    group: '数据',
+    menuSection: '数据导入',
+    description: '手动登记店铺有效上新 SKC，驱动首页有效上新排名。',
+  },
+  {
     path: '/admin/data',
     menuKey: menuKeys.dataManagement,
     parentMenuKey: menuKeys.dataCenter,

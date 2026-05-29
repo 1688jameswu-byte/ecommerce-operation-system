@@ -4,7 +4,8 @@ import { orderImportStorageDataSource } from '../data-source/orderImportStorageD
 import { storeDataSource } from '../data-source/storeDataSource';
 import { storeOperatorDataSource } from '../data-source/storeOperatorDataSource';
 import { trafficConversionDataSource } from '../data-source/trafficConversionDataSource';
-import type { DashboardData, GrowthOpportunityItem, WarningItem, WarningLevel } from '../types/dashboard';
+import type { DashboardData, GrowthOpportunityItem, RankingItem, WarningItem, WarningLevel } from '../types/dashboard';
+import type { EffectiveNewListingRecord } from '../types/effectiveNewListing';
 import type { SalesOrderRecord } from '../types/fact';
 import type { OperatorRecord } from '../types/operator';
 import type { TemuOrderDetail, TemuOrderImportStore } from '../types/order';
@@ -78,6 +79,58 @@ function safeLoad<T>(loader: () => T, fallback: T) {
   }
 }
 
+function getCurrentMonthKey() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+async function loadEffectiveNewListings(): Promise<EffectiveNewListingRecord[]> {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const response = await fetch(`/api/effective-new-listings?t=${Date.now()}`, {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+    return response.ok ? await response.json() as EffectiveNewListingRecord[] : [];
+  } catch {
+    return [];
+  }
+}
+
+function buildEffectiveNewListingRanking(items: EffectiveNewListingRecord[], month = getCurrentMonthKey()): RankingItem[] {
+  const grouped = new Map<string, { name: string; skcs: Set<string> }>();
+  const context = buildOrderOwnerContext();
+
+  items
+    .filter((item) => item.siteJoinDate.slice(0, 7) === month)
+    .forEach((item) => {
+      const owner = resolveEffectiveListingOwner(context, item);
+      const operatorKey = owner.operatorId || owner.operatorName;
+      const skc = item.skc.trim();
+      if (!operatorKey || !skc) {
+        return;
+      }
+
+      const current = grouped.get(operatorKey) ?? { name: owner.operatorName || owner.operatorId || '-', skcs: new Set<string>() };
+      current.skcs.add(skc.toLowerCase());
+      grouped.set(operatorKey, current);
+    });
+
+  return Array.from(grouped.values())
+    .map((item) => ({ name: item.name, value: item.skcs.size }))
+    .filter((item) => item.value > 0)
+    .sort((first, second) => second.value - first.value || first.name.localeCompare(second.name))
+    .map((item, index) => ({
+      rank: index + 1,
+      name: item.name,
+      value: item.value,
+      unit: '款',
+    }));
+}
+
 function relationActiveOnDate(relation: StoreOperatorRelation, date: string) {
   return relation.status === 'active' &&
     relation.role === 'primary' &&
@@ -111,6 +164,30 @@ function resolvePrimaryOwner(
   return {
     operatorId: relation?.operatorId || UNBOUND_OPERATOR,
     operatorName,
+  };
+}
+
+function resolveEffectiveListingOwner(
+  context: ReturnType<typeof buildOrderOwnerContext>,
+  item: EffectiveNewListingRecord,
+) {
+  const date = item.siteJoinDate || `${getCurrentMonthKey()}-01`;
+  const relation = context.relations.find((relation) =>
+    relationActiveOnDate(relation, date) &&
+    (relation.storeId === item.storeId || relation.storeName === item.storeName),
+  );
+  const operator = relation ? context.operatorById.get(relation.operatorId) : undefined;
+
+  if (relation || operator) {
+    return {
+      operatorId: relation?.operatorId || operator?.id || '',
+      operatorName: operator?.operatorName || relation?.operatorName || relation?.operatorId || '',
+    };
+  }
+
+  return {
+    operatorId: item.createdBy || item.operatorId || '',
+    operatorName: item.createdByName || item.operatorName || item.createdBy || '未绑定运营',
   };
 }
 
@@ -155,6 +232,8 @@ function toStandardSalesOrders(store: TemuOrderImportStore): SalesOrderRecord[] 
 async function buildDashboardData(): Promise<DashboardData> {
   const trafficWarnings = safeTrafficWarnings();
   const growthOpportunities = safeGrowthOpportunities();
+  const effectiveNewListings = await loadEffectiveNewListings();
+  const newProductRanking = buildEffectiveNewListingRanking(effectiveNewListings);
 
   try {
     // Dashboard aggregates need the full imported order history. Keep raw orders
@@ -168,6 +247,7 @@ async function buildDashboardData(): Promise<DashboardData> {
       return {
         ...buildDashboardDataFromOrders(orderImportResult, toStandardSalesOrders(orderStore)),
         dataSource: '真实数据',
+        newProductRanking,
         warnings: trafficWarnings,
         growthOpportunities,
       };
@@ -179,6 +259,8 @@ async function buildDashboardData(): Promise<DashboardData> {
   return {
     ...(await dashboardDataSource.getDashboardData()),
     dataSource: 'Mock 数据',
+    newProductRanking,
+    firstOrderRanking: [],
     warnings: trafficWarnings,
     growthOpportunities,
   };

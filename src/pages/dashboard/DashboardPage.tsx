@@ -14,9 +14,9 @@ const TEMU_ORDER_IMPORT_STORAGE_KEY = 'temuOrderImportResult';
 const TEMU_ORDER_IMPORT_STORAGE_EVENT = 'temu-order-import-storage-change';
 const TEMU_ORDER_IMPORT_BROADCAST_CHANNEL = 'temu-order-import-storage';
 const TRAFFIC_CONVERSION_CHANGE_EVENT = 'traffic-conversion-data-change';
+const EFFECTIVE_LISTING_CHANGE_EVENT = 'effective-new-listings-change';
 
 const RankingPanel = lazy(() => import('../../components/dashboard/RankingPanel'));
-const FirstOrderTrendChart = lazy(() => import('../../components/dashboard/FirstOrderTrendChart'));
 const SalesTrendChart = lazy(() => import('../../components/dashboard/SalesTrendChart'));
 
 const rankingPanelConfigs = [
@@ -55,6 +55,15 @@ function subscribeTrafficConversionChange(callback: () => void) {
   return () => window.removeEventListener(TRAFFIC_CONVERSION_CHANGE_EVENT, callback);
 }
 
+function subscribeEffectiveListingChange(callback: () => void) {
+  window.addEventListener(EFFECTIVE_LISTING_CHANGE_EVENT, callback);
+  window.addEventListener('focus', callback);
+  return () => {
+    window.removeEventListener(EFFECTIVE_LISTING_CHANGE_EVENT, callback);
+    window.removeEventListener('focus', callback);
+  };
+}
+
 function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const { scale, offsetX, offsetY } = useDashboardScale({
@@ -72,9 +81,11 @@ function DashboardPage() {
     refreshDashboardData();
     const unsubscribeOrder = subscribeOrderImportStorageChange(() => refreshDashboardData(true));
     const unsubscribeTraffic = subscribeTrafficConversionChange(() => refreshDashboardData(true));
+    const unsubscribeEffectiveListing = subscribeEffectiveListingChange(() => refreshDashboardData(true));
     return () => {
       unsubscribeOrder();
       unsubscribeTraffic();
+      unsubscribeEffectiveListing();
     };
   }, []);
 
@@ -108,20 +119,23 @@ function DashboardPage() {
                   title={rule.title}
                   period={rule.period}
                   items={dashboardData?.newProductRanking ?? []}
+                  emptyText="暂无本月有效上新数据"
                   showTopThreeBadge={rule.showTopThreeBadge}
                   showGrowth={rule.showGrowth}
                 />
               </Suspense>
             ) : null;
           })()}
-          <Panel title="首单趋势分析" extra={<span>近30天</span>} className="first-order-trend-panel">
-            <Suspense fallback={null}>
-              <FirstOrderTrendChart
-                dailyData={dashboardData?.firstOrderTrend30Days ?? []}
-                stores={dashboardData?.firstOrderTrendStores ?? []}
-              />
-            </Suspense>
-          </Panel>
+          <Suspense fallback={null}>
+            <RankingPanel
+              title="首单商品数排名"
+              period="近30天"
+              items={dashboardData?.firstOrderRanking ?? []}
+              emptyText="暂无近30天首单商品数据"
+              showTopThreeBadge
+              showGrowth={false}
+            />
+          </Suspense>
           {rankingPanelConfigs.slice(1).map(({ ruleId, dataKey }) => {
             const rule = rankingRules.find((item) => item.id === ruleId);
 

@@ -34,6 +34,7 @@ const dataFiles = {
   users: 'users.json',
   authSessions: 'auth-sessions.json',
   userPermissions: 'user-permissions.json',
+  effectiveNewListings: 'effective-new-listings.json',
 };
 
 function formatBackupTime(date) {
@@ -165,7 +166,7 @@ function ensureDataFile(name) {
           ? '[]'
         : name === 'taskSuggestionTemplates'
       ? JSON.stringify(getDefaultTaskSuggestionTemplates(), null, 2)
-      : name === 'storeOperatorRelations' || name === 'operators' || name === 'stores' || name === 'tasks' || name === 'salaryEmployees' || name === 'salaryPeriods' || name === 'salaryAttendanceRecords' || name === 'salaryAttendanceRules' || name === 'salaryPieceworkRecords' || name === 'salaryPlans' || name === 'salaryItems' || name === 'employeeSalaryPlans' || name === 'salaryRecords'
+      : name === 'storeOperatorRelations' || name === 'operators' || name === 'stores' || name === 'tasks' || name === 'salaryEmployees' || name === 'salaryPeriods' || name === 'salaryAttendanceRecords' || name === 'salaryAttendanceRules' || name === 'salaryPieceworkRecords' || name === 'salaryPlans' || name === 'salaryItems' || name === 'employeeSalaryPlans' || name === 'salaryRecords' || name === 'effectiveNewListings'
         ? '[]'
         : name === 'orderDailySummary' || name === 'trafficDailySummary'
         ? '{"items":[],"updatedAt":""}'
@@ -208,6 +209,7 @@ const menuKeys = {
   dashboard: 'dashboard',
   dataCenter: 'data-center',
   orderSalesImport: 'order-sales-import',
+  effectiveNewListings: 'effective-new-listings',
   trafficConversionImport: 'traffic-conversion-import',
   dataManagement: 'data-management',
   dataBackup: 'data-backup',
@@ -1871,6 +1873,151 @@ function filterPersistentDataForUser(name, data, currentUser) {
   return data;
 }
 
+function normalizeEffectiveListingPayload(payload, current) {
+  const time = nowIso();
+  const platform = String(payload.platform ?? current?.platform ?? 'TEMU').trim() || 'TEMU';
+  const storeId = String(payload.storeId ?? current?.storeId ?? '').trim();
+  const siteJoinDate = String(payload.siteJoinDate ?? current?.siteJoinDate ?? '').trim().slice(0, 10);
+  const skc = String(payload.skc ?? current?.skc ?? '').trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(siteJoinDate)) {
+    throw new Error('siteJoinDate 必填，格式为 YYYY-MM-DD');
+  }
+
+  if (!skc) {
+    throw new Error('skc 必填');
+  }
+
+  if (!storeId) {
+    throw new Error('storeId 必填');
+  }
+
+  return {
+    id: current?.id ?? payload.id ?? createId('effective-listing'),
+    platform,
+    storeId,
+    siteJoinDate,
+    skc,
+    remark: String(payload.remark ?? current?.remark ?? '').trim(),
+    createdBy: current?.createdBy ?? payload.createdBy ?? '',
+    createdByName: current?.createdByName ?? payload.createdByName ?? '',
+    createdAt: current?.createdAt ?? payload.createdAt ?? time,
+    updatedAt: time,
+  };
+}
+
+function getEffectiveListingDuplicateKey(item) {
+  return [
+    String(item?.platform ?? '').trim().toLowerCase(),
+    String(item?.storeId ?? '').trim().toLowerCase(),
+    String(item?.skc ?? '').trim().toLowerCase(),
+  ].join('|');
+}
+
+function assertUniqueEffectiveListing(items, next) {
+  const key = getEffectiveListingDuplicateKey(next);
+  const duplicated = items.some((item) => item?.id !== next.id && getEffectiveListingDuplicateKey(item) === key);
+
+  if (duplicated) {
+    throw new Error('同一个 platform + store + skc 不要重复录入');
+  }
+}
+
+function filterEffectiveListingsForUser(items, currentUser) {
+  if (String(currentUser?.role ?? '').toLowerCase() === 'admin' || !currentUser) {
+    return items;
+  }
+
+  const visibleStoreKeys = getVisibleStoreKeys(currentUser);
+  return items.filter((item) => itemMatchesVisibleStore(item, visibleStoreKeys));
+}
+
+function canWriteEffectiveListing(item, currentUser) {
+  return String(currentUser?.role ?? '').toLowerCase() === 'admin' ||
+    getVisibleStoreKeys(currentUser).has(String(item?.storeId ?? '').trim());
+}
+
+async function handleEffectiveNewListingsApi(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+
+  try {
+    const pathname = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
+    const id = decodeURIComponent(pathname);
+    const currentUser = toCurrentUser(findCurrentUser(req));
+    const items = Array.isArray(readJsonFile('effectiveNewListings')) ? readJsonFile('effectiveNewListings') : [];
+
+    if (req.method === 'GET') {
+      res.end(JSON.stringify(filterEffectiveListingsForUser(items, currentUser)));
+      return;
+    }
+
+    if (!currentUser) {
+      res.statusCode = 403;
+      res.end(JSON.stringify({ ok: false, success: false, message: '请先登录' }));
+      return;
+    }
+
+    if (req.method === 'POST') {
+      const body = JSON.parse((await readBody(req)) || '{}');
+      const next = {
+        ...normalizeEffectiveListingPayload(body),
+        createdBy: currentUser.userId || currentUser.operatorId || currentUser.username || '',
+        createdByName: currentUser.displayName || currentUser.operatorName || currentUser.username || '',
+      };
+      if (!canWriteEffectiveListing(next, currentUser)) {
+        res.statusCode = 403;
+        res.end(JSON.stringify({ ok: false, success: false, message: '当前账号无权修改该店铺数据' }));
+        return;
+      }
+      assertUniqueEffectiveListing(items, next);
+      writeJsonFile('effectiveNewListings', [...items, next]);
+      res.end(JSON.stringify(next));
+      return;
+    }
+
+    const current = items.find((item) => item.id === id);
+    if (!current) {
+      res.statusCode = 404;
+      res.end(JSON.stringify({ ok: false, message: 'Not found' }));
+      return;
+    }
+
+    if (!canWriteEffectiveListing(current, currentUser)) {
+      res.statusCode = 403;
+      res.end(JSON.stringify({ ok: false, success: false, message: '当前账号无权修改该店铺数据' }));
+      return;
+    }
+
+    if (req.method === 'PUT') {
+      const body = JSON.parse((await readBody(req)) || '{}');
+      const next = normalizeEffectiveListingPayload(body, current);
+      if (!canWriteEffectiveListing(next, currentUser)) {
+        res.statusCode = 403;
+        res.end(JSON.stringify({ ok: false, success: false, message: '当前账号无权修改该店铺数据' }));
+        return;
+      }
+      assertUniqueEffectiveListing(items, next);
+      writeJsonFile('effectiveNewListings', items.map((item) => item.id === id ? next : item));
+      res.end(JSON.stringify(next));
+      return;
+    }
+
+    if (req.method === 'DELETE') {
+      writeJsonFile('effectiveNewListings', items.filter((item) => item.id !== id));
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    res.statusCode = 405;
+    res.end('Method not allowed');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.statusCode = message.includes('必填') || message.includes('至少') || message.includes('重复') ? 400 : 500;
+    res.end(JSON.stringify({ ok: false, success: false, message, error: message }));
+  }
+}
+
 function getOrderDateKey(order) {
   return String(order?.orderDate ?? order?.date ?? order?.orderTime ?? '').slice(0, 10);
 }
@@ -2299,6 +2446,7 @@ function localDataPlugin() {
       server.middlewares.use('/api/store-operator-relations', (req, res) => (
         handleCollectionApi(req, res, 'storeOperatorRelations', 'relation')
       ));
+      server.middlewares.use('/api/effective-new-listings', handleEffectiveNewListingsApi);
       server.middlewares.use('/api/salary/employees', (req, res) => (
         handleCollectionApi(req, res, 'salaryEmployees', 'employee')
       ));

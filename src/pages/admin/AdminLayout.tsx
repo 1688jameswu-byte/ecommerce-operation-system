@@ -11,6 +11,7 @@ import type { TrafficWarningLevel, TrafficWarningResult, TrafficWarningType } fr
 import './admin.css';
 
 const ExcelImportPage = lazy(() => import('./data-import/ExcelImportPage'));
+const EffectiveNewListingsPage = lazy(() => import('./effective-new-listings/EffectiveNewListingsPage'));
 const DataBackupPage = lazy(() => import('./data-backup/DataBackupPage'));
 const StoreManagementPage = lazy(() => import('./store-management/StoreManagementPage'));
 const OperatorManagementPage = lazy(() => import('./operator-management/OperatorManagementPage'));
@@ -397,6 +398,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const activeRouteGroup = groups.includes(activeRoute.group) ? activeRoute.group : null;
   const [activeOpenGroup, setActiveOpenGroup] = useState<string | null>(activeRouteGroup);
   const isExcelImportPage = activeRoute.path === '/admin/import';
+  const isEffectiveNewListingsPage = activeRoute.path === '/admin/effective-new-listings';
   const isStoreManagementPage = activeRoute.path === '/admin/stores';
   const isOperatorManagementPage = activeRoute.path === '/admin/operators';
   const isAccountManagementPage = activeRoute.path === '/admin/accounts';
@@ -527,6 +529,8 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
             </section>
           ) : isExcelImportPage ? (
             <ExcelImportPage currentUser={currentUser} />
+          ) : isEffectiveNewListingsPage ? (
+            <EffectiveNewListingsPage currentUser={currentUser} />
           ) : isDataBackupPage ? (
             <DataBackupPage currentUser={currentUser} />
           ) : isTrafficImportPage ? (

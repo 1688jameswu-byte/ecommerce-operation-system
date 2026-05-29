@@ -993,6 +993,68 @@
   font: inherit;
 }
 
+.effective-listing-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.effective-listing-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr)) minmax(170px, auto);
+  align-items: end;
+  gap: 12px;
+}
+
+.effective-listing-form label {
+  display: grid;
+  gap: 6px;
+  color: #8eaac8;
+  font-size: 13px;
+}
+
+.effective-listing-form input,
+.effective-listing-form select {
+  min-width: 0;
+  border: 1px solid rgba(86, 154, 230, 0.28);
+  border-radius: 6px;
+  background: #081933;
+  padding: 8px 10px;
+  color: #edf6ff;
+  font: inherit;
+}
+
+.effective-listing-remark {
+  grid-column: span 2;
+}
+
+.effective-listing-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.effective-listing-actions button {
+  border: 1px solid rgba(86, 154, 230, 0.28);
+  border-radius: 6px;
+  background: rgba(42, 127, 255, 0.1);
+  padding: 8px 10px;
+  color: #dcecff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.effective-listing-filter {
+  grid-template-columns: repeat(4, minmax(150px, 220px));
+  padding: 0;
+}
+
+.effective-listing-table-wrap {
+  max-height: 360px;
+}
+
+.effective-listing-table {
+  min-width: 980px;
+}
+
 .operator-form-wide {
   grid-column: span 2;
 }

@@ -5,6 +5,7 @@ interface RankingPanelProps {
   title: string;
   period: string;
   items: RankingItem[];
+  emptyText?: string;
   showTopThreeBadge: boolean;
   showGrowth: boolean;
 }
@@ -27,7 +28,7 @@ function getRankLabel(rank: number, showTopThreeBadge: boolean) {
   return ['冠', '亚', '季'][rank - 1];
 }
 
-function RankingPanel({ title, period, items, showTopThreeBadge, showGrowth }: RankingPanelProps) {
+function RankingPanel({ title, period, items, emptyText, showTopThreeBadge, showGrowth }: RankingPanelProps) {
   return (
     <Panel title={title} extra={<span>{period}</span>}>
       <ol className="ranking-list">
@@ -50,6 +51,7 @@ function RankingPanel({ title, period, items, showTopThreeBadge, showGrowth }: R
           </li>
         ))}
       </ol>
+      {items.length === 0 && emptyText && <div className="ranking-empty">{emptyText}</div>}
     </Panel>
   );
 }
