@@ -128,7 +128,16 @@ function groupCount(orders: SalesOrderRecord[], getKey: (order: SalesOrderRecord
 }
 
 function groupOperatorSales(orders: SalesOrderRecord[]) {
-  return groupSum(orders, (order) => order.operatorName || UNASSIGNED_OPERATOR);
+  const totals = new Map<string, { name: string; value: number }>();
+
+  for (const order of orders) {
+    const key = getOperatorRankingKey(order.operatorId, order.operatorName);
+    const current = totals.get(key) ?? { name: normalizeOperatorName(order.operatorName) || UNASSIGNED_OPERATOR, value: 0 };
+    current.value += getOrderSalesAmount(order);
+    totals.set(key, current);
+  }
+
+  return Array.from(totals.values()).map((item) => [item.name, item.value] as [string, number]);
 }
 
 function groupStoreSales(orders: SalesOrderRecord[]) {
@@ -186,19 +195,46 @@ function isActiveOperator(operator: OperatorRecord) {
 
 function getVisibleOperators(operators: OperatorRecord[]) {
   const hasStatus = operators.some((operator) => String(operator.status ?? '').trim());
-  return hasStatus ? operators.filter(isActiveOperator) : operators;
+  return uniqueOperatorsByName(hasStatus ? operators.filter(isActiveOperator) : operators);
 }
 
-function buildFirstOrderProductRanking(orders: SalesOrderRecord[], endDate: Date, operators: OperatorRecord[] = []) {
-  const dateKeySet30 = new Set(getRecentDateKeys(endDate, TREND_DAYS));
+function normalizeOperatorName(value: unknown) {
+  return String(value ?? '').replace(/[\u0000-\u001f\u007f-\u009f\u00a0\u2000-\u200f\u202a-\u202e\ufeff]/g, '').trim();
+}
+
+function getOperatorRankingKey(operatorId: unknown, operatorName: unknown) {
+  return normalizeOperatorName(operatorName) || String(operatorId ?? '').trim();
+}
+
+function uniqueOperatorsByName(operators: OperatorRecord[]) {
+  const result: OperatorRecord[] = [];
+  const seen = new Set<string>();
+
+  for (const operator of operators) {
+    const key = getOperatorRankingKey(operator.id, operator.operatorName);
+    if (!key || seen.has(key)) {
+      if (key) {
+        console.warn(`发现重复运营姓名：${normalizeOperatorName(operator.operatorName) || key}`);
+      }
+      continue;
+    }
+    seen.add(key);
+    result.push(operator);
+  }
+
+  return result;
+}
+
+function buildFirstOrderProductRanking(orders: SalesOrderRecord[], month: string, operators: OperatorRecord[] = []) {
   const grouped = new Map<string, { name: string; products: Set<string> }>();
 
   for (const operator of getVisibleOperators(operators)) {
-    grouped.set(operator.id || operator.operatorName, { name: operator.operatorName || operator.id, products: new Set<string>() });
+    const key = getOperatorRankingKey(operator.id, operator.operatorName);
+    grouped.set(key, { name: normalizeOperatorName(operator.operatorName) || operator.id, products: new Set<string>() });
   }
 
   for (const order of orders) {
-    if (!order.isFirstOrder || !dateKeySet30.has(order.date)) {
+    if (!order.isFirstOrder || order.month !== month) {
       continue;
     }
 
@@ -213,9 +249,10 @@ function buildFirstOrderProductRanking(orders: SalesOrderRecord[], endDate: Date
     const operatorKey = order.operatorId && order.operatorId !== '未绑定运营'
       ? order.operatorId
       : operatorName;
-    const current = grouped.get(operatorKey) ?? { name: operatorName, products: new Set<string>() };
+    const key = getOperatorRankingKey(operatorKey, operatorName);
+    const current = grouped.get(key) ?? { name: normalizeOperatorName(operatorName) || UNASSIGNED_OPERATOR, products: new Set<string>() };
     current.products.add(productKey);
-    grouped.set(operatorKey, current);
+    grouped.set(key, current);
   }
 
   return buildRanking(
@@ -420,7 +457,7 @@ export function buildDashboardDataFromOrders(
     operatorSalesRanking: buildRanking(groupOperatorSales(monthOrders), '¥'),
     storeSalesRanking: buildRanking(groupAllStoreSales(monthOrders, stores), '¥', false, stores.length || RANKING_LIMIT),
     newProductRanking: mockDashboardData.newProductRanking.slice(0, RANKING_LIMIT),
-    firstOrderRanking: buildFirstOrderProductRanking(orders, reportDate, operators),
+    firstOrderRanking: buildFirstOrderProductRanking(orders, currentMonth, operators),
     salesTrend30Days: buildSalesTrend(orders, reportDate),
     firstOrderTrendStores: firstOrderTrend.stores,
     firstOrderTrend30Days: firstOrderTrend.dailyTrend,

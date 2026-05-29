@@ -129,9 +129,9 @@ function DashboardPage() {
           <Suspense fallback={null}>
             <RankingPanel
               title="首单商品数排名"
-              period="近30天"
+              period="本月"
               items={dashboardData?.firstOrderRanking ?? []}
-              emptyText="暂无近30天首单商品数据"
+              emptyText="暂无本月首单商品数据"
               showTopThreeBadge
               showGrowth={false}
             />

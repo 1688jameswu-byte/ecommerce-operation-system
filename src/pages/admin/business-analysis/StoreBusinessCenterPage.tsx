@@ -22,6 +22,8 @@ interface StoreMetric {
   series: number[];
   recentValues: number[];
   recentDates: string[];
+  recentChartValues: number[];
+  recentChartDates: string[];
   baselineValues: number[];
   baselineDates: string[];
   tone: TrendTone;
@@ -207,6 +209,7 @@ function buildMetric(
   const values = dailyMap.get(storeId) ?? new Map<string, number>();
   const recentValues = recentDates.map((date) => values.get(date) ?? 0);
   const baselineValues = baselineDates.map((date) => values.get(date) ?? 0);
+  const recentChartPoints = recentDates.flatMap((date) => values.has(date) ? [{ date, value: values.get(date) ?? 0 }] : []);
   const currentAvg = average(recentValues);
   const baselineAvg = average(baselineValues);
   const changeRate = calcChangeRate(currentAvg, baselineAvg);
@@ -217,6 +220,8 @@ function buildMetric(
     series: [...baselineDates.slice(-23), ...recentDates].map((date) => values.get(date) ?? 0),
     recentValues,
     recentDates,
+    recentChartValues: recentChartPoints.map((item) => item.value),
+    recentChartDates: recentChartPoints.map((item) => item.date),
     baselineValues,
     baselineDates,
     tone: getTone(changeRate),
@@ -230,15 +235,34 @@ function rankMetric(rows: StoreTrendRow[], key: TrendKey) {
   });
 }
 
-function Sparkline({ values, tone }: { values: number[]; tone: TrendTone }) {
+function Sparkline({
+  values,
+  tone,
+  percentValue = false,
+  emptyText = '数据不足',
+}: {
+  values: number[];
+  tone: TrendTone;
+  percentValue?: boolean;
+  emptyText?: string;
+}) {
   const width = 96;
   const height = 30;
-  const safeValues = values.length > 0 ? values : [0];
-  const min = Math.min(...values, 0);
-  const max = Math.max(...values, 1);
+
+  if (values.length < 2) {
+    return <div className="store-sparkline store-sparkline-empty">{emptyText}</div>;
+  }
+
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const minVisibleRange = percentValue ? 0.002 : 1;
+  const visibleRange = Math.max(maxValue - minValue, minVisibleRange);
+  const center = (maxValue + minValue) / 2;
+  const min = center - visibleRange / 2;
+  const max = center + visibleRange / 2;
   const range = max - min || 1;
-  const points = safeValues.map((value, index) => {
-    const x = safeValues.length <= 1 ? 0 : (index / (safeValues.length - 1)) * width;
+  const points = values.map((value, index) => {
+    const x = (index / (values.length - 1)) * width;
     const y = height - ((value - min) / range) * height;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
@@ -258,7 +282,16 @@ function DetailTrendChart({ metric, config }: { metric: StoreMetric; config: typ
   const padding = { top: 26, right: 28, bottom: 44, left: 54 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
-  const values = metric.recentValues.length > 0 ? metric.recentValues : [0];
+  const values = metric.recentChartValues;
+
+  if (values.length < 2) {
+    return (
+      <div className="store-detail-chart store-detail-chart-empty">
+        数据不足
+      </div>
+    );
+  }
+
   const valueRange = [...values, metric.baselineAvg];
   const minValue = Math.min(...valueRange);
   const maxValue = Math.max(...valueRange);
@@ -290,7 +323,7 @@ function DetailTrendChart({ metric, config }: { metric: StoreMetric; config: typ
             {formatMetricValue(value, config)}
           </text>
           <text x={toX(index)} y={height - 14} textAnchor="middle" className="store-detail-chart-date">
-            {(metric.recentDates[index] ?? '').slice(5)}
+            {(metric.recentChartDates[index] ?? '').slice(5)}
           </text>
         </g>
       ))}
@@ -329,7 +362,11 @@ function MetricPanel({
         {metric.tone === 'up' ? '↑' : metric.tone === 'down' ? '↓' : '→'} {formatRate(metric.changeRate)}
       </strong>
       <b>排名 {metric.rank}/{teamSize}</b>
-      <Sparkline values={metric.series} tone={metric.tone} />
+      <Sparkline
+        values={config.key === 'conversion' ? metric.recentChartValues : metric.series}
+        tone={metric.tone}
+        percentValue={config.percentValue}
+      />
       <div className="store-metric-meta">
         <span>最近7日 {formatMetricValue(metric.currentAvg, config)}</span>
         <span>前30日 {formatMetricValue(metric.baselineAvg, config)}</span>

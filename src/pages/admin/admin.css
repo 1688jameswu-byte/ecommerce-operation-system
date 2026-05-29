@@ -4068,6 +4068,14 @@
   filter: drop-shadow(0 0 8px color-mix(in srgb, currentColor 32%, transparent));
 }
 
+.store-sparkline-empty {
+  display: grid;
+  place-items: center;
+  color: #8aa6c4;
+  filter: none;
+  font-size: 13px;
+}
+
 .store-sparkline-area {
   fill: currentColor;
   opacity: 0.16;
@@ -4170,6 +4178,13 @@
   min-height: 270px;
   color: #a8b3c7;
   overflow: visible;
+}
+
+.store-detail-chart-empty {
+  display: grid;
+  place-items: center;
+  color: #8aa6c4;
+  font-size: 18px;
 }
 
 .store-detail-baseline {

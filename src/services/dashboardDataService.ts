@@ -155,22 +155,23 @@ function buildEffectiveNewListingRanking(
   const grouped = new Map<string, { name: string; skcs: Set<string> }>();
 
   for (const operator of getVisibleOperators(context.operators)) {
-    grouped.set(operator.id || operator.operatorName, { name: operator.operatorName || operator.id, skcs: new Set<string>() });
+    const key = getOperatorRankingKey(operator.id, operator.operatorName);
+    grouped.set(key, { name: normalizeOperatorName(operator.operatorName) || operator.id, skcs: new Set<string>() });
   }
 
   items
     .filter((item) => item.siteJoinDate.slice(0, 7) === month)
     .forEach((item) => {
       const owner = resolveEffectiveListingOwner(context, item);
-      const operatorKey = owner.operatorId || owner.operatorName;
       const skc = item.skc.trim();
-      if (!operatorKey || !skc) {
+      const key = getOperatorRankingKey(owner.operatorId, owner.operatorName);
+      if (!key || !skc) {
         return;
       }
 
-      const current = grouped.get(operatorKey) ?? { name: owner.operatorName || owner.operatorId || '-', skcs: new Set<string>() };
+      const current = grouped.get(key) ?? { name: normalizeOperatorName(owner.operatorName) || owner.operatorId || '-', skcs: new Set<string>() };
       current.skcs.add(skc.toLowerCase());
-      grouped.set(operatorKey, current);
+      grouped.set(key, current);
     });
 
   return Array.from(grouped.values())
@@ -198,7 +199,34 @@ function isActiveOperator(operator: OperatorRecord) {
 
 function getVisibleOperators(operators: OperatorRecord[]) {
   const hasStatus = operators.some((operator) => String(operator.status ?? '').trim());
-  return hasStatus ? operators.filter(isActiveOperator) : operators;
+  return uniqueOperatorsByName(hasStatus ? operators.filter(isActiveOperator) : operators);
+}
+
+function normalizeOperatorName(value: unknown) {
+  return String(value ?? '').replace(/[\u0000-\u001f\u007f-\u009f\u00a0\u2000-\u200f\u202a-\u202e\ufeff]/g, '').trim();
+}
+
+function getOperatorRankingKey(operatorId: unknown, operatorName: unknown) {
+  return normalizeOperatorName(operatorName) || String(operatorId ?? '').trim();
+}
+
+function uniqueOperatorsByName(operators: OperatorRecord[]) {
+  const result: OperatorRecord[] = [];
+  const seen = new Set<string>();
+
+  for (const operator of operators) {
+    const key = getOperatorRankingKey(operator.id, operator.operatorName);
+    if (!key || seen.has(key)) {
+      if (key) {
+        console.warn(`发现重复运营姓名：${normalizeOperatorName(operator.operatorName) || key}`);
+      }
+      continue;
+    }
+    seen.add(key);
+    result.push(operator);
+  }
+
+  return result;
 }
 
 async function buildOrderOwnerContext(): Promise<OrderOwnerContext> {
