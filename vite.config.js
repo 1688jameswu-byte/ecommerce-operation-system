@@ -1243,6 +1243,15 @@ function readCollection(name) {
   return next;
 }
 
+function isCompanyDashboardRead(req) {
+  if (req.method !== 'GET') {
+    return false;
+  }
+
+  const requestUrl = new URL(req.url ?? '/', 'http://local');
+  return requestUrl.searchParams.get('scope') === 'company-dashboard';
+}
+
 async function handleCollectionApi(req, res, name, prefix) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
@@ -1250,6 +1259,12 @@ async function handleCollectionApi(req, res, name, prefix) {
   try {
     const menuKey = getCollectionMenuKey(name);
     const currentUser = toCurrentUser(findCurrentUser(req));
+
+    if (isCompanyDashboardRead(req) && ['stores', 'operators', 'storeOperatorRelations'].includes(name)) {
+      const data = name === 'stores' ? getStores() : name === 'operators' ? getOperators() : readCollection(name);
+      res.end(JSON.stringify(data));
+      return;
+    }
 
     if (req.method === 'GET' && ['stores', 'operators', 'storeOperatorRelations'].includes(name) && menuKey) {
       if (currentUser?.role === 'admin' || userCanAccessMenu(findCurrentUser(req), menuKey)) {
@@ -1948,7 +1963,7 @@ async function handleEffectiveNewListingsApi(req, res) {
     const items = Array.isArray(readJsonFile('effectiveNewListings')) ? readJsonFile('effectiveNewListings') : [];
 
     if (req.method === 'GET') {
-      res.end(JSON.stringify(filterEffectiveListingsForUser(items, currentUser)));
+      res.end(JSON.stringify(isCompanyDashboardRead(req) ? items : filterEffectiveListingsForUser(items, currentUser)));
       return;
     }
 
@@ -2491,14 +2506,15 @@ function localDataPlugin() {
         res.setHeader('Cache-Control', 'no-store');
 
         const menuKey = getPersistentMenuKey(name);
-        if (menuKey && !requireMenu(req, res, menuKey)) {
+        const companyDashboardRead = isCompanyDashboardRead(req);
+        if (!companyDashboardRead && menuKey && !requireMenu(req, res, menuKey)) {
           return;
         }
 
         if (req.method === 'GET') {
           try {
             const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-            const scopedData = filterPersistentDataForUser(name, data, toCurrentUser(findCurrentUser(req)));
+            const scopedData = companyDashboardRead ? data : filterPersistentDataForUser(name, data, toCurrentUser(findCurrentUser(req)));
             res.end(JSON.stringify(name === 'orderImportStore'
               ? filterOrderImportStoreByQuery(scopedData, requestUrl.searchParams)
               : scopedData));

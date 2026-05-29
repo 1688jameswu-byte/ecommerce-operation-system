@@ -1,24 +1,84 @@
 import { dashboardDataSource } from '../data-source';
-import { operatorDataSource } from '../data-source/operatorDataSource';
-import { orderImportStorageDataSource } from '../data-source/orderImportStorageDataSource';
-import { storeDataSource } from '../data-source/storeDataSource';
-import { storeOperatorDataSource } from '../data-source/storeOperatorDataSource';
-import { trafficConversionDataSource } from '../data-source/trafficConversionDataSource';
 import type { DashboardData, GrowthOpportunityItem, RankingItem, WarningItem, WarningLevel } from '../types/dashboard';
 import type { EffectiveNewListingRecord } from '../types/effectiveNewListing';
 import type { SalesOrderRecord } from '../types/fact';
 import type { OperatorRecord } from '../types/operator';
-import type { TemuOrderDetail, TemuOrderImportStore } from '../types/order';
+import type { TemuOrderDetail, TemuOrderImportResult, TemuOrderImportStore } from '../types/order';
 import type { StoreRecord } from '../types/store';
 import type { StoreOperatorRelation } from '../types/storeOperator';
-import type { TrafficWarningResult } from '../types/traffic';
+import type { TrafficAnalysisResultStore, TrafficGrowthOpportunity, TrafficWarningResult, TrafficWarningRuleStore } from '../types/traffic';
 import { buildDashboardDataFromOrders } from '../utils/orderDashboardAdapter';
 import { createStoreMatcher } from '../utils/storeStandardization';
 
 const levelRank = { critical: 0, high: 1, medium: 2, low: 3 };
 const UNBOUND_OPERATOR = '未绑定运营';
+const COMPANY_DASHBOARD_SCOPE = 'scope=company-dashboard';
 let dashboardDataCache: DashboardData | null = null;
 let dashboardDataPromise: Promise<DashboardData> | null = null;
+
+interface OrderOwnerContext {
+  matcher: ReturnType<typeof createStoreMatcher>;
+  relations: StoreOperatorRelation[];
+  operatorById: Map<string, OperatorRecord>;
+}
+
+async function fetchCompanyJson<T>(path: string, fallback: T): Promise<T> {
+  if (typeof window === 'undefined') {
+    return fallback;
+  }
+
+  const separator = path.includes('?') ? '&' : '?';
+
+  try {
+    const response = await fetch(`${path}${separator}${COMPANY_DASHBOARD_SCOPE}&t=${Date.now()}`, {
+      cache: 'no-store',
+      credentials: 'omit',
+    });
+    return response.ok ? await response.json() as T : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function emptyOrderStore(): TemuOrderImportStore {
+  return { batches: [] };
+}
+
+function isOrderStore(value: unknown): value is TemuOrderImportStore {
+  return Boolean(value && typeof value === 'object' && Array.isArray((value as TemuOrderImportStore).batches));
+}
+
+async function loadCompanyOrderStore(): Promise<TemuOrderImportStore> {
+  const data = await fetchCompanyJson<unknown>('/api/persistent-data/orderImportStore', emptyOrderStore());
+  return isOrderStore(data) ? data : emptyOrderStore();
+}
+
+function buildImportResult(store: TemuOrderImportStore): TemuOrderImportResult | null {
+  const batches = store.batches;
+
+  if (batches.length === 0) {
+    return null;
+  }
+
+  const orders = batches.flatMap((batch) => batch.orders);
+  const latestImportedAt = batches
+    .map((batch) => batch.importedAt)
+    .sort()
+    .at(-1)!;
+  const latestImportDate = latestImportedAt.slice(0, 10);
+
+  return {
+    fileName: `${batches.length}个导入批次`,
+    importedAt: latestImportedAt,
+    totalRows: orders.length,
+    validRows: orders.length,
+    duplicateRows: 0,
+    orders,
+    displayOrders: batches
+      .filter((batch) => batch.importedAt.slice(0, 10) === latestImportDate)
+      .flatMap((batch) => batch.orders),
+  };
+}
 
 function toDashboardWarning(result: TrafficWarningResult): WarningItem {
   return {
@@ -31,22 +91,27 @@ function toDashboardWarning(result: TrafficWarningResult): WarningItem {
   };
 }
 
-function getTrafficWarnings() {
-  const ruleStore = trafficConversionDataSource.loadRuleStore();
-  return trafficConversionDataSource
-    .loadRiskResults()
+async function getTrafficWarnings() {
+  const [ruleStore, riskStore] = await Promise.all([
+    fetchCompanyJson<TrafficWarningRuleStore>('/api/persistent-data/trafficWarningRules', { settings: { displayLimit: 5 }, rules: [], growthRules: [] }),
+    fetchCompanyJson<TrafficAnalysisResultStore<TrafficWarningResult>>('/api/persistent-data/riskResults', { items: [], updatedAt: '' }),
+  ]);
+
+  return (riskStore.items ?? [])
     .filter((result) => result.level !== 'insufficient')
     .sort((first, second) => {
       const firstLevel = levelRank[toDashboardWarning(first).level];
       const secondLevel = levelRank[toDashboardWarning(second).level];
       return firstLevel - secondLevel || second.dropRate - first.dropRate || second.sortWeight - first.sortWeight;
     })
-    .slice(0, ruleStore.settings.displayLimit)
+    .slice(0, ruleStore.settings?.displayLimit || 5)
     .map(toDashboardWarning);
 }
 
-function getGrowthOpportunities(): GrowthOpportunityItem[] {
-  return trafficConversionDataSource.loadGrowthOpportunities().map((item) => ({
+async function getGrowthOpportunities(): Promise<GrowthOpportunityItem[]> {
+  const store = await fetchCompanyJson<TrafficAnalysisResultStore<TrafficGrowthOpportunity>>('/api/persistent-data/growthOpportunities', { items: [], updatedAt: '' });
+
+  return (store.items ?? []).slice(0, 5).map((item) => ({
     id: item.id || `${item.storeName || 'unknown'}-${item.type || 'traffic'}-${Date.now()}`,
     type: item.type || 'traffic',
     storeName: item.storeName || '-',
@@ -55,27 +120,19 @@ function getGrowthOpportunities(): GrowthOpportunityItem[] {
   }));
 }
 
-function safeTrafficWarnings() {
+async function safeTrafficWarnings() {
   try {
-    return getTrafficWarnings();
+    return await getTrafficWarnings();
   } catch {
     return [];
   }
 }
 
-function safeGrowthOpportunities() {
+async function safeGrowthOpportunities() {
   try {
-    return getGrowthOpportunities();
+    return await getGrowthOpportunities();
   } catch {
     return [];
-  }
-}
-
-function safeLoad<T>(loader: () => T, fallback: T) {
-  try {
-    return loader();
-  } catch {
-    return fallback;
   }
 }
 
@@ -85,24 +142,15 @@ function getCurrentMonthKey() {
 }
 
 async function loadEffectiveNewListings(): Promise<EffectiveNewListingRecord[]> {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  try {
-    const response = await fetch(`/api/effective-new-listings?t=${Date.now()}`, {
-      credentials: 'include',
-      cache: 'no-store',
-    });
-    return response.ok ? await response.json() as EffectiveNewListingRecord[] : [];
-  } catch {
-    return [];
-  }
+  return fetchCompanyJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []);
 }
 
-function buildEffectiveNewListingRanking(items: EffectiveNewListingRecord[], month = getCurrentMonthKey()): RankingItem[] {
+function buildEffectiveNewListingRanking(
+  items: EffectiveNewListingRecord[],
+  context: OrderOwnerContext,
+  month = getCurrentMonthKey(),
+): RankingItem[] {
   const grouped = new Map<string, { name: string; skcs: Set<string> }>();
-  const context = buildOrderOwnerContext();
 
   items
     .filter((item) => item.siteJoinDate.slice(0, 7) === month)
@@ -138,10 +186,12 @@ function relationActiveOnDate(relation: StoreOperatorRelation, date: string) {
     (!relation.endDate || relation.endDate >= date);
 }
 
-function buildOrderOwnerContext() {
-  const stores = safeLoad<StoreRecord[]>(() => storeDataSource.load(), []);
-  const relations = safeLoad<StoreOperatorRelation[]>(() => storeOperatorDataSource.load(), []);
-  const operators = safeLoad<OperatorRecord[]>(() => operatorDataSource.load(), []);
+async function buildOrderOwnerContext(): Promise<OrderOwnerContext> {
+  const [stores, relations, operators] = await Promise.all([
+    fetchCompanyJson<StoreRecord[]>('/api/stores', []),
+    fetchCompanyJson<StoreOperatorRelation[]>('/api/store-operator-relations', []),
+    fetchCompanyJson<OperatorRecord[]>('/api/operators', []),
+  ]);
   const matcher = createStoreMatcher(stores);
   const operatorById = new Map(operators.map((operator) => [operator.id, operator]));
 
@@ -149,7 +199,7 @@ function buildOrderOwnerContext() {
 }
 
 function resolvePrimaryOwner(
-  context: ReturnType<typeof buildOrderOwnerContext>,
+  context: OrderOwnerContext,
   storeId: string,
   storeName: string,
   date: string,
@@ -168,7 +218,7 @@ function resolvePrimaryOwner(
 }
 
 function resolveEffectiveListingOwner(
-  context: ReturnType<typeof buildOrderOwnerContext>,
+  context: OrderOwnerContext,
   item: EffectiveNewListingRecord,
 ) {
   const date = item.siteJoinDate || `${getCurrentMonthKey()}-01`;
@@ -191,7 +241,7 @@ function resolveEffectiveListingOwner(
   };
 }
 
-function toSalesOrder(order: TemuOrderDetail & { batchId?: string }, context: ReturnType<typeof buildOrderOwnerContext>): SalesOrderRecord {
+function toSalesOrder(order: TemuOrderDetail & { batchId?: string }, context: OrderOwnerContext): SalesOrderRecord {
   const date = String(order.orderDate || order.orderTime || '').slice(0, 10);
   const storeIdentity = context.matcher.match(order.storeName);
   const storeId = storeIdentity.storeId || storeIdentity.key;
@@ -221,31 +271,32 @@ function toSalesOrder(order: TemuOrderDetail & { batchId?: string }, context: Re
   };
 }
 
-function toStandardSalesOrders(store: TemuOrderImportStore): SalesOrderRecord[] {
-  const context = buildOrderOwnerContext();
-
+function toStandardSalesOrders(store: TemuOrderImportStore, context: OrderOwnerContext): SalesOrderRecord[] {
   return store.batches.flatMap((batch) =>
     (batch.orders ?? []).map((order) => toSalesOrder({ ...order, batchId: batch.batchId }, context)),
   );
 }
 
 async function buildDashboardData(): Promise<DashboardData> {
-  const trafficWarnings = safeTrafficWarnings();
-  const growthOpportunities = safeGrowthOpportunities();
-  const effectiveNewListings = await loadEffectiveNewListings();
-  const newProductRanking = buildEffectiveNewListingRanking(effectiveNewListings);
+  const [trafficWarnings, growthOpportunities, effectiveNewListings, orderStore, ownerContext] = await Promise.all([
+    safeTrafficWarnings(),
+    safeGrowthOpportunities(),
+    loadEffectiveNewListings(),
+    loadCompanyOrderStore(),
+    buildOrderOwnerContext(),
+  ]);
+  const newProductRanking = buildEffectiveNewListingRanking(effectiveNewListings, ownerContext);
 
   try {
     // Dashboard aggregates need the full imported order history. Keep raw orders
     // inside the service/adapter boundary; React only receives aggregated cards,
     // Top N rankings, and 30-day series. If this grows past ~50k rows, move this
     // aggregation behind the persistent-data API or add a persisted summary cache.
-    const orderStore = orderImportStorageDataSource.loadStore();
-    const orderImportResult = orderImportStorageDataSource.buildImportResult(orderStore);
+    const orderImportResult = buildImportResult(orderStore);
 
     if (orderImportResult && orderImportResult.orders.length > 0) {
       return {
-        ...buildDashboardDataFromOrders(orderImportResult, toStandardSalesOrders(orderStore)),
+        ...buildDashboardDataFromOrders(orderImportResult, toStandardSalesOrders(orderStore, ownerContext)),
         dataSource: '真实数据',
         newProductRanking,
         warnings: trafficWarnings,
