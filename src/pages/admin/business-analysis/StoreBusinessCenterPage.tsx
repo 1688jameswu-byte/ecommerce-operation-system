@@ -3,7 +3,7 @@ import { orderImportStorageDataSource } from '../../../data-source/orderImportSt
 import { referenceDataService } from '../../../services/referenceDataService';
 import type { CurrentUser } from '../../../types/auth';
 import type { OperatorRecord } from '../../../types/operator';
-import type { TemuOrderDetail } from '../../../types/order';
+import type { TemuOrderDetail, TemuOrderImportStore } from '../../../types/order';
 import type { StoreRecord } from '../../../types/store';
 import type { StoreOperatorRelation } from '../../../types/storeOperator';
 import type { TrafficConversionRecord, TrafficConversionStore } from '../../../types/traffic';
@@ -235,6 +235,131 @@ function rankMetric(rows: StoreTrendRow[], key: TrendKey) {
   });
 }
 
+function buildStoreTrendRows(data: StoreBusinessData) {
+  const dateCandidates = [
+    ...data.orders.map((order) => String(order.orderDate || order.orderTime || '').slice(0, 10)),
+    ...data.trafficRecords.map((record) => record.date),
+  ].filter(Boolean).sort();
+  const latestDate = dateCandidates.at(-1) || formatDateKey(new Date());
+  const recentDates = getDateRange(latestDate, 7);
+  const baselineDates = getDateRange(shiftDate(recentDates[0], -1), 30);
+  const storeMatcher = createStoreMatcher(data.stores);
+  const resolveStoreKey = (storeName: string) => {
+    const identity = storeMatcher.match(storeName);
+    return {
+      storeId: identity.storeId || identity.key,
+      storeName: identity.storeName,
+    };
+  };
+  const storeByName = new Map(data.stores.map((store) => [normalizeStoreName(store.storeName), store]));
+  const storeMap = new Map<string, StoreRecord>();
+
+  data.stores.forEach((store) => storeMap.set(store.id, store));
+  data.orders.forEach((order) => {
+    const resolved = getOrderStoreId(order, resolveStoreKey);
+    if (!storeMap.has(resolved.storeId)) {
+      storeMap.set(resolved.storeId, {
+        id: resolved.storeId,
+        storeName: resolved.storeName,
+        platform: 'Other',
+        status: 'active',
+        createdAt: '',
+        updatedAt: '',
+      });
+    }
+  });
+
+  const sales = new Map<string, Map<string, number>>();
+  const firstOrders = new Map<string, Map<string, number>>();
+  const newProducts = new Map<string, Map<string, number>>();
+  const traffic = new Map<string, Map<string, number>>();
+  const conversion = new Map<string, Map<string, number>>();
+  const productFirstDate = new Map<string, { storeId: string; date: string }>();
+
+  data.orders.forEach((order) => {
+    const resolved = getOrderStoreId(order, resolveStoreKey);
+    const date = String(order.orderDate || order.orderTime || '').slice(0, 10);
+    addToDaily(sales, resolved.storeId, date, Number(order.salesAmount) || 0);
+    if (order.isFirstOrder) {
+      addToDaily(firstOrders, resolved.storeId, date, 1);
+    }
+    const productKey = getProductKey(order);
+    const uniqueKey = productKey ? `${resolved.storeId}|${productKey}` : '';
+    const current = uniqueKey ? productFirstDate.get(uniqueKey) : undefined;
+    if (uniqueKey && (!current || date < current.date)) {
+      productFirstDate.set(uniqueKey, { storeId: resolved.storeId, date });
+    }
+  });
+
+  productFirstDate.forEach(({ storeId, date }) => addToDaily(newProducts, storeId, date, 1));
+
+  data.trafficRecords.forEach((record) => {
+    const store = record.storeId
+      ? data.stores.find((item) => item.id === record.storeId)
+      : storeByName.get(normalizeStoreName(record.storeName));
+    const storeId = store?.id || resolveStoreKey(record.storeName).storeId;
+    const visitorValue = Number(record.totalVisitors || record.productVisitors || 0);
+    const conversionValue = Number(record.totalPayConversionRate || record.detailPayConversionRate || 0);
+    addToDaily(traffic, storeId, record.date, visitorValue);
+    setDaily(conversion, storeId, record.date, conversionValue);
+  });
+
+  const nextRows: StoreTrendRow[] = Array.from(storeMap.values()).map((store) => {
+    const metrics = {
+      newProduct: { ...buildMetric(store.id, newProducts, recentDates, baselineDates), teamAverage: 0, rank: 0 },
+      firstOrder: { ...buildMetric(store.id, firstOrders, recentDates, baselineDates), teamAverage: 0, rank: 0 },
+      sales: { ...buildMetric(store.id, sales, recentDates, baselineDates), teamAverage: 0, rank: 0 },
+      traffic: { ...buildMetric(store.id, traffic, recentDates, baselineDates), teamAverage: 0, rank: 0 },
+      conversion: { ...buildMetric(store.id, conversion, recentDates, baselineDates), teamAverage: 0, rank: 0 },
+    };
+    return {
+      storeId: store.id,
+      storeName: store.storeName,
+      platform: store.platform,
+      operatorName: getPrimaryOperator(store, data.relations, data.operators),
+      metrics,
+      score: trendConfigs.reduce((total, config) => total + metrics[config.key].changeRate, 0),
+    };
+  });
+
+  trendConfigs.forEach((config) => {
+    const teamAverage = average(nextRows.map((row) => row.metrics[config.key].changeRate));
+    nextRows.forEach((row) => {
+      row.metrics[config.key].teamAverage = teamAverage;
+    });
+    rankMetric(nextRows, config.key);
+  });
+
+  return nextRows.sort((first, second) => second.score - first.score || first.storeName.localeCompare(second.storeName));
+}
+
+function mergeGlobalRankingRows(visibleRows: StoreTrendRow[], globalRows: StoreTrendRow[]) {
+  if (globalRows.length === 0) {
+    return visibleRows;
+  }
+
+  const byStoreId = new Map(globalRows.map((row) => [row.storeId, row]));
+  const byStoreName = new Map(globalRows.map((row) => [normalizeStoreName(row.storeName), row]));
+
+  return visibleRows.map((row) => {
+    const globalRow = byStoreId.get(row.storeId) ?? byStoreName.get(normalizeStoreName(row.storeName));
+    if (!globalRow) {
+      return row;
+    }
+
+    const metrics = { ...row.metrics };
+    trendConfigs.forEach((config) => {
+      metrics[config.key] = {
+        ...metrics[config.key],
+        rank: globalRow.metrics[config.key].rank,
+        teamAverage: globalRow.metrics[config.key].teamAverage,
+      };
+    });
+
+    return { ...row, metrics };
+  });
+}
+
 function Sparkline({
   values,
   tone,
@@ -391,6 +516,13 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
     relations: [],
     operators: [],
   });
+  const [rankingData, setRankingData] = useState<StoreBusinessData>({
+    stores: [],
+    orders: [],
+    trafficRecords: [],
+    relations: [],
+    operators: [],
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -400,7 +532,23 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
       fetchJson<TrafficConversionStore>('/api/persistent-data/trafficConversionStore', { records: [], batches: [] }),
       referenceDataService.loadStoreOperatorRelations(),
       referenceDataService.loadOperators(),
-    ]).then(([stores, orderStore, trafficStore, relations, operators]) => {
+      fetchJson<StoreRecord[]>('/api/stores?scope=company-dashboard', []),
+      fetchJson<TemuOrderImportStore>('/api/persistent-data/orderImportStore?recentDays=37&limit=20000&scope=company-dashboard', { batches: [] }),
+      fetchJson<TrafficConversionStore>('/api/persistent-data/trafficConversionStore?scope=company-dashboard', { records: [], batches: [] }),
+      fetchJson<StoreOperatorRelation[]>('/api/store-operator-relations?scope=company-dashboard', []),
+      fetchJson<OperatorRecord[]>('/api/operators?scope=company-dashboard', []),
+    ]).then(([
+      stores,
+      orderStore,
+      trafficStore,
+      relations,
+      operators,
+      rankingStores,
+      rankingOrderStore,
+      rankingTrafficStore,
+      rankingRelations,
+      rankingOperators,
+    ]) => {
       if (!cancelled) {
         setData({
           stores,
@@ -409,6 +557,13 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
           relations,
           operators,
         });
+        setRankingData({
+          stores: rankingStores,
+          orders: rankingOrderStore.batches.flatMap((batch) => batch.orders ?? []),
+          trafficRecords: rankingTrafficStore.records ?? [],
+          relations: rankingRelations,
+          operators: rankingOperators,
+        });
       }
     });
     return () => {
@@ -416,105 +571,10 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
     };
   }, [currentUser]);
 
-  const rows = useMemo(() => {
-    const dateCandidates = [
-      ...data.orders.map((order) => String(order.orderDate || order.orderTime || '').slice(0, 10)),
-      ...data.trafficRecords.map((record) => record.date),
-    ].filter(Boolean).sort();
-    const latestDate = dateCandidates.at(-1) || formatDateKey(new Date());
-    const recentDates = getDateRange(latestDate, 7);
-    const baselineDates = getDateRange(shiftDate(recentDates[0], -1), 30);
-    const storeMatcher = createStoreMatcher(data.stores);
-    const resolveStoreKey = (storeName: string) => {
-      const identity = storeMatcher.match(storeName);
-      return {
-        storeId: identity.storeId || identity.key,
-        storeName: identity.storeName,
-      };
-    };
-    const storeByName = new Map(data.stores.map((store) => [normalizeStoreName(store.storeName), store]));
-    const storeMap = new Map<string, StoreRecord>();
-
-    data.stores.forEach((store) => storeMap.set(store.id, store));
-    data.orders.forEach((order) => {
-      const resolved = getOrderStoreId(order, resolveStoreKey);
-      if (!storeMap.has(resolved.storeId)) {
-        storeMap.set(resolved.storeId, {
-          id: resolved.storeId,
-          storeName: resolved.storeName,
-          platform: 'Other',
-          status: 'active',
-          createdAt: '',
-          updatedAt: '',
-        });
-      }
-    });
-
-    const sales = new Map<string, Map<string, number>>();
-    const firstOrders = new Map<string, Map<string, number>>();
-    const newProducts = new Map<string, Map<string, number>>();
-    const traffic = new Map<string, Map<string, number>>();
-    const conversion = new Map<string, Map<string, number>>();
-    const productFirstDate = new Map<string, { storeId: string; date: string }>();
-
-    data.orders.forEach((order) => {
-      const resolved = getOrderStoreId(order, resolveStoreKey);
-      const date = String(order.orderDate || order.orderTime || '').slice(0, 10);
-      addToDaily(sales, resolved.storeId, date, Number(order.salesAmount) || 0);
-      if (order.isFirstOrder) {
-        addToDaily(firstOrders, resolved.storeId, date, 1);
-      }
-      const productKey = getProductKey(order);
-      const uniqueKey = productKey ? `${resolved.storeId}|${productKey}` : '';
-      const current = uniqueKey ? productFirstDate.get(uniqueKey) : undefined;
-      if (uniqueKey && (!current || date < current.date)) {
-        productFirstDate.set(uniqueKey, { storeId: resolved.storeId, date });
-      }
-    });
-
-    productFirstDate.forEach(({ storeId, date }) => addToDaily(newProducts, storeId, date, 1));
-
-    data.trafficRecords.forEach((record) => {
-      const store = record.storeId
-        ? data.stores.find((item) => item.id === record.storeId)
-        : storeByName.get(normalizeStoreName(record.storeName));
-      const storeId = store?.id || resolveStoreKey(record.storeName).storeId;
-      const visitorValue = Number(record.totalVisitors || record.productVisitors || 0);
-      const conversionValue = Number(record.totalPayConversionRate || record.detailPayConversionRate || 0);
-      addToDaily(traffic, storeId, record.date, visitorValue);
-      setDaily(conversion, storeId, record.date, conversionValue);
-    });
-
-    const nextRows: StoreTrendRow[] = Array.from(storeMap.values()).map((store) => {
-      const metrics = {
-        newProduct: { ...buildMetric(store.id, newProducts, recentDates, baselineDates), teamAverage: 0, rank: 0 },
-        firstOrder: { ...buildMetric(store.id, firstOrders, recentDates, baselineDates), teamAverage: 0, rank: 0 },
-        sales: { ...buildMetric(store.id, sales, recentDates, baselineDates), teamAverage: 0, rank: 0 },
-        traffic: { ...buildMetric(store.id, traffic, recentDates, baselineDates), teamAverage: 0, rank: 0 },
-        conversion: { ...buildMetric(store.id, conversion, recentDates, baselineDates), teamAverage: 0, rank: 0 },
-      };
-      return {
-        storeId: store.id,
-        storeName: store.storeName,
-        platform: store.platform,
-        operatorName: getPrimaryOperator(store, data.relations, data.operators),
-        metrics,
-        score: trendConfigs.reduce((total, config) => total + metrics[config.key].changeRate, 0),
-      };
-    });
-
-    trendConfigs.forEach((config) => {
-      const teamAverage = average(nextRows.map((row) => row.metrics[config.key].changeRate));
-      nextRows.forEach((row) => {
-        row.metrics[config.key].teamAverage = teamAverage;
-      });
-      rankMetric(nextRows, config.key);
-    });
-
-    return nextRows.sort((first, second) => second.score - first.score || first.storeName.localeCompare(second.storeName));
-  }, [data]);
-
-  const teamSize = rows.length || 1;
+  const visibleRows = useMemo(() => buildStoreTrendRows(data), [data]);
+  const globalRows = useMemo(() => buildStoreTrendRows(rankingData), [rankingData]);
+  const rows = useMemo(() => mergeGlobalRankingRows(visibleRows, globalRows), [visibleRows, globalRows]);
+  const teamSize = globalRows.length || rows.length || 1;
   const isAdmin = currentUser.role === 'admin';
   const useLargeLayout = !isAdmin && rows.length <= 4;
 
