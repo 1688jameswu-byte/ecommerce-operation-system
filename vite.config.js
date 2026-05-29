@@ -2131,7 +2131,8 @@ function buildOrderImportRecords(data) {
 }
 
 function filterOrderImportRecords(records, searchParams) {
-  const storeName = normalizeOrderImportStoreName(searchParams.get('storeName') || '');
+  const rawStoreName = String(searchParams.get('storeName') || '').trim();
+  const storeName = rawStoreName ? normalizeOrderImportStoreName(rawStoreName) : '';
   const orderDate = searchParams.get('orderDate') || searchParams.get('date') || '';
   const importDate = searchParams.get('importDate') || '';
   const fileName = String(searchParams.get('fileName') || '').trim().toLowerCase();
