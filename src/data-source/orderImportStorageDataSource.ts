@@ -296,8 +296,28 @@ export const orderImportStorageDataSource = {
   },
 
   deleteBatch(batchId: string) {
-    const batches = this.loadStore().batches.filter((batch) => batch.batchId !== batchId);
-    writePersistentJson(ORDER_IMPORT_FILE_KEY, { batches }, { deleteImportData: true });
+    const store = this.loadStore();
+    const target = store.batches.find((batch) => batch.batchId === batchId);
+    if (!target) {
+      throw new Error('未找到对应导入批次，请刷新页面后重试。');
+    }
+
+    const batches = store.batches.filter((batch) => batch.batchId !== batchId);
+    const requestPayload = { batches } satisfies TemuOrderImportStore;
+    console.log('[order-import-delete-request]', {
+      batchId,
+      fileName: target.fileName,
+      importedAt: target.importedAt,
+      stores: Array.from(new Set(target.orders.map((order) => order.storeName))),
+      dates: Array.from(new Set(target.orders.map((order) => order.orderDate))),
+      requestPayload,
+    });
+    const responseText = writePersistentJson(ORDER_IMPORT_FILE_KEY, requestPayload, { deleteImportData: true });
+    const response = responseText ? JSON.parse(responseText) as { deleteSummary?: { removedRecordCount?: number; removedOrderCount?: number } } : null;
+    console.log('[order-import-delete-response]', response);
+    if (response?.deleteSummary && !response.deleteSummary.removedRecordCount && !response.deleteSummary.removedOrderCount) {
+      throw new Error('未找到对应导入批次，请刷新页面后重试。');
+    }
     notifyStorageChange();
   },
 

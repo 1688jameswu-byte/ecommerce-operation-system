@@ -102,11 +102,11 @@ export function readPersistentJson<T>(name: string, fallback: T): T {
 
 export function writePersistentJson(name: string, value: unknown, options?: WritePersistentOptions) {
   if (typeof window === 'undefined') {
-    return;
+    return null;
   }
 
   logPersistentDataPath();
-  request('PUT', name, options?.trafficImportSearchableText || options?.deleteImportData || options?.appendImportBatch
+  return request('PUT', name, options?.trafficImportSearchableText || options?.deleteImportData || options?.appendImportBatch
     ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText, __deleteImportData: options.deleteImportData, __appendImportBatch: options.appendImportBatch }
     : value);
 }

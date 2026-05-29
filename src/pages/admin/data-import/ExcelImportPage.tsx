@@ -299,10 +299,16 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
   };
 
   const handleDeleteBatch = (batchId: string) => {
-    orderImportStorageDataSource.deleteBatch(batchId);
-    setDeleteBatchRow(null);
-    void refreshSavedData();
-    setError(null);
+    console.log('[order-import-delete-click]', deleteBatchRow);
+    try {
+      orderImportStorageDataSource.deleteBatch(batchId);
+      setDeleteBatchRow(null);
+      void refreshSavedData(true);
+      setError(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '未知错误';
+      setError(`删除失败：${message}`);
+    }
   };
 
   const openDeleteScopeConfirm = () => {

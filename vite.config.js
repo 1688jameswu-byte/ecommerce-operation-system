@@ -1701,6 +1701,22 @@ function mergeOrderImportAppend(incoming) {
   return { ...existing, batches: [...batches, ...incomingBatches] };
 }
 
+function summarizeOrderImportStore(data) {
+  const batches = Array.isArray(data?.batches) ? data.batches : [];
+  return {
+    recordCount: batches.length,
+    orderCount: batches.reduce((total, batch) => total + (Array.isArray(batch?.orders) ? batch.orders.length : 0), 0),
+    batches: batches.map((batch) => ({
+      batchId: batch?.batchId ?? batch?.id ?? '',
+      fileName: batch?.fileName ?? '',
+      importedAt: batch?.importedAt ?? '',
+      stores: unique((batch?.orders ?? []).map((order) => String(order?.storeName ?? '').trim()).filter(Boolean)),
+      dates: unique((batch?.orders ?? []).map((order) => String(order?.orderDate ?? order?.date ?? '').slice(0, 10)).filter(Boolean)),
+      count: Array.isArray(batch?.orders) ? batch.orders.length : 0,
+    })),
+  };
+}
+
 function getTrafficRecordKeys(record) {
   const date = String(record?.date ?? '').trim();
   return unique([
@@ -2359,11 +2375,33 @@ function localDataPlugin() {
               ? rawParsed.__trafficImportSearchableText ?? rawParsed.__trafficImportSearchText ?? ''
               : '';
             assertCanWriteImportData(name, parsed, currentUser, searchableText);
-            const nextData = name === 'orderImportStore'
-              ? mergeOrderImportAppend(parsed)
-              : mergeVisibleImportData(name, parsed, currentUser);
+            const isOrderImportDelete = hasGuardPayload && rawParsed.__deleteImportData && name === 'orderImportStore';
+            const deleteBefore = isOrderImportDelete ? summarizeOrderImportStore(JSON.parse(fs.readFileSync(filePath, 'utf-8'))) : null;
+            const nextData = isOrderImportDelete
+              ? parsed
+              : name === 'orderImportStore'
+                ? mergeOrderImportAppend(parsed)
+                : mergeVisibleImportData(name, parsed, currentUser);
+            const deleteAfter = isOrderImportDelete ? summarizeOrderImportStore(nextData) : null;
             fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
-            res.end(JSON.stringify({ ok: true, path: filePath }));
+            const deleteSummary = isOrderImportDelete && deleteBefore && deleteAfter
+              ? {
+                user: currentUser?.username ?? currentUser?.userId ?? '',
+                isAdmin: String(currentUser?.role ?? '').toLowerCase() === 'admin',
+                payload: deleteAfter.batches,
+                beforeRecordCount: deleteBefore.recordCount,
+                beforeOrderCount: deleteBefore.orderCount,
+                removedRecordCount: Math.max(deleteBefore.recordCount - deleteAfter.recordCount, 0),
+                removedOrderCount: Math.max(deleteBefore.orderCount - deleteAfter.orderCount, 0),
+                afterRecordCount: deleteAfter.recordCount,
+                afterOrderCount: deleteAfter.orderCount,
+                filePath,
+              }
+              : null;
+            if (deleteSummary) {
+              console.log('[order-import-delete]', deleteSummary);
+            }
+            res.end(JSON.stringify({ ok: true, path: filePath, deleteSummary }));
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             res.statusCode = message === '当前账号无权导入该店铺数据' || message.startsWith('导入失败：') || message.startsWith('当前账号未配置可导入店铺') ? 403 : 500;
