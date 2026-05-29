@@ -9,8 +9,10 @@ import type {
   SalesTrendItem,
   WarningItem,
 } from '../types/dashboard';
+import type { OperatorRecord } from '../types/operator';
 import type { TemuOrderDetail, TemuOrderImportResult } from '../types/order';
 import type { SalesOrderRecord } from '../types/fact';
+import type { StoreRecord } from '../types/store';
 
 const UNASSIGNED_OPERATOR = '未分配运营';
 const RANKING_LIMIT = 10;
@@ -141,6 +143,27 @@ function groupStoreSales(orders: SalesOrderRecord[]) {
   return Array.from(totals.values()).map((item) => [item.name, item.value] as [string, number]);
 }
 
+function groupAllStoreSales(orders: SalesOrderRecord[], stores: StoreRecord[]) {
+  if (stores.length === 0) {
+    return groupStoreSales(orders);
+  }
+
+  const totals = new Map<string, { name: string; value: number }>();
+
+  for (const store of stores) {
+    totals.set(store.id || store.storeName, { name: store.storeName || store.id, value: 0 });
+  }
+
+  for (const order of orders) {
+    const key = order.storeId || order.storeName;
+    const current = totals.get(key) ?? totals.get(order.storeName) ?? { name: order.storeName, value: 0 };
+    current.value += getOrderSalesAmount(order);
+    totals.set(key, current);
+  }
+
+  return Array.from(totals.values()).map((item) => [item.name, item.value] as [string, number]);
+}
+
 function getFirstOrderProductKey(order: SalesOrderRecord) {
   const rawOrder = order.rawSource as Partial<TemuOrderDetail> | undefined;
   return String(
@@ -156,9 +179,23 @@ function getFirstOrderProductKey(order: SalesOrderRecord) {
   ).trim().toLowerCase();
 }
 
-function buildFirstOrderProductRanking(orders: SalesOrderRecord[], endDate: Date) {
+function isActiveOperator(operator: OperatorRecord) {
+  const status = String(operator.status ?? '').trim().toLowerCase();
+  return !['inactive', 'disabled', 'stopped', 'left', '停用', '离职'].includes(status);
+}
+
+function getVisibleOperators(operators: OperatorRecord[]) {
+  const hasStatus = operators.some((operator) => String(operator.status ?? '').trim());
+  return hasStatus ? operators.filter(isActiveOperator) : operators;
+}
+
+function buildFirstOrderProductRanking(orders: SalesOrderRecord[], endDate: Date, operators: OperatorRecord[] = []) {
   const dateKeySet30 = new Set(getRecentDateKeys(endDate, TREND_DAYS));
   const grouped = new Map<string, { name: string; products: Set<string> }>();
+
+  for (const operator of getVisibleOperators(operators)) {
+    grouped.set(operator.id || operator.operatorName, { name: operator.operatorName || operator.id, products: new Set<string>() });
+  }
 
   for (const order of orders) {
     if (!order.isFirstOrder || !dateKeySet30.has(order.date)) {
@@ -185,6 +222,7 @@ function buildFirstOrderProductRanking(orders: SalesOrderRecord[], endDate: Date
     Array.from(grouped.values()).map((item) => [item.name, item.products.size] as [string, number]),
     '款',
     false,
+    grouped.size || RANKING_LIMIT,
   );
 }
 
@@ -333,6 +371,8 @@ function toFallbackSalesOrder(order: TemuOrderDetail): SalesOrderRecord {
 export function buildDashboardDataFromOrders(
   importResult: TemuOrderImportResult,
   standardOrders: SalesOrderRecord[] = [],
+  stores: StoreRecord[] = [],
+  operators: OperatorRecord[] = [],
 ): DashboardData {
   const orders = standardOrders.length > 0 ? standardOrders : importResult.orders.map(toFallbackSalesOrder);
   const reportDate = getLatestOrderDate(orders);
@@ -378,9 +418,9 @@ export function buildDashboardDataFromOrders(
       }),
     ],
     operatorSalesRanking: buildRanking(groupOperatorSales(monthOrders), '¥'),
-    storeSalesRanking: buildRanking(groupStoreSales(monthOrders), '¥'),
+    storeSalesRanking: buildRanking(groupAllStoreSales(monthOrders, stores), '¥', false, stores.length || RANKING_LIMIT),
     newProductRanking: mockDashboardData.newProductRanking.slice(0, RANKING_LIMIT),
-    firstOrderRanking: buildFirstOrderProductRanking(orders, reportDate),
+    firstOrderRanking: buildFirstOrderProductRanking(orders, reportDate, operators),
     salesTrend30Days: buildSalesTrend(orders, reportDate),
     firstOrderTrendStores: firstOrderTrend.stores,
     firstOrderTrend30Days: firstOrderTrend.dailyTrend,

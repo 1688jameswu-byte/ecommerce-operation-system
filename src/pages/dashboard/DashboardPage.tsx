@@ -151,6 +151,8 @@ function DashboardPage() {
                   items={dashboardData?.[dataKey] ?? []}
                   showTopThreeBadge={rule.showTopThreeBadge}
                   showGrowth={rule.showGrowth}
+                  autoScroll={ruleId === 'storeSalesRanking'}
+                  visibleRows={8}
                 />
               </Suspense>
             );

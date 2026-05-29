@@ -1,5 +1,6 @@
 import type { RankingItem } from '../../types/dashboard';
 import Panel from './Panel';
+import type { CSSProperties } from 'react';
 
 interface RankingPanelProps {
   title: string;
@@ -8,6 +9,8 @@ interface RankingPanelProps {
   emptyText?: string;
   showTopThreeBadge: boolean;
   showGrowth: boolean;
+  autoScroll?: boolean;
+  visibleRows?: number;
 }
 
 function formatRankingValue(item: RankingItem) {
@@ -28,29 +31,40 @@ function getRankLabel(rank: number, showTopThreeBadge: boolean) {
   return ['冠', '亚', '季'][rank - 1];
 }
 
-function RankingPanel({ title, period, items, emptyText, showTopThreeBadge, showGrowth }: RankingPanelProps) {
+function RankingPanel({ title, period, items, emptyText, showTopThreeBadge, showGrowth, autoScroll = false, visibleRows = 8 }: RankingPanelProps) {
+  const shouldAutoScroll = autoScroll && items.length > visibleRows;
+  const displayItems = shouldAutoScroll ? [...items, ...items] : items;
+  const listStyle = shouldAutoScroll
+    ? ({
+        '--ranking-visible-rows': visibleRows,
+        '--ranking-scroll-duration': `${Math.max(items.length * 2.2, 18)}s`,
+      } as CSSProperties)
+    : undefined;
+
   return (
     <Panel title={title} extra={<span>{period}</span>}>
-      <ol className="ranking-list">
-        {items.map((item) => (
-          <li
-            key={`${title}-${item.rank}-${item.name}`}
-            className={`ranking-row ${showGrowth ? 'ranking-row-has-growth' : ''}`}
-          >
-            <span className={`ranking-rank ranking-rank-${item.rank}`}>
-              {getRankLabel(item.rank, showTopThreeBadge)}
-            </span>
-            <span className="ranking-name">{item.name}</span>
-            <span className="ranking-value">{formatRankingValue(item)}</span>
-            {showGrowth && typeof item.growthPercent === 'number' && (
-              <span className={`ranking-growth ranking-growth-${item.trend ?? 'flat'}`}>
-                {item.growthPercent > 0 ? '+' : ''}
-                {item.growthPercent.toFixed(2)}%
+      <div className={`ranking-list-viewport ${shouldAutoScroll ? 'ranking-list-viewport-auto-scroll' : ''}`} style={listStyle}>
+        <ol className={`ranking-list ${shouldAutoScroll ? 'ranking-list-auto-scroll' : ''}`}>
+          {displayItems.map((item, index) => (
+            <li
+              key={`${title}-${index}-${item.rank}-${item.name}`}
+              className={`ranking-row ${showGrowth ? 'ranking-row-has-growth' : ''}`}
+            >
+              <span className={`ranking-rank ranking-rank-${item.rank}`}>
+                {getRankLabel(item.rank, showTopThreeBadge)}
               </span>
-            )}
-          </li>
-        ))}
-      </ol>
+              <span className="ranking-name">{item.name}</span>
+              <span className="ranking-value">{formatRankingValue(item)}</span>
+              {showGrowth && typeof item.growthPercent === 'number' && (
+                <span className={`ranking-growth ranking-growth-${item.trend ?? 'flat'}`}>
+                  {item.growthPercent > 0 ? '+' : ''}
+                  {item.growthPercent.toFixed(2)}%
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
+      </div>
       {items.length === 0 && emptyText && <div className="ranking-empty">{emptyText}</div>}
     </Panel>
   );

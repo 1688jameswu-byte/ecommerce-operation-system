@@ -374,12 +374,40 @@
   padding: 8px 16px 16px;
 }
 
+.ranking-list-viewport {
+  max-height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.ranking-list-viewport-auto-scroll {
+  max-height: calc(var(--ranking-visible-rows, 8) * 37px);
+  overflow: hidden;
+}
+
 .ranking-list {
   display: grid;
-  min-height: 0;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.ranking-list-auto-scroll {
+  animation: ranking-auto-scroll var(--ranking-scroll-duration, 24s) linear infinite;
+}
+
+.ranking-list-viewport-auto-scroll:hover .ranking-list-auto-scroll {
+  animation-play-state: paused;
+}
+
+@keyframes ranking-auto-scroll {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(-50%);
+  }
 }
 
 .ranking-empty {

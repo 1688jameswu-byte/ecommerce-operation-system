@@ -17,6 +17,8 @@ let dashboardDataCache: DashboardData | null = null;
 let dashboardDataPromise: Promise<DashboardData> | null = null;
 
 interface OrderOwnerContext {
+  stores: StoreRecord[];
+  operators: OperatorRecord[];
   matcher: ReturnType<typeof createStoreMatcher>;
   relations: StoreOperatorRelation[];
   operatorById: Map<string, OperatorRecord>;
@@ -152,6 +154,10 @@ function buildEffectiveNewListingRanking(
 ): RankingItem[] {
   const grouped = new Map<string, { name: string; skcs: Set<string> }>();
 
+  for (const operator of getVisibleOperators(context.operators)) {
+    grouped.set(operator.id || operator.operatorName, { name: operator.operatorName || operator.id, skcs: new Set<string>() });
+  }
+
   items
     .filter((item) => item.siteJoinDate.slice(0, 7) === month)
     .forEach((item) => {
@@ -169,7 +175,6 @@ function buildEffectiveNewListingRanking(
 
   return Array.from(grouped.values())
     .map((item) => ({ name: item.name, value: item.skcs.size }))
-    .filter((item) => item.value > 0)
     .sort((first, second) => second.value - first.value || first.name.localeCompare(second.name))
     .map((item, index) => ({
       rank: index + 1,
@@ -186,6 +191,16 @@ function relationActiveOnDate(relation: StoreOperatorRelation, date: string) {
     (!relation.endDate || relation.endDate >= date);
 }
 
+function isActiveOperator(operator: OperatorRecord) {
+  const status = String(operator.status ?? '').trim().toLowerCase();
+  return !['inactive', 'disabled', 'stopped', 'left', '停用', '离职'].includes(status);
+}
+
+function getVisibleOperators(operators: OperatorRecord[]) {
+  const hasStatus = operators.some((operator) => String(operator.status ?? '').trim());
+  return hasStatus ? operators.filter(isActiveOperator) : operators;
+}
+
 async function buildOrderOwnerContext(): Promise<OrderOwnerContext> {
   const [stores, relations, operators] = await Promise.all([
     fetchCompanyJson<StoreRecord[]>('/api/stores', []),
@@ -195,7 +210,7 @@ async function buildOrderOwnerContext(): Promise<OrderOwnerContext> {
   const matcher = createStoreMatcher(stores);
   const operatorById = new Map(operators.map((operator) => [operator.id, operator]));
 
-  return { matcher, relations, operatorById };
+  return { stores, operators, matcher, relations, operatorById };
 }
 
 function resolvePrimaryOwner(
@@ -296,7 +311,7 @@ async function buildDashboardData(): Promise<DashboardData> {
 
     if (orderImportResult && orderImportResult.orders.length > 0) {
       return {
-        ...buildDashboardDataFromOrders(orderImportResult, toStandardSalesOrders(orderStore, ownerContext)),
+        ...buildDashboardDataFromOrders(orderImportResult, toStandardSalesOrders(orderStore, ownerContext), ownerContext.stores, ownerContext.operators),
         dataSource: '真实数据',
         newProductRanking,
         warnings: trafficWarnings,
