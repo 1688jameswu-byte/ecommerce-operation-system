@@ -5,7 +5,7 @@ import type { EffectiveNewListingRecord } from '../../../types/effectiveNewListi
 import type { OperatorRecord } from '../../../types/operator';
 import type { StorePlatform, StoreRecord } from '../../../types/store';
 import type { StoreOperatorRelation } from '../../../types/storeOperator';
-import type { TrafficConversionRecord, TrafficConversionStore } from '../../../types/traffic';
+import { getVisibleStores } from '../../../auth/storeVisibility';
 import { createStoreMatcher } from '../../../utils/storeStandardization';
 
 type TrendKey = 'newProduct' | 'firstOrder' | 'sales' | 'traffic' | 'conversion';
@@ -40,7 +40,7 @@ interface StoreTrendRow {
 interface StoreBusinessData {
   stores: StoreRecord[];
   orderDailyRecords: StoreBusinessOrderDailyRecord[];
-  trafficRecords: TrafficConversionRecord[];
+  trafficRecords: StoreBusinessTrafficRecord[];
   effectiveNewListings: EffectiveNewListingRecord[];
   relations: StoreOperatorRelation[];
   operators: OperatorRecord[];
@@ -56,6 +56,21 @@ interface StoreBusinessOrderDailyRecord {
 
 interface StoreBusinessOrderDailyResponse {
   records: StoreBusinessOrderDailyRecord[];
+}
+
+interface StoreBusinessTrafficRecord {
+  storeId?: string;
+  storeName: string;
+  date: string;
+  totalVisitors: number;
+  productVisitors: number;
+  totalPayBuyers: number;
+  totalPayConversionRate: number;
+  detailPayConversionRate: number;
+}
+
+interface StoreBusinessTrafficResponse {
+  records: StoreBusinessTrafficRecord[];
 }
 
 const trendConfigs: Array<{ key: TrendKey; label: string; unit: string; percentValue?: boolean }> = [
@@ -563,48 +578,43 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      referenceDataService.loadStores(),
-      fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37', { records: [] }),
-      fetchJson<TrafficConversionStore>('/api/persistent-data/trafficConversionStore', { records: [], batches: [] }),
-      fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []),
-      referenceDataService.loadStoreOperatorRelations(),
-      referenceDataService.loadOperators(),
       referenceDataService.loadCompanyStores(),
-      fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37&scope=company-dashboard', { records: [] }),
-      fetchJson<TrafficConversionStore>('/api/persistent-data/trafficConversionStore?scope=company-dashboard', { records: [], batches: [] }),
-      fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings?scope=company-dashboard', []),
+      fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37', { records: [] }),
+      fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=37', { records: [] }),
+      fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []),
       referenceDataService.loadCompanyStoreOperatorRelations(),
       referenceDataService.loadCompanyOperators(),
+      fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37&scope=company-dashboard', { records: [] }),
+      fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=37&scope=company-dashboard', { records: [] }),
+      fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings?scope=company-dashboard', []),
     ]).then(([
-      stores,
+      companyStores,
       orderStore,
       trafficStore,
       effectiveNewListings,
-      relations,
-      operators,
-      rankingStores,
+      companyRelations,
+      companyOperators,
       rankingOrderStore,
       rankingTrafficStore,
       rankingEffectiveNewListings,
-      rankingRelations,
-      rankingOperators,
     ]) => {
       if (!cancelled) {
+        const visibleStores = getVisibleStores(currentUser, companyStores, companyOperators, companyRelations);
         setData({
-          stores,
+          stores: visibleStores,
           orderDailyRecords: orderStore.records,
           trafficRecords: trafficStore.records ?? [],
           effectiveNewListings,
-          relations,
-          operators,
+          relations: companyRelations,
+          operators: companyOperators,
         });
         setRankingData({
-          stores: rankingStores,
+          stores: companyStores,
           orderDailyRecords: rankingOrderStore.records,
           trafficRecords: rankingTrafficStore.records ?? [],
           effectiveNewListings: rankingEffectiveNewListings,
-          relations: rankingRelations,
-          operators: rankingOperators,
+          relations: companyRelations,
+          operators: companyOperators,
         });
       }
     });

@@ -33,9 +33,12 @@ import type {
 } from '../../../types/traffic';
 import { buildFactDataQualityReport } from '../../../utils/factDataQuality';
 import {
+  buildExistingTaskUpdate,
   buildGrowthOpportunityTaskDraft,
+  buildRiskWarningTaskDedupKey,
   buildRiskWarningTaskDraft,
   buildTaskCreateUrl,
+  findOpenTaskByDedupKey,
 } from '../../../utils/operationTaskSourceAdapter';
 import {
   trafficAnalysisResultTypeLabelMap,
@@ -182,11 +185,19 @@ function wasCreatedWithinHours(task: OperationTaskRecord, hours: number) {
 }
 
 function getAutoCreatedTask(tasks: OperationTaskRecord[], warning: TrafficWarningResult) {
-  return (tasks as AutoRiskTaskRecord[]).find((task) => task.autoCreated && isSameRiskTask(task, warning));
+  const dedupKey = buildRiskWarningTaskDedupKey(warning);
+  return (tasks as AutoRiskTaskRecord[]).find((task) =>
+    task.autoCreated &&
+    (task.taskDedupKey === dedupKey || isSameRiskTask(task, warning)),
+  );
 }
 
 function canAutoCreateCriticalTask(tasks: OperationTaskRecord[], warning: TrafficWarningResult) {
   if (warning.level !== 'critical') {
+    return false;
+  }
+
+  if (findOpenTaskByDedupKey(tasks, buildRiskWarningTaskDedupKey(warning))) {
     return false;
   }
 
@@ -205,6 +216,11 @@ function buildAutoCriticalTask(warning: TrafficWarningResult, recommendation: st
     sourceRuleId: warning.type,
     sourceType: 'risk_warning',
     sourceId: warning.id,
+    taskDedupKey: buildRiskWarningTaskDedupKey(warning),
+    latestAnomalyDate: warning.date,
+    anomalyDurationDays: 1,
+    latestSeverity: warning.level,
+    latestTriggerTime: warning.triggeredAt || new Date().toISOString(),
     sourceContent: `最近7日数据较30日均值下降 ${warning.dropRate.toFixed(2)}% ，达到严重风险阈值。`,
     recommendation,
     suggestion: recommendation,
@@ -613,14 +629,28 @@ function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
     let changed = false;
 
     riskResults.forEach((warning) => {
+      const draft = buildAutoCriticalTask(
+        warning,
+        buildOperationSuggestion(warning.type, 'warning', suggestionTemplates),
+      );
+      const openTask = findOpenTaskByDedupKey(nextTasks, draft.taskDedupKey);
+
+      if (openTask) {
+        if (openTask.latestAnomalyDate === draft.latestAnomalyDate) {
+          return;
+        }
+
+        const updatedTask = taskDataSource.update(openTask.id, buildExistingTaskUpdate(openTask, draft));
+        nextTasks = nextTasks.map((task) => task.id === updatedTask.id ? updatedTask : task);
+        changed = true;
+        return;
+      }
+
       if (!canAutoCreateCriticalTask(nextTasks, warning)) {
         return;
       }
 
-      const task = taskDataSource.create(buildAutoCriticalTask(
-        warning,
-        buildOperationSuggestion(warning.type, 'warning', suggestionTemplates),
-      ));
+      const task = taskDataSource.create(draft);
       nextTasks = [...nextTasks, task];
       changed = true;
     });

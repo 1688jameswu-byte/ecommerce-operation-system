@@ -417,7 +417,9 @@ export function buildDashboardDataFromOrders(
   const reportDateOrders = orders.filter((order) => order.date === reportDateKey);
   const currentMonth = toMonthKey(reportDate);
   const monthOrders = orders.filter((order) => order.month === currentMonth);
-  const storeKeys = new Set(orders.map((order) => order.storeId).filter(Boolean));
+  const storeKeys = new Set(reportDateOrders.map((order) => order.storeId || order.storeName).filter(Boolean));
+  const allOrderStoreKeys = new Set(orders.map((order) => order.storeId).filter(Boolean));
+  const reportDateStoreKeys = storeKeys;
   const firstOrderTrend = buildFirstOrderTrend(orders, reportDate);
   const firstOrderDangerCount = firstOrderTrend.stores.filter((item) => item.status === 'danger').length;
 
@@ -445,7 +447,7 @@ export function buildDashboardDataFromOrders(
         title: '本月订单数',
         compareText: `${currentMonth} Excel有效明细`,
       }),
-      metric('storeCount', storeKeys.size, {
+      metric('storeCount', reportDateStoreKeys.size, {
         title: '店铺数量',
         compareText: `订单店铺 ${storeKeys.size}`,
       }),
@@ -462,8 +464,8 @@ export function buildDashboardDataFromOrders(
     firstOrderTrendStores: firstOrderTrend.stores,
     firstOrderTrend30Days: firstOrderTrend.dailyTrend,
     storeStatus: {
-      total: storeKeys.size,
-      normal: Math.max(storeKeys.size - firstOrderDangerCount, 0),
+      total: allOrderStoreKeys.size,
+      normal: Math.max(allOrderStoreKeys.size - firstOrderDangerCount, 0),
       abnormal: firstOrderDangerCount,
       closed: 0,
     },

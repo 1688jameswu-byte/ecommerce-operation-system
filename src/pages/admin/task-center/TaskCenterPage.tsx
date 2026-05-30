@@ -14,14 +14,14 @@ import type {
   OperationTaskStatus,
 } from '../../../types/task';
 import { taskPriorityLabelMap, taskReviewStatusLabelMap, taskSourceTypeLabelMap } from '../../../utils/operationLanguage';
-import { findExistingTaskBySource } from '../../../utils/operationTaskSourceAdapter';
+import { buildExistingTaskUpdate, findOpenTaskByDedupKey, findOpenTaskBySource } from '../../../utils/operationTaskSourceAdapter';
 import { filterTasksByPermission } from '../../../utils/permissionScope';
 import { getStatusLabel } from '../../../utils/statusLabel';
 import ConfirmDeleteModal from '../ConfirmDeleteModal';
 
 type TaskForm = Pick<
   OperationTaskRecord,
-  'title' | 'storeId' | 'storeName' | 'operatorId' | 'operatorName' | 'sourceType' | 'sourceId' | 'sourceContent' | 'suggestion' | 'priority' | 'status' | 'dueDate' | 'resultNote' | 'reviewStatus' | 'reviewNote'
+  'title' | 'storeId' | 'storeName' | 'operatorId' | 'operatorName' | 'sourceType' | 'sourceId' | 'taskDedupKey' | 'latestAnomalyDate' | 'anomalyDurationDays' | 'latestSeverity' | 'latestTriggerTime' | 'sourceContent' | 'suggestion' | 'priority' | 'status' | 'dueDate' | 'resultNote' | 'reviewStatus' | 'reviewNote'
 >;
 
 type AiSourceFilter = '' | 'ai' | 'non_ai';
@@ -51,6 +51,11 @@ const emptyTask: TaskForm = {
   operatorName: '',
   sourceType: 'manual',
   sourceId: '',
+  taskDedupKey: '',
+  latestAnomalyDate: '',
+  anomalyDurationDays: 0,
+  latestSeverity: '',
+  latestTriggerTime: '',
   sourceContent: '',
   suggestion: '',
   priority: 'medium',
@@ -95,6 +100,10 @@ function getSourcePrefill(): Partial<TaskForm> {
   return {
     sourceType,
     sourceId: params.get('sourceId') || '',
+    taskDedupKey: params.get('taskDedupKey') || '',
+    latestAnomalyDate: params.get('latestAnomalyDate') || '',
+    latestSeverity: params.get('latestSeverity') || '',
+    latestTriggerTime: params.get('latestTriggerTime') || '',
     storeName: params.get('storeName') || '',
     title: params.get('title') || '',
     sourceContent: params.get('content') || '',
@@ -630,8 +639,18 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
       taskDataSource.update(editingId, payload);
       setMessage('任务已更新。');
     } else {
+      const existingTask = findOpenTaskByDedupKey(tasks, payload.taskDedupKey) || findOpenTaskBySource(tasks, payload.sourceType, payload.sourceId);
+      if (existingTask) {
+        taskDataSource.update(existingTask.id, buildExistingTaskUpdate(existingTask, payload));
+        setMessage('该异常/预警已有未关闭任务，已更新持续触发信息。');
+        setForm(emptyTask);
+        setEditingId('');
+        refreshAll();
+        return;
+      }
+
       if (payload.sourceId) {
-        const existingTask = findExistingTaskBySource(tasks, payload.sourceType, payload.sourceId);
+        const existingTask = tasks.find((task) => task.sourceType === payload.sourceType && task.sourceId === payload.sourceId && task.status !== 'done' && task.status !== 'closed');
         if (existingTask) {
           setMessage('该异常/预警已生成任务。');
           return;
@@ -657,6 +676,11 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
       operatorName: task.operatorName || '',
       sourceType: task.sourceType,
       sourceId: task.sourceId || '',
+      taskDedupKey: task.taskDedupKey || '',
+      latestAnomalyDate: task.latestAnomalyDate || '',
+      anomalyDurationDays: task.anomalyDurationDays || 0,
+      latestSeverity: task.latestSeverity || '',
+      latestTriggerTime: task.latestTriggerTime || '',
       sourceContent: task.sourceContent || '',
       suggestion: task.suggestion || '',
       priority: task.priority,
@@ -680,6 +704,11 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
       operatorName: task.operatorName || '',
       sourceType: task.sourceType,
       sourceId: task.sourceId || '',
+      taskDedupKey: task.taskDedupKey || '',
+      latestAnomalyDate: task.latestAnomalyDate || '',
+      anomalyDurationDays: task.anomalyDurationDays || 0,
+      latestSeverity: task.latestSeverity || '',
+      latestTriggerTime: task.latestTriggerTime || '',
       sourceContent: task.sourceContent || '',
       suggestion: task.suggestion || '',
       priority: task.priority,
@@ -703,6 +732,11 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
       operatorName: task.operatorName || '',
       sourceType: task.sourceType,
       sourceId: task.sourceId || '',
+      taskDedupKey: task.taskDedupKey || '',
+      latestAnomalyDate: task.latestAnomalyDate || '',
+      anomalyDurationDays: task.anomalyDurationDays || 0,
+      latestSeverity: task.latestSeverity || '',
+      latestTriggerTime: task.latestTriggerTime || '',
       sourceContent: task.sourceContent || '',
       suggestion: task.suggestion || '',
       priority: task.priority,
@@ -726,6 +760,11 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
       operatorName: task.operatorName || '',
       sourceType: task.sourceType,
       sourceId: task.sourceId || '',
+      taskDedupKey: task.taskDedupKey || '',
+      latestAnomalyDate: task.latestAnomalyDate || '',
+      anomalyDurationDays: task.anomalyDurationDays || 0,
+      latestSeverity: task.latestSeverity || '',
+      latestTriggerTime: task.latestTriggerTime || '',
       sourceContent: task.sourceContent || '',
       suggestion: task.suggestion || '',
       priority: task.priority,

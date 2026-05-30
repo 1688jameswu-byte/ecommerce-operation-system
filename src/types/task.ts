@@ -19,6 +19,11 @@ export interface OperationTaskRecord {
   operatorName?: string;
   sourceType: OperationTaskSourceType;
   sourceId?: string;
+  taskDedupKey?: string;
+  latestAnomalyDate?: string;
+  anomalyDurationDays?: number;
+  latestSeverity?: string;
+  latestTriggerTime?: string;
   sourceContent?: string;
   suggestion?: string;
   priority: OperationTaskPriority;

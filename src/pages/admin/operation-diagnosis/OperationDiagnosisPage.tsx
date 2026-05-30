@@ -37,7 +37,7 @@ import {
   solutionActionTypeLabelMap,
   solutionPriorityLabelMap,
 } from '../../../utils/operationLanguage';
-import { createTaskFromOperationAnomaly } from '../../../utils/operationTaskSourceAdapter';
+import { buildOperationAnomalyTaskDedupKey, createTaskFromOperationAnomaly } from '../../../utils/operationTaskSourceAdapter';
 import { filterTasksByPermission } from '../../../utils/permissionScope';
 import { hasPermission } from '../../../auth/permissions';
 import type { CurrentUser } from '../../../types/auth';
@@ -149,6 +149,14 @@ function findSolutionMatch(solutionMatches: SolutionMatchResult[], anomalyId: st
 
 function findTaskByAnomaly(tasks: OperationTaskRecord[], anomalyId: string) {
   return tasks.find((task) => task.sourceType === 'operation_anomaly' && task.sourceId === anomalyId);
+}
+
+function findRelatedTaskByAnomaly(
+  taskBySourceId: Map<string, OperationTaskRecord>,
+  openTaskByDedupKey: Map<string, OperationTaskRecord>,
+  anomaly: AnomalyResult,
+) {
+  return taskBySourceId.get(anomaly.id) || openTaskByDedupKey.get(buildOperationAnomalyTaskDedupKey(anomaly));
 }
 
 async function loadScopedTasks(currentUser: CurrentUser) {
@@ -447,6 +455,16 @@ function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
   const evaluationsByAnomalyId = useMemo(() => new Map(
     diagnosis.ruleTreeEvaluations.map((evaluation) => [evaluation.anomalyResultId, evaluation]),
   ), [diagnosis.ruleTreeEvaluations]);
+  const taskBySourceId = useMemo(() => new Map(
+    tasks
+      .filter((task) => task.sourceType === 'operation_anomaly' && task.sourceId)
+      .map((task) => [task.sourceId || '', task]),
+  ), [tasks]);
+  const openTaskByDedupKey = useMemo(() => new Map(
+    tasks
+      .filter((task) => task.taskDedupKey && (task.status === 'todo' || task.status === 'doing'))
+      .map((task) => [task.taskDedupKey || '', task]),
+  ), [tasks]);
   const taskFilterCounts = useMemo(() => {
     const counts: Record<OperationTaskFilter, number> = {
       all: diagnosis.anomalies.length,
@@ -458,11 +476,11 @@ function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
     };
 
     diagnosis.anomalies.forEach((anomaly) => {
-      counts[getAnomalyTaskFilterValue(tasks, anomaly.id)] += 1;
+      counts[findRelatedTaskByAnomaly(taskBySourceId, openTaskByDedupKey, anomaly)?.status ?? 'not_created'] += 1;
     });
 
     return counts;
-  }, [diagnosis.anomalies, tasks]);
+  }, [diagnosis.anomalies, openTaskByDedupKey, taskBySourceId]);
   const storeFilterOptions = useMemo(() => {
     const stores = new Map<string, string>();
 
@@ -489,11 +507,11 @@ function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
   }, [diagnosis.anomalies, diagnosis.solutionMatches]);
   const filteredAnomalies = useMemo(() => {
     return diagnosis.anomalies.filter((anomaly) =>
-      (taskStatusFilter === 'all' || getAnomalyTaskFilterValue(tasks, anomaly.id) === taskStatusFilter) &&
+      (taskStatusFilter === 'all' || (findRelatedTaskByAnomaly(taskBySourceId, openTaskByDedupKey, anomaly)?.status ?? 'not_created') === taskStatusFilter) &&
       matchSeverityFilter(anomaly, severityFilter) &&
       (storeFilter === 'all' || getStoreFilterKey(anomaly) === storeFilter),
     );
-  }, [diagnosis.anomalies, severityFilter, storeFilter, taskStatusFilter, tasks]);
+  }, [diagnosis.anomalies, openTaskByDedupKey, severityFilter, storeFilter, taskBySourceId, taskStatusFilter]);
   const sortedAnomalies = useMemo(() => {
     const anomalies = [...filteredAnomalies];
 
@@ -514,7 +532,7 @@ function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
 
     if (sortMode === 'task_not_created_first') {
       return anomalies.sort((first, second) =>
-        taskStatusRank[getAnomalyTaskFilterValue(tasks, first.id)] - taskStatusRank[getAnomalyTaskFilterValue(tasks, second.id)] ||
+        taskStatusRank[findRelatedTaskByAnomaly(taskBySourceId, openTaskByDedupKey, first)?.status ?? 'not_created'] - taskStatusRank[findRelatedTaskByAnomaly(taskBySourceId, openTaskByDedupKey, second)?.status ?? 'not_created'] ||
         severityRank[first.severity] - severityRank[second.severity] ||
         compareByDate(second, first),
       );
@@ -522,14 +540,14 @@ function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
 
     if (sortMode === 'task_doing_first') {
       return anomalies.sort((first, second) =>
-        doingFirstRank[getAnomalyTaskFilterValue(tasks, first.id)] - doingFirstRank[getAnomalyTaskFilterValue(tasks, second.id)] ||
+        doingFirstRank[findRelatedTaskByAnomaly(taskBySourceId, openTaskByDedupKey, first)?.status ?? 'not_created'] - doingFirstRank[findRelatedTaskByAnomaly(taskBySourceId, openTaskByDedupKey, second)?.status ?? 'not_created'] ||
         severityRank[first.severity] - severityRank[second.severity] ||
         compareByDate(second, first),
       );
     }
 
     return anomalies;
-  }, [filteredAnomalies, sortMode, tasks]);
+  }, [filteredAnomalies, openTaskByDedupKey, sortMode, taskBySourceId]);
   const hasAnomalies = diagnosis.anomalies.length > 0;
   const hasOnlyWatchResults = hasAnomalies && displaySummary.formalAnomalyCount === 0 && displaySummary.watchCount > 0;
   const canUseAiDebugTools = hasPermission(currentUser, 'ai-debug-tools');
@@ -1021,7 +1039,7 @@ function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
           {sortedAnomalies.map((anomaly) => {
             const evaluation = evaluationsByAnomalyId.get(anomaly.id);
             const solutionMatch = findSolutionMatch(diagnosis.solutionMatches, anomaly.id);
-            const relatedTask = findTaskByAnomaly(tasks, anomaly.id);
+            const relatedTask = findRelatedTaskByAnomaly(taskBySourceId, openTaskByDedupKey, anomaly);
             const taskMessage = taskMessages[anomaly.id];
             const isExpanded = Boolean(expandedIds[anomaly.id]);
             const knowledgeRuleCode = getAnomalyKnowledgeRuleCode(anomaly);

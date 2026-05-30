@@ -43,6 +43,22 @@ function sourceTypeMatches(task: OperationTaskRecord, sourceType: OperationTaskS
     (sourceType === 'growth_opportunity' && task.sourceType === 'opportunity');
 }
 
+function isOpenTask(task: OperationTaskRecord) {
+  return task.status === 'todo' || task.status === 'doing';
+}
+
+export function buildRiskWarningTaskDedupKey(warning: TrafficWarningResult) {
+  return `risk_warning:${warning.storeName || 'unknown-store'}:${warning.metricField || warning.type}`;
+}
+
+export function buildGrowthOpportunityTaskDedupKey(opportunity: TrafficGrowthOpportunity) {
+  return `growth_opportunity:${opportunity.storeName || 'unknown-store'}:${opportunity.metricField || opportunity.type}`;
+}
+
+export function buildOperationAnomalyTaskDedupKey(anomaly: AnomalyResult) {
+  return `operation_anomaly:${anomaly.storeId || anomaly.storeName || 'unknown-store'}:${anomaly.ruleId}`;
+}
+
 export function findExistingTaskBySource(
   tasks: OperationTaskRecord[],
   sourceType: OperationTaskSourceType,
@@ -51,14 +67,52 @@ export function findExistingTaskBySource(
   return tasks.find((task) => sourceTypeMatches(task, sourceType) && task.sourceId === sourceId);
 }
 
+export function findOpenTaskByDedupKey(tasks: OperationTaskRecord[], taskDedupKey?: string) {
+  return taskDedupKey ? tasks.find((task) => task.taskDedupKey === taskDedupKey && isOpenTask(task)) : undefined;
+}
+
+export function findOpenTaskBySource(
+  tasks: OperationTaskRecord[],
+  sourceType: OperationTaskSourceType,
+  sourceId?: string,
+) {
+  return sourceId ? tasks.find((task) => sourceTypeMatches(task, sourceType) && task.sourceId === sourceId && isOpenTask(task)) : undefined;
+}
+
+export function buildExistingTaskUpdate(existingTask: OperationTaskRecord, nextTask: Partial<OperationTaskRecord>) {
+  const latestAnomalyDate = nextTask.latestAnomalyDate || existingTask.latestAnomalyDate;
+  const shouldIncrementDuration = Boolean(
+    latestAnomalyDate &&
+    existingTask.latestAnomalyDate &&
+    latestAnomalyDate !== existingTask.latestAnomalyDate,
+  );
+
+  return {
+    sourceId: nextTask.sourceId || existingTask.sourceId,
+    taskDedupKey: nextTask.taskDedupKey || existingTask.taskDedupKey,
+    sourceContent: nextTask.sourceContent || existingTask.sourceContent,
+    suggestion: nextTask.suggestion || existingTask.suggestion,
+    priority: nextTask.priority || existingTask.priority,
+    latestAnomalyDate,
+    anomalyDurationDays: shouldIncrementDuration
+      ? (existingTask.anomalyDurationDays || 1) + 1
+      : existingTask.anomalyDurationDays || nextTask.anomalyDurationDays || 1,
+    latestSeverity: nextTask.latestSeverity || existingTask.latestSeverity,
+    latestTriggerTime: nextTask.latestTriggerTime || new Date().toISOString(),
+  } satisfies Partial<OperationTaskRecord>;
+}
+
 function createTaskIfNotExists(task: Partial<OperationTaskRecord>): OperationTaskSourceCreateResult {
   const sourceType = task.sourceType ?? 'manual';
   const sourceId = task.sourceId ?? '';
-  const existingTask = sourceId ? findExistingTaskBySource(taskDataSource.load(), sourceType, sourceId) : undefined;
+  const tasks = taskDataSource.load();
+  const existingTask = findOpenTaskByDedupKey(tasks, task.taskDedupKey) || findOpenTaskBySource(tasks, sourceType, sourceId);
 
   if (existingTask) {
+    const updatedTask = taskDataSource.update(existingTask.id, buildExistingTaskUpdate(existingTask, task));
+
     return {
-      existingTask,
+      existingTask: updatedTask,
       created: false,
       message: '该异常/预警已生成任务。',
     };
@@ -77,6 +131,10 @@ export function buildTaskCreateUrl(task: Partial<OperationTaskRecord>) {
   const searchParams = new URLSearchParams({
     sourceType: task.sourceType ?? 'manual',
     sourceId: task.sourceId ?? '',
+    taskDedupKey: task.taskDedupKey ?? '',
+    latestAnomalyDate: task.latestAnomalyDate ?? '',
+    latestSeverity: task.latestSeverity ?? '',
+    latestTriggerTime: task.latestTriggerTime ?? '',
     storeName: task.storeName ?? '',
     title: task.title ?? '',
     content: task.sourceContent ?? '',
@@ -94,6 +152,11 @@ export function buildRiskWarningTaskDraft(input: RiskWarningTaskInput): Partial<
     storeName: warning.storeName,
     sourceType: 'risk_warning',
     sourceId: warning.id,
+    taskDedupKey: buildRiskWarningTaskDedupKey(warning),
+    latestAnomalyDate: warning.date,
+    anomalyDurationDays: 1,
+    latestSeverity: warning.level,
+    latestTriggerTime: warning.triggeredAt || new Date().toISOString(),
     sourceContent: warning.content,
     suggestion: input.suggestion || '',
     priority: warning.level === 'critical' ? 'high' : 'medium',
@@ -109,6 +172,11 @@ export function buildGrowthOpportunityTaskDraft(input: GrowthOpportunityTaskInpu
     storeName: opportunity.storeName,
     sourceType: 'growth_opportunity',
     sourceId: opportunity.id,
+    taskDedupKey: buildGrowthOpportunityTaskDedupKey(opportunity),
+    latestAnomalyDate: opportunity.date,
+    anomalyDurationDays: 1,
+    latestSeverity: 'opportunity',
+    latestTriggerTime: new Date().toISOString(),
     sourceContent: opportunity.content,
     suggestion: input.suggestion || '',
     priority: 'medium',
@@ -225,6 +293,11 @@ export function buildOperationAnomalyTaskDraft(params: {
     operatorName: anomaly.operatorName,
     sourceType: 'operation_anomaly',
     sourceId: anomaly.id,
+    taskDedupKey: buildOperationAnomalyTaskDedupKey(anomaly),
+    latestAnomalyDate: anomaly.date,
+    anomalyDurationDays: 1,
+    latestSeverity: anomaly.severity,
+    latestTriggerTime: anomaly.createdAt || new Date().toISOString(),
     sourceContent: buildOperationAnomalySourceContent(anomaly, ruleTreeEvaluation, solutionMatch),
     suggestion: buildOperationAnomalySuggestion(anomaly, solutionMatch),
     priority: getOperationAnomalyPriority(anomaly, solutionMatch),

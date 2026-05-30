@@ -1138,6 +1138,13 @@ function normalizeTaskPayload(payload, current) {
     operatorName: firstNonBlank(payload.operatorName, current?.operatorName, assignee?.operatorName),
     sourceType,
     sourceId: String(payload.sourceId ?? current?.sourceId ?? '').trim(),
+    taskDedupKey: String(payload.taskDedupKey ?? current?.taskDedupKey ?? '').trim(),
+    latestAnomalyDate: String(payload.latestAnomalyDate ?? current?.latestAnomalyDate ?? '').trim(),
+    anomalyDurationDays: Number.isFinite(Number(payload.anomalyDurationDays ?? current?.anomalyDurationDays))
+      ? Number(payload.anomalyDurationDays ?? current?.anomalyDurationDays)
+      : 0,
+    latestSeverity: String(payload.latestSeverity ?? current?.latestSeverity ?? '').trim(),
+    latestTriggerTime: String(payload.latestTriggerTime ?? current?.latestTriggerTime ?? '').trim(),
     sourceContent: String(payload.sourceContent ?? current?.sourceContent ?? '').trim(),
     suggestion: String(payload.suggestion ?? current?.suggestion ?? '').trim(),
     priority,
@@ -2216,6 +2223,74 @@ function buildStoreBusinessOrderDaily(data, searchParams) {
   };
 }
 
+function resolveTrafficDateRange(data, searchParams) {
+  const start = searchParams.get('dateStart') || searchParams.get('startDate') || '';
+  const end = searchParams.get('dateEnd') || searchParams.get('endDate') || '';
+
+  if (start || end) {
+    return { start, end };
+  }
+
+  const recentDays = Number(searchParams.get('recentDays') || searchParams.get('days') || 0);
+  if (!Number.isFinite(recentDays) || recentDays <= 0) {
+    return { start: '', end: '' };
+  }
+
+  const latest = (data?.records ?? [])
+    .map((record) => String(record?.date ?? '').slice(0, 10))
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+
+  if (!latest) {
+    return { start: '', end: '' };
+  }
+
+  const startDate = new Date(`${latest}T00:00:00`);
+  startDate.setDate(startDate.getDate() - recentDays + 1);
+  return { start: formatOrderDateKey(startDate), end: latest };
+}
+
+function buildStoreBusinessTraffic(data, searchParams) {
+  const { start, end } = resolveTrafficDateRange(data, searchParams);
+  const groups = new Map();
+
+  for (const record of data?.records ?? []) {
+    const date = String(record?.date ?? '').slice(0, 10);
+    if (!date || (start && date < start) || (end && date > end)) {
+      continue;
+    }
+
+    const storeName = normalizeOrderImportStoreName(record?.storeName);
+    const storeId = String(record?.storeId ?? '').trim();
+    const key = `${storeId || storeName}|${date}`;
+    const current = groups.get(key) ?? {
+      storeId,
+      storeName,
+      date,
+      totalVisitors: 0,
+      productVisitors: 0,
+      totalPayBuyers: 0,
+      totalPayConversionRate: 0,
+      detailPayConversionRate: 0,
+    };
+
+    current.totalVisitors += Number(record?.totalVisitors) || 0;
+    current.productVisitors += Number(record?.productVisitors) || 0;
+    current.totalPayBuyers += Number(record?.totalPayBuyers ?? record?.detailPayBuyers) || 0;
+    current.totalPayConversionRate = Number(record?.totalPayConversionRate || record?.detailPayConversionRate || current.totalPayConversionRate || 0);
+    current.detailPayConversionRate = Number(record?.detailPayConversionRate || current.detailPayConversionRate || 0);
+    groups.set(key, current);
+  }
+
+  return {
+    dateStart: start,
+    dateEnd: end,
+    records: Array.from(groups.values())
+      .sort((first, second) => `${first.storeName} ${first.date}`.localeCompare(`${second.storeName} ${second.date}`)),
+  };
+}
+
 function resolveOrderDateRange(data, searchParams) {
   const start = searchParams.get('dateStart') || searchParams.get('startDate') || '';
   const end = searchParams.get('dateEnd') || searchParams.get('endDate') || '';
@@ -2335,6 +2410,15 @@ function filterOrderImportStoreByQuery(data, searchParams, currentUser) {
   }
 
   return { ...data, batches };
+}
+
+function filterTrafficConversionStoreByQuery(data, searchParams) {
+  const view = searchParams.get('view') || '';
+  if (view === 'store-business-traffic') {
+    return buildStoreBusinessTraffic(data, searchParams);
+  }
+
+  return data;
 }
 
 function getCollectionMenuKey(name) {
@@ -2739,7 +2823,9 @@ function localDataPlugin() {
             const scopedData = companyDashboardRead ? data : filterPersistentDataForUser(name, data, currentUser);
             res.end(JSON.stringify(name === 'orderImportStore'
               ? filterOrderImportStoreByQuery(scopedData, requestUrl.searchParams, currentUser)
-              : scopedData));
+              : name === 'trafficConversionStore'
+                ? filterTrafficConversionStoreByQuery(scopedData, requestUrl.searchParams)
+                : scopedData));
           } catch (error) {
             res.statusCode = 500;
             res.end(`Read failed: ${error instanceof Error ? error.message : String(error)}`);
