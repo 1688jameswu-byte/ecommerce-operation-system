@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { orderImportStorageDataSource } from '../../../data-source/orderImportStorageDataSource';
 import { referenceDataService } from '../../../services/referenceDataService';
 import type { CurrentUser } from '../../../types/auth';
+import type { EffectiveNewListingRecord } from '../../../types/effectiveNewListing';
 import type { OperatorRecord } from '../../../types/operator';
 import type { TemuOrderDetail, TemuOrderImportStore } from '../../../types/order';
-import type { StoreRecord } from '../../../types/store';
+import type { StorePlatform, StoreRecord } from '../../../types/store';
 import type { StoreOperatorRelation } from '../../../types/storeOperator';
 import type { TrafficConversionRecord, TrafficConversionStore } from '../../../types/traffic';
 import { createStoreMatcher } from '../../../utils/storeStandardization';
@@ -42,6 +43,7 @@ interface StoreBusinessData {
   stores: StoreRecord[];
   orders: TemuOrderDetail[];
   trafficRecords: TrafficConversionRecord[];
+  effectiveNewListings: EffectiveNewListingRecord[];
   relations: StoreOperatorRelation[];
   operators: OperatorRecord[];
 }
@@ -147,10 +149,11 @@ function normalizeStoreName(value: unknown) {
   return String(value ?? '').replace(/\s+/g, '').trim().toLowerCase();
 }
 
-function getProductKey(order: TemuOrderDetail) {
-  return [order.productSku, order.skuCode, order.skcCode, order.skc, order.productName]
-    .map((value) => String(value ?? '').trim())
-    .find(Boolean) || '';
+function normalizeStorePlatform(value: unknown): StorePlatform {
+  const platform = String(value ?? '').trim();
+  return ['TEMU', '1688', 'Amazon', 'TikTok', 'Shopify', 'Other'].includes(platform)
+    ? platform as StorePlatform
+    : 'Other';
 }
 
 function getPrimaryOperator(
@@ -200,6 +203,20 @@ function getOrderStoreId(order: TemuOrderDetail, resolveStoreKey: (storeName: st
   return resolveStoreKey(order.storeName);
 }
 
+function getEffectiveListingStoreId(
+  item: EffectiveNewListingRecord,
+  resolveStoreKey: (storeName: string) => { storeId: string; storeName: string },
+) {
+  const storeId = String(item.storeId ?? '').trim();
+  if (storeId) {
+    return {
+      storeId,
+      storeName: item.storeName || storeId,
+    };
+  }
+  return resolveStoreKey(item.storeName ?? '');
+}
+
 function buildMetric(
   storeId: string,
   dailyMap: Map<string, Map<string, number>>,
@@ -239,6 +256,7 @@ function buildStoreTrendRows(data: StoreBusinessData) {
   const dateCandidates = [
     ...data.orders.map((order) => String(order.orderDate || order.orderTime || '').slice(0, 10)),
     ...data.trafficRecords.map((record) => record.date),
+    ...data.effectiveNewListings.map((item) => item.siteJoinDate),
   ].filter(Boolean).sort();
   const latestDate = dateCandidates.at(-1) || formatDateKey(new Date());
   const recentDates = getDateRange(latestDate, 7);
@@ -268,13 +286,26 @@ function buildStoreTrendRows(data: StoreBusinessData) {
       });
     }
   });
+  data.effectiveNewListings.forEach((item) => {
+    const resolved = getEffectiveListingStoreId(item, resolveStoreKey);
+    if (!storeMap.has(resolved.storeId)) {
+      storeMap.set(resolved.storeId, {
+        id: resolved.storeId,
+        storeName: resolved.storeName,
+        platform: normalizeStorePlatform(item.platform),
+        status: 'active',
+        createdAt: '',
+        updatedAt: '',
+      });
+    }
+  });
 
   const sales = new Map<string, Map<string, number>>();
   const firstOrders = new Map<string, Map<string, number>>();
   const newProducts = new Map<string, Map<string, number>>();
   const traffic = new Map<string, Map<string, number>>();
   const conversion = new Map<string, Map<string, number>>();
-  const productFirstDate = new Map<string, { storeId: string; date: string }>();
+  const effectiveListingKeys = new Set<string>();
 
   data.orders.forEach((order) => {
     const resolved = getOrderStoreId(order, resolveStoreKey);
@@ -283,15 +314,22 @@ function buildStoreTrendRows(data: StoreBusinessData) {
     if (order.isFirstOrder) {
       addToDaily(firstOrders, resolved.storeId, date, 1);
     }
-    const productKey = getProductKey(order);
-    const uniqueKey = productKey ? `${resolved.storeId}|${productKey}` : '';
-    const current = uniqueKey ? productFirstDate.get(uniqueKey) : undefined;
-    if (uniqueKey && (!current || date < current.date)) {
-      productFirstDate.set(uniqueKey, { storeId: resolved.storeId, date });
-    }
   });
 
-  productFirstDate.forEach(({ storeId, date }) => addToDaily(newProducts, storeId, date, 1));
+  data.effectiveNewListings.forEach((item) => {
+    const date = String(item.siteJoinDate || '').slice(0, 10);
+    const skc = String(item.skc ?? '').trim().toLowerCase();
+    if (!date || !skc) {
+      return;
+    }
+    const resolved = getEffectiveListingStoreId(item, resolveStoreKey);
+    const uniqueKey = `${resolved.storeId}|${date}|${skc}`;
+    if (effectiveListingKeys.has(uniqueKey)) {
+      return;
+    }
+    effectiveListingKeys.add(uniqueKey);
+    addToDaily(newProducts, resolved.storeId, date, 1);
+  });
 
   data.trafficRecords.forEach((record) => {
     const store = record.storeId
@@ -513,6 +551,7 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
     stores: [],
     orders: [],
     trafficRecords: [],
+    effectiveNewListings: [],
     relations: [],
     operators: [],
   });
@@ -520,6 +559,7 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
     stores: [],
     orders: [],
     trafficRecords: [],
+    effectiveNewListings: [],
     relations: [],
     operators: [],
   });
@@ -530,22 +570,26 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
       referenceDataService.loadStores(),
       orderImportStorageDataSource.loadRecentStore({ recentDays: 37, limit: 20000 }),
       fetchJson<TrafficConversionStore>('/api/persistent-data/trafficConversionStore', { records: [], batches: [] }),
+      fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []),
       referenceDataService.loadStoreOperatorRelations(),
       referenceDataService.loadOperators(),
       fetchJson<StoreRecord[]>('/api/stores?scope=company-dashboard', []),
       fetchJson<TemuOrderImportStore>('/api/persistent-data/orderImportStore?recentDays=37&limit=20000&scope=company-dashboard', { batches: [] }),
       fetchJson<TrafficConversionStore>('/api/persistent-data/trafficConversionStore?scope=company-dashboard', { records: [], batches: [] }),
+      fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings?scope=company-dashboard', []),
       fetchJson<StoreOperatorRelation[]>('/api/store-operator-relations?scope=company-dashboard', []),
       fetchJson<OperatorRecord[]>('/api/operators?scope=company-dashboard', []),
     ]).then(([
       stores,
       orderStore,
       trafficStore,
+      effectiveNewListings,
       relations,
       operators,
       rankingStores,
       rankingOrderStore,
       rankingTrafficStore,
+      rankingEffectiveNewListings,
       rankingRelations,
       rankingOperators,
     ]) => {
@@ -554,6 +598,7 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
           stores,
           orders: orderStore.batches.flatMap((batch) => batch.orders ?? []),
           trafficRecords: trafficStore.records ?? [],
+          effectiveNewListings,
           relations,
           operators,
         });
@@ -561,6 +606,7 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
           stores: rankingStores,
           orders: rankingOrderStore.batches.flatMap((batch) => batch.orders ?? []),
           trafficRecords: rankingTrafficStore.records ?? [],
+          effectiveNewListings: rankingEffectiveNewListings,
           relations: rankingRelations,
           operators: rankingOperators,
         });
