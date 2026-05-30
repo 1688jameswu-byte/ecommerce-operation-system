@@ -40,12 +40,24 @@ export const referenceDataService = {
     return fetchCached<StoreRecord[]>('stores', '/api/stores', []);
   },
 
+  loadCompanyStores() {
+    return fetchCached<StoreRecord[]>('company-stores', '/api/stores?scope=company-dashboard', []);
+  },
+
   loadOperators() {
     return fetchCached<OperatorRecord[]>('operators', '/api/operators', []);
   },
 
+  loadCompanyOperators() {
+    return fetchCached<OperatorRecord[]>('company-operators', '/api/operators?scope=company-dashboard', []);
+  },
+
   loadStoreOperatorRelations() {
     return fetchCached<StoreOperatorRelation[]>('store-operator-relations', '/api/store-operator-relations', []);
+  },
+
+  loadCompanyStoreOperatorRelations() {
+    return fetchCached<StoreOperatorRelation[]>('company-store-operator-relations', '/api/store-operator-relations?scope=company-dashboard', []);
   },
 
   async loadAll() {

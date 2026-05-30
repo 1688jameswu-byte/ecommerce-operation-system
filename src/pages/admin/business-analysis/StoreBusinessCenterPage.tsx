@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { orderImportStorageDataSource } from '../../../data-source/orderImportStorageDataSource';
 import { referenceDataService } from '../../../services/referenceDataService';
 import type { CurrentUser } from '../../../types/auth';
 import type { EffectiveNewListingRecord } from '../../../types/effectiveNewListing';
 import type { OperatorRecord } from '../../../types/operator';
-import type { TemuOrderDetail, TemuOrderImportStore } from '../../../types/order';
 import type { StorePlatform, StoreRecord } from '../../../types/store';
 import type { StoreOperatorRelation } from '../../../types/storeOperator';
 import type { TrafficConversionRecord, TrafficConversionStore } from '../../../types/traffic';
@@ -41,11 +39,23 @@ interface StoreTrendRow {
 
 interface StoreBusinessData {
   stores: StoreRecord[];
-  orders: TemuOrderDetail[];
+  orderDailyRecords: StoreBusinessOrderDailyRecord[];
   trafficRecords: TrafficConversionRecord[];
   effectiveNewListings: EffectiveNewListingRecord[];
   relations: StoreOperatorRelation[];
   operators: OperatorRecord[];
+}
+
+interface StoreBusinessOrderDailyRecord {
+  storeName: string;
+  orderDate: string;
+  salesAmount: number;
+  firstOrderCount: number;
+  orderCount: number;
+}
+
+interface StoreBusinessOrderDailyResponse {
+  records: StoreBusinessOrderDailyRecord[];
 }
 
 const trendConfigs: Array<{ key: TrendKey; label: string; unit: string; percentValue?: boolean }> = [
@@ -192,17 +202,6 @@ function setDaily(
   map.set(storeId, storeMap);
 }
 
-function getOrderStoreId(order: TemuOrderDetail, resolveStoreKey: (storeName: string) => { storeId: string; storeName: string }) {
-  const storeId = String((order as TemuOrderDetail & { storeId?: string }).storeId ?? '').trim();
-  if (storeId) {
-    return {
-      storeId,
-      storeName: order.storeName || storeId,
-    };
-  }
-  return resolveStoreKey(order.storeName);
-}
-
 function getEffectiveListingStoreId(
   item: EffectiveNewListingRecord,
   resolveStoreKey: (storeName: string) => { storeId: string; storeName: string },
@@ -254,7 +253,7 @@ function rankMetric(rows: StoreTrendRow[], key: TrendKey) {
 
 function buildStoreTrendRows(data: StoreBusinessData) {
   const dateCandidates = [
-    ...data.orders.map((order) => String(order.orderDate || order.orderTime || '').slice(0, 10)),
+    ...data.orderDailyRecords.map((record) => record.orderDate),
     ...data.trafficRecords.map((record) => record.date),
     ...data.effectiveNewListings.map((item) => item.siteJoinDate),
   ].filter(Boolean).sort();
@@ -273,8 +272,8 @@ function buildStoreTrendRows(data: StoreBusinessData) {
   const storeMap = new Map<string, StoreRecord>();
 
   data.stores.forEach((store) => storeMap.set(store.id, store));
-  data.orders.forEach((order) => {
-    const resolved = getOrderStoreId(order, resolveStoreKey);
+  data.orderDailyRecords.forEach((record) => {
+    const resolved = resolveStoreKey(record.storeName);
     if (!storeMap.has(resolved.storeId)) {
       storeMap.set(resolved.storeId, {
         id: resolved.storeId,
@@ -307,13 +306,10 @@ function buildStoreTrendRows(data: StoreBusinessData) {
   const conversion = new Map<string, Map<string, number>>();
   const effectiveListingKeys = new Set<string>();
 
-  data.orders.forEach((order) => {
-    const resolved = getOrderStoreId(order, resolveStoreKey);
-    const date = String(order.orderDate || order.orderTime || '').slice(0, 10);
-    addToDaily(sales, resolved.storeId, date, Number(order.salesAmount) || 0);
-    if (order.isFirstOrder) {
-      addToDaily(firstOrders, resolved.storeId, date, 1);
-    }
+  data.orderDailyRecords.forEach((record) => {
+    const resolved = resolveStoreKey(record.storeName);
+    addToDaily(sales, resolved.storeId, record.orderDate, Number(record.salesAmount) || 0);
+    addToDaily(firstOrders, resolved.storeId, record.orderDate, Number(record.firstOrderCount) || 0);
   });
 
   data.effectiveNewListings.forEach((item) => {
@@ -549,7 +545,7 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
   } | null>(null);
   const [data, setData] = useState<StoreBusinessData>({
     stores: [],
-    orders: [],
+    orderDailyRecords: [],
     trafficRecords: [],
     effectiveNewListings: [],
     relations: [],
@@ -557,7 +553,7 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
   });
   const [rankingData, setRankingData] = useState<StoreBusinessData>({
     stores: [],
-    orders: [],
+    orderDailyRecords: [],
     trafficRecords: [],
     effectiveNewListings: [],
     relations: [],
@@ -568,17 +564,17 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
     let cancelled = false;
     Promise.all([
       referenceDataService.loadStores(),
-      orderImportStorageDataSource.loadRecentStore({ recentDays: 37, limit: 20000 }),
+      fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37', { records: [] }),
       fetchJson<TrafficConversionStore>('/api/persistent-data/trafficConversionStore', { records: [], batches: [] }),
       fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []),
       referenceDataService.loadStoreOperatorRelations(),
       referenceDataService.loadOperators(),
-      fetchJson<StoreRecord[]>('/api/stores?scope=company-dashboard', []),
-      fetchJson<TemuOrderImportStore>('/api/persistent-data/orderImportStore?recentDays=37&limit=20000&scope=company-dashboard', { batches: [] }),
+      referenceDataService.loadCompanyStores(),
+      fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37&scope=company-dashboard', { records: [] }),
       fetchJson<TrafficConversionStore>('/api/persistent-data/trafficConversionStore?scope=company-dashboard', { records: [], batches: [] }),
       fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings?scope=company-dashboard', []),
-      fetchJson<StoreOperatorRelation[]>('/api/store-operator-relations?scope=company-dashboard', []),
-      fetchJson<OperatorRecord[]>('/api/operators?scope=company-dashboard', []),
+      referenceDataService.loadCompanyStoreOperatorRelations(),
+      referenceDataService.loadCompanyOperators(),
     ]).then(([
       stores,
       orderStore,
@@ -596,7 +592,7 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
       if (!cancelled) {
         setData({
           stores,
-          orders: orderStore.batches.flatMap((batch) => batch.orders ?? []),
+          orderDailyRecords: orderStore.records,
           trafficRecords: trafficStore.records ?? [],
           effectiveNewListings,
           relations,
@@ -604,7 +600,7 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
         });
         setRankingData({
           stores: rankingStores,
-          orders: rankingOrderStore.batches.flatMap((batch) => batch.orders ?? []),
+          orderDailyRecords: rankingOrderStore.records,
           trafficRecords: rankingTrafficStore.records ?? [],
           effectiveNewListings: rankingEffectiveNewListings,
           relations: rankingRelations,

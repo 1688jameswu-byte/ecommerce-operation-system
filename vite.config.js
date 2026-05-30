@@ -2181,6 +2181,41 @@ function summarizeOrderImportRecords(records) {
   };
 }
 
+function buildStoreBusinessOrderDaily(data, searchParams) {
+  const { start, end } = resolveOrderDateRange(data, searchParams);
+  const groups = new Map();
+
+  for (const batch of data?.batches ?? []) {
+    for (const order of batch.orders ?? []) {
+      const date = getOrderDateKey(order);
+      if (!date || (start && date < start) || (end && date > end)) {
+        continue;
+      }
+      const storeName = normalizeOrderImportStoreName(order?.storeName);
+      const key = `${storeName}|${date}`;
+      const current = groups.get(key) ?? {
+        storeName,
+        orderDate: date,
+        salesAmount: 0,
+        firstOrderCount: 0,
+        orderCount: 0,
+      };
+      current.salesAmount += Number(order?.salesAmount) || 0;
+      current.firstOrderCount += order?.isFirstOrder ? 1 : 0;
+      current.orderCount += 1;
+      groups.set(key, current);
+    }
+  }
+
+  return {
+    dateStart: start,
+    dateEnd: end,
+    records: Array.from(groups.values())
+      .map((item) => ({ ...item, salesAmount: Number(item.salesAmount.toFixed(2)) }))
+      .sort((first, second) => `${first.storeName} ${first.orderDate}`.localeCompare(`${second.storeName} ${second.orderDate}`)),
+  };
+}
+
 function resolveOrderDateRange(data, searchParams) {
   const start = searchParams.get('dateStart') || searchParams.get('startDate') || '';
   const end = searchParams.get('dateEnd') || searchParams.get('endDate') || '';
@@ -2212,6 +2247,10 @@ function resolveOrderDateRange(data, searchParams) {
 
 function filterOrderImportStoreByQuery(data, searchParams, currentUser) {
   const view = searchParams.get('view') || '';
+  if (view === 'store-business-daily') {
+    return buildStoreBusinessOrderDaily(data, searchParams);
+  }
+
   if (view === 'records') {
     const allRecords = buildOrderImportRecords(data);
     const filteredRecords = filterOrderImportRecords(allRecords, searchParams);
