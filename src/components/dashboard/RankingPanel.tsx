@@ -17,11 +17,13 @@ interface RankingPanelProps {
 function formatRankingValue(item: RankingItem) {
   const isCurrency = item.unit === '¥';
   const formatter = new Intl.NumberFormat('zh-CN', {
-    minimumFractionDigits: isCurrency ? 2 : 0,
-    maximumFractionDigits: isCurrency ? 2 : 0,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   });
 
-  return `${isCurrency ? '¥ ' : ''}${formatter.format(item.value)}${!isCurrency && item.unit ? item.unit : ''}`;
+  return `${isCurrency ? '¥' : ''}${formatter.format(isCurrency ? Math.round(item.value) : item.value)}${
+    !isCurrency && item.unit ? item.unit : ''
+  }`;
 }
 
 function getRankLabel(rank: number, showTopThreeBadge: boolean) {

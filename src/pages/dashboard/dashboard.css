@@ -463,11 +463,9 @@
 }
 
 .ranking-row-sales-compact .ranking-value {
-  flex: 0 0 86px;
-  overflow: hidden;
+  flex: 0 0 92px;
   font-size: 16px;
   text-align: right;
-  text-overflow: clip;
 }
 
 .ranking-row-sales-compact .ranking-growth {
