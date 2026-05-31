@@ -3843,6 +3843,16 @@
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
+  min-width: 0;
+}
+
+.store-metric header .store-trend-card-title {
+  flex: 0 0 auto;
+  color: #eaf4ff;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .store-metric header strong {

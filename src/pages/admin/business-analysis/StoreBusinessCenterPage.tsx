@@ -547,7 +547,7 @@ function MetricPanel({
   return (
     <div className={`store-metric store-metric-${status.key}${enlarged ? ' store-metric-large' : ''}`}>
       <header>
-        <span>{config.label}</span>
+        <span className="store-trend-card-title">{config.label}</span>
         <div>
           <em>{status.label}</em>
           {onExpand && (
