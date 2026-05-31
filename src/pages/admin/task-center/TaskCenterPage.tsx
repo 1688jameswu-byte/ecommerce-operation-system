@@ -457,7 +457,28 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
   }, []);
 
   const todayKey = formatDateKey(new Date());
-  const filteredTasks = tasks
+  const displayTasks = useMemo(() => {
+    const hiddenIds = new Set<string>();
+    tasks.forEach((task) => {
+      if (hiddenIds.has(task.id)) {
+        return;
+      }
+      const duplicate = findOpenTaskByBusinessKey(
+        tasks.filter((item) => item.id !== task.id && !hiddenIds.has(item.id)),
+        task,
+      );
+      if (!duplicate) {
+        return;
+      }
+
+      const keepDuplicate =
+        duplicate.status === 'doing' && task.status !== 'doing' ||
+        (duplicate.status === task.status && duplicate.updatedAt > task.updatedAt);
+      hiddenIds.add(keepDuplicate ? task.id : duplicate.id);
+    });
+    return tasks.filter((task) => !hiddenIds.has(task.id));
+  }, [tasks]);
+  const filteredTasks = displayTasks
     .filter((task) =>
       (statusFilter === 'active' ? task.status === 'todo' || task.status === 'doing' : !statusFilter || task.status === statusFilter) &&
       (!activeTaskQuickFilter.taskId || task.id === activeTaskQuickFilter.taskId) &&
@@ -489,29 +510,29 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
     });
 
   const summary = {
-    total: tasks.length,
-    todo: tasks.filter((task) => task.status === 'todo').length,
-    doing: tasks.filter((task) => task.status === 'doing').length,
-    dueToday: tasks.filter((task) => getDueState(task) === 'today').length,
-    overdue: tasks.filter((task) => getDueState(task) === 'overdue').length,
-    aiOpen: tasks.filter((task) => isAiGeneratedTask(task) && isOpenTask(task)).length,
-    high: tasks.filter((task) => task.priority === 'high' && isOpenTask(task)).length,
+    total: displayTasks.length,
+    todo: displayTasks.filter((task) => task.status === 'todo').length,
+    doing: displayTasks.filter((task) => task.status === 'doing').length,
+    dueToday: displayTasks.filter((task) => getDueState(task) === 'today').length,
+    overdue: displayTasks.filter((task) => getDueState(task) === 'overdue').length,
+    aiOpen: displayTasks.filter((task) => isAiGeneratedTask(task) && isOpenTask(task)).length,
+    high: displayTasks.filter((task) => task.priority === 'high' && isOpenTask(task)).length,
   };
   const reviewSummary = {
-    completed: tasks.filter((task) => task.status === 'done').length,
-    reviewed: tasks.filter((task) => task.reviewStatus && task.reviewStatus !== 'none').length,
-    improved: tasks.filter((task) => task.reviewStatus === 'improved').length,
-    watching: tasks.filter((task) => task.reviewStatus === 'watching').length,
-    notImproved: tasks.filter((task) => task.reviewStatus === 'not_improved').length,
-    aiTotal: tasks.filter(isAiGeneratedTask).length,
-    aiCompleted: tasks.filter((task) => isAiGeneratedTask(task) && task.status === 'done').length,
+    completed: displayTasks.filter((task) => task.status === 'done').length,
+    reviewed: displayTasks.filter((task) => task.reviewStatus && task.reviewStatus !== 'none').length,
+    improved: displayTasks.filter((task) => task.reviewStatus === 'improved').length,
+    watching: displayTasks.filter((task) => task.reviewStatus === 'watching').length,
+    notImproved: displayTasks.filter((task) => task.reviewStatus === 'not_improved').length,
+    aiTotal: displayTasks.filter(isAiGeneratedTask).length,
+    aiCompleted: displayTasks.filter((task) => isAiGeneratedTask(task) && task.status === 'done').length,
   };
   const aiCompletionRate = reviewSummary.aiTotal > 0
     ? `${Math.round((reviewSummary.aiCompleted / reviewSummary.aiTotal) * 100)}%`
     : '-';
   const reportTasks = operatorFilter
-    ? tasks.filter((task) => taskMatchesOperator(task, operatorFilter, operatorMap))
-    : tasks;
+    ? displayTasks.filter((task) => taskMatchesOperator(task, operatorFilter, operatorMap))
+    : displayTasks;
   const reportSummary = {
     createdToday: reportTasks.filter((task) => isSameLocalDate(task.createdAt, todayKey)).length,
     completedToday: reportTasks.filter((task) => isSameLocalDate(task.completedAt || task.updatedAt, todayKey) && (task.status === 'done' || task.status === 'closed')).length,
@@ -540,10 +561,10 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
     .slice(0, 12);
 
   useEffect(() => {
-    setReportText(buildReportLines({ tasks, operators, selectedOperatorId: operatorFilter }));
-  }, [tasks, operators, operatorFilter]);
+    setReportText(buildReportLines({ tasks: displayTasks, operators, selectedOperatorId: operatorFilter }));
+  }, [displayTasks, operators, operatorFilter]);
 
-  const operatorStats = Array.from(tasks.reduce((map, task) => {
+  const operatorStats = Array.from(displayTasks.reduce((map, task) => {
     const key = getAssigneeKey(task);
     const current = map.get(key) ?? {
       key,
@@ -569,7 +590,7 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
     .filter((item) => item.openCount > 0 || item.overdueCount > 0 || item.highCount > 0)
     .sort((first, second) => second.overdueCount - first.overdueCount || second.highCount - first.highCount || second.openCount - first.openCount)
     .slice(0, 6);
-  const storeStats = Array.from(tasks.reduce((map, task) => {
+  const storeStats = Array.from(displayTasks.reduce((map, task) => {
     const key = getStoreKey(task);
     const current = map.get(key) ?? {
       key,
@@ -595,9 +616,9 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
     .slice(0, 6);
   const sourceStats = (Object.keys(sourceLabels) as OperationTaskSourceType[]).map((sourceType) => ({
     sourceType,
-    totalCount: tasks.filter((task) => task.sourceType === sourceType).length,
-    openCount: tasks.filter((task) => task.sourceType === sourceType && isOpenTask(task)).length,
-    overdueCount: tasks.filter((task) => task.sourceType === sourceType && getDueState(task) === 'overdue').length,
+    totalCount: displayTasks.filter((task) => task.sourceType === sourceType).length,
+    openCount: displayTasks.filter((task) => task.sourceType === sourceType && isOpenTask(task)).length,
+    overdueCount: displayTasks.filter((task) => task.sourceType === sourceType && getDueState(task) === 'overdue').length,
   }));
   const visibleStatuses = (statusFilter === 'active'
     ? ['todo', 'doing']

@@ -79,8 +79,23 @@ export function findOpenTaskBySource(
   return sourceId ? tasks.find((task) => sourceTypeMatches(task, sourceType) && task.sourceId === sourceId && isOpenTask(task)) : undefined;
 }
 
-function normalizeStoreKey(task: Partial<OperationTaskRecord>) {
-  return String(task.storeId || task.storeName || '').replace(/\s+/g, '').trim().toLowerCase();
+function normalizeTaskIdentity(value: unknown) {
+  return String(value ?? '').replace(/\s+/g, '').trim().toLowerCase();
+}
+
+function getTaskStoreKeys(task: Partial<OperationTaskRecord>) {
+  const values = [
+    task.storeId,
+    task.storeName,
+    ...Array.from(String(task.sourceId ?? '').matchAll(/store-[a-z0-9-]+/gi)).map((match) => match[0]),
+  ];
+  return new Set(values.map(normalizeTaskIdentity).filter(Boolean));
+}
+
+function taskStoreMatches(first: Partial<OperationTaskRecord>, second: Partial<OperationTaskRecord>) {
+  const firstKeys = getTaskStoreKeys(first);
+  const secondKeys = getTaskStoreKeys(second);
+  return Array.from(firstKeys).some((key) => secondKeys.has(key));
 }
 
 function getTaskBusinessMetric(task: Partial<OperationTaskRecord>) {
@@ -107,15 +122,15 @@ function getTaskBusinessMetric(task: Partial<OperationTaskRecord>) {
 }
 
 export function findOpenTaskByBusinessKey(tasks: OperationTaskRecord[], nextTask: Partial<OperationTaskRecord>) {
-  const storeKey = normalizeStoreKey(nextTask);
+  const storeKeys = getTaskStoreKeys(nextTask);
   const metricKey = getTaskBusinessMetric(nextTask);
-  if (!storeKey || !metricKey) {
+  if (storeKeys.size === 0 || !metricKey) {
     return undefined;
   }
 
   return tasks.find((task) =>
     isOpenTask(task) &&
-    normalizeStoreKey(task) === storeKey &&
+    taskStoreMatches(task, nextTask) &&
     getTaskBusinessMetric(task) === metricKey
   );
 }
