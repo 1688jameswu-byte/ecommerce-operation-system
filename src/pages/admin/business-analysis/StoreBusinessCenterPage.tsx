@@ -259,6 +259,31 @@ function buildMetric(
   };
 }
 
+function getLatestDailyDate(storeId: string, dailyMaps: Array<Map<string, Map<string, number>>>) {
+  return dailyMaps
+    .flatMap((dailyMap) => Array.from(dailyMap.get(storeId)?.keys() ?? []))
+    .filter(Boolean)
+    .sort()
+    .at(-1) || '';
+}
+
+function getMetricDates(
+  storeId: string,
+  primaryMap: Map<string, Map<string, number>>,
+  fallbackMaps: Array<Map<string, Map<string, number>>>,
+) {
+  const endDate = getLatestDailyDate(storeId, [primaryMap]) || getLatestDailyDate(storeId, fallbackMaps);
+  if (!endDate) {
+    return { recentDates: [], baselineDates: [] };
+  }
+
+  const recentDates = getDateRange(endDate, 7);
+  return {
+    recentDates,
+    baselineDates: getDateRange(shiftDate(recentDates[0], -1), 30),
+  };
+}
+
 function rankMetric(rows: StoreTrendRow[], key: TrendKey) {
   const sorted = [...rows].sort((first, second) => second.metrics[key].changeRate - first.metrics[key].changeRate);
   sorted.forEach((row, index) => {
@@ -267,14 +292,6 @@ function rankMetric(rows: StoreTrendRow[], key: TrendKey) {
 }
 
 function buildStoreTrendRows(data: StoreBusinessData) {
-  const dateCandidates = [
-    ...data.orderDailyRecords.map((record) => record.orderDate),
-    ...data.trafficRecords.map((record) => record.date),
-    ...data.effectiveNewListings.map((item) => item.siteJoinDate),
-  ].filter(Boolean).sort();
-  const latestDate = dateCandidates.at(-1) || formatDateKey(new Date());
-  const recentDates = getDateRange(latestDate, 7);
-  const baselineDates = getDateRange(shiftDate(recentDates[0], -1), 30);
   const storeMatcher = createStoreMatcher(data.stores);
   const resolveStoreKey = (storeName: string) => {
     const identity = storeMatcher.match(storeName);
@@ -354,12 +371,20 @@ function buildStoreTrendRows(data: StoreBusinessData) {
   });
 
   const nextRows: StoreTrendRow[] = Array.from(storeMap.values()).map((store) => {
+    const orderFallbackMaps = [newProducts, traffic, conversion];
+    const trafficFallbackMaps = [sales, firstOrders, newProducts];
+    const listingFallbackMaps = [sales, firstOrders, traffic, conversion];
+    const newProductDates = getMetricDates(store.id, newProducts, listingFallbackMaps);
+    const firstOrderDates = getMetricDates(store.id, firstOrders, orderFallbackMaps);
+    const salesDates = getMetricDates(store.id, sales, orderFallbackMaps);
+    const trafficDates = getMetricDates(store.id, traffic, trafficFallbackMaps);
+    const conversionDates = getMetricDates(store.id, conversion, trafficFallbackMaps);
     const metrics = {
-      newProduct: { ...buildMetric(store.id, newProducts, recentDates, baselineDates), teamAverage: 0, rank: 0 },
-      firstOrder: { ...buildMetric(store.id, firstOrders, recentDates, baselineDates), teamAverage: 0, rank: 0 },
-      sales: { ...buildMetric(store.id, sales, recentDates, baselineDates), teamAverage: 0, rank: 0 },
-      traffic: { ...buildMetric(store.id, traffic, recentDates, baselineDates), teamAverage: 0, rank: 0 },
-      conversion: { ...buildMetric(store.id, conversion, recentDates, baselineDates), teamAverage: 0, rank: 0 },
+      newProduct: { ...buildMetric(store.id, newProducts, newProductDates.recentDates, newProductDates.baselineDates), teamAverage: 0, rank: 0 },
+      firstOrder: { ...buildMetric(store.id, firstOrders, firstOrderDates.recentDates, firstOrderDates.baselineDates), teamAverage: 0, rank: 0 },
+      sales: { ...buildMetric(store.id, sales, salesDates.recentDates, salesDates.baselineDates), teamAverage: 0, rank: 0 },
+      traffic: { ...buildMetric(store.id, traffic, trafficDates.recentDates, trafficDates.baselineDates), teamAverage: 0, rank: 0 },
+      conversion: { ...buildMetric(store.id, conversion, conversionDates.recentDates, conversionDates.baselineDates), teamAverage: 0, rank: 0 },
     };
     return {
       storeId: store.id,
