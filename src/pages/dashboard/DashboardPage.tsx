@@ -153,6 +153,7 @@ function DashboardPage() {
                   showGrowth={rule.showGrowth}
                   autoScroll={ruleId === 'storeSalesRanking'}
                   visibleRows={8}
+                  compactSalesLayout
                 />
               </Suspense>
             );

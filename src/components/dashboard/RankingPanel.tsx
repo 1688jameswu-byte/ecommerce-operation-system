@@ -11,6 +11,7 @@ interface RankingPanelProps {
   showGrowth: boolean;
   autoScroll?: boolean;
   visibleRows?: number;
+  compactSalesLayout?: boolean;
 }
 
 function formatRankingValue(item: RankingItem) {
@@ -31,7 +32,17 @@ function getRankLabel(rank: number, showTopThreeBadge: boolean) {
   return ['冠', '亚', '季'][rank - 1];
 }
 
-function RankingPanel({ title, period, items, emptyText, showTopThreeBadge, showGrowth, autoScroll = false, visibleRows = 8 }: RankingPanelProps) {
+function RankingPanel({
+  title,
+  period,
+  items,
+  emptyText,
+  showTopThreeBadge,
+  showGrowth,
+  autoScroll = false,
+  visibleRows = 8,
+  compactSalesLayout = false,
+}: RankingPanelProps) {
   const shouldAutoScroll = autoScroll && items.length > visibleRows;
   const displayItems = shouldAutoScroll ? [...items, ...items] : items;
   const listStyle = shouldAutoScroll
@@ -48,12 +59,16 @@ function RankingPanel({ title, period, items, emptyText, showTopThreeBadge, show
           {displayItems.map((item, index) => (
             <li
               key={`${title}-${index}-${item.rank}-${item.name}`}
-              className={`ranking-row ${showGrowth ? 'ranking-row-has-growth' : ''}`}
+              className={`ranking-row ${showGrowth ? 'ranking-row-has-growth' : ''} ${
+                compactSalesLayout ? 'ranking-row-sales-compact' : ''
+              }`}
             >
               <span className={`ranking-rank ranking-rank-${item.rank}`}>
                 {getRankLabel(item.rank, showTopThreeBadge)}
               </span>
-              <span className="ranking-name">{item.name}</span>
+              <span className="ranking-name" title={item.name}>
+                {item.name}
+              </span>
               <span className="ranking-value">{formatRankingValue(item)}</span>
               {showGrowth && typeof item.growthPercent === 'number' && (
                 <span className={`ranking-growth ranking-growth-${item.trend ?? 'flat'}`}>
