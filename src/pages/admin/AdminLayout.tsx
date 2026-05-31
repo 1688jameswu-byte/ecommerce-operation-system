@@ -4,6 +4,7 @@ import PlaceholderPage from './PlaceholderPage';
 import { useVisibleStores } from '../../auth/useVisibleStores';
 import { logoutCurrentUser } from '../../auth/currentUser';
 import type { CurrentUser, UserRole } from '../../types/auth';
+import type { DashboardData } from '../../types/dashboard';
 import type { SalesOrderRecord } from '../../types/fact';
 import type { TemuOrderDetail, TemuOrderImportStore } from '../../types/order';
 import type { OperationTaskPriority, OperationTaskRecord, OperationTaskStatus } from '../../types/task';
@@ -190,6 +191,7 @@ function AdminHome({
   const [salesOrders, setSalesOrders] = useState<SalesOrderRecord[]>([]);
   const [tasks, setTasks] = useState<OperationTaskRecord[]>([]);
   const [riskWarnings, setRiskWarnings] = useState<TrafficWarningResult[]>([]);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const isAdmin = currentUser.role === 'admin';
   const visibleStoreSet = new Set(visibleStoreIds.filter(Boolean));
   const visibleStoreNameSet = new Set(visibleStoreNames.filter(Boolean));
@@ -216,6 +218,8 @@ function AdminHome({
   const abnormalStoreCount = new Set(riskWarnings.map((warning) => warning.storeName).filter(Boolean)).size;
   const scopedAbnormalStoreCount = new Set(scopedWarnings.map((warning) => warning.storeName).filter(Boolean)).size;
   const yesterdaySales = yesterdayOrders.reduce((total, order) => total + (Number(order.salesAmount) || 0), 0);
+  const dashboardSalesMetric = dashboardData?.metrics.find((metric) => metric.id === 'yesterdaySalesAmount');
+  const dashboardOrderMetric = dashboardData?.metrics.find((metric) => metric.id === 'yesterdayOrderCount');
   const highPriorityTaskCount = openTasks.filter((task) => task.priority === 'high').length;
   const aiReminderItems = [
     ...scopedWarnings
@@ -252,8 +256,39 @@ function AdminHome({
   const overdueTitle = currentUser.role === 'operator' ? '我的超期任务' : currentUser.role === 'leader' ? '组内超期任务' : '已超期任务';
   const warningTitle = currentUser.role === 'operator' ? '我的最新预警' : currentUser.role === 'leader' ? '组内最新预警' : '最新预警';
 
+  const displayMetrics = currentUser.role === 'admin'
+    ? metrics.map((metric, index) => {
+        if (index === 0) {
+          return {
+            ...metric,
+            label: dashboardSalesMetric?.title || metric.label,
+            value: `¥${formatAmount(dashboardSalesMetric?.value ?? yesterdaySales)}`,
+          };
+        }
+
+        if (index === 1) {
+          return {
+            ...metric,
+            label: dashboardOrderMetric?.title || metric.label,
+            value: (dashboardOrderMetric?.value ?? yesterdayOrders.length).toLocaleString('zh-CN'),
+          };
+        }
+
+        return metric;
+      })
+    : metrics;
+
   useEffect(() => {
     let cancelled = false;
+    void import('../../services/dashboardDataService')
+      .then((module) => module.getDashboardData(true))
+      .then((data) => {
+        if (!cancelled) {
+          setDashboardData(data);
+        }
+      })
+      .catch(() => undefined);
+
     Promise.all([
       fetchAdminJson<TemuOrderImportStore>('/api/persistent-data/orderImportStore?recentDays=7&limit=500', { batches: [] }),
       fetchAdminJson<OperationTaskRecord[]>('/api/tasks', []),
@@ -278,7 +313,7 @@ function AdminHome({
   return (
     <section className="admin-home">
       <section className="admin-home-metrics">
-        {metrics.map((metric) => (
+        {displayMetrics.map((metric) => (
           <article key={metric.label} className={`admin-home-metric ${metric.tone ? `admin-home-metric-${metric.tone}` : ''}`}>
             <span>{metric.label}</span>
             <strong>{metric.value}</strong>

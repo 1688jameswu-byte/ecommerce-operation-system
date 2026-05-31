@@ -14,7 +14,7 @@ import type {
   OperationTaskStatus,
 } from '../../../types/task';
 import { taskPriorityLabelMap, taskReviewStatusLabelMap, taskSourceTypeLabelMap } from '../../../utils/operationLanguage';
-import { buildExistingTaskUpdate, findOpenTaskByDedupKey, findOpenTaskBySource } from '../../../utils/operationTaskSourceAdapter';
+import { buildExistingTaskUpdate, findOpenTaskByBusinessKey, findOpenTaskByDedupKey, findOpenTaskBySource } from '../../../utils/operationTaskSourceAdapter';
 import { filterTasksByPermission } from '../../../utils/permissionScope';
 import { getStatusLabel } from '../../../utils/statusLabel';
 import ConfirmDeleteModal from '../ConfirmDeleteModal';
@@ -639,7 +639,9 @@ function TaskCenterPage({ currentUser }: { currentUser: CurrentUser }) {
       taskDataSource.update(editingId, payload);
       setMessage('任务已更新。');
     } else {
-      const existingTask = findOpenTaskByDedupKey(tasks, payload.taskDedupKey) || findOpenTaskBySource(tasks, payload.sourceType, payload.sourceId);
+      const existingTask = findOpenTaskByDedupKey(tasks, payload.taskDedupKey) ||
+        findOpenTaskBySource(tasks, payload.sourceType, payload.sourceId) ||
+        findOpenTaskByBusinessKey(tasks, payload);
       if (existingTask) {
         taskDataSource.update(existingTask.id, buildExistingTaskUpdate(existingTask, payload));
         setMessage('该异常/预警已有未关闭任务，已更新持续触发信息。');

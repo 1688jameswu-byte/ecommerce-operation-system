@@ -79,6 +79,47 @@ export function findOpenTaskBySource(
   return sourceId ? tasks.find((task) => sourceTypeMatches(task, sourceType) && task.sourceId === sourceId && isOpenTask(task)) : undefined;
 }
 
+function normalizeStoreKey(task: Partial<OperationTaskRecord>) {
+  return String(task.storeId || task.storeName || '').replace(/\s+/g, '').trim().toLowerCase();
+}
+
+function getTaskBusinessMetric(task: Partial<OperationTaskRecord>) {
+  const text = [
+    task.taskDedupKey,
+    task.sourceId,
+    task.title,
+    task.sourceContent,
+    (task as Partial<OperationTaskRecord> & { sourceRuleId?: string }).sourceRuleId,
+    (task as Partial<OperationTaskRecord> & { anomalyType?: string }).anomalyType,
+  ].map((value) => String(value ?? '').toLowerCase()).join('|');
+
+  if (
+    text.includes('visitor-count-decline') ||
+    text.includes('访客数下降') ||
+    text.includes('商品访客数') ||
+    text.includes('productvisitors') ||
+    text.includes('traffic')
+  ) {
+    return 'traffic_drop';
+  }
+
+  return '';
+}
+
+export function findOpenTaskByBusinessKey(tasks: OperationTaskRecord[], nextTask: Partial<OperationTaskRecord>) {
+  const storeKey = normalizeStoreKey(nextTask);
+  const metricKey = getTaskBusinessMetric(nextTask);
+  if (!storeKey || !metricKey) {
+    return undefined;
+  }
+
+  return tasks.find((task) =>
+    isOpenTask(task) &&
+    normalizeStoreKey(task) === storeKey &&
+    getTaskBusinessMetric(task) === metricKey
+  );
+}
+
 export function buildExistingTaskUpdate(existingTask: OperationTaskRecord, nextTask: Partial<OperationTaskRecord>) {
   const latestAnomalyDate = nextTask.latestAnomalyDate || existingTask.latestAnomalyDate;
   const shouldIncrementDuration = Boolean(
@@ -106,7 +147,9 @@ function createTaskIfNotExists(task: Partial<OperationTaskRecord>): OperationTas
   const sourceType = task.sourceType ?? 'manual';
   const sourceId = task.sourceId ?? '';
   const tasks = taskDataSource.load();
-  const existingTask = findOpenTaskByDedupKey(tasks, task.taskDedupKey) || findOpenTaskBySource(tasks, sourceType, sourceId);
+  const existingTask = findOpenTaskByDedupKey(tasks, task.taskDedupKey) ||
+    findOpenTaskBySource(tasks, sourceType, sourceId) ||
+    findOpenTaskByBusinessKey(tasks, task);
 
   if (existingTask) {
     const updatedTask = taskDataSource.update(existingTask.id, buildExistingTaskUpdate(existingTask, task));

@@ -38,6 +38,7 @@ import {
   buildRiskWarningTaskDedupKey,
   buildRiskWarningTaskDraft,
   buildTaskCreateUrl,
+  findOpenTaskByBusinessKey,
   findOpenTaskByDedupKey,
 } from '../../../utils/operationTaskSourceAdapter';
 import {
@@ -197,7 +198,8 @@ function canAutoCreateCriticalTask(tasks: OperationTaskRecord[], warning: Traffi
     return false;
   }
 
-  if (findOpenTaskByDedupKey(tasks, buildRiskWarningTaskDedupKey(warning))) {
+  const draft = buildAutoCriticalTask(warning, '');
+  if (findOpenTaskByDedupKey(tasks, buildRiskWarningTaskDedupKey(warning)) || findOpenTaskByBusinessKey(tasks, draft)) {
     return false;
   }
 
@@ -633,7 +635,7 @@ function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
         warning,
         buildOperationSuggestion(warning.type, 'warning', suggestionTemplates),
       );
-      const openTask = findOpenTaskByDedupKey(nextTasks, draft.taskDedupKey);
+      const openTask = findOpenTaskByDedupKey(nextTasks, draft.taskDedupKey) || findOpenTaskByBusinessKey(nextTasks, draft);
 
       if (openTask) {
         if (openTask.latestAnomalyDate === draft.latestAnomalyDate) {
