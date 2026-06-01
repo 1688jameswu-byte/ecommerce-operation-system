@@ -544,6 +544,25 @@ function InfoTooltip({ label, text }: { label: string; text: string }) {
   );
 }
 
+function getMetricTips(config: typeof trendConfigs[number]) {
+  const metricName = config.key === 'newProduct'
+    ? '有效上新数'
+    : config.key === 'firstOrder'
+      ? '首单数'
+      : config.key === 'sales'
+        ? '销售额'
+        : config.key === 'traffic'
+          ? '访客数'
+          : '商详支付转化率';
+
+  return {
+    current: `当前店铺最近7天的平均${metricName}。`,
+    baseline: `当前店铺前30天的平均${metricName}，用作对比基线。`,
+    change: '最近7日均值相比前30日均值提升或下降的幅度。',
+    team: '本店变化幅度与团队平均变化幅度的差值。',
+  };
+}
+
 function MetricPanel({
   config,
   metric,
@@ -558,7 +577,8 @@ function MetricPanel({
   enlarged?: boolean;
 }) {
   const status = getStatus(metric.changeRate);
-  const showConversionTips = enlarged && config.key === 'conversion';
+  const showMetricTips = enlarged;
+  const tips = getMetricTips(config);
   return (
     <div className={`store-metric store-metric-${status.key}${enlarged ? ' store-metric-large' : ''}`}>
       <header>
@@ -575,38 +595,43 @@ function MetricPanel({
       <strong className={`store-trend-value store-trend-value-${metric.tone}`}>
         {metric.tone === 'up' ? '↑' : metric.tone === 'down' ? '↓' : '→'} {formatRate(metric.changeRate)}
       </strong>
-      {showConversionTips && (
-        <InfoTooltip
-          label="本店变化"
-          text="当前店铺最近7日转化率，相比前30日提升或下降的幅度。"
-        />
-      )}
       <b>排名 {metric.rank}/{teamSize}</b>
       <Sparkline
         values={config.key === 'conversion' ? metric.recentChartValues : metric.series}
         tone={metric.tone}
         percentValue={config.percentValue}
       />
-      <div className="store-metric-meta">
-        <span>
-          {showConversionTips ? (
-            <InfoTooltip label="最近7日平均转化率" text="当前店铺最近7天的平均商详支付转化率。" />
-          ) : '最近7日'} {formatMetricValue(metric.currentAvg, config)}
-        </span>
-        <span>
-          {showConversionTips ? (
-            <InfoTooltip label="前30日平均转化率" text="当前店铺前30天的平均商详支付转化率，用来作为对比基准。" />
-          ) : '前30日'} {formatMetricValue(metric.baselineAvg, config)}
-        </span>
-      </div>
-      <footer>
-        <span>
-          {showConversionTips ? (
-            <InfoTooltip label="对比团队" text="本店变化幅度与团队平均变化幅度的差值，例如高于团队 +8.3%。" />
-          ) : '团队平均'} {formatRate(metric.teamAverage)}
-        </span>
-        <strong>{getComparisonLabel(metric.changeRate, metric.teamAverage)}</strong>
-      </footer>
+      {showMetricTips ? (
+        <div className="store-detail-metric-list">
+          <div className="store-detail-metric-row">
+            <InfoTooltip label="最近7日平均值" text={tips.current} />
+            <strong>{formatMetricValue(metric.currentAvg, config)}</strong>
+          </div>
+          <div className="store-detail-metric-row">
+            <InfoTooltip label="前30日平均值" text={tips.baseline} />
+            <strong>{formatMetricValue(metric.baselineAvg, config)}</strong>
+          </div>
+          <div className="store-detail-metric-row">
+            <InfoTooltip label="本店变化" text={tips.change} />
+            <strong>{formatRate(metric.changeRate)}</strong>
+          </div>
+          <div className="store-detail-metric-row">
+            <InfoTooltip label="对比团队" text={tips.team} />
+            <strong>{getComparisonLabel(metric.changeRate, metric.teamAverage)}</strong>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="store-metric-meta">
+            <span>最近7日 {formatMetricValue(metric.currentAvg, config)}</span>
+            <span>前30日 {formatMetricValue(metric.baselineAvg, config)}</span>
+          </div>
+          <footer>
+            <span>团队平均 {formatRate(metric.teamAverage)}</span>
+            <strong>{getComparisonLabel(metric.changeRate, metric.teamAverage)}</strong>
+          </footer>
+        </>
+      )}
     </div>
   );
 }

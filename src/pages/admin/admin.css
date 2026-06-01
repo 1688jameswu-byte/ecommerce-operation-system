@@ -4102,6 +4102,34 @@
   text-align: left;
 }
 
+.store-detail-metric-list {
+  display: grid;
+  gap: 8px;
+}
+
+.store-detail-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(91, 166, 255, 0.14);
+  border-radius: 6px;
+  background: rgba(91, 166, 255, 0.07);
+  padding: 8px 10px;
+}
+
+.store-detail-metric-row strong {
+  color: #f4f9ff;
+  font-size: 13px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.store-detail-metric-row .store-info-tooltip-label {
+  color: #a9c5e4;
+  font-size: 12px;
+}
+
 .store-info-tooltip:hover .store-info-tooltip-content,
 .store-info-tooltip:focus-within .store-info-tooltip-content,
 .store-info-tooltip-open .store-info-tooltip-content {
