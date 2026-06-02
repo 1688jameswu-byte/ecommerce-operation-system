@@ -16,6 +16,8 @@ interface SalaryDetailRow {
   hourlyAmount: number;
   overtimeHours: number;
   overtimeAmount: number;
+  absenceHours: number;
+  absenceDeduction: number;
   pieceworkQuantity: number;
   pieceworkAmount: number;
   totalAmount: number;
@@ -138,6 +140,45 @@ function groupByEmployee<T>(records: T[], getEmployeeId: (record: T) => string |
   }, new Map());
 }
 
+function recordMatchesEmployee(record: AttendanceRecord | PieceworkRecord, employee: EmployeeRecord) {
+  return record.employeeId === employee.id ||
+    Boolean(record.employeeCode && record.employeeCode === employee.employeeCode) ||
+    record.employeeName === employee.employeeName;
+}
+
+function uniqueDateCount(records: AttendanceRecord[]) {
+  return new Set(records.map((record) => record.workDate).filter(Boolean)).size;
+}
+
+function buildAttendanceStats(records: AttendanceRecord[]) {
+  const absenceRecords = records.filter((record) => toNumber(record.absenceHours) > 0 || record.status === 'absence' || record.status === 'no_punch');
+  const missingClockCount = records.filter((record) => ['missing_clock', 'missing_time', 'no_punch'].includes(record.status)).length;
+  const lateCount = 0;
+  const earlyLeaveCount = 0;
+  const absenceDays = uniqueDateCount(absenceRecords);
+  const overtimeHours = records.reduce((total, record) => total + toNumber(record.overtimeHours), 0);
+  const absenceHours = records.reduce((total, record) => total + toNumber(record.absenceHours), 0);
+  const isFullAttendance = absenceDays <= 2 && lateCount + earlyLeaveCount <= 3;
+  const fullAttendanceReasons = [
+    absenceDays > 2 ? `月休/缺勤天数 ${absenceDays} 天，超过 2 天` : '',
+    lateCount + earlyLeaveCount > 3 ? `迟到/早退 ${lateCount + earlyLeaveCount} 次，超过 3 次` : '',
+    missingClockCount > 0 ? `缺卡 ${missingClockCount} 次` : '',
+  ].filter(Boolean);
+
+  return {
+    expectedAttendanceDays: uniqueDateCount(records),
+    actualAttendanceDays: uniqueDateCount(records.filter((record) => record.status === 'normal' && record.checkInTime && record.checkOutTime)),
+    absenceDays,
+    lateCount,
+    earlyLeaveCount,
+    missingClockCount,
+    overtimeHours,
+    absenceHours,
+    isFullAttendance,
+    fullAttendanceReasons,
+  };
+}
+
 function SalaryDetailsPage() {
   const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
   const [periods, setPeriods] = useState<SalaryPeriodRecord[]>([]);
@@ -145,6 +186,8 @@ function SalaryDetailsPage() {
   const [pieceworkRecords, setPieceworkRecords] = useState<PieceworkRecord[]>([]);
   const [periodId, setPeriodId] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
 
   useEffect(() => {
     salaryDataSource.loadEmployees().then(setEmployees);
@@ -205,6 +248,7 @@ function SalaryDetailsPage() {
       const hourlyAmount = 0;
       const overtimeAmount = employeeHourlyRecords.reduce((total, record) => total + attendanceAmount(record, employee), 0);
       const totalAbsenceAmount = employeeHourlyRecords.reduce((total, record) => total + absenceAmount(record, employee), 0);
+      const absenceHours = employeeHourlyRecords.reduce((total, record) => total + toNumber(record.absenceHours), 0);
       const pieceworkQuantity = isPieceworkEmployee ? employeePieceworkRecords.reduce((total, record) => total + toNumber(record.quantity), 0) : 0;
       const totalPieceworkAmount = isPieceworkEmployee ? employeePieceworkRecords.reduce((total, record) => total + pieceworkAmount(record), 0) : 0;
       const totalAmount = employee.employeeType === 'operator'
@@ -225,6 +269,8 @@ function SalaryDetailsPage() {
         hourlyAmount,
         overtimeHours,
         overtimeAmount,
+        absenceHours,
+        absenceDeduction: totalAbsenceAmount,
         pieceworkQuantity,
         pieceworkAmount: totalPieceworkAmount,
         totalAmount,
@@ -234,9 +280,49 @@ function SalaryDetailsPage() {
     });
   }, [attendanceRecords, employeeById, employees, pieceworkRecords, selectedPeriod]);
 
-  const filteredRows = useMemo(() => (
-    typeFilter ? rows.filter((row) => row.employeeType === typeFilter) : rows
-  ), [rows, typeFilter]);
+  const filteredRows = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    return rows.filter((row) => {
+      const employee = employeeById.get(row.employeeId);
+      const matchesType = !typeFilter || row.employeeType === typeFilter;
+      const matchesSearch = !keyword || [
+        row.employeeName,
+        employee?.employeeCode,
+      ].some((value) => String(value ?? '').toLowerCase().includes(keyword));
+
+      return matchesType && matchesSearch;
+    });
+  }, [employeeById, rows, searchText, typeFilter]);
+
+  const selectedDetail = useMemo(() => {
+    const employee = employees.find((item) => item.id === selectedEmployeeId);
+    const row = rows.find((item) => item.employeeId === selectedEmployeeId);
+    if (!employee || !row) return null;
+
+    const employeeAttendanceRecords = attendanceRecords.filter((record) => recordMatchesEmployee(record, employee) && inPeriod(record.workDate, selectedPeriod));
+    const employeePieceworkRecords = pieceworkRecords.filter((record) => recordMatchesEmployee(record, employee) && inPeriod(record.workDate, selectedPeriod));
+    const attendanceStats = buildAttendanceStats(employeeAttendanceRecords);
+    const salaryItems = employee.employeeType === 'operator'
+      ? []
+      : [
+        { label: '基本工资', amount: row.baseSalary },
+        { label: '午餐补贴', amount: row.lunchAllowance },
+        { label: '住宿补贴', amount: row.housingAllowance },
+        { label: '全勤奖', amount: row.attendanceBonus },
+        { label: '加班工资', amount: row.overtimeAmount },
+        { label: '计件工资', amount: row.pieceworkAmount },
+        { label: '缺勤扣款', amount: -row.absenceDeduction },
+      ].filter((item) => item.amount !== 0);
+
+    return {
+      employee,
+      row,
+      attendanceRecords: employeeAttendanceRecords,
+      pieceworkRecords: employeePieceworkRecords,
+      attendanceStats,
+      salaryItems,
+    };
+  }, [attendanceRecords, employees, pieceworkRecords, rows, selectedEmployeeId, selectedPeriod]);
 
   const summary = useMemo(() => ({
     hourly: rows.filter((row) => row.employeeType === 'hourly').reduce((total, row) => total + row.totalAmount, 0),
@@ -288,6 +374,15 @@ function SalaryDetailsPage() {
               <option value="operator">运营</option>
             </select>
           </label>
+          <label>
+            搜索员工
+            <input
+              type="search"
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              placeholder="姓名 / 工号"
+            />
+          </label>
         </section>
       </article>
 
@@ -318,6 +413,7 @@ function SalaryDetailsPage() {
                 <th style={{ textAlign: 'right' }}>合计</th>
                 <th>工资构成</th>
                 <th>状态</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -339,6 +435,9 @@ function SalaryDetailsPage() {
                   <td style={{ textAlign: 'right' }}>{amount(row.totalAmount)}</td>
                   <td>{row.compositionLabel}</td>
                   <td><span className="admin-status" style={statusStyles[row.status]}>{statusLabels[row.status]}</span></td>
+                  <td>
+                    <button type="button" onClick={() => setSelectedEmployeeId(row.employeeId)}>查看明细</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -346,6 +445,136 @@ function SalaryDetailsPage() {
           {filteredRows.length === 0 && <div className="import-record-empty">暂无工资明细。</div>}
         </div>
       </article>
+
+      {selectedDetail && (
+        <div className="delete-modal-backdrop" role="presentation" onClick={() => setSelectedEmployeeId('')}>
+          <section className="salary-detail-modal" role="dialog" aria-modal="true" aria-labelledby="salary-detail-title" onClick={(event) => event.stopPropagation()}>
+            <header>
+              <div>
+                <h2 id="salary-detail-title">{selectedDetail.employee.employeeName} 工资明细</h2>
+                <p>{selectedPeriod?.periodKey || '全部周期'} / {employeeTypeLabels[selectedDetail.employee.employeeType]}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedEmployeeId('')}>关闭</button>
+            </header>
+
+            <div className="salary-detail-body">
+              <section className="salary-detail-section">
+                <h3>基础信息</h3>
+                <div className="salary-detail-grid">
+                  <span>姓名<strong>{selectedDetail.employee.employeeName || '-'}</strong></span>
+                  <span>工号<strong>{selectedDetail.employee.employeeCode || '-'}</strong></span>
+                  <span>部门<strong>{selectedDetail.employee.departmentName || '-'}</strong></span>
+                  <span>岗位<strong>{selectedDetail.employee.positionName || '-'}</strong></span>
+                  <span>员工类型<strong>{selectedDetail.employee.employeeType}</strong></span>
+                  <span>工资周期<strong>{selectedPeriod?.periodKey || '-'}</strong></span>
+                  <span>时薪<strong>{selectedDetail.employee.employeeType === 'hourly' ? amount(selectedDetail.row.hourlyRate) : '-'}</strong></span>
+                </div>
+              </section>
+
+              {selectedDetail.employee.employeeType === 'hourly' && (
+                <>
+                  <section className="salary-detail-section">
+                    <h3>考勤统计</h3>
+                    <div className="salary-detail-grid">
+                      <span>应出勤天数<strong>{selectedDetail.attendanceStats.expectedAttendanceDays}</strong></span>
+                      <span>实际出勤天数<strong>{selectedDetail.attendanceStats.actualAttendanceDays}</strong></span>
+                      <span>缺勤天数<strong>{selectedDetail.attendanceStats.absenceDays}</strong></span>
+                      <span>迟到次数<strong>{selectedDetail.attendanceStats.lateCount}</strong></span>
+                      <span>早退次数<strong>{selectedDetail.attendanceStats.earlyLeaveCount}</strong></span>
+                      <span>缺卡次数<strong>{selectedDetail.attendanceStats.missingClockCount}</strong></span>
+                      <span>加班工时<strong>{amount(selectedDetail.attendanceStats.overtimeHours)}</strong></span>
+                      <span>缺勤工时<strong>{amount(selectedDetail.attendanceStats.absenceHours)}</strong></span>
+                    </div>
+                  </section>
+
+                  <section className="salary-detail-section salary-detail-alerts">
+                    <h3>异常统计</h3>
+                    <div>
+                      {selectedDetail.attendanceStats.absenceDays > 0 && <span className="admin-status">缺勤 {selectedDetail.attendanceStats.absenceDays} 天</span>}
+                      {selectedDetail.attendanceStats.missingClockCount > 0 && <span className="admin-status">缺卡 {selectedDetail.attendanceStats.missingClockCount} 次</span>}
+                      {selectedDetail.attendanceStats.lateCount > 0 && <span className="admin-status">迟到 {selectedDetail.attendanceStats.lateCount} 次</span>}
+                      {selectedDetail.attendanceStats.earlyLeaveCount > 0 && <span className="admin-status">早退 {selectedDetail.attendanceStats.earlyLeaveCount} 次</span>}
+                      {selectedDetail.attendanceStats.absenceDays === 0 && selectedDetail.attendanceStats.missingClockCount === 0 && <span className="admin-status" style={statusStyles.calculated}>暂无异常</span>}
+                    </div>
+                  </section>
+
+                  <section className="salary-detail-section">
+                    <h3>全勤情况</h3>
+                    <p>
+                      <strong>{selectedDetail.attendanceStats.isFullAttendance ? '获得' : '未获得'}</strong>
+                      {!selectedDetail.attendanceStats.isFullAttendance && `：${selectedDetail.attendanceStats.fullAttendanceReasons.join('；') || '未满足全勤条件'}`}
+                    </p>
+                  </section>
+                </>
+              )}
+
+              {selectedDetail.employee.employeeType === 'piecework' && (
+                <section className="salary-detail-section">
+                  <h3>计件记录</h3>
+                  <div className="import-record-table-wrap salary-detail-table-wrap">
+                    <table className="import-record-table">
+                      <thead>
+                        <tr>
+                          <th>日期</th>
+                          <th style={{ textAlign: 'right' }}>数量</th>
+                          <th style={{ textAlign: 'right' }}>单价</th>
+                          <th style={{ textAlign: 'right' }}>金额</th>
+                          <th>备注</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedDetail.pieceworkRecords.map((record) => (
+                          <tr key={record.id}>
+                            <td>{record.workDate}</td>
+                            <td style={{ textAlign: 'right' }}>{amount(toNumber(record.quantity))}</td>
+                            <td style={{ textAlign: 'right' }}>{amount(toNumber(record.unitPrice))}</td>
+                            <td style={{ textAlign: 'right' }}>{amount(pieceworkAmount(record))}</td>
+                            <td>{record.remark || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {selectedDetail.pieceworkRecords.length === 0 && <div className="import-record-empty">当前周期暂无计件记录。</div>}
+                  </div>
+                </section>
+              )}
+
+              {selectedDetail.employee.employeeType === 'operator' && (
+                <section className="salary-detail-section">
+                  <h3>运营绩效指标</h3>
+                  <p>绩效工资暂未计算。</p>
+                  <div className="salary-detail-grid">
+                    <span>销售额<strong>-</strong></span>
+                    <span>首单<strong>-</strong></span>
+                    <span>新品<strong>-</strong></span>
+                    <span>任务完成率<strong>-</strong></span>
+                  </div>
+                </section>
+              )}
+
+              <section className="salary-detail-section">
+                <h3>工资构成</h3>
+                <div className="salary-detail-items">
+                  {selectedDetail.employee.employeeType === 'operator' ? (
+                    <span>运营绩效工资暂未计算</span>
+                  ) : selectedDetail.salaryItems.length > 0 ? (
+                    selectedDetail.salaryItems.map((item) => (
+                      <span key={item.label}>{item.label}<strong>{amount(item.amount)}</strong></span>
+                    ))
+                  ) : (
+                    <span>暂无工资项目</span>
+                  )}
+                </div>
+              </section>
+
+              <section className="salary-detail-total">
+                <span>工资合计</span>
+                <strong>{amount(selectedDetail.row.totalAmount)}</strong>
+              </section>
+            </div>
+          </section>
+        </div>
+      )}
     </section>
   );
 }
