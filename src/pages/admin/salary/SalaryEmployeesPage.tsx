@@ -16,6 +16,11 @@ const statusLabels: Record<SalaryRecordStatus, string> = {
   inactive: '停用',
 };
 
+const statusStyles: Record<SalaryRecordStatus, React.CSSProperties> = {
+  active: { borderColor: 'rgba(74, 222, 128, 0.6)', color: '#86efac' },
+  inactive: { borderColor: 'rgba(148, 163, 184, 0.5)', color: '#cbd5e1' },
+};
+
 const employeeTypes = Object.keys(employeeTypeLabels) as EmployeeType[];
 const importHeaders = ['员工姓名', '入职日期', '部门', '岗位', '基本工资', '时薪', '午餐补贴', '住宿补贴', '全勤奖'] as const;
 
@@ -143,8 +148,9 @@ function SalaryEmployeesPage() {
     loadEmployees();
   };
 
-  const disableEmployee = (employee: EmployeeRecord) => {
-    salaryDataSource.updateEmployee(employee.id, { status: 'inactive' });
+  const toggleEmployeeStatus = (employee: EmployeeRecord) => {
+    const nextStatus = normalizeStatus(employee.status) === 'active' ? 'inactive' : 'active';
+    salaryDataSource.updateEmployee(employee.id, { status: nextStatus });
     loadEmployees();
   };
 
@@ -336,12 +342,14 @@ function SalaryEmployeesPage() {
                     <td>{employee.departmentName || '-'}</td>
                     <td>{employee.positionName || '-'}</td>
                     <td>{employeeTypeLabels[employeeType]}</td>
-                    <td>{statusLabels[status]}</td>
+                    <td><span className="admin-status" style={statusStyles[status]}>{statusLabels[status]}</span></td>
                     <td style={{ textAlign: 'right' }}>{amount(employee.baseSalary)}</td>
                     <td style={{ textAlign: 'right' }}>{amount(employee.hourlyRate ?? 0)}</td>
                     <td className="operator-actions">
                       <button type="button" onClick={() => startEdit(employee)}>编辑</button>
-                      <button type="button" onClick={() => disableEmployee(employee)}>停用</button>
+                      <button type="button" onClick={() => toggleEmployeeStatus(employee)}>
+                        {status === 'active' ? '停用' : '启用'}
+                      </button>
                     </td>
                   </tr>
                 );

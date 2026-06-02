@@ -476,7 +476,7 @@ function AttendanceImportPage() {
     setMessage(`识别${displaySheetName(nextSheetName)}，表格月份 ${parsed.periodKey || '-'}，员工块 ${parsed.employeeCount} 个，日期列 ${parsed.dateColumns.length} 个，生成 ${parsed.records.length} 条打卡记录预览。`);
   };
 
-  const savePreview = () => {
+  const savePreview = async () => {
     if (previewRecords.length === 0) {
       setMessage('暂无可保存的打卡记录。');
       return;
@@ -488,8 +488,25 @@ function AttendanceImportPage() {
       ...previewRecords,
     ];
 
-    salaryDataSource.saveAttendanceRecords(nextRecords);
-    setRecords(nextRecords);
+    try {
+      salaryDataSource.saveAttendanceRecords(nextRecords);
+      const savedRecords = await salaryDataSource.loadAttendanceRecords();
+      const savedKeys = new Set(savedRecords.map(recordKey));
+      const savedPreviewCount = previewRecords.filter((record) => savedKeys.has(recordKey(record))).length;
+
+      setRecords(savedRecords);
+
+      if (savedPreviewCount < previewRecords.length) {
+        setMessage(`保存接口已返回，但只读回 ${savedPreviewCount}/${previewRecords.length} 条本次导入记录，请检查 attendance-records.json 或 DATA_DIR 配置。`);
+        return;
+      }
+
+      setPreviewRecords([]);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '保存失败';
+      setMessage(`打卡记录未能持久保存：${errorMessage}`);
+      return;
+    }
     setMessage(`已保存 ${previewRecords.length} 条打卡记录，归属月份 ${attendancePeriodKey || selectedPeriod?.periodKey || '-'}，覆盖同月份同员工同日期记录 ${duplicateCount} 条。`);
   };
 

@@ -2136,3 +2136,8 @@ F:/项目/TEMU运营数据大屏/src/pages/admin/menuKeys.ts:45:107: ERROR: Expe
       at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
       at Readable.push (node:internal/streams/readable:394:5)
       at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+npm notice
+npm notice New minor version of npm available! 11.12.1 -> 11.16.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.16.0
+npm notice To update run: npm install -g npm@11.16.0
+npm notice

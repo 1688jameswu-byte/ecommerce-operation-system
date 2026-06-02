@@ -104,13 +104,17 @@ function attendanceAmount(record: AttendanceRecord, employee: EmployeeRecord) {
   return toNumber(record.overtimeHours) * toNumber(record.hourlyRate ?? employee.hourlyRate);
 }
 
+function absenceAmount(record: AttendanceRecord, employee: EmployeeRecord) {
+  return toNumber(record.absenceHours) * toNumber(record.hourlyRate ?? employee.hourlyRate);
+}
+
 function pieceworkAmount(record: PieceworkRecord) {
   return toNumber(record.amount ?? record.dailyAmount);
 }
 
 function compositionLabel(employeeType: EmployeeType) {
-  if (employeeType === 'hourly') return '基本工资 + 补贴 + 加班工资';
-  if (employeeType === 'piecework') return '计件工资';
+  if (employeeType === 'hourly') return '基本工资 + 补贴 + 加班工资 - 缺勤扣款';
+  if (employeeType === 'piecework') return '计件工资 + 补贴';
   if (employeeType === 'monthly') return '基本工资 + 补贴';
   if (employeeType === 'manager') return '基本工资 + 补贴';
   return '运营绩效暂缓';
@@ -194,27 +198,28 @@ function SalaryDetailsPage() {
       const isPieceworkEmployee = employee.employeeType === 'piecework';
       const employeeHourlyRecords = hourlyByEmployee.get(employee.id) ?? [];
       const employeePieceworkRecords = pieceworkByEmployee.get(employee.id) ?? [];
-      const fixed = fixedItems(employee, isFixedEmployee);
-      const hasAbsence = employeeHourlyRecords.some((record) => toNumber(record.absenceHours) > 0 || record.status === 'absence');
+      const fixed = fixedItems(employee, isFixedEmployee || isPieceworkEmployee);
+      const baseSalary = isPieceworkEmployee ? 0 : fixed.baseSalary;
       const overtimeHours = employeeHourlyRecords.reduce((total, record) => total + toNumber(record.overtimeHours), 0);
       const hourlyRate = employee.employeeType === 'hourly' ? toNumber(employee.hourlyRate) : 0;
       const hourlyAmount = 0;
       const overtimeAmount = employeeHourlyRecords.reduce((total, record) => total + attendanceAmount(record, employee), 0);
+      const totalAbsenceAmount = employeeHourlyRecords.reduce((total, record) => total + absenceAmount(record, employee), 0);
       const pieceworkQuantity = isPieceworkEmployee ? employeePieceworkRecords.reduce((total, record) => total + toNumber(record.quantity), 0) : 0;
       const totalPieceworkAmount = isPieceworkEmployee ? employeePieceworkRecords.reduce((total, record) => total + pieceworkAmount(record), 0) : 0;
       const totalAmount = employee.employeeType === 'operator'
         ? 0
-        : fixed.baseSalary + fixed.lunchAllowance + fixed.housingAllowance + fixed.attendanceBonus + hourlyAmount + overtimeAmount + totalPieceworkAmount;
+        : baseSalary + fixed.lunchAllowance + fixed.housingAllowance + fixed.attendanceBonus + hourlyAmount + overtimeAmount + totalPieceworkAmount - totalAbsenceAmount;
 
       return {
         id: employee.id,
         employeeId: employee.id,
         employeeName: employee.employeeName,
         employeeType: employee.employeeType,
-        baseSalary: fixed.baseSalary,
+        baseSalary,
         lunchAllowance: fixed.lunchAllowance,
         housingAllowance: fixed.housingAllowance,
-        attendanceBonus: hasAbsence ? 0 : fixed.attendanceBonus,
+        attendanceBonus: fixed.attendanceBonus,
         effectiveWorkHours: overtimeHours,
         hourlyRate,
         hourlyAmount,
@@ -222,7 +227,7 @@ function SalaryDetailsPage() {
         overtimeAmount,
         pieceworkQuantity,
         pieceworkAmount: totalPieceworkAmount,
-        totalAmount: hasAbsence ? totalAmount - fixed.attendanceBonus : totalAmount,
+        totalAmount,
         compositionLabel: compositionLabel(employee.employeeType),
         status: employee.employeeType === 'operator' ? 'not_calculated' : 'calculated',
       };
@@ -234,8 +239,8 @@ function SalaryDetailsPage() {
   ), [rows, typeFilter]);
 
   const summary = useMemo(() => ({
-    hourly: rows.filter((row) => row.employeeType === 'hourly').reduce((total, row) => total + row.hourlyAmount + row.overtimeAmount, 0),
-    piecework: rows.filter((row) => row.employeeType === 'piecework').reduce((total, row) => total + row.pieceworkAmount, 0),
+    hourly: rows.filter((row) => row.employeeType === 'hourly').reduce((total, row) => total + row.totalAmount, 0),
+    piecework: rows.filter((row) => row.employeeType === 'piecework').reduce((total, row) => total + row.totalAmount, 0),
     fixed: rows
       .filter((row) => row.employeeType === 'monthly' || row.employeeType === 'manager')
       .reduce((total, row) => total + row.baseSalary + row.lunchAllowance + row.housingAllowance + row.attendanceBonus, 0),

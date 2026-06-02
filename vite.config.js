@@ -365,7 +365,7 @@ function toPublicUser(user) {
   };
 }
 
-function requireAdmin(req, res) {
+function requireAdminLegacy(req, res) {
   const user = findCurrentUser(req);
 
   if (!user || user.role !== 'admin') {
