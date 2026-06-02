@@ -287,25 +287,41 @@ function uniqueDateCount(records: AttendanceRecord[]) {
   return new Set(records.map((record) => record.workDate).filter(Boolean)).size;
 }
 
-function buildAttendanceStats(records: AttendanceRecord[]) {
-  const absenceRecords = records.filter((record) => record.status === 'absence' || (hasCompletePunch(record) && toNumber(record.absenceHours) > 0));
-  const shortWorkRecords = records.filter((record) => hasCompletePunch(record) && toNumber(record.absenceHours) > 0);
+function dateSpanDays(period: Pick<SalaryPeriodRecord, 'startDate' | 'endDate'> | undefined) {
+  if (!period?.startDate || !period.endDate) return 0;
+  const start = new Date(`${period.startDate}T00:00:00`);
+  const end = new Date(`${period.endDate}T00:00:00`);
+  const days = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
+  return Number.isFinite(days) && days > 0 ? days : 0;
+}
+
+function buildAttendanceStats(records: AttendanceRecord[], employeeType: EmployeeType, period: Pick<SalaryPeriodRecord, 'startDate' | 'endDate'> | undefined, rules: AttendanceRule[]) {
+  const periodDays = dateSpanDays(period);
+  const rule = resolveAttendanceRule(period?.startDate || records[0]?.workDate || '', rules);
+  const restDays = toNumber(rule.monthlyRestDaysByEmployeeType?.[employeeType] ?? defaultMonthlyRestDaysByEmployeeType[employeeType]);
+  const absenceRecords = records.filter((record) => hasCompletePunch(record) && toNumber(record.absenceHours) > 4);
+  const shortWorkRecords = records.filter((record) => hasCompletePunch(record) && toNumber(record.absenceHours) > 0 && toNumber(record.absenceHours) <= 4);
   const missingClockCount = records.filter((record) => ['missing_clock', 'missing_time', 'no_punch'].includes(record.status)).length;
-  const lateCount = 0;
+  const lateCount = records.filter((record) => {
+    const recordRule = resolveAttendanceRule(record.workDate, rules);
+    const checkInMinutes = timeToMinutes(record.checkInTime);
+    const startMinutes = timeToMinutes(recordRule.morningStartTime);
+    return checkInMinutes !== undefined && startMinutes !== undefined && checkInMinutes > startMinutes;
+  }).length;
   const earlyLeaveCount = 0;
   const absenceDays = uniqueDateCount(absenceRecords);
   const overtimeHours = records.reduce((total, record) => total + toNumber(record.overtimeHours), 0);
   const absenceHours = absenceRecords.reduce((total, record) => total + toNumber(record.absenceHours), 0);
-  const isFullAttendance = absenceDays <= 2 && lateCount + earlyLeaveCount <= 3;
+  const isFullAttendance = absenceDays <= restDays && lateCount + earlyLeaveCount <= 3;
   const fullAttendanceReasons = [
-    absenceDays > 2 ? `月休/缺勤天数 ${absenceDays} 天，超过 2 天` : '',
+    absenceDays > restDays ? `月休/缺勤天数 ${absenceDays} 天，超过 ${restDays} 天` : '',
     lateCount + earlyLeaveCount > 3 ? `迟到/早退 ${lateCount + earlyLeaveCount} 次，超过 3 次` : '',
     missingClockCount > 0 ? `缺卡 ${missingClockCount} 次` : '',
   ].filter(Boolean);
 
   return {
-    expectedAttendanceDays: uniqueDateCount(records),
-    actualAttendanceDays: uniqueDateCount(records.filter((record) => record.status === 'normal' && record.checkInTime && record.checkOutTime)),
+    expectedAttendanceDays: Math.max(0, (periodDays || uniqueDateCount(records)) - restDays),
+    actualAttendanceDays: uniqueDateCount(records.filter(hasCompletePunch)),
     absenceDays,
     lateCount,
     earlyLeaveCount,
@@ -477,7 +493,7 @@ function SalaryDetailsPage() {
 
     const employeeAttendanceRecords = dedupeAttendanceRecords(detailAttendanceRecords).map((record) => recalculateSalaryAttendanceRecord(record, attendanceRules));
     const employeePieceworkRecords = pieceworkRecords.filter((record) => recordMatchesEmployee(record, employee) && inPeriod(record.workDate, selectedPeriod));
-    const attendanceStats = buildAttendanceStats(employeeAttendanceRecords);
+    const attendanceStats = buildAttendanceStats(employeeAttendanceRecords, employee.employeeType, selectedPeriod, attendanceRules);
     const salaryItems = employee.employeeType === 'operator'
       ? []
       : [
