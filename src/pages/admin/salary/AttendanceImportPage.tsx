@@ -14,6 +14,7 @@ const employeeTypeLabels: Record<EmployeeType, string> = {
 const statusLabels: Record<AttendanceRecord['status'], string> = {
   normal: '正常',
   unmatched_employee: '未匹配员工',
+  conflict_employee_match: '匹配冲突',
   missing_time: '缺少时间',
   invalid: '无效记录',
   missing_hourly_rate: '计时员工无时薪',
@@ -26,6 +27,7 @@ const statusLabels: Record<AttendanceRecord['status'], string> = {
 const statusStyles: Partial<Record<AttendanceRecord['status'], React.CSSProperties>> = {
   normal: { borderColor: 'rgba(74, 222, 128, 0.6)', color: '#86efac' },
   unmatched_employee: { borderColor: 'rgba(248, 113, 113, 0.7)', color: '#fca5a5' },
+  conflict_employee_match: { borderColor: 'rgba(248, 113, 113, 0.8)', color: '#fecaca' },
   missing_hourly_rate: { borderColor: 'rgba(251, 191, 36, 0.7)', color: '#fde68a' },
   missing_clock: { borderColor: 'rgba(251, 146, 60, 0.7)', color: '#fdba74' },
   no_punch: { borderColor: 'rgba(148, 163, 184, 0.5)', color: '#cbd5e1' },
@@ -70,6 +72,10 @@ interface EmployeeBlock {
 
 function toText(value: unknown) {
   return String(value ?? '').trim();
+}
+
+function normalizeEmployeeName(value: unknown) {
+  return toText(value).replace(/\u3000/g, ' ').replace(/\s+/g, '');
 }
 
 function normalizeEmployeeType(value: unknown): EmployeeType {
@@ -298,8 +304,8 @@ function displaySheetName(name: string) {
   return !name || /^worksheet$/i.test(name) ? '工作表1' : name;
 }
 
-function recordKey(record: Pick<AttendanceRecord, 'periodKey' | 'employeeCode' | 'employeeName' | 'workDate'>) {
-  return [record.periodKey || '', record.employeeCode || record.employeeName, record.workDate].join('|');
+function recordKey(record: Pick<AttendanceRecord, 'periodKey' | 'employeeName' | 'workDate'>) {
+  return [record.periodKey || '', normalizeEmployeeName(record.employeeName), record.workDate].join('|');
 }
 
 function buildRecordStatus(employee: EmployeeRecord | undefined, punchTimes: string[], rawWorkHours: number | undefined, absenceHours = 0): AttendanceRecord['status'] {
@@ -335,7 +341,9 @@ function recalculateAttendanceRecord(record: AttendanceRecord, rules: Attendance
     attendanceRuleId: attendanceRule.id || undefined,
     attendanceGraceMinutes: attendanceRule.attendanceGraceMinutes,
     ruleStatus: attendanceRule.id ? 'matched' : 'default_rule_used',
-    status: buildRecordStatus(employee, punchTimes, rawWorkHours, absenceHours),
+    status: record.status === 'conflict_employee_match'
+      ? 'conflict_employee_match'
+      : buildRecordStatus(employee, punchTimes, rawWorkHours, absenceHours),
   };
 }
 
@@ -348,13 +356,12 @@ function parseWorkbook(file: File, rows: unknown[][], employees: EmployeeRecord[
 
   const dateColumns = getDateColumns(rows[headerRowIndex] ?? [], attendanceMonth);
   const blocks = buildBlocks(rows, headerRowIndex + 1);
-  const employeesByCode = new Map(employees.filter((item) => item.employeeCode).map((item) => [item.employeeCode, item]));
-  const employeesByName = new Map(employees.filter((item) => item.employeeName).map((item) => [item.employeeName, item]));
+  const employeesByName = new Map(employees.filter((item) => item.employeeName).map((item) => [normalizeEmployeeName(item.employeeName), item]));
   const now = new Date().toISOString();
   const records: AttendanceRecord[] = [];
 
   blocks.forEach((block) => {
-    const employee = employeesByCode.get(block.employeeCode) ?? employeesByName.get(block.employeeName);
+    const employee = employeesByName.get(normalizeEmployeeName(block.employeeName));
 
     dateColumns.forEach((column) => {
       const punchTimes = block.rows.map((row) => formatTime(row[column.index])).filter(Boolean).sort();
@@ -377,6 +384,7 @@ function parseWorkbook(file: File, rows: unknown[][], employees: EmployeeRecord[
         periodKey,
         employeeId: employee?.id,
         employeeCode: employee?.employeeCode || block.employeeCode,
+        sourceEmployeeCode: block.employeeCode,
         employeeName: employee?.employeeName || block.employeeName,
         departmentName: employee?.departmentName || block.departmentName,
         workDate,
@@ -466,14 +474,14 @@ function AttendanceImportPage() {
   const filteredRecords = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
     const employeeById = new Map(employees.map((employee) => [employee.id, employee]));
-    const employeeByCode = new Map(employees.filter((employee) => employee.employeeCode).map((employee) => [employee.employeeCode, employee]));
-    const employeeByName = new Map(employees.filter((employee) => employee.employeeName).map((employee) => [employee.employeeName, employee]));
+    const employeeByName = new Map(employees.filter((employee) => employee.employeeName).map((employee) => [normalizeEmployeeName(employee.employeeName), employee]));
 
     const matchedRecords = tableRecords.filter((record) => {
       const matchesMonth = isPreviewMode || !savedMonth || recordMonthKey(record) === savedMonth;
       const matchesKeyword = !keyword || [
         record.employeeName,
         record.employeeCode,
+        record.sourceEmployeeCode,
         record.departmentName,
         record.workDate,
       ].some((value) => toText(value).toLowerCase().includes(keyword));
@@ -483,8 +491,7 @@ function AttendanceImportPage() {
 
     return matchedRecords.map((record) => {
       const employee = (record.employeeId ? employeeById.get(record.employeeId) : undefined) ??
-        (record.employeeCode ? employeeByCode.get(record.employeeCode) : undefined) ??
-        employeeByName.get(record.employeeName);
+        employeeByName.get(normalizeEmployeeName(record.employeeName));
       return recalculateAttendanceRecord(record, attendanceRules, employee);
     }).filter((record) => !statusFilter || record.status === statusFilter);
   }, [attendanceRules, employees, isPreviewMode, savedMonth, tableRecords, searchText, statusFilter]);
@@ -562,6 +569,7 @@ function AttendanceImportPage() {
           <div>
             <h2>打卡记录导入</h2>
             <p>工资工时基于考勤规则中的上下班时间、员工类型休息天数和加班规则计算，不再以全天打卡时长作为工资依据。</p>
+            <p>打卡记录按员工姓名严格匹配员工档案；打卡系统工号仅保留为原始字段，不参与匹配。</p>
           </div>
           <label className="excel-clear-button primary-action">
             上传打卡 Excel

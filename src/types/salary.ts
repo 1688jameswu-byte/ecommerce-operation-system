@@ -158,6 +158,7 @@ export interface AttendanceRecord {
   batchId?: string;
   employeeId?: string;
   employeeCode?: string;
+  sourceEmployeeCode?: string;
   employeeName: string;
   departmentName?: string;
   workDate: string;
@@ -179,7 +180,7 @@ export interface AttendanceRecord {
   hourlyRate?: number;
   dailyAmount?: number;
   payrollMode?: 'hourly_wage' | 'attendance_only';
-  status: 'normal' | 'unmatched_employee' | 'missing_time' | 'invalid' | 'missing_hourly_rate' | 'missing_clock' | 'no_punch' | 'invalid_hours' | 'absence';
+  status: 'normal' | 'unmatched_employee' | 'conflict_employee_match' | 'missing_time' | 'invalid' | 'missing_hourly_rate' | 'missing_clock' | 'no_punch' | 'invalid_hours' | 'absence';
   sourceFileName?: string;
   sourceSheetName?: string;
   remark?: string;

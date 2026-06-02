@@ -1859,10 +1859,20 @@ function mergeVisibleImportData(name, incoming, currentUser) {
 
 function attendanceRecordKey(record) {
   const periodKey = String(record?.periodKey || '').trim();
-  const employeeKey = String(record?.employeeCode || record?.employeeName || '').trim();
+  const employeeKey = normalizeAttendanceEmployeeName(record?.employeeName);
   const workDate = String(record?.workDate || '').trim();
   if (!periodKey || !employeeKey || !workDate) return '';
   return [periodKey, employeeKey, workDate].join('|');
+}
+
+function attendanceRecordDateKey(record) {
+  const periodKey = String(record?.periodKey || '').trim();
+  const workDate = String(record?.workDate || '').trim();
+  return periodKey && workDate ? [periodKey, workDate].join('|') : '';
+}
+
+function normalizeAttendanceEmployeeName(value) {
+  return String(value ?? '').replace(/\u3000/g, ' ').trim().replace(/\s+/g, '');
 }
 
 function mergeAttendanceRecords(existing, incoming) {
@@ -1875,7 +1885,40 @@ function mergeAttendanceRecords(existing, incoming) {
 
   (Array.isArray(incoming) ? incoming : []).forEach((record) => {
     const key = attendanceRecordKey(record);
-    if (key) merged.set(key, record);
+    if (!key) return;
+
+    let current = merged.get(key);
+    if (!current && record?.employeeId && record?.sourceEmployeeCode) {
+      const dateKey = attendanceRecordDateKey(record);
+      const sourceCode = String(record.sourceEmployeeCode).trim();
+      const repairEntry = Array.from(merged.entries()).find(([, item]) => (
+        item?.status === 'unmatched_employee' &&
+        attendanceRecordDateKey(item) === dateKey &&
+        String(item?.sourceEmployeeCode || item?.employeeCode || '').trim() === sourceCode
+      ));
+      if (repairEntry) {
+        current = repairEntry[1];
+        merged.delete(repairEntry[0]);
+      }
+    }
+
+    const currentEmployeeId = String(current?.employeeId || '').trim();
+    const incomingEmployeeId = String(record?.employeeId || '').trim();
+    if (currentEmployeeId && incomingEmployeeId && currentEmployeeId !== incomingEmployeeId) {
+      merged.set(key, {
+        ...current,
+        status: 'conflict_employee_match',
+        remark: String(current?.remark || '员工匹配冲突，请人工核对。'),
+      });
+      return;
+    }
+
+    merged.set(key, {
+      ...current,
+      ...record,
+      id: current?.id || record.id,
+      createdAt: current?.createdAt || record.createdAt,
+    });
   });
 
   return Array.from(merged.values());
