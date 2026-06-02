@@ -41,6 +41,8 @@ const defaultMonthlyRestDaysByEmployeeType = {
   operator: 2,
 };
 
+const attendanceSaveBatchSize = 100;
+
 interface DateColumn {
   index: number;
   month: number;
@@ -441,12 +443,7 @@ function AttendanceImportPage() {
     const employeeByCode = new Map(employees.filter((employee) => employee.employeeCode).map((employee) => [employee.employeeCode, employee]));
     const employeeByName = new Map(employees.filter((employee) => employee.employeeName).map((employee) => [employee.employeeName, employee]));
 
-    return tableRecords.map((record) => {
-      const employee = (record.employeeId ? employeeById.get(record.employeeId) : undefined) ??
-        (record.employeeCode ? employeeByCode.get(record.employeeCode) : undefined) ??
-        employeeByName.get(record.employeeName);
-      return recalculateAttendanceRecord(record, attendanceRules, employee);
-    }).filter((record) => {
+    const matchedRecords = tableRecords.filter((record) => {
       const matchesKeyword = !keyword || [
         record.employeeName,
         record.employeeCode,
@@ -454,8 +451,24 @@ function AttendanceImportPage() {
         record.workDate,
       ].some((value) => toText(value).toLowerCase().includes(keyword));
 
-      return matchesKeyword && (!statusFilter || record.status === statusFilter);
+      return matchesKeyword;
     });
+    const nextRecords: AttendanceRecord[] = [];
+
+    for (const record of matchedRecords) {
+      const employee = (record.employeeId ? employeeById.get(record.employeeId) : undefined) ??
+        (record.employeeCode ? employeeByCode.get(record.employeeCode) : undefined) ??
+        employeeByName.get(record.employeeName);
+      const recalculatedRecord = recalculateAttendanceRecord(record, attendanceRules, employee);
+
+      if (!statusFilter || recalculatedRecord.status === statusFilter) {
+        nextRecords.push(recalculatedRecord);
+      }
+
+      if (nextRecords.length >= 300) break;
+    }
+
+    return nextRecords;
   }, [attendanceRules, employees, tableRecords, searchText, statusFilter]);
 
   const importAttendance = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -482,32 +495,35 @@ function AttendanceImportPage() {
       return;
     }
 
-    const previewKeys = new Set(previewRecords.map(recordKey));
-    const nextRecords = [
-      ...records.filter((record) => !previewKeys.has(recordKey(record))),
-      ...previewRecords,
-    ];
+    const totalBatchCount = Math.ceil(previewRecords.length / attendanceSaveBatchSize);
+    let savedBatchCount = 0;
 
     try {
-      salaryDataSource.saveAttendanceRecords(nextRecords);
+      for (let index = 0; index < previewRecords.length; index += attendanceSaveBatchSize) {
+        const batch = previewRecords.slice(index, index + attendanceSaveBatchSize);
+        salaryDataSource.mergeAttendanceRecords(batch);
+        savedBatchCount += 1;
+      }
+
       const savedRecords = await salaryDataSource.loadAttendanceRecords();
+      const previewKeys = new Set(previewRecords.map(recordKey));
       const savedKeys = new Set(savedRecords.map(recordKey));
-      const savedPreviewCount = previewRecords.filter((record) => savedKeys.has(recordKey(record))).length;
+      const savedPreviewCount = Array.from(previewKeys).filter((key) => savedKeys.has(key)).length;
 
       setRecords(savedRecords);
 
-      if (savedPreviewCount < previewRecords.length) {
-        setMessage(`保存接口已返回，但只读回 ${savedPreviewCount}/${previewRecords.length} 条本次导入记录，请检查 attendance-records.json 或 DATA_DIR 配置。`);
+      if (savedPreviewCount < previewKeys.size) {
+        setMessage(`保存接口已返回，但只读回 ${savedPreviewCount}/${previewKeys.size} 条本次导入记录，请检查 attendance-records.json 或 DATA_DIR 配置。`);
         return;
       }
 
       setPreviewRecords([]);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '保存失败';
-      setMessage(`打卡记录未能持久保存：${errorMessage}`);
+      setMessage(`${errorMessage.startsWith('保存失败') ? errorMessage : `打卡记录未能持久保存：${errorMessage}`} 已完成 ${savedBatchCount}/${totalBatchCount} 批。`);
       return;
     }
-    setMessage(`已保存 ${previewRecords.length} 条打卡记录，归属月份 ${attendancePeriodKey || selectedPeriod?.periodKey || '-'}，覆盖同月份同员工同日期记录 ${duplicateCount} 条。`);
+    setMessage(`已保存 ${previewRecords.length} 条打卡记录，归属月份 ${attendancePeriodKey || selectedPeriod?.periodKey || '-'}，已完成 ${savedBatchCount}/${totalBatchCount} 批，覆盖同周期同员工同日期记录 ${duplicateCount} 条。`);
   };
 
   return (

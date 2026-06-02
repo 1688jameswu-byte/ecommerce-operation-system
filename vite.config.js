@@ -1834,6 +1834,30 @@ function mergeVisibleImportData(name, incoming, currentUser) {
   };
 }
 
+function attendanceRecordKey(record) {
+  const periodKey = String(record?.periodId || record?.periodKey || '').trim();
+  const employeeKey = String(record?.employeeId || record?.employeeCode || record?.employeeName || '').trim();
+  const workDate = String(record?.workDate || '').trim();
+  if (!periodKey || !employeeKey || !workDate) return '';
+  return [periodKey, employeeKey, workDate].join('|');
+}
+
+function mergeAttendanceRecords(existing, incoming) {
+  const merged = new Map();
+
+  (Array.isArray(existing) ? existing : []).forEach((record) => {
+    const key = attendanceRecordKey(record);
+    if (key) merged.set(key, record);
+  });
+
+  (Array.isArray(incoming) ? incoming : []).forEach((record) => {
+    const key = attendanceRecordKey(record);
+    if (key) merged.set(key, record);
+  });
+
+  return Array.from(merged.values());
+}
+
 function filterCollectionForUser(name, data, currentUser) {
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
     return data;
@@ -2848,12 +2872,15 @@ function localDataPlugin() {
               : '';
             assertCanWriteImportData(name, parsed, currentUser, searchableText);
             const isOrderImportDelete = hasGuardPayload && rawParsed.__deleteImportData && name === 'orderImportStore';
+            const isAttendanceMerge = name === 'salaryAttendanceRecords' && requestUrl.searchParams.get('mode') === 'merge';
             const deleteBefore = isOrderImportDelete ? summarizeOrderImportStore(JSON.parse(fs.readFileSync(filePath, 'utf-8'))) : null;
             const nextData = isOrderImportDelete
               ? parsed
-              : name === 'orderImportStore'
-                ? mergeOrderImportAppend(parsed)
-                : mergeVisibleImportData(name, parsed, currentUser);
+              : isAttendanceMerge
+                ? mergeAttendanceRecords(JSON.parse(fs.readFileSync(filePath, 'utf-8')), parsed)
+                : name === 'orderImportStore'
+                  ? mergeOrderImportAppend(parsed)
+                  : mergeVisibleImportData(name, parsed, currentUser);
             const deleteAfter = isOrderImportDelete ? summarizeOrderImportStore(nextData) : null;
             fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
             const deleteSummary = isOrderImportDelete && deleteBefore && deleteAfter
@@ -2873,7 +2900,7 @@ function localDataPlugin() {
             if (deleteSummary) {
               console.log('[order-import-delete]', deleteSummary);
             }
-            res.end(JSON.stringify({ ok: true, path: filePath, deleteSummary }));
+            res.end(JSON.stringify({ ok: true, path: filePath, deleteSummary, savedCount: Array.isArray(parsed) ? parsed.length : undefined, totalCount: Array.isArray(nextData) ? nextData.length : undefined }));
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             res.statusCode = message === '当前账号无权导入该店铺数据' || message.startsWith('导入失败：') || message.startsWith('当前账号未配置可导入店铺') ? 403 : 500;

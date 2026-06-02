@@ -23,6 +23,10 @@ function request<T>(apiBase: string, method: string, path = '', body?: unknown):
     return JSON.parse(xhr.responseText) as T;
   }
 
+  if (xhr.status === 413) {
+    throw new Error('保存失败：打卡记录数据过大，请分批保存或联系管理员调整服务器限制。');
+  }
+
   throw new Error(xhr.responseText || '薪资数据请求失败');
 }
 
@@ -73,6 +77,10 @@ export const salaryDataSource = {
 
   saveAttendanceRecords(records: AttendanceRecord[]) {
     return request<{ ok: boolean }>('/api/persistent-data/salaryAttendanceRecords', 'PUT', '', records);
+  },
+
+  mergeAttendanceRecords(records: AttendanceRecord[]) {
+    return request<{ ok: boolean; savedCount?: number; totalCount?: number }>('/api/persistent-data/salaryAttendanceRecords', 'PUT', '?mode=merge', records);
   },
 
   loadAttendanceRules() {
