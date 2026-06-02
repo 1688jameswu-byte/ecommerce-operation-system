@@ -300,8 +300,9 @@ function buildAttendanceStats(records: AttendanceRecord[], employeeType: Employe
   const rule = resolveAttendanceRule(period?.startDate || records[0]?.workDate || '', rules);
   const restDays = toNumber(rule.monthlyRestDaysByEmployeeType?.[employeeType] ?? defaultMonthlyRestDaysByEmployeeType[employeeType]);
   const absenceRecords = records.filter((record) => hasCompletePunch(record) && toNumber(record.absenceHours) > 4);
-  const shortWorkRecords = records.filter((record) => hasCompletePunch(record) && toNumber(record.absenceHours) > 0 && toNumber(record.absenceHours) <= 4);
-  const missingClockCount = records.filter((record) => ['missing_clock', 'missing_time', 'no_punch'].includes(record.status)).length;
+  const shortWorkRecords = records.filter((record) => hasCompletePunch(record) && toNumber(record.absenceHours) >= 0.5 && toNumber(record.absenceHours) <= 4);
+  const rawMissingClockCount = records.filter((record) => ['missing_clock', 'missing_time', 'no_punch'].includes(record.status)).length;
+  const missingClockCount = Math.max(0, rawMissingClockCount - restDays);
   const lateCount = records.filter((record) => {
     const recordRule = resolveAttendanceRule(record.workDate, rules);
     const checkInMinutes = timeToMinutes(record.checkInTime);
@@ -313,7 +314,8 @@ function buildAttendanceStats(records: AttendanceRecord[], employeeType: Employe
   const overtimeHours = records.reduce((total, record) => total + toNumber(record.overtimeHours), 0);
   const absenceHours = absenceRecords.reduce((total, record) => total + toNumber(record.absenceHours), 0);
   const expectedAttendanceDays = Math.max(0, (periodDays || uniqueDateCount(records)) - restDays);
-  const actualAttendanceDays = uniqueDateCount(records.filter(hasCompletePunch));
+  const actualWorkDays = uniqueDateCount(records.filter(hasCompletePunch));
+  const actualAttendanceDays = Math.min(expectedAttendanceDays, actualWorkDays + Math.min(rawMissingClockCount, restDays));
   const isFullAttendance = actualAttendanceDays >= expectedAttendanceDays &&
     absenceDays <= restDays &&
     missingClockCount === 0 &&
