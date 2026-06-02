@@ -287,6 +287,10 @@ function uniqueDateCount(records: AttendanceRecord[]) {
   return new Set(records.map((record) => record.workDate).filter(Boolean)).size;
 }
 
+function attendanceTimeRange(record: AttendanceRecord) {
+  return `${record.checkInTime || '-'} - ${record.checkOutTime || '-'}`;
+}
+
 function dateSpanDays(period: Pick<SalaryPeriodRecord, 'startDate' | 'endDate'> | undefined) {
   if (!period?.startDate || !period.endDate) return 0;
   const start = new Date(`${period.startDate}T00:00:00`);
@@ -335,6 +339,16 @@ function buildAttendanceStats(records: AttendanceRecord[], employeeType: Employe
     earlyLeaveCount,
     missingClockCount,
     shortWorkDays: uniqueDateCount(shortWorkRecords),
+    absenceDetails: absenceRecords.map((record) => ({
+      date: record.workDate,
+      timeRange: attendanceTimeRange(record),
+      hours: toNumber(record.absenceHours),
+    })),
+    shortWorkDetails: shortWorkRecords.map((record) => ({
+      date: record.workDate,
+      timeRange: attendanceTimeRange(record),
+      hours: toNumber(record.absenceHours),
+    })),
     overtimeHours,
     absenceHours,
     isFullAttendance,
@@ -513,9 +527,9 @@ function SalaryDetailsPage() {
         { label: '午餐补贴', amount: row.lunchAllowance },
         { label: '住宿补贴', amount: row.housingAllowance },
         { label: '全勤奖', amount: row.attendanceBonus },
-        { label: '加班工资', amount: row.overtimeAmount },
+        { label: '加班工资', amount: row.overtimeAmount, formula: `${amount(row.overtimeHours)} × ${amount(row.hourlyRate)} = ${amount(row.overtimeAmount)}` },
         { label: '计件工资', amount: row.pieceworkAmount },
-        { label: '缺勤扣款', amount: -row.absenceDeduction },
+        { label: '缺勤扣款', amount: -row.absenceDeduction, formula: `${amount(row.absenceHours)} × ${amount(row.hourlyRate)} = ${amount(row.absenceDeduction)}` },
       ].filter((item) => item.amount !== 0);
 
     return {
@@ -702,6 +716,16 @@ function SalaryDetailsPage() {
                       {selectedDetail.attendanceStats.earlyLeaveCount > 0 && <span className="admin-status">早退 {selectedDetail.attendanceStats.earlyLeaveCount} 次</span>}
                       {selectedDetail.attendanceStats.absenceDays === 0 && selectedDetail.attendanceStats.missingClockCount === 0 && <span className="admin-status" style={statusStyles.calculated}>暂无异常</span>}
                     </div>
+                    {(selectedDetail.attendanceStats.absenceDetails.length > 0 || selectedDetail.attendanceStats.shortWorkDetails.length > 0) && (
+                      <div className="salary-detail-exception-list">
+                        {selectedDetail.attendanceStats.absenceDetails.map((item) => (
+                          <span key={`absence-${item.date}`}>{item.date} {item.timeRange}，缺勤 {amount(item.hours)} 小时</span>
+                        ))}
+                        {selectedDetail.attendanceStats.shortWorkDetails.map((item) => (
+                          <span key={`short-${item.date}`}>{item.date} {item.timeRange}，工时不足 {amount(item.hours)} 小时</span>
+                        ))}
+                      </div>
+                    )}
                   </section>
 
                   <section className="salary-detail-section">
@@ -765,7 +789,7 @@ function SalaryDetailsPage() {
                     <span>运营绩效工资暂未计算</span>
                   ) : selectedDetail.salaryItems.length > 0 ? (
                     selectedDetail.salaryItems.map((item) => (
-                      <span key={item.label}>{item.label}<strong>{amount(item.amount)}</strong></span>
+                      <span key={item.label}>{item.label}<strong>{amount(item.amount)}</strong>{item.formula && <em>{item.formula}</em>}</span>
                     ))
                   ) : (
                     <span>暂无工资项目</span>
