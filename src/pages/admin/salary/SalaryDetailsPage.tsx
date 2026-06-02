@@ -312,16 +312,22 @@ function buildAttendanceStats(records: AttendanceRecord[], employeeType: Employe
   const absenceDays = uniqueDateCount(absenceRecords);
   const overtimeHours = records.reduce((total, record) => total + toNumber(record.overtimeHours), 0);
   const absenceHours = absenceRecords.reduce((total, record) => total + toNumber(record.absenceHours), 0);
-  const isFullAttendance = absenceDays <= restDays && lateCount + earlyLeaveCount <= 3;
+  const expectedAttendanceDays = Math.max(0, (periodDays || uniqueDateCount(records)) - restDays);
+  const actualAttendanceDays = uniqueDateCount(records.filter(hasCompletePunch));
+  const isFullAttendance = actualAttendanceDays >= expectedAttendanceDays &&
+    absenceDays <= restDays &&
+    missingClockCount === 0 &&
+    lateCount + earlyLeaveCount <= 3;
   const fullAttendanceReasons = [
+    actualAttendanceDays < expectedAttendanceDays ? `实际出勤 ${actualAttendanceDays} 天，少于应出勤 ${expectedAttendanceDays} 天` : '',
     absenceDays > restDays ? `月休/缺勤天数 ${absenceDays} 天，超过 ${restDays} 天` : '',
     lateCount + earlyLeaveCount > 3 ? `迟到/早退 ${lateCount + earlyLeaveCount} 次，超过 3 次` : '',
     missingClockCount > 0 ? `缺卡 ${missingClockCount} 次` : '',
   ].filter(Boolean);
 
   return {
-    expectedAttendanceDays: Math.max(0, (periodDays || uniqueDateCount(records)) - restDays),
-    actualAttendanceDays: uniqueDateCount(records.filter(hasCompletePunch)),
+    expectedAttendanceDays,
+    actualAttendanceDays,
     absenceDays,
     lateCount,
     earlyLeaveCount,
@@ -435,6 +441,10 @@ function SalaryDetailsPage() {
       const employeePieceworkRecords = pieceworkByEmployee.get(employee.id) ?? [];
       const fixed = fixedItems(employee, isFixedEmployee || isPieceworkEmployee);
       const baseSalary = isPieceworkEmployee ? 0 : fixed.baseSalary;
+      const attendanceStats = employee.employeeType === 'hourly'
+        ? buildAttendanceStats(employeeHourlyRecords, employee.employeeType, selectedPeriod, attendanceRules)
+        : undefined;
+      const attendanceBonus = employee.employeeType === 'hourly' && !attendanceStats?.isFullAttendance ? 0 : fixed.attendanceBonus;
       const overtimeHours = employeeHourlyRecords.reduce((total, record) => total + toNumber(record.overtimeHours), 0);
       const hourlyRate = employee.employeeType === 'hourly' ? toNumber(employee.hourlyRate) : 0;
       const hourlyAmount = 0;
@@ -445,7 +455,7 @@ function SalaryDetailsPage() {
       const totalPieceworkAmount = isPieceworkEmployee ? employeePieceworkRecords.reduce((total, record) => total + pieceworkAmount(record), 0) : 0;
       const totalAmount = employee.employeeType === 'operator'
         ? 0
-        : baseSalary + fixed.lunchAllowance + fixed.housingAllowance + fixed.attendanceBonus + hourlyAmount + overtimeAmount + totalPieceworkAmount - totalAbsenceAmount;
+        : baseSalary + fixed.lunchAllowance + fixed.housingAllowance + attendanceBonus + hourlyAmount + overtimeAmount + totalPieceworkAmount - totalAbsenceAmount;
 
       return {
         id: employee.id,
@@ -455,7 +465,7 @@ function SalaryDetailsPage() {
         baseSalary,
         lunchAllowance: fixed.lunchAllowance,
         housingAllowance: fixed.housingAllowance,
-        attendanceBonus: fixed.attendanceBonus,
+        attendanceBonus,
         effectiveWorkHours: overtimeHours,
         hourlyRate,
         hourlyAmount,
@@ -470,7 +480,7 @@ function SalaryDetailsPage() {
         status: employee.employeeType === 'operator' ? 'not_calculated' : 'calculated',
       };
     });
-  }, [employees, normalizedAttendanceRecords, pieceworkRecords, selectedPeriod]);
+  }, [attendanceRules, employees, normalizedAttendanceRecords, pieceworkRecords, selectedPeriod]);
 
   const filteredRows = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
