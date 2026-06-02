@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import * as XLSX from 'xlsx';
 import { salaryDataSource } from '../../../data-source/salaryDataSource';
-import type { EmployeeRecord, EmployeeType, SalaryRecordStatus } from '../../../types/salary';
+import type { AttendanceRule, EmployeeRecord, EmployeeType, SalaryRecordStatus } from '../../../types/salary';
 
 const employeeTypeLabels: Record<EmployeeType, string> = {
   monthly: '月薪员工',
@@ -77,8 +77,13 @@ function amount(value: number | undefined) {
   return value === undefined ? '-' : value.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
 }
 
+function defaultAttendanceRuleId(rules: AttendanceRule[]) {
+  return rules.find((rule) => rule.id === 'attendance-rule-standard')?.id || rules.find((rule) => rule.status === 'active')?.id || '';
+}
+
 function SalaryEmployeesPage() {
   const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
+  const [attendanceRules, setAttendanceRules] = useState<AttendanceRule[]>([]);
   const [editing, setEditing] = useState<EmployeeRecord | null>(null);
   const [detectedHeaders, setDetectedHeaders] = useState<string[]>([]);
   const [importMessage, setImportMessage] = useState('');
@@ -91,6 +96,7 @@ function SalaryEmployeesPage() {
 
   useEffect(() => {
     loadEmployees();
+    salaryDataSource.loadAttendanceRules().then(setAttendanceRules);
   }, []);
 
   const summary = useMemo(() => {
@@ -140,6 +146,7 @@ function SalaryEmployeesPage() {
       lunchAllowance: editing.lunchAllowance,
       housingAllowance: editing.housingAllowance,
       attendanceBonus: editing.attendanceBonus,
+      attendanceRuleId: editing.attendanceRuleId || defaultAttendanceRuleId(attendanceRules),
       employeeType: normalizeEmployeeType(editing.employeeType),
       status: normalizeStatus(editing.status),
       remark: editing.remark,
@@ -160,6 +167,7 @@ function SalaryEmployeesPage() {
       employeeType: normalizeEmployeeType(employee.employeeType),
       status: normalizeStatus(employee.status),
       hourlyRate: employee.hourlyRate ?? 0,
+      attendanceRuleId: employee.attendanceRuleId || defaultAttendanceRuleId(attendanceRules),
     });
   };
 
@@ -325,6 +333,7 @@ function SalaryEmployeesPage() {
                 <th>部门</th>
                 <th>岗位</th>
                 <th>员工类型</th>
+                <th>考勤规则</th>
                 <th>状态</th>
                 <th style={{ textAlign: 'right' }}>基本工资</th>
                 <th style={{ textAlign: 'right' }}>时薪</th>
@@ -335,6 +344,7 @@ function SalaryEmployeesPage() {
               {filteredEmployees.map((employee) => {
                 const employeeType = normalizeEmployeeType(employee.employeeType);
                 const status = normalizeStatus(employee.status);
+                const attendanceRule = attendanceRules.find((rule) => rule.id === (employee.attendanceRuleId || defaultAttendanceRuleId(attendanceRules)));
                 return (
                   <tr key={employee.id}>
                     <td><strong>{employee.employeeName}</strong></td>
@@ -342,6 +352,7 @@ function SalaryEmployeesPage() {
                     <td>{employee.departmentName || '-'}</td>
                     <td>{employee.positionName || '-'}</td>
                     <td>{employeeTypeLabels[employeeType]}</td>
+                    <td>{attendanceRule?.ruleName || '标准班'}</td>
                     <td><span className="admin-status" style={statusStyles[status]}>{statusLabels[status]}</span></td>
                     <td style={{ textAlign: 'right' }}>{amount(employee.baseSalary)}</td>
                     <td style={{ textAlign: 'right' }}>{amount(employee.hourlyRate ?? 0)}</td>
@@ -385,6 +396,12 @@ function SalaryEmployeesPage() {
                 员工类型
                 <select value={normalizeEmployeeType(editing.employeeType)} onChange={(event) => setEditing({ ...editing, employeeType: event.target.value as EmployeeType })}>
                   {employeeTypes.map((type) => <option key={type} value={type}>{employeeTypeLabels[type]}</option>)}
+                </select>
+              </label>
+              <label>
+                考勤规则
+                <select value={editing.attendanceRuleId || defaultAttendanceRuleId(attendanceRules)} onChange={(event) => setEditing({ ...editing, attendanceRuleId: event.target.value })}>
+                  {attendanceRules.filter((rule) => rule.status === 'active').map((rule) => <option key={rule.id} value={rule.id}>{rule.ruleName}</option>)}
                 </select>
               </label>
               <label>

@@ -26,11 +26,14 @@ const dataFiles = {
   salaryPeriods: 'salary-periods.json',
   salaryAttendanceRecords: 'attendance-records.json',
   salaryAttendanceRules: 'salary-attendance-rules.json',
+  salaryEmployeeTypeRules: 'salary-employee-type-rules.json',
   salaryPieceworkRecords: 'piecework-records.json',
   salaryPlans: 'salary-plans.json',
   salaryItems: 'salary-items.json',
   employeeSalaryPlans: 'employee-salary-plans.json',
   salaryRecords: 'salary-records.json',
+  salaryFinancialDetails: 'salary-financial-details.json',
+  salaryFinancialImportBatches: 'salary-financial-import-batches.json',
   users: 'users.json',
   authSessions: 'auth-sessions.json',
   userPermissions: 'user-permissions.json',
@@ -166,7 +169,7 @@ function ensureDataFile(name) {
           ? '[]'
         : name === 'taskSuggestionTemplates'
       ? JSON.stringify(getDefaultTaskSuggestionTemplates(), null, 2)
-      : name === 'storeOperatorRelations' || name === 'operators' || name === 'stores' || name === 'tasks' || name === 'salaryEmployees' || name === 'salaryPeriods' || name === 'salaryAttendanceRecords' || name === 'salaryAttendanceRules' || name === 'salaryPieceworkRecords' || name === 'salaryPlans' || name === 'salaryItems' || name === 'employeeSalaryPlans' || name === 'salaryRecords' || name === 'effectiveNewListings'
+      : name === 'storeOperatorRelations' || name === 'operators' || name === 'stores' || name === 'tasks' || name === 'salaryEmployees' || name === 'salaryPeriods' || name === 'salaryAttendanceRecords' || name === 'salaryAttendanceRules' || name === 'salaryEmployeeTypeRules' || name === 'salaryPieceworkRecords' || name === 'salaryPlans' || name === 'salaryItems' || name === 'employeeSalaryPlans' || name === 'salaryRecords' || name === 'salaryFinancialDetails' || name === 'salaryFinancialImportBatches' || name === 'effectiveNewListings'
         ? '[]'
         : name === 'orderDailySummary' || name === 'trafficDailySummary'
         ? '{"items":[],"updatedAt":""}'
@@ -245,6 +248,8 @@ const menuKeys = {
   salaryPieceworkImport: 'salary-piecework-import',
   salaryDetails: 'salary-details',
   salaryPlan: 'salary-plan',
+  financeDetailImport: 'finance-detail-import',
+  operationSalaryStatistics: 'operation-salary-statistics',
 };
 const allMenuKeys = Object.values(menuKeys);
 const menuKeyAliases = {
@@ -2511,6 +2516,541 @@ function filterTrafficConversionStoreByQuery(data, searchParams) {
   return data;
 }
 
+const financialCategories = [
+  '推广服务费',
+  '消费者及履约保障-售后问题',
+  '仓储综合服务费',
+  '合规EPR物流包装环保费',
+  '提现',
+  '其他支出',
+];
+
+function toFiniteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function normalizeFinancialCategory(value) {
+  const text = String(value ?? '').trim();
+  if (financialCategories.includes(text)) return text;
+  if (text.includes('推广服务费') || text.includes('鎺ㄥ箍')) return '推广服务费';
+  if (text.includes('消费者及履约保障-售后问题') || text.includes('售后') || text.includes('鍞悗')) return '消费者及履约保障-售后问题';
+  if (text.includes('仓储综合服务费') || text.includes('浠撳偍')) return '仓储综合服务费';
+  if (text.includes('合规EPR') || text.includes('EPR')) return '合规EPR物流包装环保费';
+  if (text.includes('提现') || text.includes('鎻愮幇')) return '提现';
+  return '其他支出';
+}
+
+function isCnyFinancialDetail(detail) {
+  return String(detail?.currency ?? '').trim().toUpperCase() === 'CNY';
+}
+
+function isSettlement(detail) {
+  const type = String(detail?.transactionType ?? '').trim();
+  return type === '结算' || type === '缁撶畻' || type.includes('算');
+}
+
+function isSettlementInflow(detail, amount) {
+  const type = String(detail?.transactionType ?? '').trim();
+  return amount > 0 && (isSettlement(detail) || type.includes('�'));
+}
+
+function isExpense(detail) {
+  const type = String(detail?.transactionType ?? '').trim();
+  return type === '支出' || type === '鏀嚭';
+}
+
+function isWithdraw(detail) {
+  const type = String(detail?.transactionType ?? '').trim();
+  const category = String(detail?.category ?? '').trim();
+  const remark = String(detail?.remark ?? '').trim();
+  return type === '提现' ||
+    type === '鎻愮幇' ||
+    normalizeFinancialCategory(category) === '提现' ||
+    remark.includes('提现') ||
+    remark.includes('鎻愮幇');
+}
+
+function emptyFinancialSummary(seed = {}) {
+  return {
+    platform: seed.platform ?? 'TEMU',
+    storeId: seed.storeId ?? '',
+    storeName: seed.storeName ?? '',
+    period: seed.period ?? '',
+    inflowAmount: 0,
+    expenseAmount: 0,
+    promotionServiceFee: 0,
+    afterSalesProtectionFee: 0,
+    storageServiceFee: 0,
+    eprFee: 0,
+    otherExpense: 0,
+    withdrawAmount: 0,
+    operationExpenseAmount: 0,
+    netSalesAmount: 0,
+    commissionRate: 0,
+    commissionAmount: 0,
+    categorySummaries: financialCategories.map((category) => ({ category, amount: 0 })),
+    detailCount: 0,
+    batchCount: 0,
+    hasData: false,
+    hasNonCny: false,
+    hasOtherExpense: false,
+  };
+}
+
+function finalizeFinancialSummary(summary, batchCount = 0) {
+  const categoryMap = new Map(summary.categorySummaries.map((item) => [item.category, item.amount]));
+  summary.promotionServiceFee = categoryMap.get('推广服务费') ?? 0;
+  summary.afterSalesProtectionFee = categoryMap.get('消费者及履约保障-售后问题') ?? 0;
+  summary.storageServiceFee = categoryMap.get('仓储综合服务费') ?? 0;
+  summary.eprFee = categoryMap.get('合规EPR物流包装环保费') ?? 0;
+  summary.otherExpense = categoryMap.get('其他支出') ?? 0;
+  summary.withdrawAmount = categoryMap.get('提现') ?? 0;
+  summary.operationExpenseAmount = Math.max(0, summary.expenseAmount - summary.withdrawAmount);
+  summary.netSalesAmount = summary.inflowAmount - summary.operationExpenseAmount;
+  summary.batchCount = batchCount || summary.batchCount;
+  summary.hasData = summary.detailCount > 0;
+  summary.commissionRate = summary.hasData ? commissionRate(summary.netSalesAmount) : 0;
+  summary.commissionAmount = summary.netSalesAmount * summary.commissionRate;
+  summary.hasOtherExpense = summary.otherExpense > 0;
+  return summary;
+}
+
+function summarizeFinancialDetails(details, seed = {}) {
+  const summary = emptyFinancialSummary(seed);
+  const categoryMap = new Map(financialCategories.map((category) => [category, 0]));
+
+  for (const detail of Array.isArray(details) ? details : []) {
+    if (!isCnyFinancialDetail(detail)) {
+      summary.hasNonCny = true;
+      continue;
+    }
+
+    const amount = toFiniteNumber(detail?.amount);
+    summary.detailCount += 1;
+
+    if (isSettlementInflow(detail, amount)) {
+      summary.inflowAmount += amount;
+    }
+
+    if (isWithdraw(detail)) {
+      const withdrawAmount = Math.abs(amount);
+      summary.expenseAmount += withdrawAmount;
+      categoryMap.set('提现', (categoryMap.get('提现') ?? 0) + withdrawAmount);
+      continue;
+    }
+
+    if (isSettlement(detail) && amount < 0) {
+      const expenseAmount = Math.abs(amount);
+      const otherExpenseCategory = financialCategories[financialCategories.length - 1];
+      summary.expenseAmount += expenseAmount;
+      categoryMap.set(otherExpenseCategory, (categoryMap.get(otherExpenseCategory) ?? 0) + expenseAmount);
+      continue;
+    }
+
+    if (isExpense(detail)) {
+      const expenseAmount = Math.abs(amount);
+      const category = normalizeFinancialCategory(detail?.category);
+      summary.expenseAmount += expenseAmount;
+      categoryMap.set(category, (categoryMap.get(category) ?? 0) + expenseAmount);
+    }
+  }
+
+  summary.categorySummaries = financialCategories.map((category) => ({
+    category,
+    amount: categoryMap.get(category) ?? 0,
+  }));
+  return finalizeFinancialSummary(summary);
+}
+
+function normalizeFinancialDetail(detail, batch, batchId, time) {
+  return {
+    id: detail.id || createId('financial-detail'),
+    platform: String(detail.platform ?? batch.platform ?? 'TEMU').trim() || 'TEMU',
+    storeId: String(detail.storeId ?? batch.storeId ?? '').trim(),
+    storeName: String(detail.storeName ?? batch.storeName ?? '').trim(),
+    period: String(detail.period ?? batch.period ?? '').trim(),
+    transactionTime: String(detail.transactionTime ?? '').trim(),
+    transactionType: String(detail.transactionType ?? '').trim(),
+    currency: String(detail.currency ?? '').trim().toUpperCase(),
+    amount: toFiniteNumber(detail.amount),
+    remark: String(detail.remark ?? '').trim(),
+    category: normalizeFinancialCategory(detail.category),
+    sourceFileName: String(detail.sourceFileName ?? batch.fileName ?? '').trim(),
+    importBatchId: batchId,
+    createdAt: detail.createdAt || time,
+  };
+}
+
+function normalizeFinancialBatch(batch, details, batchId, time) {
+  const summary = summarizeFinancialDetails(details, {
+    platform: batch.platform,
+    storeId: batch.storeId,
+    storeName: batch.storeName,
+    period: batch.period,
+  });
+
+  return {
+    id: batchId,
+    platform: String(batch.platform ?? 'TEMU').trim() || 'TEMU',
+    storeId: String(batch.storeId ?? '').trim(),
+    storeName: String(batch.storeName ?? '').trim(),
+    period: String(batch.period ?? '').trim(),
+    fileName: String(batch.fileName ?? '').trim(),
+    totalRows: toFiniteNumber(batch.totalRows),
+    successRows: toFiniteNumber(batch.successRows || details.length),
+    failedRows: toFiniteNumber(batch.failedRows),
+    inflowAmount: summary.inflowAmount,
+    expenseAmount: summary.expenseAmount,
+    withdrawAmount: summary.withdrawAmount,
+    operationExpenseAmount: summary.operationExpenseAmount,
+    hasNonCny: Boolean(summary.hasNonCny || batch.hasNonCny),
+    hasOtherExpense: Boolean(summary.hasOtherExpense || batch.hasOtherExpense),
+    importedAt: batch.importedAt || time,
+  };
+}
+
+function financialScopeKey(item) {
+  return [
+    String(item?.platform ?? '').trim().toLowerCase(),
+    String(item?.storeId ?? '').trim().toLowerCase(),
+    String(item?.period ?? '').trim(),
+  ].join('|');
+}
+
+function filterFinancialItems(items, searchParams) {
+  const platform = String(searchParams.get('platform') ?? '').trim();
+  const storeId = String(searchParams.get('storeId') ?? '').trim();
+  const period = String(searchParams.get('period') ?? '').trim();
+
+  return (Array.isArray(items) ? items : []).filter((item) => (
+    (!platform || String(item?.platform ?? '') === platform) &&
+    (!storeId || String(item?.storeId ?? '') === storeId) &&
+    (!period || String(item?.period ?? '') === period)
+  ));
+}
+
+function filterFinancialForUser(items, currentUser) {
+  if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
+    return items;
+  }
+
+  const visibleStoreKeys = getVisibleStoreKeys(currentUser);
+  return (Array.isArray(items) ? items : []).filter((item) => itemMatchesVisibleStore(item, visibleStoreKeys));
+}
+
+function paginate(items, searchParams) {
+  const page = Math.max(1, Number(searchParams.get('page') || 1));
+  const pageSize = Math.min(200, Math.max(1, Number(searchParams.get('pageSize') || 20)));
+  const start = (page - 1) * pageSize;
+  return {
+    records: items.slice(start, start + pageSize),
+    total: items.length,
+    page,
+    pageSize,
+  };
+}
+
+function buildFinancialStoreSummaries(details, batches, searchParams, currentUser) {
+  const scopedDetails = filterFinancialItems(filterFinancialForUser(details, currentUser), searchParams);
+  const scopedBatches = filterFinancialItems(filterFinancialForUser(batches, currentUser), searchParams);
+  const batchCountByScope = scopedBatches.reduce((map, batch) => {
+    const key = financialScopeKey(batch);
+    map.set(key, (map.get(key) ?? 0) + 1);
+    return map;
+  }, new Map());
+  const grouped = scopedDetails.reduce((map, detail) => {
+    const key = financialScopeKey(detail);
+    map.set(key, [...(map.get(key) ?? []), detail]);
+    return map;
+  }, new Map());
+
+  return Array.from(grouped.values())
+    .map((group) => {
+      const first = group[0] ?? {};
+      return finalizeFinancialSummary(summarizeFinancialDetails(group, first), batchCountByScope.get(financialScopeKey(first)) ?? 0);
+    })
+    .sort((first, second) => `${second.period} ${first.storeName}`.localeCompare(`${first.period} ${second.storeName}`));
+}
+
+function commissionRate(netSalesAmount) {
+  if (netSalesAmount <= 20000) return 0.02;
+  if (netSalesAmount <= 40000) return 0.03;
+  if (netSalesAmount <= 80000) return 0.04;
+  if (netSalesAmount <= 120000) return 0.05;
+  if (netSalesAmount <= 180000) return 0.06;
+  return 0.07;
+}
+
+function employeeMatchesRelation(employee, relation, operatorById = new Map()) {
+  const employeeOperatorId = String(employee?.operatorId ?? '').trim();
+  const relationOperatorId = String(relation?.operatorId ?? '').trim();
+  const employeeName = String(employee?.employeeName ?? '').trim();
+  const relationOperatorName = String(relation?.operatorName ?? '').trim();
+  const operatorNameById = String(operatorById.get(relationOperatorId)?.operatorName ?? '').trim();
+  return Boolean(employeeOperatorId && employeeOperatorId === relationOperatorId) ||
+    Boolean(employeeName && employeeName === relationOperatorName) ||
+    Boolean(employeeName && employeeName === operatorNameById);
+}
+
+function buildStoreSalaryDetail(storeId, period, relation, storeById, summaryByStore) {
+  const store = storeById.get(String(storeId));
+  const seed = {
+    platform: relation?.platform || store?.platform || 'TEMU',
+    storeId,
+    storeName: store?.storeName || relation?.storeName || storeId,
+    period,
+  };
+  const summary = summaryByStore.get(String(storeId)) ?? finalizeFinancialSummary(emptyFinancialSummary(seed));
+  const warnings = [
+    !summary.hasData ? '当前周期暂无财务数据' : '',
+    summary.hasData && summary.inflowAmount === 0 ? '当前周期无结算金额' : '',
+    summary.hasOtherExpense ? '存在未识别支出，已计入其他支出' : '',
+    summary.hasNonCny ? '当前核算仅统计 CNY' : '',
+  ].filter(Boolean);
+
+  return {
+    ...summary,
+    platform: summary.platform || seed.platform,
+    storeId: summary.storeId || storeId,
+    storeName: summary.storeName || seed.storeName,
+    period: summary.period || period,
+    dataStatus: warnings.length > 0 ? warnings.join('；') : '已计算',
+    warnings,
+  };
+}
+
+function emptyOperatorTotals() {
+  return {
+    inflowAmount: 0,
+    expenseAmount: 0,
+    promotionServiceFee: 0,
+    afterSalesProtectionFee: 0,
+    storageServiceFee: 0,
+    eprFee: 0,
+    otherExpense: 0,
+    withdrawAmount: 0,
+    operationExpenseAmount: 0,
+    netSalesAmount: 0,
+    commissionAmount: 0,
+  };
+}
+
+function isTemuSalaryOperator(employee) {
+  const departmentName = String(employee?.departmentName ?? '').trim().toUpperCase();
+  const platformText = String(employee?.platform ?? employee?.sourceFields?.平台 ?? employee?.sourceFields?.店铺平台 ?? '').trim().toUpperCase();
+  return departmentName.includes('TEMU') || platformText === 'TEMU';
+}
+
+function buildOperatorSalaryStatistics(searchParams, currentUser) {
+  const requestedPeriod = String(searchParams.get('period') ?? '').trim();
+  const requestedOperatorId = String(searchParams.get('operatorId') ?? '').trim();
+  const requestedStoreId = String(searchParams.get('storeId') ?? '').trim();
+  const employees = readCollection('salaryEmployees')
+    .filter((employee) => employee?.employeeType === 'operator' && employee?.status !== 'inactive' && isTemuSalaryOperator(employee));
+  const relations = readCollection('storeOperatorRelations')
+    .filter((relation) => relation?.status !== 'inactive' && (!requestedStoreId || String(relation?.storeId ?? '') === requestedStoreId));
+  const stores = getStores();
+  const operatorById = new Map(readCollection('operators').map((operator) => [String(operator.id), operator]));
+  const summaries = buildFinancialStoreSummaries(
+    readCollection('salaryFinancialDetails'),
+    readCollection('salaryFinancialImportBatches'),
+    new URLSearchParams(requestedPeriod ? { period: requestedPeriod } : {}),
+    currentUser,
+  );
+  const summaryByStore = new Map(summaries.map((summary) => [String(summary.storeId), summary]));
+  const storeById = new Map(stores.map((store) => [String(store.id), store]));
+  const currentRole = String(currentUser?.role ?? '').toLowerCase();
+  const currentOperatorId = String(currentUser?.operatorId ?? '').trim();
+  const currentOperatorName = String(currentUser?.operatorName ?? currentUser?.displayName ?? currentUser?.username ?? '').trim();
+
+  return employees
+    .filter((employee) => !requestedOperatorId || String(employee.operatorId || employee.id) === requestedOperatorId || employee.id === requestedOperatorId)
+    .filter((employee) => currentRole === 'admin' ||
+      String(employee.operatorId ?? '').trim() === currentOperatorId ||
+      String(employee.employeeName ?? '').trim() === currentOperatorName)
+    .filter((employee) => !requestedStoreId || relations.some((relation) => employeeMatchesRelation(employee, relation, operatorById)))
+    .map((employee) => {
+      const employeeRelations = relations.filter((relation) => employeeMatchesRelation(employee, relation, operatorById));
+      const storeIds = Array.from(new Set(employeeRelations.map((relation) => String(relation.storeId ?? '')).filter(Boolean)));
+      const storeDetails = storeIds.map((storeId) => buildStoreSalaryDetail(
+        storeId,
+        requestedPeriod,
+        employeeRelations.find((relation) => String(relation.storeId ?? '') === storeId),
+        storeById,
+        summaryByStore,
+      ));
+      const storeNames = storeDetails.map((detail) => detail.storeName || detail.storeId);
+      const baseSalaryMissing = employee.baseSalary === undefined || employee.baseSalary === null || employee.baseSalary === '';
+      const baseSalary = baseSalaryMissing ? 0 : toFiniteNumber(employee.baseSalary);
+      const totals = storeDetails.reduce((sum, item) => ({
+        inflowAmount: sum.inflowAmount + item.inflowAmount,
+        expenseAmount: sum.expenseAmount + item.expenseAmount,
+        promotionServiceFee: sum.promotionServiceFee + item.promotionServiceFee,
+        afterSalesProtectionFee: sum.afterSalesProtectionFee + item.afterSalesProtectionFee,
+        storageServiceFee: sum.storageServiceFee + item.storageServiceFee,
+        eprFee: sum.eprFee + item.eprFee,
+        otherExpense: sum.otherExpense + item.otherExpense,
+        withdrawAmount: sum.withdrawAmount + item.withdrawAmount,
+        operationExpenseAmount: sum.operationExpenseAmount + item.operationExpenseAmount,
+        netSalesAmount: sum.netSalesAmount + item.netSalesAmount,
+        commissionAmount: sum.commissionAmount + item.commissionAmount,
+      }), emptyOperatorTotals());
+      const dataStoreCount = storeDetails.filter((detail) => detail.hasData).length;
+      const missingStoreCount = storeDetails.filter((detail) => !detail.hasData).length;
+      const warnings = [
+        baseSalaryMissing ? '员工档案缺少基本工资，请先维护员工档案。' : '',
+        storeIds.length === 0 ? '该运营未绑定负责店铺，无法计算运营提成。' : '',
+        storeIds.length > 0 && dataStoreCount === 0 ? '当前周期暂无财务数据，运营提成为 0。' : '',
+        dataStoreCount > 0 && missingStoreCount > 0 ? '部分店铺暂无财务数据，请检查财务明细导入。' : '',
+        totals.otherExpense > 0 ? '财务明细中存在未识别支出，已归类为其他支出。' : '',
+        storeDetails.some((summary) => summary.hasNonCny) ? '当前核算仅统计 CNY。' : '',
+      ].filter(Boolean);
+      const effectiveCommission = dataStoreCount === 0 ? 0 : totals.commissionAmount;
+
+      return {
+        id: `operator-salary-${requestedPeriod || 'all'}-${employee.id}`,
+        period: requestedPeriod,
+        employeeId: employee.id,
+        operatorId: employee.operatorId || employee.id,
+        operatorName: employee.employeeName,
+        storeIds,
+        storeNames,
+        baseSalary,
+        ...totals,
+        commissionAmount: effectiveCommission,
+        payableSalary: baseSalary + effectiveCommission,
+        dataStatus: warnings.length > 0 ? warnings.join('；') : '已计算',
+        warnings,
+        hasFinancialData: dataStoreCount > 0,
+        storeDetails,
+      };
+    });
+}
+
+async function handleSalaryFinancialImportsApi(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+
+  try {
+    const requestUrl = new URL(req.url ?? '/', 'http://local');
+    const pathname = requestUrl.pathname.replace(/^\/+/, '');
+    const currentUser = toCurrentUser(findCurrentUser(req));
+    const parts = pathname.split('/').filter(Boolean);
+
+    if (req.method === 'GET') {
+      if (!requireMenu(req, res, menuKeys.financeDetailImport)) return;
+
+      if (parts.length === 2 && parts[1] === 'details') {
+        const batchId = decodeURIComponent(parts[0]);
+        const details = filterFinancialForUser(readCollection('salaryFinancialDetails'), currentUser)
+          .filter((detail) => detail.importBatchId === batchId)
+          .sort((first, second) => String(first.transactionTime).localeCompare(String(second.transactionTime)));
+        res.end(JSON.stringify(paginate(details, requestUrl.searchParams)));
+        return;
+      }
+
+      const batches = filterFinancialItems(filterFinancialForUser(readCollection('salaryFinancialImportBatches'), currentUser), requestUrl.searchParams)
+        .sort((first, second) => String(second.importedAt).localeCompare(String(first.importedAt)));
+      const page = paginate(batches, requestUrl.searchParams);
+      res.end(JSON.stringify({
+        ...page,
+        storeOptions: unique(batches.map((batch) => batch.storeName || batch.storeId).filter(Boolean)),
+        periodOptions: unique(batches.map((batch) => batch.period).filter(Boolean)).sort().reverse(),
+      }));
+      return;
+    }
+
+    if (req.method === 'POST') {
+      if (!requireAdmin(req, res, '仅管理员可导入财务明细。')) return;
+
+      const payload = JSON.parse((await readBody(req)) || '{}');
+      const rawBatch = payload.batch ?? {};
+      const rawDetails = Array.isArray(payload.details) ? payload.details : [];
+      const time = nowIso();
+      const batchId = rawBatch.id || createId('financial-import');
+      const normalizedDetails = rawDetails.map((detail) => normalizeFinancialDetail(detail, rawBatch, batchId, time));
+      const normalizedBatch = normalizeFinancialBatch(rawBatch, normalizedDetails, batchId, time);
+
+      if (!normalizedBatch.platform || !normalizedBatch.storeId || !normalizedBatch.period || !normalizedBatch.fileName) {
+        res.statusCode = 400;
+        res.end(JSON.stringify({ ok: false, message: '平台、店铺、财务月份和文件名不能为空。' }));
+        return;
+      }
+
+      const scopeKey = financialScopeKey(normalizedBatch);
+      const currentBatches = readCollection('salaryFinancialImportBatches');
+      const currentDetails = readCollection('salaryFinancialDetails');
+      writeJsonFile('salaryFinancialImportBatches', [
+        ...currentBatches.filter((batch) => financialScopeKey(batch) !== scopeKey),
+        normalizedBatch,
+      ]);
+      writeJsonFile('salaryFinancialDetails', [
+        ...currentDetails.filter((detail) => financialScopeKey(detail) !== scopeKey),
+        ...normalizedDetails,
+      ]);
+      res.end(JSON.stringify({ ok: true, batch: normalizedBatch }));
+      return;
+    }
+
+    if (req.method === 'DELETE') {
+      if (!requireAdmin(req, res)) return;
+
+      const batchId = decodeURIComponent(parts[0] || '');
+      writeJsonFile('salaryFinancialImportBatches', readCollection('salaryFinancialImportBatches').filter((batch) => batch.id !== batchId));
+      writeJsonFile('salaryFinancialDetails', readCollection('salaryFinancialDetails').filter((detail) => detail.importBatchId !== batchId));
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    res.statusCode = 405;
+    res.end('Method not allowed');
+  } catch (error) {
+    res.statusCode = 500;
+    res.end(JSON.stringify({ ok: false, message: error instanceof Error ? error.message : String(error) }));
+  }
+}
+
+function handleSalaryFinancialSummariesApi(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+
+  if (req.method !== 'GET') {
+    res.statusCode = 405;
+    res.end('Method not allowed');
+    return;
+  }
+
+  if (!requireMenu(req, res, menuKeys.operationSalaryStatistics)) return;
+
+  const requestUrl = new URL(req.url ?? '/', 'http://local');
+  const currentUser = toCurrentUser(findCurrentUser(req));
+  const records = buildFinancialStoreSummaries(
+    readCollection('salaryFinancialDetails'),
+    readCollection('salaryFinancialImportBatches'),
+    requestUrl.searchParams,
+    currentUser,
+  );
+  res.end(JSON.stringify({ records }));
+}
+
+function handleOperatorSalaryStatisticsApi(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+
+  if (req.method !== 'GET') {
+    res.statusCode = 405;
+    res.end('Method not allowed');
+    return;
+  }
+
+  if (!requireMenu(req, res, menuKeys.operationSalaryStatistics)) return;
+
+  const requestUrl = new URL(req.url ?? '/', 'http://local');
+  const currentUser = toCurrentUser(findCurrentUser(req));
+  res.end(JSON.stringify({ records: buildOperatorSalaryStatistics(requestUrl.searchParams, currentUser) }));
+}
+
 function getCollectionMenuKey(name) {
   if (name === 'stores') {
     return menuKeys.storeManagement;
@@ -2857,6 +3397,9 @@ function localDataPlugin() {
         handleCollectionApi(req, res, 'storeOperatorRelations', 'relation')
       ));
       server.middlewares.use('/api/effective-new-listings', handleEffectiveNewListingsApi);
+      server.middlewares.use('/api/salary/financial-imports', handleSalaryFinancialImportsApi);
+      server.middlewares.use('/api/salary/financial-summaries', handleSalaryFinancialSummariesApi);
+      server.middlewares.use('/api/salary/operator-salary-statistics', handleOperatorSalaryStatisticsApi);
       server.middlewares.use('/api/salary/employees', (req, res) => (
         handleCollectionApi(req, res, 'salaryEmployees', 'employee')
       ));
@@ -2868,6 +3411,9 @@ function localDataPlugin() {
       ));
       server.middlewares.use('/api/salary/attendance-rules', (req, res) => (
         handleCollectionApi(req, res, 'salaryAttendanceRules', 'attendance-rule')
+      ));
+      server.middlewares.use('/api/salary/employee-type-rules', (req, res) => (
+        handleCollectionApi(req, res, 'salaryEmployeeTypeRules', 'employee-type-rule')
       ));
       server.middlewares.use('/api/salary/piecework-records', (req, res) => (
         handleCollectionApi(req, res, 'salaryPieceworkRecords', 'piecework')

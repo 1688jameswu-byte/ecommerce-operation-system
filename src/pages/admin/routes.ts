@@ -241,6 +241,22 @@ export const adminRoutes: AdminRoute[] = [
     description: '导入计件明细，保存计件事实，不生成工资单。',
   },
   {
+    path: '/admin/salary/finance-detail-import',
+    menuKey: menuKeys.financeDetailImport,
+    parentMenuKey: menuKeys.salaryPerformance,
+    label: '财务明细导入',
+    group: '薪资绩效',
+    description: '按平台、店铺和月份导入财务明细，生成运营工资核算所需的店铺月度汇总。',
+  },
+  {
+    path: '/admin/salary/operator-salary-statistics',
+    menuKey: menuKeys.operationSalaryStatistics,
+    parentMenuKey: menuKeys.salaryPerformance,
+    label: '运营工资统计',
+    group: '薪资绩效',
+    description: '根据员工档案基本工资、运营店铺关系和财务明细汇总计算运营工资。',
+  },
+  {
     path: '/admin/salary/details',
     menuKey: menuKeys.salaryDetails,
     parentMenuKey: menuKeys.salaryPerformance,

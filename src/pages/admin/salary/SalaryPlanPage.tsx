@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { salaryDataSource } from '../../../data-source/salaryDataSource';
-import type { AttendanceRule, AttendanceRuleSeason, AttendanceRuleStatus, EmployeeType } from '../../../types/salary';
+import type { AttendanceRule, AttendanceRuleSeason, AttendanceRuleStatus, EmployeeType, EmployeeTypeRule } from '../../../types/salary';
 
 const salarySystemRows = [
   {
@@ -50,18 +50,19 @@ const emptyAttendanceRuleForm = {
   afternoonStartTime: '13:00',
   afternoonEndTime: '18:00',
   attendanceGraceMinutes: 10,
-  monthlyRestDaysByEmployeeType: {
-    monthly: 2,
-    hourly: 2,
-    piecework: 0,
-    manager: 2,
-    operator: 2,
-  } as Record<EmployeeType, number>,
   normalOffTime: '18:00',
   graceMinutes: 10,
   remark: '',
   status: 'active' as AttendanceRuleStatus,
 };
+
+const defaultEmployeeTypeRules: EmployeeTypeRule[] = [
+  { id: 'employee-type-rule-monthly', employeeType: 'monthly', monthlyRestDays: 2, remark: '月薪员工默认每月休息2天。' },
+  { id: 'employee-type-rule-hourly', employeeType: 'hourly', monthlyRestDays: 2, remark: '计时员工默认每月休息2天。' },
+  { id: 'employee-type-rule-piecework', employeeType: 'piecework', monthlyRestDays: 0, remark: '计件员工本阶段不按月休抵扣。' },
+  { id: 'employee-type-rule-manager', employeeType: 'manager', monthlyRestDays: 2, remark: '管理人员默认每月休息2天。' },
+  { id: 'employee-type-rule-operator', employeeType: 'operator', monthlyRestDays: 4, remark: '运营暂缓接入工资计算，先保留月休规则。' },
+];
 
 const employeeTypeLabels: Record<EmployeeType, string> = {
   monthly: '月薪员工',
@@ -106,11 +107,6 @@ function normalizeRule(rule: AttendanceRule): AttendanceRule {
   const afternoonStartTime = rule.afternoonStartTime || '13:00';
   const afternoonEndTime = rule.afternoonEndTime || rule.normalOffTime || '18:00';
   const attendanceGraceMinutes = Number(rule.attendanceGraceMinutes ?? rule.graceMinutes ?? 10);
-  const monthlyRestDaysByEmployeeType = {
-    ...emptyAttendanceRuleForm.monthlyRestDaysByEmployeeType,
-    ...(rule.monthlyRestDaysByEmployeeType || {}),
-  };
-
   return {
     ...rule,
     morningStartTime,
@@ -118,8 +114,8 @@ function normalizeRule(rule: AttendanceRule): AttendanceRule {
     afternoonStartTime,
     afternoonEndTime,
     attendanceGraceMinutes,
-    monthlyRestDaysByEmployeeType,
     expectedWorkHours: expectedWorkHours({ morningStartTime, morningEndTime, afternoonStartTime, afternoonEndTime }),
+    dailyExpectedHours: expectedWorkHours({ morningStartTime, morningEndTime, afternoonStartTime, afternoonEndTime }),
     normalOffTime: rule.normalOffTime || afternoonEndTime,
     graceMinutes: Number(rule.graceMinutes ?? attendanceGraceMinutes),
   };
@@ -127,12 +123,14 @@ function normalizeRule(rule: AttendanceRule): AttendanceRule {
 
 function SalaryPlanPage() {
   const [attendanceRules, setAttendanceRules] = useState<AttendanceRule[]>([]);
+  const [employeeTypeRules, setEmployeeTypeRules] = useState<EmployeeTypeRule[]>(defaultEmployeeTypeRules);
   const [ruleForm, setRuleForm] = useState(emptyAttendanceRuleForm);
   const [editingRuleId, setEditingRuleId] = useState('');
   const [ruleMessage, setRuleMessage] = useState('');
 
   useEffect(() => {
     salaryDataSource.loadAttendanceRules().then((rules) => setAttendanceRules(rules.map(normalizeRule)));
+    salaryDataSource.loadEmployeeTypeRules().then((rules) => setEmployeeTypeRules(rules.length > 0 ? rules : defaultEmployeeTypeRules));
   }, []);
 
   const resetRuleForm = () => {
@@ -154,8 +152,8 @@ function SalaryPlanPage() {
       afternoonStartTime: ruleForm.afternoonStartTime,
       afternoonEndTime: ruleForm.afternoonEndTime,
       attendanceGraceMinutes: toNumber(ruleForm.attendanceGraceMinutes),
-      monthlyRestDaysByEmployeeType: ruleForm.monthlyRestDaysByEmployeeType,
       expectedWorkHours: expectedWorkHours(ruleForm),
+      dailyExpectedHours: expectedWorkHours(ruleForm),
       normalOffTime: ruleForm.normalOffTime,
       graceMinutes: toNumber(ruleForm.graceMinutes),
       remark: ruleForm.remark.trim(),
@@ -186,13 +184,23 @@ function SalaryPlanPage() {
       afternoonStartTime: normalizeRule(rule).afternoonStartTime,
       afternoonEndTime: normalizeRule(rule).afternoonEndTime,
       attendanceGraceMinutes: normalizeRule(rule).attendanceGraceMinutes,
-      monthlyRestDaysByEmployeeType: normalizeRule(rule).monthlyRestDaysByEmployeeType,
       normalOffTime: normalizeRule(rule).normalOffTime,
       graceMinutes: normalizeRule(rule).graceMinutes,
       remark: rule.remark || '',
       status: rule.status,
     });
     setRuleMessage('');
+  };
+
+  const updateEmployeeTypeRule = (employeeType: EmployeeType, monthlyRestDays: number) => {
+    const now = new Date().toISOString();
+    const nextRules = employeeTypes.map((type) => {
+      const current = employeeTypeRules.find((rule) => rule.employeeType === type) ?? defaultEmployeeTypeRules.find((rule) => rule.employeeType === type)!;
+      return type === employeeType ? { ...current, monthlyRestDays, updatedAt: now } : current;
+    });
+    setEmployeeTypeRules(nextRules);
+    salaryDataSource.saveEmployeeTypeRules(nextRules);
+    setRuleMessage(`已保存${employeeTypeLabels[employeeType]}月休规则`);
   };
 
   return (
@@ -236,23 +244,6 @@ function SalaryPlanPage() {
               <option value="inactive">停用 inactive</option>
             </select>
           </label>
-          {employeeTypes.map((type) => (
-            <label key={type}>
-              {employeeTypeLabels[type]}每月休息
-              <input
-                type="number"
-                min="0"
-                value={ruleForm.monthlyRestDaysByEmployeeType[type]}
-                onChange={(event) => setRuleForm({
-                  ...ruleForm,
-                  monthlyRestDaysByEmployeeType: {
-                    ...ruleForm.monthlyRestDaysByEmployeeType,
-                    [type]: toNumber(event.target.value),
-                  },
-                })}
-              />
-            </label>
-          ))}
           <label className="operator-form-wide">备注<input value={ruleForm.remark} onChange={(event) => setRuleForm({ ...ruleForm, remark: event.target.value })} /></label>
           <button className="excel-clear-button primary-action" type="submit">{editingRuleId ? '保存规则' : '新增规则'}</button>
           {editingRuleId && <button className="excel-clear-button" type="button" onClick={resetRuleForm}>取消编辑</button>}
@@ -270,7 +261,6 @@ function SalaryPlanPage() {
                 <th>下班时间</th>
                 <th style={{ textAlign: 'right' }}>每日应出勤</th>
                 <th style={{ textAlign: 'right' }}>免计分钟</th>
-                <th>每月休息</th>
                 <th>状态</th>
                 <th>操作</th>
               </tr>
@@ -285,7 +275,6 @@ function SalaryPlanPage() {
                   <td>{rule.afternoonStartTime}-{rule.afternoonEndTime}</td>
                   <td style={{ textAlign: 'right' }}>{normalizeRule(rule).expectedWorkHours}</td>
                   <td style={{ textAlign: 'right' }}>{normalizeRule(rule).attendanceGraceMinutes}</td>
-                  <td>{employeeTypes.map((type) => `${employeeTypeLabels[type]}${normalizeRule(rule).monthlyRestDaysByEmployeeType[type]}天`).join(' / ')}</td>
                   <td>{ruleStatusLabels[rule.status]}</td>
                   <td className="operator-actions">
                     <button type="button" onClick={() => editAttendanceRule(rule)}>编辑</button>
@@ -295,6 +284,47 @@ function SalaryPlanPage() {
             </tbody>
           </table>
           {attendanceRules.length === 0 && <div className="import-record-empty">暂无考勤 / 加班规则，将使用默认规则。</div>}
+        </div>
+      </article>
+
+      <article className="excel-record-panel">
+        <header>
+          <div>
+            <h2>员工类型月休规则</h2>
+            <p>员工类型只决定每月休息天数；上下班时间和加班免计分钟由员工绑定的考勤规则决定。</p>
+          </div>
+          <span>{employeeTypeRules.length} 条规则</span>
+        </header>
+        <div className="import-record-table-wrap">
+          <table className="import-record-table">
+            <thead>
+              <tr>
+                <th>员工类型</th>
+                <th style={{ textAlign: 'right' }}>每月休息天数</th>
+                <th>备注</th>
+              </tr>
+            </thead>
+            <tbody>
+              {employeeTypes.map((type) => {
+                const rule = employeeTypeRules.find((item) => item.employeeType === type) ?? defaultEmployeeTypeRules.find((item) => item.employeeType === type)!;
+                return (
+                  <tr key={type}>
+                    <td><strong>{employeeTypeLabels[type]}</strong></td>
+                    <td style={{ textAlign: 'right' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        value={rule.monthlyRestDays}
+                        onChange={(event) => updateEmployeeTypeRule(type, toNumber(event.target.value))}
+                        style={{ width: 90, textAlign: 'right' }}
+                      />
+                    </td>
+                    <td>{rule.remark || '-'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </article>
 

@@ -14,6 +14,7 @@ export type SalaryItemType = 'fixed' | 'performance' | 'piecework' | 'subsidy' |
 export type SalaryItemDirection = 'income' | 'deduction';
 export type SalaryRecordSourceType = 'manual' | 'attendance' | 'operation_performance' | 'design_piecework' | 'packing_piecework' | 'fixed_salary' | 'subsidy' | 'deduction';
 export type SalaryRecordConfirmStatus = 'draft' | 'pending' | 'confirmed' | 'rejected';
+export type FinancialExpenseCategory = '推广服务费' | '消费者及履约保障-售后问题' | '仓储综合服务费' | '合规EPR物流包装环保费' | '提现' | '其他支出';
 
 export interface SalaryPlan {
   id: string;
@@ -68,6 +69,7 @@ export interface EmployeeRecord {
   employeeCode: string;
   employeeName: string;
   employeeType: EmployeeType;
+  attendanceRuleId?: string;
   departmentName?: string;
   positionName?: string;
   status: SalaryRecordStatus;
@@ -86,21 +88,34 @@ export interface EmployeeRecord {
 
 export interface AttendanceRule {
   id: string;
+  ruleId?: string;
   ruleName: string;
   season: AttendanceRuleSeason;
   effectiveFrom: string;
+  startDate?: string;
   effectiveTo: string;
+  endDate?: string;
   morningStartTime: string;
   morningEndTime: string;
   afternoonStartTime: string;
   afternoonEndTime: string;
   attendanceGraceMinutes: number;
-  monthlyRestDaysByEmployeeType: Record<EmployeeType, number>;
+  monthlyRestDaysByEmployeeType?: Record<EmployeeType, number>;
   expectedWorkHours?: number;
+  dailyExpectedHours?: number;
   normalOffTime: string;
   graceMinutes: number;
   remark?: string;
   status: AttendanceRuleStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface EmployeeTypeRule {
+  id: string;
+  employeeType: EmployeeType;
+  monthlyRestDays: number;
+  remark?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -251,4 +266,120 @@ export interface SalarySlipItem {
   amount: number;
   remark?: string;
   createdAt?: string;
+}
+
+export interface SalaryFinancialDetail {
+  id: string;
+  platform: StorePlatform;
+  storeId: string;
+  storeName?: string;
+  period: string;
+  transactionTime: string;
+  transactionType: string;
+  currency: string;
+  amount: number;
+  remark?: string;
+  category: FinancialExpenseCategory;
+  sourceFileName?: string;
+  importBatchId: string;
+  createdAt: string;
+}
+
+export interface SalaryFinancialCategorySummary {
+  category: FinancialExpenseCategory;
+  amount: number;
+}
+
+export interface SalaryFinancialImportBatch {
+  id: string;
+  platform: StorePlatform;
+  storeId: string;
+  storeName?: string;
+  period: string;
+  fileName: string;
+  totalRows: number;
+  successRows: number;
+  failedRows: number;
+  inflowAmount: number;
+  expenseAmount: number;
+  withdrawAmount: number;
+  operationExpenseAmount: number;
+  hasNonCny: boolean;
+  hasOtherExpense: boolean;
+  importedAt: string;
+}
+
+export interface SalaryFinancialImportListResponse {
+  records: SalaryFinancialImportBatch[];
+  total: number;
+  page: number;
+  pageSize: number;
+  storeOptions: string[];
+  periodOptions: string[];
+}
+
+export interface SalaryFinancialDetailPage {
+  records: SalaryFinancialDetail[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface SalaryFinancialStoreSummary {
+  platform: StorePlatform;
+  storeId: string;
+  storeName?: string;
+  period: string;
+  inflowAmount: number;
+  expenseAmount: number;
+  promotionServiceFee: number;
+  afterSalesProtectionFee: number;
+  storageServiceFee: number;
+  eprFee: number;
+  otherExpense: number;
+  withdrawAmount: number;
+  operationExpenseAmount: number;
+  netSalesAmount: number;
+  commissionRate: number;
+  commissionAmount: number;
+  categorySummaries: SalaryFinancialCategorySummary[];
+  detailCount: number;
+  batchCount: number;
+  hasData: boolean;
+  hasNonCny: boolean;
+  hasOtherExpense: boolean;
+  dataStatus?: string;
+  warnings?: string[];
+}
+
+export interface OperatorSalaryStoreDetail extends SalaryFinancialStoreSummary {
+  dataStatus: string;
+  warnings: string[];
+}
+
+export interface OperatorSalaryStatisticRow {
+  id: string;
+  period: string;
+  employeeId: string;
+  operatorId?: string;
+  operatorName: string;
+  storeIds: string[];
+  storeNames: string[];
+  baseSalary: number;
+  inflowAmount: number;
+  expenseAmount: number;
+  promotionServiceFee: number;
+  afterSalesProtectionFee: number;
+  storageServiceFee: number;
+  eprFee: number;
+  otherExpense: number;
+  withdrawAmount: number;
+  operationExpenseAmount: number;
+  netSalesAmount: number;
+  commissionAmount: number;
+  payableSalary: number;
+  dataStatus: string;
+  warnings: string[];
+  hasFinancialData: boolean;
+  storeDetails: OperatorSalaryStoreDetail[];
 }

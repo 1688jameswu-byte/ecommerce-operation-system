@@ -165,8 +165,11 @@ function getActualWorkHours(checkInTime: string, checkOutTime: string, rule: Att
   ).toFixed(2));
 }
 
-function resolveAttendanceRule(workDate: string, rules: AttendanceRule[]) {
-  const matched = rules.find((rule) => (
+function resolveAttendanceRule(workDate: string, rules: AttendanceRule[], employee?: EmployeeRecord) {
+  const employeeRule = employee?.attendanceRuleId
+    ? rules.find((rule) => rule.id === employee.attendanceRuleId && rule.status === 'active')
+    : undefined;
+  const matched = employeeRule ?? rules.find((rule) => rule.id === 'attendance-rule-standard' && rule.status === 'active') ?? rules.find((rule) => (
     rule.status === 'active' &&
     rule.effectiveFrom <= workDate &&
     workDate <= rule.effectiveTo
@@ -319,7 +322,7 @@ function buildRecordStatus(employee: EmployeeRecord | undefined, punchTimes: str
 }
 
 function recalculateAttendanceRecord(record: AttendanceRecord, rules: AttendanceRule[], employee?: EmployeeRecord): AttendanceRecord {
-  const attendanceRule = resolveAttendanceRule(record.workDate, rules);
+  const attendanceRule = resolveAttendanceRule(record.workDate, rules, employee);
   const checkInTime = record.checkInTime || '';
   const checkOutTime = record.checkOutTime || '';
   const rawWorkHours = checkInTime && checkOutTime && checkInTime !== checkOutTime ? hoursBetween(checkInTime, checkOutTime) : record.rawWorkHours;
@@ -372,7 +375,7 @@ function parseWorkbook(file: File, rows: unknown[][], employees: EmployeeRecord[
       const payrollMode = employeeType === 'hourly' ? 'hourly_wage' : 'attendance_only';
       const workDate = makeWorkDate(period, column);
       const periodKey = makePeriodKey(period, column.month);
-      const attendanceRule = resolveAttendanceRule(workDate, rules);
+      const attendanceRule = resolveAttendanceRule(workDate, rules, employee);
       const expectedWorkHours = attendanceRule.expectedWorkHours ?? 0;
       const actualWorkHours = getActualWorkHours(checkInTime, checkOutTime, attendanceRule);
       const absenceHours = Math.max(0, Number((expectedWorkHours - actualWorkHours).toFixed(2)));

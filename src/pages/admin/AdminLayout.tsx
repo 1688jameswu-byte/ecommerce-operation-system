@@ -29,6 +29,8 @@ const SalaryPeriodsPage = lazy(() => import('./salary/SalaryPeriodsPage'));
 const SalaryImportTemplatesPage = lazy(() => import('./salary/SalaryImportTemplatesPage'));
 const AttendanceImportPage = lazy(() => import('./salary/AttendanceImportPage'));
 const PieceworkImportPage = lazy(() => import('./salary/PieceworkImportPage'));
+const FinancialDetailImportPage = lazy(() => import('./salary/FinancialDetailImportPage'));
+const OperatorSalaryStatisticsPage = lazy(() => import('./salary/OperatorSalaryStatisticsPage'));
 const SalaryDetailsPage = lazy(() => import('./salary/SalaryDetailsPage'));
 const SalaryPlanPage = lazy(() => import('./salary/SalaryPlanPage'));
 const AccountManagementPage = lazy(() => import('./account-management/AccountManagementPage'));
@@ -451,6 +453,8 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const isSalaryImportTemplatesPage = activeRoute.path === '/admin/salary/import-templates';
   const isAttendanceImportPage = activeRoute.path === '/admin/salary/attendance-import';
   const isPieceworkImportPage = activeRoute.path === '/admin/salary/piecework-import';
+  const isFinancialDetailImportPage = activeRoute.path === '/admin/salary/finance-detail-import';
+  const isOperatorSalaryStatisticsPage = activeRoute.path === '/admin/salary/operator-salary-statistics';
   const isSalaryDetailsPage = activeRoute.path === '/admin/salary/details';
   const isSalaryPlanPage = activeRoute.path === '/admin/salary/plan';
   const isPlaceholderPage = activeRoute.isPlaceholder;
@@ -594,6 +598,10 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
             <AttendanceImportPage />
           ) : isPieceworkImportPage ? (
             <PieceworkImportPage />
+          ) : isFinancialDetailImportPage ? (
+            <FinancialDetailImportPage currentUser={currentUser} />
+          ) : isOperatorSalaryStatisticsPage ? (
+            <OperatorSalaryStatisticsPage currentUser={currentUser} />
           ) : isSalaryDetailsPage ? (
             <SalaryDetailsPage />
           ) : isSalaryPlanPage ? (

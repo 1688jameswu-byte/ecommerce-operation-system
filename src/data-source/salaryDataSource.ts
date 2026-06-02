@@ -2,6 +2,7 @@ import type {
   EmployeeRecord,
   AttendanceRecord,
   AttendanceRule,
+  EmployeeTypeRule,
   EmployeeSalaryPlan,
   PieceworkRecord,
   SalaryImportFieldMapping,
@@ -98,6 +99,18 @@ export const salaryDataSource = {
 
   saveAttendanceRules(rules: AttendanceRule[]) {
     return request<{ ok: boolean }>('/api/persistent-data/salaryAttendanceRules', 'PUT', '', rules);
+  },
+
+  loadEmployeeTypeRules() {
+    try {
+      return Promise.resolve(request<EmployeeTypeRule[]>('/api/salary/employee-type-rules', 'GET'));
+    } catch {
+      return loadEmptyList<EmployeeTypeRule>();
+    }
+  },
+
+  saveEmployeeTypeRules(rules: EmployeeTypeRule[]) {
+    return request<{ ok: boolean }>('/api/persistent-data/salaryEmployeeTypeRules', 'PUT', '', rules);
   },
 
   loadPieceworkRecords() {

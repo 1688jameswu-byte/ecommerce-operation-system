@@ -38,6 +38,8 @@ export const menuKeys = {
   salaryPieceworkImport: 'salary-piecework-import',
   salaryDetails: 'salary-details',
   salaryPlan: 'salary-plan',
+  financeDetailImport: 'finance-detail-import',
+  operationSalaryStatistics: 'operation-salary-statistics',
 } as const;
 
 export type MenuKey = typeof menuKeys[keyof typeof menuKeys];
@@ -114,6 +116,8 @@ export const menuGroups: { key: MenuKey; label: string; children: { key: MenuKey
       { key: menuKeys.salaryImportTemplates, label: '导入模板配置' },
       { key: menuKeys.salaryAttendanceImport, label: '打卡记录导入' },
       { key: menuKeys.salaryPieceworkImport, label: '计件工资导入' },
+      { key: menuKeys.financeDetailImport, label: '财务明细导入' },
+      { key: menuKeys.operationSalaryStatistics, label: '运营工资统计' },
       { key: menuKeys.salaryDetails, label: '工资明细中心' },
       { key: menuKeys.salaryPlan, label: '薪资系统规划' },
     ],

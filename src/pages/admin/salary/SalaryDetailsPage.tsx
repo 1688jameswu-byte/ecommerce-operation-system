@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { salaryDataSource } from '../../../data-source/salaryDataSource';
-import type { AttendanceRecord, AttendanceRule, EmployeeRecord, EmployeeType, PieceworkRecord, SalaryPeriodRecord } from '../../../types/salary';
+import type { AttendanceRecord, AttendanceRule, EmployeeRecord, EmployeeType, EmployeeTypeRule, PieceworkRecord, SalaryPeriodRecord } from '../../../types/salary';
 
 interface SalaryDetailRow {
   id: string;
@@ -56,7 +56,7 @@ const defaultMonthlyRestDaysByEmployeeType = {
   hourly: 2,
   piecework: 0,
   manager: 2,
-  operator: 2,
+  operator: 4,
 };
 
 function toNumber(value: unknown) {
@@ -109,15 +109,18 @@ function normalizeAttendanceRule(rule: AttendanceRule): AttendanceRule {
     afternoonStartTime,
     afternoonEndTime,
     attendanceGraceMinutes,
-    monthlyRestDaysByEmployeeType: Object.assign({}, defaultMonthlyRestDaysByEmployeeType, rule.monthlyRestDaysByEmployeeType || {}),
     expectedWorkHours: durationHours(morningStartTime, morningEndTime) + durationHours(afternoonStartTime, afternoonEndTime),
     normalOffTime: rule.normalOffTime || afternoonEndTime,
     graceMinutes: Number(rule.graceMinutes ?? attendanceGraceMinutes),
   };
 }
 
-function resolveAttendanceRule(workDate: string, rules: AttendanceRule[]) {
-  const matched = rules.find((rule) => rule.status === 'active' && rule.effectiveFrom <= workDate && workDate <= rule.effectiveTo);
+function resolveAttendanceRule(workDate: string, rules: AttendanceRule[], employee?: EmployeeRecord) {
+  const employeeRule = employee?.attendanceRuleId
+    ? rules.find((rule) => rule.id === employee.attendanceRuleId && rule.status === 'active')
+    : undefined;
+  const matched = employeeRule ?? rules.find((rule) => rule.id === 'attendance-rule-standard' && rule.status === 'active') ??
+    rules.find((rule) => rule.status === 'active' && rule.effectiveFrom <= workDate && workDate <= rule.effectiveTo);
 
   return normalizeAttendanceRule(matched ?? {
     id: '',
@@ -130,7 +133,6 @@ function resolveAttendanceRule(workDate: string, rules: AttendanceRule[]) {
     afternoonStartTime: '13:00',
     afternoonEndTime: '18:00',
     attendanceGraceMinutes: 10,
-    monthlyRestDaysByEmployeeType: defaultMonthlyRestDaysByEmployeeType,
     expectedWorkHours: 9,
     normalOffTime: '18:00',
     graceMinutes: 10,
@@ -160,8 +162,8 @@ function hasCompletePunch(record: AttendanceRecord) {
   return Boolean(record.checkInTime && record.checkOutTime && record.checkInTime !== record.checkOutTime);
 }
 
-function recalculateSalaryAttendanceRecord(record: AttendanceRecord, rules: AttendanceRule[]) {
-  const rule = resolveAttendanceRule(record.workDate, rules);
+function recalculateSalaryAttendanceRecord(record: AttendanceRecord, rules: AttendanceRule[], employee?: EmployeeRecord) {
+  const rule = resolveAttendanceRule(record.workDate, rules, employee);
   const expectedWorkHours = rule.expectedWorkHours ?? 0;
   const actualHours = actualWorkHours(record, rule);
   const absenceHours = hasCompletePunch(record) ? Math.max(0, Number((expectedWorkHours - actualHours).toFixed(2))) : 0;
@@ -299,16 +301,19 @@ function dateSpanDays(period: Pick<SalaryPeriodRecord, 'startDate' | 'endDate'> 
   return Number.isFinite(days) && days > 0 ? days : 0;
 }
 
-function buildAttendanceStats(records: AttendanceRecord[], employeeType: EmployeeType, period: Pick<SalaryPeriodRecord, 'startDate' | 'endDate'> | undefined, rules: AttendanceRule[]) {
+function monthlyRestDays(employeeType: EmployeeType, employeeTypeRules: EmployeeTypeRule[]) {
+  return toNumber(employeeTypeRules.find((rule) => rule.employeeType === employeeType)?.monthlyRestDays ?? defaultMonthlyRestDaysByEmployeeType[employeeType]);
+}
+
+function buildAttendanceStats(records: AttendanceRecord[], employee: EmployeeRecord, period: Pick<SalaryPeriodRecord, 'startDate' | 'endDate'> | undefined, rules: AttendanceRule[], employeeTypeRules: EmployeeTypeRule[]) {
   const periodDays = dateSpanDays(period);
-  const rule = resolveAttendanceRule(period?.startDate || records[0]?.workDate || '', rules);
-  const restDays = toNumber(rule.monthlyRestDaysByEmployeeType?.[employeeType] ?? defaultMonthlyRestDaysByEmployeeType[employeeType]);
+  const restDays = monthlyRestDays(employee.employeeType, employeeTypeRules);
   const absenceRecords = records.filter((record) => hasCompletePunch(record) && toNumber(record.absenceHours) > 4);
   const shortWorkRecords = records.filter((record) => hasCompletePunch(record) && toNumber(record.absenceHours) >= 0.5 && toNumber(record.absenceHours) <= 4);
   const rawMissingClockCount = records.filter((record) => ['missing_clock', 'missing_time', 'no_punch'].includes(record.status)).length;
   const missingClockCount = Math.max(0, rawMissingClockCount - restDays);
   const lateCount = records.filter((record) => {
-    const recordRule = resolveAttendanceRule(record.workDate, rules);
+    const recordRule = resolveAttendanceRule(record.workDate, rules, employee);
     const checkInMinutes = timeToMinutes(record.checkInTime);
     const startMinutes = timeToMinutes(recordRule.morningStartTime);
     return checkInMinutes !== undefined && startMinutes !== undefined && checkInMinutes > startMinutes;
@@ -362,6 +367,7 @@ function SalaryDetailsPage() {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [detailAttendanceRecords, setDetailAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [attendanceRules, setAttendanceRules] = useState<AttendanceRule[]>([]);
+  const [employeeTypeRules, setEmployeeTypeRules] = useState<EmployeeTypeRule[]>([]);
   const [pieceworkRecords, setPieceworkRecords] = useState<PieceworkRecord[]>([]);
   const [periodId, setPeriodId] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -371,6 +377,7 @@ function SalaryDetailsPage() {
   useEffect(() => {
     salaryDataSource.loadEmployees().then(setEmployees);
     salaryDataSource.loadAttendanceRules().then(setAttendanceRules);
+    salaryDataSource.loadEmployeeTypeRules().then(setEmployeeTypeRules);
     salaryDataSource.loadPieceworkRecords().then(setPieceworkRecords);
     salaryDataSource.loadPeriods().then((next) => {
       setPeriods(next);
@@ -433,8 +440,8 @@ function SalaryDetailsPage() {
 
   const employeeById = useMemo(() => new Map(employees.map((employee) => [employee.id, employee])), [employees]);
   const normalizedAttendanceRecords = useMemo(
-    () => dedupeAttendanceRecords(attendanceRecords).map((record) => recalculateSalaryAttendanceRecord(record, attendanceRules)),
-    [attendanceRecords, attendanceRules],
+    () => dedupeAttendanceRecords(attendanceRecords).map((record) => recalculateSalaryAttendanceRecord(record, attendanceRules, resolveRecordEmployee(record, employees))),
+    [attendanceRecords, attendanceRules, employees],
   );
 
   const rows = useMemo(() => {
@@ -458,7 +465,7 @@ function SalaryDetailsPage() {
       const fixed = fixedItems(employee, isFixedEmployee || isPieceworkEmployee);
       const baseSalary = isPieceworkEmployee ? 0 : fixed.baseSalary;
       const attendanceStats = employee.employeeType === 'hourly'
-        ? buildAttendanceStats(employeeHourlyRecords, employee.employeeType, selectedPeriod, attendanceRules)
+        ? buildAttendanceStats(employeeHourlyRecords, employee, selectedPeriod, attendanceRules, employeeTypeRules)
         : undefined;
       const attendanceBonus = employee.employeeType === 'hourly' && !attendanceStats?.isFullAttendance ? 0 : fixed.attendanceBonus;
       const overtimeHours = employeeHourlyRecords.reduce((total, record) => total + toNumber(record.overtimeHours), 0);
@@ -496,7 +503,7 @@ function SalaryDetailsPage() {
         status: employee.employeeType === 'operator' ? 'not_calculated' : 'calculated',
       };
     });
-  }, [attendanceRules, employees, normalizedAttendanceRecords, pieceworkRecords, selectedPeriod]);
+  }, [attendanceRules, employeeTypeRules, employees, normalizedAttendanceRecords, pieceworkRecords, selectedPeriod]);
 
   const filteredRows = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
@@ -517,9 +524,9 @@ function SalaryDetailsPage() {
     const row = rows.find((item) => item.employeeId === selectedEmployeeId);
     if (!employee || !row) return null;
 
-    const employeeAttendanceRecords = dedupeAttendanceRecords(detailAttendanceRecords).map((record) => recalculateSalaryAttendanceRecord(record, attendanceRules));
+    const employeeAttendanceRecords = dedupeAttendanceRecords(detailAttendanceRecords).map((record) => recalculateSalaryAttendanceRecord(record, attendanceRules, employee));
     const employeePieceworkRecords = pieceworkRecords.filter((record) => recordMatchesEmployee(record, employee) && inPeriod(record.workDate, selectedPeriod));
-    const attendanceStats = buildAttendanceStats(employeeAttendanceRecords, employee.employeeType, selectedPeriod, attendanceRules);
+    const attendanceStats = buildAttendanceStats(employeeAttendanceRecords, employee, selectedPeriod, attendanceRules, employeeTypeRules);
     const salaryItems = employee.employeeType === 'operator'
       ? []
       : [
@@ -540,7 +547,7 @@ function SalaryDetailsPage() {
       attendanceStats,
       salaryItems,
     };
-  }, [attendanceRules, detailAttendanceRecords, employees, pieceworkRecords, rows, selectedEmployeeId, selectedPeriod]);
+  }, [attendanceRules, detailAttendanceRecords, employeeTypeRules, employees, pieceworkRecords, rows, selectedEmployeeId, selectedPeriod]);
 
   const summary = useMemo(() => ({
     hourly: rows.filter((row) => row.employeeType === 'hourly').reduce((total, row) => total + row.totalAmount, 0),
