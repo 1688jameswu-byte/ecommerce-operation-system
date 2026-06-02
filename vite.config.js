@@ -2782,15 +2782,83 @@ function commissionRate(netSalesAmount) {
   return 0.07;
 }
 
+function normalizePersonName(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/^运营[-－_\s]*/u, '')
+    .replace(/^运营账号[-－_\s]*/u, '')
+    .trim();
+}
+
+function createEmployeeOperatorIndex(operators = []) {
+  return operators.reduce((map, operator) => {
+    const operatorId = String(operator?.id ?? '').trim();
+    const operatorName = normalizePersonName(operator?.operatorName ?? operator?.name);
+    if (operatorId && operatorName) {
+      if (!map.has(operatorName)) map.set(operatorName, new Set());
+      map.get(operatorName).add(operatorId);
+    }
+    return map;
+  }, new Map());
+}
+
 function employeeMatchesRelation(employee, relation, operatorById = new Map()) {
   const employeeOperatorId = String(employee?.operatorId ?? '').trim();
   const relationOperatorId = String(relation?.operatorId ?? '').trim();
-  const employeeName = String(employee?.employeeName ?? '').trim();
-  const relationOperatorName = String(relation?.operatorName ?? '').trim();
-  const operatorNameById = String(operatorById.get(relationOperatorId)?.operatorName ?? '').trim();
+  const employeeName = normalizePersonName(employee?.employeeName);
+  const relationOperatorName = normalizePersonName(relation?.operatorName);
+  const operatorNameById = normalizePersonName(operatorById.get(relationOperatorId)?.operatorName);
   return Boolean(employeeOperatorId && employeeOperatorId === relationOperatorId) ||
     Boolean(employeeName && employeeName === relationOperatorName) ||
     Boolean(employeeName && employeeName === operatorNameById);
+}
+
+function buildUserStoreFallbackRelations(employee, users, stores, requestedStoreId = '') {
+  const employeeName = normalizePersonName(employee?.employeeName);
+  if (!employeeName) return [];
+
+  const matchingUsers = users.filter((user) => {
+    const names = [
+      user?.username,
+      user?.displayName,
+      user?.operatorName,
+      user?.name,
+    ].map(normalizePersonName).filter(Boolean);
+    return names.includes(employeeName);
+  });
+
+  if (matchingUsers.length === 0) return [];
+
+  const storeById = new Map(stores.map((store) => [String(store.id), store]));
+  const storeIds = Array.from(new Set(matchingUsers.flatMap((user) => Array.isArray(user?.allowedStoreIds) ? user.allowedStoreIds : [])))
+    .map((storeId) => String(storeId ?? '').trim())
+    .filter((storeId) => storeId && (!requestedStoreId || storeId === requestedStoreId));
+
+  return storeIds.map((storeId) => {
+    const store = storeById.get(storeId);
+    return {
+      id: `salary-user-store-${employee?.id || employeeName}-${storeId}`,
+      storeId,
+      operatorId: String(employee?.operatorId ?? '').trim(),
+      operatorName: employeeName,
+      role: 'primary',
+      status: 'active',
+      storeName: store?.storeName || storeId,
+      platform: store?.platform || 'TEMU',
+      salaryFallbackSource: 'userAllowedStoreIds',
+    };
+  });
+}
+
+function mergeRelationsByStore(relations, fallbackRelations) {
+  const map = new Map();
+  [...relations, ...fallbackRelations].forEach((relation) => {
+    const storeId = String(relation?.storeId ?? '').trim();
+    if (storeId && !map.has(storeId)) {
+      map.set(storeId, relation);
+    }
+  });
+  return Array.from(map.values());
 }
 
 function buildStoreSalaryDetail(storeId, period, relation, storeById, summaryByStore) {
@@ -2851,7 +2919,10 @@ function buildOperatorSalaryStatistics(searchParams, currentUser) {
   const relations = readCollection('storeOperatorRelations')
     .filter((relation) => relation?.status !== 'inactive' && (!requestedStoreId || String(relation?.storeId ?? '') === requestedStoreId));
   const stores = getStores();
-  const operatorById = new Map(readCollection('operators').map((operator) => [String(operator.id), operator]));
+  const operators = readCollection('operators');
+  const operatorById = new Map(operators.map((operator) => [String(operator.id), operator]));
+  const employeeOperatorIndex = createEmployeeOperatorIndex(operators);
+  const users = readCollection('users');
   const summaries = buildFinancialStoreSummaries(
     readCollection('salaryFinancialDetails'),
     readCollection('salaryFinancialImportBatches'),
@@ -2862,16 +2933,30 @@ function buildOperatorSalaryStatistics(searchParams, currentUser) {
   const storeById = new Map(stores.map((store) => [String(store.id), store]));
   const currentRole = String(currentUser?.role ?? '').toLowerCase();
   const currentOperatorId = String(currentUser?.operatorId ?? '').trim();
-  const currentOperatorName = String(currentUser?.operatorName ?? currentUser?.displayName ?? currentUser?.username ?? '').trim();
+  const currentOperatorName = normalizePersonName(currentUser?.operatorName ?? currentUser?.displayName ?? currentUser?.username);
 
   return employees
-    .filter((employee) => !requestedOperatorId || String(employee.operatorId || employee.id) === requestedOperatorId || employee.id === requestedOperatorId)
+    .filter((employee) => {
+      if (!requestedOperatorId) return true;
+      const employeeName = normalizePersonName(employee?.employeeName);
+      const linkedOperatorIds = employeeOperatorIndex.get(employeeName) ?? new Set();
+      return String(employee.operatorId || employee.id) === requestedOperatorId ||
+        employee.id === requestedOperatorId ||
+        linkedOperatorIds.has(requestedOperatorId);
+    })
     .filter((employee) => currentRole === 'admin' ||
       String(employee.operatorId ?? '').trim() === currentOperatorId ||
-      String(employee.employeeName ?? '').trim() === currentOperatorName)
-    .filter((employee) => !requestedStoreId || relations.some((relation) => employeeMatchesRelation(employee, relation, operatorById)))
+      normalizePersonName(employee.employeeName) === currentOperatorName)
+    .filter((employee) => {
+      if (!requestedStoreId) return true;
+      const matchedRelations = relations.filter((relation) => employeeMatchesRelation(employee, relation, operatorById));
+      const fallbackRelations = buildUserStoreFallbackRelations(employee, users, stores, requestedStoreId);
+      return mergeRelationsByStore(matchedRelations, fallbackRelations).length > 0;
+    })
     .map((employee) => {
-      const employeeRelations = relations.filter((relation) => employeeMatchesRelation(employee, relation, operatorById));
+      const matchedRelations = relations.filter((relation) => employeeMatchesRelation(employee, relation, operatorById));
+      const fallbackRelations = buildUserStoreFallbackRelations(employee, users, stores, requestedStoreId);
+      const employeeRelations = mergeRelationsByStore(matchedRelations, fallbackRelations);
       const storeIds = Array.from(new Set(employeeRelations.map((relation) => String(relation.storeId ?? '')).filter(Boolean)));
       const storeDetails = storeIds.map((storeId) => buildStoreSalaryDetail(
         storeId,
