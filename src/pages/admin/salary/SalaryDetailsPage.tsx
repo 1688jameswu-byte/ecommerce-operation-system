@@ -348,11 +348,11 @@ function SalaryDetailsPage() {
       label: `${period.periodKey}（${period.startDate} 至 ${period.endDate}）`,
     }));
     const configuredKeys = new Set(configuredOptions.map((option) => option.periodKey));
-    const recordOptions = buildRecordPeriodOptions(attendanceRecords, pieceworkRecords)
+    const recordOptions = buildRecordPeriodOptions([], pieceworkRecords)
       .filter((option) => !configuredKeys.has(option.periodKey));
 
     return [...configuredOptions, ...recordOptions].sort((first, second) => second.periodKey.localeCompare(first.periodKey));
-  }, [attendanceRecords, periods, pieceworkRecords]);
+  }, [periods, pieceworkRecords]);
 
   useEffect(() => {
     if (!periodId && periodOptions.length > 0) {
@@ -361,22 +361,25 @@ function SalaryDetailsPage() {
   }, [periodId, periodOptions]);
 
   const selectedPeriod = periodOptions.find((period) => period.value === periodId);
+  const selectedPeriodKey = selectedPeriod?.periodKey || '';
+  const selectedPeriodStartDate = selectedPeriod?.startDate || '';
+  const selectedPeriodEndDate = selectedPeriod?.endDate || '';
 
   useEffect(() => {
-    if (!selectedPeriod) {
+    if (!selectedPeriodKey) {
       setAttendanceRecords([]);
       return;
     }
 
     salaryDataSource.loadAttendanceRecords({
-      startDate: selectedPeriod.startDate,
-      endDate: selectedPeriod.endDate,
-      period: selectedPeriod.periodKey,
+      startDate: selectedPeriodStartDate,
+      endDate: selectedPeriodEndDate,
+      period: selectedPeriodKey,
     }).then(setAttendanceRecords);
-  }, [selectedPeriod]);
+  }, [selectedPeriodEndDate, selectedPeriodKey, selectedPeriodStartDate]);
 
   useEffect(() => {
-    if (!selectedEmployeeId || !selectedPeriod) {
+    if (!selectedEmployeeId || !selectedPeriodKey) {
       setDetailAttendanceRecords([]);
       return;
     }
@@ -384,11 +387,11 @@ function SalaryDetailsPage() {
     setDetailAttendanceRecords([]);
     salaryDataSource.loadAttendanceRecords({
       employeeId: selectedEmployeeId,
-      startDate: selectedPeriod.startDate,
-      endDate: selectedPeriod.endDate,
-      period: selectedPeriod.periodKey,
+      startDate: selectedPeriodStartDate,
+      endDate: selectedPeriodEndDate,
+      period: selectedPeriodKey,
     }).then(setDetailAttendanceRecords);
-  }, [selectedEmployeeId, selectedPeriod]);
+  }, [selectedEmployeeId, selectedPeriodEndDate, selectedPeriodKey, selectedPeriodStartDate]);
 
   const employeeById = useMemo(() => new Map(employees.map((employee) => [employee.id, employee])), [employees]);
   const normalizedAttendanceRecords = useMemo(
