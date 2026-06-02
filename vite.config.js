@@ -1250,6 +1250,25 @@ function readCollection(name) {
   return next;
 }
 
+function filterSalaryAttendanceRecords(data, searchParams) {
+  const startDate = String(searchParams.get('startDate') ?? '').trim();
+  const endDate = String(searchParams.get('endDate') ?? '').trim();
+  const period = String(searchParams.get('period') ?? '').trim();
+  const employeeId = String(searchParams.get('employeeId') ?? '').trim();
+
+  if (!startDate && !endDate && !period && !employeeId) {
+    return data;
+  }
+
+  return (Array.isArray(data) ? data : []).filter((record) => {
+    const workDate = String(record?.workDate ?? '');
+    const matchesDate = (!startDate || workDate >= startDate) && (!endDate || workDate <= endDate);
+    const matchesPeriod = !period || String(record?.periodKey ?? workDate.slice(0, 7)) === period;
+    const matchesEmployee = !employeeId || String(record?.employeeId ?? '') === employeeId;
+    return matchesDate && matchesPeriod && matchesEmployee;
+  });
+}
+
 function isCompanyDashboardRead(req) {
   if (req.method !== 'GET') {
     return false;
@@ -1299,8 +1318,12 @@ async function handleCollectionApi(req, res, name, prefix) {
     }
 
     if (req.method === 'GET') {
+      const requestUrl = new URL(req.url ?? '/', 'http://local');
       const data = name === 'stores' ? getStores() : name === 'operators' ? getOperators() : readCollection(name);
-      res.end(JSON.stringify(filterCollectionForUser(name, data, currentUser)));
+      const filteredData = name === 'salaryAttendanceRecords'
+        ? filterSalaryAttendanceRecords(data, requestUrl.searchParams)
+        : data;
+      res.end(JSON.stringify(filterCollectionForUser(name, filteredData, currentUser)));
       return;
     }
 
@@ -1835,8 +1858,8 @@ function mergeVisibleImportData(name, incoming, currentUser) {
 }
 
 function attendanceRecordKey(record) {
-  const periodKey = String(record?.periodId || record?.periodKey || '').trim();
-  const employeeKey = String(record?.employeeId || record?.employeeCode || record?.employeeName || '').trim();
+  const periodKey = String(record?.periodKey || '').trim();
+  const employeeKey = String(record?.employeeCode || record?.employeeName || '').trim();
   const workDate = String(record?.workDate || '').trim();
   if (!periodKey || !employeeKey || !workDate) return '';
   return [periodKey, employeeKey, workDate].join('|');

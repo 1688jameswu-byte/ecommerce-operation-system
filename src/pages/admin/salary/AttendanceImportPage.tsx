@@ -42,6 +42,16 @@ const defaultMonthlyRestDaysByEmployeeType = {
 };
 
 const attendanceSaveBatchSize = 100;
+const attendanceDisplayBatchSize = 50;
+
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function recordMonthKey(record: AttendanceRecord) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(record.workDate || '') ? record.workDate.slice(0, 7) : record.periodKey || '';
+}
 
 interface DateColumn {
   index: number;
@@ -288,8 +298,8 @@ function displaySheetName(name: string) {
   return !name || /^worksheet$/i.test(name) ? '工作表1' : name;
 }
 
-function recordKey(record: Pick<AttendanceRecord, 'periodId' | 'periodKey' | 'employeeCode' | 'employeeName' | 'workDate'>) {
-  return [record.periodId || record.periodKey || '', record.employeeCode || record.employeeName, record.workDate].join('|');
+function recordKey(record: Pick<AttendanceRecord, 'periodKey' | 'employeeCode' | 'employeeName' | 'workDate'>) {
+  return [record.periodKey || '', record.employeeCode || record.employeeName, record.workDate].join('|');
 }
 
 function buildRecordStatus(employee: EmployeeRecord | undefined, punchTimes: string[], rawWorkHours: number | undefined, absenceHours = 0): AttendanceRecord['status'] {
@@ -412,12 +422,15 @@ function AttendanceImportPage() {
   const [message, setMessage] = useState('请先选择工资周期，再上传真实打卡 Excel。');
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [savedMonth, setSavedMonth] = useState('');
+  const [visibleCount, setVisibleCount] = useState(attendanceDisplayBatchSize);
 
   const loadData = () => {
     salaryDataSource.loadEmployees().then(setEmployees);
     salaryDataSource.loadPeriods().then((next) => {
       setPeriods(next);
       setPeriodId((current) => current || next[0]?.id || '');
+      setSavedMonth((current) => current || next[0]?.periodKey || currentMonthKey());
     });
     salaryDataSource.loadAttendanceRecords().then(setRecords);
     salaryDataSource.loadAttendanceRules().then(setAttendanceRules);
@@ -432,10 +445,23 @@ function AttendanceImportPage() {
   const duplicateCount = previewRecords.filter((record) => existingKeys.has(recordKey(record))).length;
   const abnormalCount = previewRecords.filter((record) => record.status !== 'normal').length;
   const tableRecords = previewRecords.length > 0 ? previewRecords : records;
+  const isPreviewMode = previewRecords.length > 0;
+  const monthOptions = useMemo(() => {
+    const months = new Set<string>([savedMonth || selectedPeriod?.periodKey || currentMonthKey()]);
+    records.forEach((record) => {
+      const key = recordMonthKey(record);
+      if (key) months.add(key);
+    });
+    return Array.from(months).filter(Boolean).sort((first, second) => second.localeCompare(first));
+  }, [records, savedMonth, selectedPeriod?.periodKey]);
   const tableTitle = previewRecords.length > 0 ? '打卡记录预览' : '已保存打卡记录';
   const tableDescription = previewRecords.length > 0
     ? '当前只保存考勤事实，不生成工资金额。'
     : '刷新后显示已保存到 attendance-records.json 的打卡记录。';
+
+  useEffect(() => {
+    setVisibleCount(attendanceDisplayBatchSize);
+  }, [savedMonth, searchText, statusFilter, isPreviewMode]);
 
   const filteredRecords = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
@@ -444,6 +470,7 @@ function AttendanceImportPage() {
     const employeeByName = new Map(employees.filter((employee) => employee.employeeName).map((employee) => [employee.employeeName, employee]));
 
     const matchedRecords = tableRecords.filter((record) => {
+      const matchesMonth = isPreviewMode || !savedMonth || recordMonthKey(record) === savedMonth;
       const matchesKeyword = !keyword || [
         record.employeeName,
         record.employeeCode,
@@ -451,25 +478,19 @@ function AttendanceImportPage() {
         record.workDate,
       ].some((value) => toText(value).toLowerCase().includes(keyword));
 
-      return matchesKeyword;
-    });
-    const nextRecords: AttendanceRecord[] = [];
+      return matchesMonth && matchesKeyword;
+    }).sort((first, second) => second.workDate.localeCompare(first.workDate));
 
-    for (const record of matchedRecords) {
+    return matchedRecords.map((record) => {
       const employee = (record.employeeId ? employeeById.get(record.employeeId) : undefined) ??
         (record.employeeCode ? employeeByCode.get(record.employeeCode) : undefined) ??
         employeeByName.get(record.employeeName);
-      const recalculatedRecord = recalculateAttendanceRecord(record, attendanceRules, employee);
+      return recalculateAttendanceRecord(record, attendanceRules, employee);
+    }).filter((record) => !statusFilter || record.status === statusFilter);
+  }, [attendanceRules, employees, isPreviewMode, savedMonth, tableRecords, searchText, statusFilter]);
 
-      if (!statusFilter || recalculatedRecord.status === statusFilter) {
-        nextRecords.push(recalculatedRecord);
-      }
-
-      if (nextRecords.length >= 300) break;
-    }
-
-    return nextRecords;
-  }, [attendanceRules, employees, tableRecords, searchText, statusFilter]);
+  const visibleRecords = filteredRecords.slice(0, visibleCount);
+  const hasMoreRecords = visibleCount < filteredRecords.length;
 
   const importAttendance = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -486,7 +507,8 @@ function AttendanceImportPage() {
     setAttendancePeriodKey(parsed.periodKey);
     setDetectedHeaders(parsed.dateColumns.map((column) => column.label));
     setPreviewRecords(parsed.records);
-    setMessage(`识别${displaySheetName(nextSheetName)}，表格月份 ${parsed.periodKey || '-'}，员工块 ${parsed.employeeCount} 个，日期列 ${parsed.dateColumns.length} 个，生成 ${parsed.records.length} 条打卡记录预览。`);
+    const periodMismatch = selectedPeriod?.periodKey && parsed.periodKey && selectedPeriod.periodKey !== parsed.periodKey;
+    setMessage(`${periodMismatch ? `工资周期 ${selectedPeriod.periodKey} 与打卡表月份 ${parsed.periodKey} 不一致，已按 Excel 表格月份归属。` : ''}识别${displaySheetName(nextSheetName)}，表格月份 ${parsed.periodKey || '-'}，员工块 ${parsed.employeeCount} 个，日期列 ${parsed.dateColumns.length} 个，生成 ${parsed.records.length} 条打卡记录预览。`);
   };
 
   const savePreview = async () => {
@@ -501,7 +523,7 @@ function AttendanceImportPage() {
     try {
       for (let index = 0; index < previewRecords.length; index += attendanceSaveBatchSize) {
         const batch = previewRecords.slice(index, index + attendanceSaveBatchSize);
-        salaryDataSource.mergeAttendanceRecords(batch);
+        await salaryDataSource.mergeAttendanceRecords(batch);
         savedBatchCount += 1;
       }
 
@@ -607,10 +629,17 @@ function AttendanceImportPage() {
             <h2>{tableTitle}</h2>
             <p>{tableDescription}</p>
           </div>
-          <span>{filteredRecords.length} 条</span>
+          <span>已展示 {Math.min(visibleRecords.length, filteredRecords.length)} / 共 {filteredRecords.length} 条</span>
         </header>
 
         <section className="import-filter-bar">
+          {!isPreviewMode && (
+            <select value={savedMonth} onChange={(event) => setSavedMonth(event.target.value)}>
+              {monthOptions.map((month) => (
+                <option key={month} value={month}>{month}</option>
+              ))}
+            </select>
+          )}
           <input placeholder="搜索姓名 / 工号 / 部门 / 日期" value={searchText} onChange={(event) => setSearchText(event.target.value)} />
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
             <option value="">全部状态</option>
@@ -642,7 +671,7 @@ function AttendanceImportPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredRecords.slice(0, 300).map((record) => {
+              {visibleRecords.map((record) => {
                 const employee = employees.find((item) => item.id === record.employeeId);
                 return (
                   <tr key={record.id}>
@@ -666,8 +695,23 @@ function AttendanceImportPage() {
               })}
             </tbody>
           </table>
-          {filteredRecords.length > 300 && <div className="import-record-empty">仅展示前 300 条，筛选和保存记录仍保留全部数据。</div>}
-          {filteredRecords.length === 0 && <div className="import-record-empty">暂无打卡记录。上传并保存后，刷新页面也会继续显示。</div>}
+          {hasMoreRecords && (
+            <div className="import-record-empty">
+              <button
+                className="excel-clear-button primary-action"
+                type="button"
+                onClick={() => setVisibleCount((current) => current + attendanceDisplayBatchSize)}
+              >
+                加载更多
+              </button>
+            </div>
+          )}
+          {!hasMoreRecords && filteredRecords.length > 0 && <div className="import-record-empty">已加载全部。</div>}
+          {filteredRecords.length === 0 && (
+            <div className="import-record-empty">
+              {isPreviewMode ? '暂无打卡记录。上传并保存后，刷新页面也会继续显示。' : '当前月份暂无已保存打卡记录。'}
+            </div>
+          )}
         </div>
       </article>
     </section>

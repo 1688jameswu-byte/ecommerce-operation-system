@@ -14,7 +14,7 @@ import type {
 
 function request<T>(apiBase: string, method: string, path = '', body?: unknown): T {
   const xhr = new XMLHttpRequest();
-  const cacheBust = method === 'GET' ? `?t=${Date.now()}` : '';
+  const cacheBust = method === 'GET' ? `${path.includes('?') ? '&' : '?'}t=${Date.now()}` : '';
   xhr.open(method, `${apiBase}${path}${cacheBust}`, false);
   xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
   xhr.send(body === undefined ? undefined : JSON.stringify(body));
@@ -67,9 +67,14 @@ export const salaryDataSource = {
     return request<SalaryPeriodRecord>('/api/salary/periods', 'PUT', `/${encodeURIComponent(id)}`, period);
   },
 
-  loadAttendanceRecords() {
+  loadAttendanceRecords(params?: { startDate?: string; endDate?: string; period?: string; employeeId?: string }) {
     try {
-      return Promise.resolve(request<AttendanceRecord[]>('/api/salary/attendance-records', 'GET'));
+      const query = new URLSearchParams();
+      if (params?.startDate) query.set('startDate', params.startDate);
+      if (params?.endDate) query.set('endDate', params.endDate);
+      if (params?.period) query.set('period', params.period);
+      if (params?.employeeId) query.set('employeeId', params.employeeId);
+      return Promise.resolve(request<AttendanceRecord[]>('/api/salary/attendance-records', 'GET', query.size ? `?${query.toString()}` : ''));
     } catch {
       return loadEmptyList<AttendanceRecord>();
     }
