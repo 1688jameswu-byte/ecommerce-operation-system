@@ -664,6 +664,21 @@ export const trafficConversionDataSource = {
     return true;
   },
 
+  async deleteBatchAsync(batchId: string) {
+    const responseText = await writePersistentJsonAsync(DATA_KEY, { batchId }, { deleteImportData: true });
+    const response = responseText ? JSON.parse(responseText) as {
+      success?: boolean;
+      message?: string;
+      trafficDeleteSummary?: { deleted?: boolean };
+    } : {};
+
+    if (response.success === false) {
+      throw new Error(response.message || '删除失败');
+    }
+
+    return response.trafficDeleteSummary?.deleted !== false;
+  },
+
   loadRuleStore(): TrafficWarningRuleStore {
     return normalizeRuleStore(readPersistentJson<TrafficWarningRuleStore>(RULE_KEY, {
       settings: { displayLimit: 5 },

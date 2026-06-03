@@ -222,7 +222,7 @@ function TrafficImportPage({ currentUser, visibleStoreNames: layoutVisibleStoreN
     setIsDeleting(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 150));
-      const deleted = trafficConversionDataSource.deleteBatch(confirmBatch.id);
+      const deleted = await trafficConversionDataSource.deleteBatchAsync(confirmBatch.id);
       await refresh(page);
       if (selectedBatchId === confirmBatch.id) {
         setSelectedBatchId('');

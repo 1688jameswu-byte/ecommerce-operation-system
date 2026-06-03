@@ -1856,6 +1856,49 @@ function mergeTrafficConversionAppend(incoming, filePath) {
   return { data: { ...existing, records, batches }, batch };
 }
 
+function deleteTrafficConversionBatch(payload, filePath) {
+  const batchId = String(payload?.batchId ?? '').trim();
+  if (!batchId) {
+    throw new Error('缺少要删除的流量导入批次 ID');
+  }
+
+  const existing = readJsonFile('trafficConversionStore');
+  const existingRecords = Array.isArray(existing?.records) ? existing.records : [];
+  const existingBatches = Array.isArray(existing?.batches) ? existing.batches : [];
+  const batchExists = existingBatches.some((batch) => String(batch?.id ?? '') === batchId);
+  if (!batchExists) {
+    return {
+      data: existing,
+      summary: {
+        batchId,
+        deleted: false,
+        removedBatchCount: 0,
+        removedRecordCount: 0,
+        beforeBatchCount: existingBatches.length,
+        afterBatchCount: existingBatches.length,
+        filePath,
+      },
+    };
+  }
+
+  const records = existingRecords.filter((record) => String(record?.batchId ?? '') !== batchId);
+  const batches = existingBatches.filter((batch) => String(batch?.id ?? '') !== batchId);
+  const fileSizeMB = fs.existsSync(filePath) ? Number((fs.statSync(filePath).size / 1024 / 1024).toFixed(2)) : 0;
+  const summary = {
+    batchId,
+    deleted: true,
+    removedBatchCount: existingBatches.length - batches.length,
+    removedRecordCount: existingRecords.length - records.length,
+    beforeBatchCount: existingBatches.length,
+    afterBatchCount: batches.length,
+    filePath,
+    fileSizeMB,
+  };
+  console.log('[Traffic Import Delete]', summary);
+
+  return { data: { ...existing, records, batches }, summary };
+}
+
 function assertTrafficImportSearchText(searchableText, currentUser) {
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
     return;
@@ -3685,20 +3728,25 @@ function localDataPlugin() {
               : '';
             assertCanWriteImportData(name, parsed, currentUser, searchableText);
             const isOrderImportDelete = hasGuardPayload && rawParsed.__deleteImportData && name === 'orderImportStore';
+            const isTrafficImportDelete = hasGuardPayload && rawParsed.__deleteImportData && name === 'trafficConversionStore';
             const isTrafficImportAppend = hasGuardPayload && rawParsed.__appendImportBatch && name === 'trafficConversionStore';
             const isAttendanceMerge = name === 'salaryAttendanceRecords' && requestUrl.searchParams.get('mode') === 'merge';
             const deleteBefore = isOrderImportDelete ? summarizeOrderImportStore(JSON.parse(fs.readFileSync(filePath, 'utf-8'))) : null;
             let trafficAppendBatch = null;
+            let trafficDeleteSummary = null;
             const trafficAppendResult = isTrafficImportAppend ? mergeTrafficConversionAppend(parsed, filePath) : null;
+            const trafficDeleteResult = isTrafficImportDelete ? deleteTrafficConversionBatch(parsed, filePath) : null;
             const nextData = isOrderImportDelete
               ? parsed
-              : isTrafficImportAppend
-                ? (trafficAppendBatch = trafficAppendResult?.batch ?? null, trafficAppendResult?.data)
-                : isAttendanceMerge
-                  ? mergeAttendanceRecords(JSON.parse(fs.readFileSync(filePath, 'utf-8')), parsed)
-                  : name === 'orderImportStore'
-                    ? mergeOrderImportAppend(parsed)
-                    : mergeVisibleImportData(name, parsed, currentUser);
+              : isTrafficImportDelete
+                ? (trafficDeleteSummary = trafficDeleteResult?.summary ?? null, trafficDeleteResult?.data)
+                : isTrafficImportAppend
+                  ? (trafficAppendBatch = trafficAppendResult?.batch ?? null, trafficAppendResult?.data)
+                  : isAttendanceMerge
+                    ? mergeAttendanceRecords(JSON.parse(fs.readFileSync(filePath, 'utf-8')), parsed)
+                    : name === 'orderImportStore'
+                      ? mergeOrderImportAppend(parsed)
+                      : mergeVisibleImportData(name, parsed, currentUser);
             const deleteAfter = isOrderImportDelete ? summarizeOrderImportStore(nextData) : null;
             fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
             const deleteSummary = isOrderImportDelete && deleteBefore && deleteAfter
@@ -3718,7 +3766,7 @@ function localDataPlugin() {
             if (deleteSummary) {
               console.log('[order-import-delete]', deleteSummary);
             }
-            res.end(JSON.stringify({ ok: true, success: true, path: filePath, deleteSummary, batch: trafficAppendBatch, savedCount: Array.isArray(parsed) ? parsed.length : undefined, totalCount: Array.isArray(nextData) ? nextData.length : undefined }));
+            res.end(JSON.stringify({ ok: true, success: true, path: filePath, deleteSummary, trafficDeleteSummary, batch: trafficAppendBatch, savedCount: Array.isArray(parsed) ? parsed.length : undefined, totalCount: Array.isArray(nextData) ? nextData.length : undefined }));
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             if (name === 'trafficConversionStore') {
