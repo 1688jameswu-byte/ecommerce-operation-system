@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { readPersistentJson, writePersistentJson } from './fileStorageDataSource';
+import { readPersistentJson, writePersistentJson, writePersistentJsonAsync } from './fileStorageDataSource';
 import { analyzeStoreNameMatches, createStoreMatcher } from '../utils/storeStandardization';
 import { storeDataSource } from './storeDataSource';
 import { buildStandardAnalysisResults, buildStandardTrafficRecords } from '../utils/factDataStandardization';
@@ -504,6 +504,47 @@ export const trafficConversionDataSource = {
     return normalizeStore(readPersistentJson<TrafficConversionStore>(DATA_KEY, emptyStore()));
   },
 
+  async loadBatchPage(params: { page?: number; pageSize?: number; storeName?: string; importDate?: string; dataDate?: string; status?: string } = {}) {
+    const search = new URLSearchParams({
+      view: 'records',
+      page: String(params.page ?? 1),
+      pageSize: String(params.pageSize ?? 20),
+    });
+    if (params.storeName) search.set('storeName', params.storeName);
+    if (params.importDate) search.set('importDate', params.importDate);
+    if (params.dataDate) search.set('dataDate', params.dataDate);
+    if (params.status) search.set('status', params.status);
+    const response = await fetch(`/api/persistent-data/${DATA_KEY}?${search.toString()}&t=${Date.now()}`, {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text.trim().startsWith('<') ? '导入失败：服务器接口异常，请查看 PM2 日志或检查上传大小限制。' : text || '流量导入批次读取失败');
+    }
+    return response.json() as Promise<{
+      batches: TrafficImportBatch[];
+      total: number;
+      page: number;
+      pageSize: number;
+      stores: string[];
+      missingTrafficItems: Array<{ storeName: string; date: string }>;
+    }>;
+  },
+
+  async loadBatchDetail(batchId: string) {
+    const search = new URLSearchParams({ view: 'detail', batchId });
+    const response = await fetch(`/api/persistent-data/${DATA_KEY}?${search.toString()}&t=${Date.now()}`, {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text.trim().startsWith('<') ? '导入失败：服务器接口异常，请查看 PM2 日志或检查上传大小限制。' : text || '流量导入明细读取失败');
+    }
+    return response.json() as Promise<{ records: TrafficConversionRecord[]; total: number }>;
+  },
+
   loadTrafficDailySummary(): TrafficDailySummaryStore {
     return readPersistentJson<TrafficDailySummaryStore>(TRAFFIC_SUMMARY_KEY, emptySummaryStore());
   },
@@ -576,6 +617,35 @@ export const trafficConversionDataSource = {
     this.regenerateAnalysisResults();
 
     return { coveredCount, newCount: batch.newCount, batch };
+  },
+
+  async saveAsync(records: TrafficConversionRecord[], options?: { searchableText?: string }) {
+    const batchId = `traffic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const recordsWithBatch = records.map((record) => {
+      const snapshot = getStoreSnapshot(record.storeName);
+      return {
+        ...record,
+        batchId,
+        storeId: record.storeId || snapshot.storeId,
+        storeName: snapshot.storeName,
+        platform: record.platform || snapshot.platform,
+        platformStoreId: record.platformStoreId || snapshot.platformStoreId,
+      };
+    });
+    const responseText = await writePersistentJsonAsync(DATA_KEY, {
+      records: recordsWithBatch,
+    } satisfies TrafficConversionStore, {
+      trafficImportSearchableText: options?.searchableText,
+      appendImportBatch: true,
+    });
+    const response = responseText ? JSON.parse(responseText) as { batch?: TrafficImportBatch } : {};
+    const batch = response.batch ?? buildBatch(recordsWithBatch, 0, batchId);
+
+    return {
+      coveredCount: batch.coveredCount,
+      newCount: batch.newCount,
+      batch,
+    };
   },
 
   deleteBatch(batchId: string) {

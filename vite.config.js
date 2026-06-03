@@ -1796,6 +1796,66 @@ function mergeTrafficConversionImport(incoming) {
   return { ...existing, ...incoming, records, batches };
 }
 
+function buildTrafficImportBatch(records, coveredCount, batchId) {
+  const dates = records.map((record) => String(record?.date ?? '')).filter(Boolean).sort();
+  const firstRecord = records[0] ?? {};
+  const detailCount = records.length;
+  const detailPayConversionRateAvg = detailCount
+    ? records.reduce((total, record) => total + (Number(record?.detailPayConversionRate) || 0), 0) / detailCount
+    : 0;
+
+  return {
+    id: batchId,
+    importedAt: firstRecord.importedAt || nowIso(),
+    platform: firstRecord.platform || 'Other',
+    storeId: firstRecord.storeId || '',
+    platformStoreId: firstRecord.platformStoreId || '',
+    storeName: firstRecord.storeName || '',
+    fileName: firstRecord.fileName || '',
+    dateStart: dates[0] ?? '',
+    dateEnd: dates.at(-1) ?? '',
+    detailCount,
+    coveredCount,
+    newCount: Math.max(detailCount - coveredCount, 0),
+    productVisitorsTotal: records.reduce((total, record) => total + (Number(record?.productVisitors) || 0), 0),
+    totalPayBuyersTotal: records.reduce((total, record) => total + (Number(record?.totalPayBuyers) || 0), 0),
+    detailPayConversionRateAvg,
+    status: detailCount === 0 ? 'missing' : coveredCount > 0 ? 'covered' : 'success',
+    recordKeys: records.map((record) => `${record.storeName}|${record.date}`),
+  };
+}
+
+function mergeTrafficConversionAppend(incoming, filePath) {
+  const existing = readJsonFile('trafficConversionStore');
+  const incomingRecords = Array.isArray(incoming?.records) ? incoming.records : [];
+  const incomingKeys = new Set(incomingRecords.flatMap(getTrafficRecordKeys));
+  const existingRecords = existing?.records ?? [];
+  const coveredCount = existingRecords.filter((record) => getTrafficRecordKeys(record).some((key) => incomingKeys.has(key))).length;
+  const records = [
+    ...existingRecords.filter((record) => !getTrafficRecordKeys(record).some((key) => incomingKeys.has(key))),
+    ...incomingRecords,
+  ];
+  const batchId = incomingRecords[0]?.batchId || `traffic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const batch = buildTrafficImportBatch(incomingRecords, coveredCount, batchId);
+  const batches = [
+    ...(existing?.batches ?? []).filter((item) => {
+      const recordKeys = Array.isArray(item?.recordKeys) ? item.recordKeys : [];
+      return recordKeys.length === 0 || !recordKeys.every((key) => incomingKeys.has(String(key ?? '').trim()));
+    }),
+    batch,
+  ];
+  const fileSizeMB = fs.existsSync(filePath) ? Number((fs.statSync(filePath).size / 1024 / 1024).toFixed(2)) : 0;
+  console.log('[Traffic Import Save]', {
+    filePath,
+    existingCount: existingRecords.length,
+    newCount: incomingRecords.length,
+    finalCount: records.length,
+    fileSizeMB,
+  });
+
+  return { data: { ...existing, records, batches }, batch };
+}
+
 function assertTrafficImportSearchText(searchableText, currentUser) {
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
     return;
@@ -2507,10 +2567,63 @@ function filterOrderImportStoreByQuery(data, searchParams, currentUser) {
   return { ...data, batches };
 }
 
-function filterTrafficConversionStoreByQuery(data, searchParams) {
+function filterTrafficConversionStoreByQuery(data, searchParams, currentUser) {
   const view = searchParams.get('view') || '';
   if (view === 'store-business-traffic') {
     return buildStoreBusinessTraffic(data, searchParams);
+  }
+
+  if (view === 'records') {
+    const storeName = String(searchParams.get('storeName') || '').trim();
+    const importDate = String(searchParams.get('importDate') || '').trim();
+    const dataDate = String(searchParams.get('dataDate') || '').trim();
+    const status = String(searchParams.get('status') || '').trim();
+    const pageSize = Math.min(Math.max(1, Number(searchParams.get('pageSize') || 20)), 50);
+    const page = Math.max(1, Number(searchParams.get('page') || 1));
+    const batches = (data?.batches ?? [])
+      .filter((batch) =>
+        (!storeName || batch.storeName === storeName) &&
+        (!importDate || String(batch.importedAt ?? '').slice(0, 10) === importDate) &&
+        (!dataDate || (String(batch.dateStart ?? '') <= dataDate && String(batch.dateEnd ?? '') >= dataDate)) &&
+        (!status || batch.status === status)
+      )
+      .sort((first, second) => String(second.importedAt ?? '').localeCompare(String(first.importedAt ?? '')));
+    const importedKeys = new Set((data?.records ?? []).map((record) => `${record.storeName}|${record.date}`));
+    const visibleStoreNames = String(currentUser?.role ?? '').toLowerCase() === 'admin'
+      ? getStores().map((store) => store.storeName).filter(Boolean)
+      : getVisibleStores(currentUser).map((store) => store.storeName).filter(Boolean);
+    const storeNames = unique([
+      ...visibleStoreNames,
+      ...batches.map((batch) => batch.storeName).filter(Boolean),
+    ]);
+    const checkEnd = (data?.records ?? []).map((record) => String(record?.date ?? '').slice(0, 10)).filter(Boolean).sort().at(-1) || formatOrderDateKey(new Date());
+    const checkStart = new Date(`${checkEnd}T00:00:00`);
+    checkStart.setDate(checkStart.getDate() - 6);
+    const checkDates = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(checkStart);
+      date.setDate(checkStart.getDate() + index);
+      return formatOrderDateKey(date);
+    });
+    const start = (page - 1) * pageSize;
+
+    return {
+      batches: batches.slice(start, start + pageSize),
+      total: batches.length,
+      page,
+      pageSize,
+      stores: unique((data?.batches ?? []).map((batch) => batch.storeName).filter(Boolean)).sort(),
+      missingTrafficItems: storeNames.flatMap((name) =>
+        checkDates.filter((date) => !importedKeys.has(`${name}|${date}`)).map((date) => ({ storeName: name, date })),
+      ),
+    };
+  }
+
+  if (view === 'detail') {
+    const batchId = String(searchParams.get('batchId') || '').trim();
+    const records = (data?.records ?? [])
+      .filter((record) => String(record?.batchId ?? '') === batchId)
+      .sort((first, second) => String(first.date ?? '').localeCompare(String(second.date ?? '')));
+    return { records, total: records.length };
   }
 
   return data;
@@ -3545,11 +3658,14 @@ function localDataPlugin() {
             res.end(JSON.stringify(name === 'orderImportStore'
               ? filterOrderImportStoreByQuery(scopedData, requestUrl.searchParams, currentUser)
               : name === 'trafficConversionStore'
-                ? filterTrafficConversionStoreByQuery(scopedData, requestUrl.searchParams)
+                ? filterTrafficConversionStoreByQuery(scopedData, requestUrl.searchParams, currentUser)
                 : scopedData));
           } catch (error) {
             res.statusCode = 500;
-            res.end(`Read failed: ${error instanceof Error ? error.message : String(error)}`);
+            res.end(JSON.stringify({
+              success: false,
+              message: `读取失败：${error instanceof Error ? error.message : String(error)}`,
+            }));
           }
           return;
         }
@@ -3569,15 +3685,20 @@ function localDataPlugin() {
               : '';
             assertCanWriteImportData(name, parsed, currentUser, searchableText);
             const isOrderImportDelete = hasGuardPayload && rawParsed.__deleteImportData && name === 'orderImportStore';
+            const isTrafficImportAppend = hasGuardPayload && rawParsed.__appendImportBatch && name === 'trafficConversionStore';
             const isAttendanceMerge = name === 'salaryAttendanceRecords' && requestUrl.searchParams.get('mode') === 'merge';
             const deleteBefore = isOrderImportDelete ? summarizeOrderImportStore(JSON.parse(fs.readFileSync(filePath, 'utf-8'))) : null;
+            let trafficAppendBatch = null;
+            const trafficAppendResult = isTrafficImportAppend ? mergeTrafficConversionAppend(parsed, filePath) : null;
             const nextData = isOrderImportDelete
               ? parsed
-              : isAttendanceMerge
-                ? mergeAttendanceRecords(JSON.parse(fs.readFileSync(filePath, 'utf-8')), parsed)
-                : name === 'orderImportStore'
-                  ? mergeOrderImportAppend(parsed)
-                  : mergeVisibleImportData(name, parsed, currentUser);
+              : isTrafficImportAppend
+                ? (trafficAppendBatch = trafficAppendResult?.batch ?? null, trafficAppendResult?.data)
+                : isAttendanceMerge
+                  ? mergeAttendanceRecords(JSON.parse(fs.readFileSync(filePath, 'utf-8')), parsed)
+                  : name === 'orderImportStore'
+                    ? mergeOrderImportAppend(parsed)
+                    : mergeVisibleImportData(name, parsed, currentUser);
             const deleteAfter = isOrderImportDelete ? summarizeOrderImportStore(nextData) : null;
             fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
             const deleteSummary = isOrderImportDelete && deleteBefore && deleteAfter
@@ -3597,11 +3718,14 @@ function localDataPlugin() {
             if (deleteSummary) {
               console.log('[order-import-delete]', deleteSummary);
             }
-            res.end(JSON.stringify({ ok: true, path: filePath, deleteSummary, savedCount: Array.isArray(parsed) ? parsed.length : undefined, totalCount: Array.isArray(nextData) ? nextData.length : undefined }));
+            res.end(JSON.stringify({ ok: true, success: true, path: filePath, deleteSummary, batch: trafficAppendBatch, savedCount: Array.isArray(parsed) ? parsed.length : undefined, totalCount: Array.isArray(nextData) ? nextData.length : undefined }));
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
+            if (name === 'trafficConversionStore') {
+              console.error('[Traffic Import Save Error]', error);
+            }
             res.statusCode = message === '当前账号无权导入该店铺数据' || message.startsWith('导入失败：') || message.startsWith('当前账号未配置可导入店铺') ? 403 : 500;
-            res.end(JSON.stringify({ ok: false, message }));
+            res.end(JSON.stringify({ ok: false, success: false, message }));
           }
           return;
         }

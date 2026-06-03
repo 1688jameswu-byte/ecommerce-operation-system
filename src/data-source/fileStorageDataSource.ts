@@ -9,12 +9,12 @@ interface WritePersistentOptions {
 
 function getWriteErrorMessage(status: number, text: string, name: string) {
   if (status === 413 || /^\s*</.test(text)) {
-    return `JSON 文件写入失败：${name}。服务器返回了 HTML 错误页，通常是导入数据过大或接口未正确转发。`;
+    return '导入失败：服务器接口异常，请查看 PM2 日志或检查上传大小限制。';
   }
 
   try {
-    const data = JSON.parse(text) as { message?: string };
-    return data.message || `JSON 文件写入失败：${name}`;
+    const data = JSON.parse(text) as { message?: string; error?: string };
+    return data.message || data.error || `JSON 文件写入失败：${name}`;
   } catch {
     return text || `JSON 文件写入失败：${name}`;
   }
@@ -128,11 +128,11 @@ export async function readPersistentJsonAsync<T>(name: string, fallback: T): Pro
 
 export async function writePersistentJsonAsync(name: string, value: unknown, options?: WritePersistentOptions) {
   if (typeof window === 'undefined') {
-    return;
+    return null;
   }
 
   logPersistentDataPath();
-  await requestAsync('PUT', name, options?.trafficImportSearchableText || options?.deleteImportData || options?.appendImportBatch
+  return requestAsync('PUT', name, options?.trafficImportSearchableText || options?.deleteImportData || options?.appendImportBatch
     ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText, __deleteImportData: options.deleteImportData, __appendImportBatch: options.appendImportBatch }
     : value);
 }

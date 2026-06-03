@@ -11,6 +11,7 @@ const statusLabels: Record<TrafficImportStatus, string> = {
   missing: '缺少字段',
 };
 const MISSING_IMPORT_LIMIT = 10;
+const TRAFFIC_BATCH_PAGE_SIZE = 20;
 
 function toDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -68,29 +69,39 @@ function TrafficImportPage({ currentUser, visibleStoreNames: layoutVisibleStoreN
   const [confirmBatch, setConfirmBatch] = useState<TrafficImportBatch | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showAllMissingDates, setShowAllMissingDates] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalBatches, setTotalBatches] = useState(0);
+  const [storeOptions, setStoreOptions] = useState<string[]>([]);
+  const [missingTrafficItems, setMissingTrafficItems] = useState<Array<{ storeName: string; date: string }>>([]);
+  const [detailRows, setDetailRows] = useState<TrafficConversionRecord[]>([]);
 
-  const refresh = () => setStore(trafficConversionDataSource.loadStore());
+  const refresh = async (nextPage = page) => {
+    const result = await trafficConversionDataSource.loadBatchPage({
+      page: nextPage,
+      pageSize: TRAFFIC_BATCH_PAGE_SIZE,
+      storeName: storeFilter,
+      importDate: importDateFilter,
+      dataDate: dataDateFilter,
+      status: statusFilter,
+    });
+    setStore({ records: [], batches: result.batches });
+    setTotalBatches(result.total);
+    setPage(result.page);
+    setStoreOptions(result.stores);
+    setMissingTrafficItems(result.missingTrafficItems);
+  };
 
   useEffect(() => {
-    refresh();
-  }, []);
+    void refresh(1);
+  }, [dataDateFilter, importDateFilter, statusFilter, storeFilter]);
 
   const batches = useMemo(
     () => (store.batches ?? []).slice().sort((first, second) => second.importedAt.localeCompare(first.importedAt)),
     [store.batches],
   );
 
-  const filteredBatches = useMemo(
-    () => batches.filter((batch) =>
-      (!storeFilter || batch.storeName === storeFilter) &&
-      (!importDateFilter || toImportDateKey(batch.importedAt) === importDateFilter) &&
-      (!dataDateFilter || (batch.dateStart <= dataDateFilter && batch.dateEnd >= dataDateFilter)) &&
-      (!statusFilter || batch.status === statusFilter),
-    ),
-    [batches, dataDateFilter, importDateFilter, statusFilter, storeFilter],
-  );
-
-  const stores = useMemo(() => Array.from(new Set(batches.map((batch) => batch.storeName))).sort(), [batches]);
+  const filteredBatches = batches;
+  const stores = storeOptions;
   const isAdmin = currentUser.role === 'admin';
   const visibleStoreNames = useMemo(
     () => Array.from(new Set(layoutVisibleStoreNames.filter(Boolean))),
@@ -108,21 +119,15 @@ function TrafficImportPage({ currentUser, visibleStoreNames: layoutVisibleStoreN
   }, [isAdmin, store.records, visibleStoreNames]);
   const canUpload = isAdmin || visibleStoreNames.length > 0;
   const selectedBatch = batches.find((batch) => batch.id === selectedBatchId);
-  const detailRows = useMemo(
-    () => store.records
-      .filter((record) => record.batchId === selectedBatchId)
-      .sort((first, second) => first.date.localeCompare(second.date)),
-    [selectedBatchId, store.records],
-  );
-  const missingTrafficItems = useMemo(() => {
-    const checkDates = getRecentCheckDates();
-    const importedKeys = new Set(store.records.map((record) => `${record.storeName}|${record.date}`));
-    const storeNames = visibleStoreNames.length > 0 ? visibleStoreNames : stores;
-
-    return Array.from(new Set(storeNames)).flatMap((name) =>
-      checkDates.filter((date) => !importedKeys.has(`${name}|${date}`)).map((date) => ({ storeName: name, date })),
-    );
-  }, [store.records, stores, visibleStoreNames]);
+  useEffect(() => {
+    if (!selectedBatchId) {
+      setDetailRows([]);
+      return;
+    }
+    void trafficConversionDataSource.loadBatchDetail(selectedBatchId)
+      .then((result) => setDetailRows(result.records))
+      .catch(() => setDetailRows([]));
+  }, [selectedBatchId]);
   const visibleMissingTrafficItems = showAllMissingDates ? missingTrafficItems : missingTrafficItems.slice(0, MISSING_IMPORT_LIMIT);
   const missingTrafficGroups = useMemo(() => {
     const groups = new Map<string, string[]>();
@@ -190,14 +195,14 @@ function TrafficImportPage({ currentUser, visibleStoreNames: layoutVisibleStoreN
         }
         const importStoreName = resolveImportStoreName(result.searchableText);
         const records = result.records.map((record) => ({ ...record, storeName: importStoreName }));
-        const saveResult = trafficConversionDataSource.save(records, { searchableText: result.searchableText });
+        const saveResult = await trafficConversionDataSource.saveAsync(records, { searchableText: result.searchableText });
         totalRows += result.records.length;
         coveredRows += saveResult.coveredCount;
         newRows += saveResult.newCount;
         lastBatchId = saveResult.batch.id;
       }
 
-      refresh();
+      await refresh(1);
       setSelectedBatchId(lastBatchId);
       setMessage(`导入 ${totalRows} 条，新增 ${newRows} 条，覆盖 ${coveredRows} 条。${coveredRows > 0 ? '已覆盖旧数据。' : ''}`);
     } catch (error) {
@@ -218,7 +223,7 @@ function TrafficImportPage({ currentUser, visibleStoreNames: layoutVisibleStoreN
     try {
       await new Promise((resolve) => setTimeout(resolve, 150));
       const deleted = trafficConversionDataSource.deleteBatch(confirmBatch.id);
-      refresh();
+      await refresh(page);
       if (selectedBatchId === confirmBatch.id) {
         setSelectedBatchId('');
       }
@@ -299,7 +304,7 @@ function TrafficImportPage({ currentUser, visibleStoreNames: layoutVisibleStoreN
             <h2>导入批次汇总</h2>
             <p>默认按批次管理，每个店铺每次上传生成一条记录。</p>
           </div>
-          <span>{filteredBatches.length} 个批次</span>
+          <span>{totalBatches} 个批次</span>
         </header>
         <section className="import-filter-bar traffic-batch-filter">
           <label>
@@ -376,6 +381,11 @@ function TrafficImportPage({ currentUser, visibleStoreNames: layoutVisibleStoreN
             </tbody>
           </table>
           {filteredBatches.length === 0 && <div className="import-record-empty">暂无导入批次</div>}
+        </div>
+        <div className="import-pagination">
+          <button type="button" disabled={page <= 1} onClick={() => void refresh(page - 1)}>上一页</button>
+          <span>第 {page} / {Math.max(1, Math.ceil(totalBatches / TRAFFIC_BATCH_PAGE_SIZE))} 页</span>
+          <button type="button" disabled={page >= Math.ceil(totalBatches / TRAFFIC_BATCH_PAGE_SIZE)} onClick={() => void refresh(page + 1)}>下一页</button>
         </div>
       </article>
 
