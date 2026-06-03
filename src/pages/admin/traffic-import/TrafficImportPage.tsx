@@ -147,9 +147,9 @@ function TrafficImportPage({ currentUser, visibleStoreNames: layoutVisibleStoreN
     return visibleStoreNames.length === 1 ? visibleStoreNames[0] : '';
   }
 
-  function resolveImportStoreName(searchableText: string) {
+  function resolveImportStoreName(searchableText: string, parsedStoreName: string) {
     if (isAdmin) {
-      return storeName;
+      return storeName || parsedStoreName;
     }
 
     if (visibleStoreNames.length === 1) {
@@ -193,7 +193,7 @@ function TrafficImportPage({ currentUser, visibleStoreNames: layoutVisibleStoreN
         if (blockedStores.length > 0) {
           throw new Error(`导入失败：当前文件包含未授权店铺【${blockedStores.join('、')}】，请重新检查文件。`);
         }
-        const importStoreName = resolveImportStoreName(result.searchableText);
+        const importStoreName = resolveImportStoreName(result.searchableText, result.storeName);
         const records = result.records.map((record) => ({ ...record, storeName: importStoreName }));
         const saveResult = await trafficConversionDataSource.saveAsync(records, { searchableText: result.searchableText });
         totalRows += result.records.length;

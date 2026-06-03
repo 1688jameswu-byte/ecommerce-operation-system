@@ -317,8 +317,20 @@ function groupTrafficRecordsByStore(records: TrafficConversionRecord[]) {
   return Array.from(groups.entries()).map(([storeKey, group]) => ({ storeKey, ...group }));
 }
 
+function normalizeStoreInferText(value: string) {
+  return value.replace(/\s+/g, '').toLowerCase();
+}
+
 function inferStoreName(fileName: string) {
-  return fileName.replace(/\.(xlsx|xls|csv)$/i, '').replace(/销售数据|流量|转化|数据|\d+|\.|-/g, '').trim();
+  const normalizedFileName = normalizeStoreInferText(fileName);
+  const matchedStore = storeDataSource.load()
+    .find((store) => store.storeName && normalizedFileName.includes(normalizeStoreInferText(store.storeName)));
+
+  if (matchedStore?.storeName) {
+    return matchedStore.storeName;
+  }
+
+  return fileName.replace(/\.(xlsx|xls|csv)$/i, '').replace(/销售数据|店铺|流量|转化|数据|\d+|\.|-/g, '').trim();
 }
 
 function normalizeRuleStore(store: TrafficWarningRuleStore): TrafficWarningRuleStore {
