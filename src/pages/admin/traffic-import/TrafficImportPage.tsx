@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { useVisibleStores } from '../../../auth/useVisibleStores';
 import { parseTrafficConversionExcelFile, trafficConversionDataSource } from '../../../data-source/trafficConversionDataSource';
 import type { CurrentUser } from '../../../types/auth';
 import type { TrafficConversionRecord, TrafficConversionStore, TrafficImportBatch, TrafficImportStatus } from '../../../types/traffic';
@@ -55,10 +54,9 @@ function normalizeSearchText(value: string) {
   return value.replace(/\s+/g, '').toLowerCase();
 }
 
-function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
+function TrafficImportPage({ currentUser, visibleStoreNames: layoutVisibleStoreNames = [] }: { currentUser: CurrentUser; visibleStoreNames?: string[] }) {
   const uploadPanelRef = useRef<HTMLElement | null>(null);
   const [storeName, setStoreName] = useState('');
-  const visibleStores = useVisibleStores(currentUser);
   const [store, setStore] = useState<TrafficConversionStore>({ records: [], batches: [] });
   const [message, setMessage] = useState('');
   const [isParsing, setIsParsing] = useState(false);
@@ -95,8 +93,8 @@ function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const stores = useMemo(() => Array.from(new Set(batches.map((batch) => batch.storeName))).sort(), [batches]);
   const isAdmin = currentUser.role === 'admin';
   const visibleStoreNames = useMemo(
-    () => visibleStores.stores.map((item) => item.storeName || item.id).filter(Boolean),
-    [visibleStores.stores],
+    () => Array.from(new Set(layoutVisibleStoreNames.filter(Boolean))),
+    [layoutVisibleStoreNames],
   );
   const unauthorizedStoreNames = useMemo(() => {
     if (isAdmin) {
@@ -203,12 +201,8 @@ function TrafficImportPage({ currentUser }: { currentUser: CurrentUser }) {
       setSelectedBatchId(lastBatchId);
       setMessage(`导入 ${totalRows} 条，新增 ${newRows} 条，覆盖 ${coveredRows} 条。${coveredRows > 0 ? '已覆盖旧数据。' : ''}`);
     } catch (error) {
-      setMessage(error instanceof Error && (
-        error.message.startsWith('导入失败：') ||
-        ['当前账号无权导入该店铺数据', '当前账号未配置可导入店铺，请联系管理员。', '当前账号有多个可导入店铺，请确认文件名或表格内容包含明确店铺名称。'].includes(error.message)
-      )
-        ? error.message
-        : '导入失败，请检查 Excel 字段。');
+      const errorMessage = error instanceof Error ? error.message : '';
+      setMessage(errorMessage || '导入失败，请检查 Excel 字段。');
     } finally {
       setIsParsing(false);
       event.target.value = '';

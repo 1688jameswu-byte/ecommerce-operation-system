@@ -573,7 +573,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
           ) : isDataBackupPage ? (
             <DataBackupPage currentUser={currentUser} />
           ) : isTrafficImportPage ? (
-            <TrafficImportPage currentUser={currentUser} />
+            <TrafficImportPage currentUser={currentUser} visibleStoreNames={visibleStoreNames} />
           ) : isWarningRulesPage ? (
             <WarningRulesPage />
           ) : isWarningResultsPage ? (
