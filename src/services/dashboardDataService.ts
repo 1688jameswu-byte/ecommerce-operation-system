@@ -13,6 +13,7 @@ import { createStoreMatcher } from '../utils/storeStandardization';
 const levelRank = { critical: 0, high: 1, medium: 2, low: 3 };
 const UNBOUND_OPERATOR = '未绑定运营';
 const COMPANY_DASHBOARD_SCOPE = 'scope=company-dashboard';
+const DASHBOARD_ORDER_RECENT_DAYS = 62;
 let dashboardDataCache: DashboardData | null = null;
 let dashboardDataPromise: Promise<DashboardData> | null = null;
 
@@ -51,7 +52,10 @@ function isOrderStore(value: unknown): value is TemuOrderImportStore {
 }
 
 async function loadCompanyOrderStore(): Promise<TemuOrderImportStore> {
-  const data = await fetchCompanyJson<unknown>('/api/persistent-data/orderImportStore', emptyOrderStore());
+  const data = await fetchCompanyJson<unknown>(
+    `/api/persistent-data/orderImportStore?recentDays=${DASHBOARD_ORDER_RECENT_DAYS}`,
+    emptyOrderStore(),
+  );
   return isOrderStore(data) ? data : emptyOrderStore();
 }
 

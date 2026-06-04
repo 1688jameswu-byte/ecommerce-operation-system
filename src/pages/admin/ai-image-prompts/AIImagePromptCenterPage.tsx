@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CurrentUser } from '../../../types/auth';
 import './aiImagePromptCenter.css';
 
@@ -1218,6 +1218,7 @@ ${itemText}`;
 }
 
 function AIImagePromptCenterPage({ currentUser }: { currentUser: CurrentUser }) {
+  const batchPromptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [form, setForm] = useState<PromptForm>(defaultForm);
   const [prompt, setPrompt] = useState('');
   const [records, setRecords] = useState<PromptRecord[]>([]);
@@ -1320,7 +1321,16 @@ function AIImagePromptCenterPage({ currentUser }: { currentUser: CurrentUser }) 
       await navigator.clipboard.writeText(text);
       setMessage('提示词已复制。');
     } catch {
-      setMessage('复制失败，请手动选中文本复制。');
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setMessage(copied ? '提示词已复制。' : '复制失败，请手动选中文本复制。');
     }
   };
 
@@ -1336,6 +1346,11 @@ function AIImagePromptCenterPage({ currentUser }: { currentUser: CurrentUser }) 
     const nextBatchPromptText = buildBatchPrompt(form, batchMode, batchCount, batchVariationDimensions);
     setBatchPromptText(nextBatchPromptText);
     setMessage('批量提示词已生成。');
+  };
+
+  const handleCopyBatchPrompt = () => {
+    const text = batchPromptTextareaRef.current?.value ?? batchPromptText;
+    void copyText(text);
   };
 
   const handleClearBatchPrompt = () => {
@@ -1610,7 +1625,7 @@ function AIImagePromptCenterPage({ currentUser }: { currentUser: CurrentUser }) 
 
           <div className="ai-prompt-actions">
             <button className="ai-prompt-primary-button" type="button" onClick={handleGenerateBatchPrompt}>生成批量提示词</button>
-            <button type="button" onClick={() => void copyText(batchPromptText)}>复制批量提示词</button>
+            <button type="button" onClick={handleCopyBatchPrompt}>复制批量提示词</button>
             <button className="ai-prompt-danger-button" type="button" onClick={handleClearBatchPrompt}>清空批量提示词</button>
           </div>
 
@@ -1620,7 +1635,7 @@ function AIImagePromptCenterPage({ currentUser }: { currentUser: CurrentUser }) 
                 <h3>批量提示词结果</h3>
                 <p>当前将生成 {batchCount} 张图片方向，复制全部后可直接粘贴到 GPT Pro。</p>
               </div>
-              <button type="button" onClick={() => void copyText(batchPromptText)}>复制全部</button>
+              <button type="button" onClick={handleCopyBatchPrompt}>复制全部</button>
             </header>
             <div className="ai-prompt-batch-direction-list">
               {batchDirections.map((direction, index) => (
@@ -1628,6 +1643,7 @@ function AIImagePromptCenterPage({ currentUser }: { currentUser: CurrentUser }) 
               ))}
             </div>
             <textarea
+              ref={batchPromptTextareaRef}
               value={batchPromptText}
               placeholder="点击“生成批量提示词”后会显示完整批量提示词。"
               onChange={(event) => setBatchPromptText(event.target.value)}
