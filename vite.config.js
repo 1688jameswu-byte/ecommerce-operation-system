@@ -233,6 +233,7 @@ const menuKeys = {
   operationLoop: 'operation-loop',
   operationTasks: 'operation-tasks',
   taskSuggestions: 'task-suggestions',
+  aiImagePromptCenter: 'ai-image-prompt-center',
   ruleCenter: 'rule-center',
   kpiRules: 'kpi-rules',
   rankingRules: 'ranking-rules',
