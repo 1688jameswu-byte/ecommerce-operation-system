@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { orderImportStorageDataSource } from '../../../data-source/orderImportStorageDataSource';
 import { salaryFinancialDataSource } from '../../../data-source/salaryFinancialDataSource';
 import { referenceDataService } from '../../../services/referenceDataService';
 import type { EffectiveNewListingRecord } from '../../../types/effectiveNewListing';
@@ -360,11 +361,9 @@ function getOrderStockQuantity(order: TemuOrderDetail) {
 function buildAveragePriceRows(params: {
   orderImportStore: TemuOrderImportStore;
   rows: OperatorRow[];
-  storeKeys?: Set<string>;
 }) {
   const visibleOrders = (params.orderImportStore.batches ?? [])
-    .flatMap((batch) => batch.orders ?? [])
-    .filter((order) => !params.storeKeys || storeKeyMatches(params.storeKeys, undefined, order.storeName));
+    .flatMap((batch) => batch.orders ?? []);
   const latestDate = visibleOrders
     .map(getOrderDate)
     .filter(Boolean)
@@ -466,7 +465,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       referenceDataService.loadOperators(),
       referenceDataService.loadStoreOperatorRelations(),
       fetchJson<OperationTaskRecord[]>('/api/tasks', []),
-      fetchJson<TemuOrderImportStore>('/api/persistent-data/orderImportStore', { batches: [] }),
+      orderImportStorageDataSource.loadRecentStore({ recentDays: 30, limit: 0 }),
       fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=62', { records: [] }),
       fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=62', { records: [] }),
       fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []),
@@ -688,15 +687,12 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const effortTaskDoneRate = effortSummary.taskCount > 0 ? effortSummary.doneTaskCount / effortSummary.taskCount : 0;
   const effortFirstOrderRate = effortSummary.effectiveListingCount > 0 ? effortSummary.firstOrderCount / effortSummary.effectiveListingCount : 0;
   const visibleStoreKeys = useMemo(() => new Set(rows.flatMap((row) => Array.from(row.storeNames))), [rows]);
-  const visibleAveragePriceRows = useMemo(() => buildAveragePriceRows({
-    orderImportStore,
-    rows,
-    storeKeys: visibleStoreKeys,
-  }), [orderImportStore, rows, visibleStoreKeys]);
   const allStoreAveragePriceRows = useMemo(() => buildAveragePriceRows({
     orderImportStore,
     rows,
   }), [orderImportStore, rows]);
+  const visibleAveragePriceRows = useMemo(() => allStoreAveragePriceRows
+    .filter((row) => storeKeyMatches(visibleStoreKeys, undefined, row.storeName)), [allStoreAveragePriceRows, visibleStoreKeys]);
   const averagePriceSummary = useMemo(() => {
     const salesAmount = visibleAveragePriceRows.reduce((total, row) => total + row.salesAmount, 0);
     const stockQuantity = visibleAveragePriceRows.reduce((total, row) => total + row.stockQuantity, 0);
