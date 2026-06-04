@@ -4,6 +4,7 @@ import { referenceDataService } from '../../../services/referenceDataService';
 import type { EffectiveNewListingRecord } from '../../../types/effectiveNewListing';
 import type { CurrentUser } from '../../../types/auth';
 import type { OperatorRecord } from '../../../types/operator';
+import type { TemuOrderDetail, TemuOrderImportStore } from '../../../types/order';
 import type { OperatorSalaryStatisticRow, OperatorSalaryStoreDetail } from '../../../types/salary';
 import type { OperationTaskRecord } from '../../../types/task';
 import type { StoreOperatorRelation } from '../../../types/storeOperator';
@@ -75,6 +76,14 @@ type EffectComparison = {
   mode: 'trend' | 'period';
   metrics: Record<EffectMetricKey, EffectMetricValue>;
   diagnosis: string;
+};
+
+type AveragePriceStoreRow = {
+  storeName: string;
+  operatorName: string;
+  salesAmount: number;
+  stockQuantity: number;
+  averagePrice: number | null;
 };
 
 interface StoreBusinessOrderDailyRecord {
@@ -330,6 +339,82 @@ function buildEffectSummary(params: {
   return finalizeEffectSummary(summary);
 }
 
+function getOrderDate(order: TemuOrderDetail) {
+  return String(order.orderDate || order.orderTime || '').slice(0, 10);
+}
+
+function getOrderStockQuantity(order: TemuOrderDetail) {
+  const source = order as TemuOrderDetail & Record<string, unknown>;
+  const candidates = [
+    source['备货数量'],
+    source.quantity,
+    source.stockQuantity,
+    source.prepareQuantity,
+    source.backupQuantity,
+    source.qty,
+  ];
+  const value = candidates.map(toAmount).find((item) => item > 0);
+  return value ?? 0;
+}
+
+function buildAveragePriceRows(params: {
+  orderImportStore: TemuOrderImportStore;
+  rows: OperatorRow[];
+  visibleStoreKeys: Set<string>;
+}) {
+  const visibleOrders = (params.orderImportStore.batches ?? [])
+    .flatMap((batch) => batch.orders ?? [])
+    .filter((order) => storeKeyMatches(params.visibleStoreKeys, undefined, order.storeName));
+  const latestDate = visibleOrders
+    .map(getOrderDate)
+    .filter(Boolean)
+    .sort((first, second) => toDateValue(second) - toDateValue(first))[0] || '';
+
+  if (!latestDate) {
+    return [];
+  }
+
+  const startDate = addDays(latestDate, -29);
+  const byStore = new Map<string, { storeName: string; salesAmount: number; stockQuantity: number }>();
+
+  visibleOrders
+    .filter((order) => inDateRange(getOrderDate(order), startDate, latestDate))
+    .forEach((order) => {
+      const storeName = String(order.storeName || '').trim();
+      if (!storeName) {
+        return;
+      }
+      const current = byStore.get(storeName) ?? { storeName, salesAmount: 0, stockQuantity: 0 };
+      current.salesAmount += toAmount(order.salesAmount);
+      current.stockQuantity += getOrderStockQuantity(order);
+      byStore.set(storeName, current);
+    });
+
+  return Array.from(byStore.values())
+    .map<AveragePriceStoreRow>((item) => {
+      const operatorRow = params.rows.find((row) => storeMatches(row, undefined, item.storeName));
+      return {
+        storeName: item.storeName,
+        operatorName: operatorRow?.operatorName || '暂无数据',
+        salesAmount: item.salesAmount,
+        stockQuantity: item.stockQuantity,
+        averagePrice: item.stockQuantity > 0 ? item.salesAmount / item.stockQuantity : null,
+      };
+    })
+    .sort((first, second) => {
+      if (first.averagePrice === null && second.averagePrice === null) {
+        return first.storeName.localeCompare(second.storeName);
+      }
+      if (first.averagePrice === null) {
+        return 1;
+      }
+      if (second.averagePrice === null) {
+        return -1;
+      }
+      return second.averagePrice - first.averagePrice || first.storeName.localeCompare(second.storeName);
+    });
+}
+
 function buildEffectComparison(current: EffectSummary, baseline: EffectSummary, mode: EffectComparison['mode']): EffectComparison {
   const metrics = {
     salesAmount: { current: current.salesAmount, baseline: baseline.salesAmount, changeRate: changeRate(current.salesAmount, baseline.salesAmount) },
@@ -364,6 +449,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const [operators, setOperators] = useState<OperatorRecord[]>([]);
   const [relations, setRelations] = useState<StoreOperatorRelation[]>([]);
   const [tasks, setTasks] = useState<OperationTaskRecord[]>([]);
+  const [orderImportStore, setOrderImportStore] = useState<TemuOrderImportStore>({ batches: [] });
   const [orderDailyRecords, setOrderDailyRecords] = useState<StoreBusinessOrderDailyRecord[]>([]);
   const [trafficRecords, setTrafficRecords] = useState<StoreBusinessTrafficRecord[]>([]);
   const [effectiveNewListings, setEffectiveNewListings] = useState<EffectiveNewListingRecord[]>([]);
@@ -380,10 +466,11 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       referenceDataService.loadOperators(),
       referenceDataService.loadStoreOperatorRelations(),
       fetchJson<OperationTaskRecord[]>('/api/tasks', []),
+      fetchJson<TemuOrderImportStore>('/api/persistent-data/orderImportStore', { batches: [] }),
       fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=62', { records: [] }),
       fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=62', { records: [] }),
       fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []),
-    ]).then(([analysisStore, nextOperators, nextRelations, nextTasks, orderStore, trafficStore, nextEffectiveNewListings]) => {
+    ]).then(([analysisStore, nextOperators, nextRelations, nextTasks, nextOrderImportStore, orderStore, trafficStore, nextEffectiveNewListings]) => {
       if (cancelled) {
         return;
       }
@@ -391,6 +478,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       setOperators(nextOperators.filter((operator) => operator.status !== 'inactive'));
       setRelations(filterRecordsByPermission(nextRelations.filter((relation) => relation.status !== 'inactive'), currentUser));
       setTasks(filterTasksByPermission(nextTasks, currentUser));
+      setOrderImportStore(nextOrderImportStore ?? { batches: [] });
       setOrderDailyRecords(orderStore.records ?? []);
       setTrafficRecords(trafficStore.records ?? []);
       setEffectiveNewListings(nextEffectiveNewListings ?? []);
@@ -600,6 +688,21 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const effortTaskDoneRate = effortSummary.taskCount > 0 ? effortSummary.doneTaskCount / effortSummary.taskCount : 0;
   const effortFirstOrderRate = effortSummary.effectiveListingCount > 0 ? effortSummary.firstOrderCount / effortSummary.effectiveListingCount : 0;
   const visibleStoreKeys = useMemo(() => new Set(rows.flatMap((row) => Array.from(row.storeNames))), [rows]);
+  const averagePriceRows = useMemo(() => buildAveragePriceRows({
+    orderImportStore,
+    rows,
+    visibleStoreKeys,
+  }), [orderImportStore, rows, visibleStoreKeys]);
+  const averagePriceSummary = useMemo(() => {
+    const salesAmount = averagePriceRows.reduce((total, row) => total + row.salesAmount, 0);
+    const stockQuantity = averagePriceRows.reduce((total, row) => total + row.stockQuantity, 0);
+    return {
+      salesAmount,
+      stockQuantity,
+      averagePrice: stockQuantity > 0 ? salesAmount / stockQuantity : null,
+    };
+  }, [averagePriceRows]);
+  const hasAveragePriceStockData = averagePriceSummary.stockQuantity > 0;
   const latestEffectDate = useMemo(() => {
     const dates = [
       ...orderDailyRecords
@@ -689,6 +792,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
           <article><span>当前周期订单数</span><strong>{orderSummary.orderCount}</strong></article>
           <article><span>当前周期访客数</span><strong>{trafficSummary.visitorCount}</strong></article>
           <article><span>当前周期转化率</span><strong>{formatPercent(conversionRate)}</strong></article>
+          <article title="销售额 ÷ 备货数量，按最近30天统计。"><span>近30天平均售价</span><strong>{averagePriceSummary.averagePrice === null ? '暂无数据' : `¥ ${formatMoney(averagePriceSummary.averagePrice)}`}</strong></article>
           <article><span>{formatMonthLabel(financePeriod)}流入资金</span><strong>¥ {formatMoney(financeSummary.inflowAmount)}</strong></article>
           <article><span>{formatMonthLabel(financePeriod)}流出资金</span><strong>¥ {formatMoney(financeSummary.expenseAmount)}</strong></article>
           <article><span>{formatMonthLabel(financePeriod)}净流入</span><strong>¥ {formatMoney(financeSummary.netInflowAmount)}</strong></article>
@@ -698,6 +802,42 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
           <article><span>待处理任务数</span><strong>{openTasks.length}</strong></article>
           <article><span>任务完成率</span><strong>{formatPercent(taskDoneRate * 100)}</strong></article>
         </section>
+      </article>
+
+      <article className="excel-record-panel operator-performance-panel">
+        <header>
+          <div>
+            <h2>近30天店铺平均售价排名</h2>
+            <p>平均售价 = 销售额 ÷ 备货数量，用于观察店铺商品单件售价水平。该指标不同于客单价，客单价 = 销售额 ÷ 订单数。</p>
+          </div>
+        </header>
+        <div className="import-record-table-wrap operator-performance-table-wrap">
+          <table className="import-record-table operator-performance-table">
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>店铺</th>
+                <th>运营</th>
+                <th>近30天销售额</th>
+                <th>近30天备货数量</th>
+                <th>近30天平均售价</th>
+              </tr>
+            </thead>
+            <tbody>
+              {hasAveragePriceStockData && averagePriceRows.slice(0, 10).map((row, index) => (
+                <tr key={row.storeName}>
+                  <td>{index + 1}</td>
+                  <td title={row.storeName}><span className="operator-store-names">{row.storeName}</span></td>
+                  <td>{row.operatorName}</td>
+                  <td>¥ {formatMoney(row.salesAmount)}</td>
+                  <td>{formatNumber(row.stockQuantity)}</td>
+                  <td>{row.averagePrice === null ? '暂无数据' : `¥ ${formatMoney(row.averagePrice)}`}</td>
+                </tr>
+              ))}
+              {!hasAveragePriceStockData && <tr><td colSpan={6}>暂无近30天备货数量数据</td></tr>}
+            </tbody>
+          </table>
+        </div>
       </article>
 
       <article className="excel-record-panel operator-performance-panel">

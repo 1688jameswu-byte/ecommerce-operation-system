@@ -24,6 +24,7 @@ const WarningRulesPage = lazy(() => import('./warning-rules/WarningRulesPage'));
 const OperationDiagnosisPage = lazy(() => import('./operation-diagnosis/OperationDiagnosisPage'));
 const TaskCenterPage = lazy(() => import('./task-center/TaskCenterPage'));
 const TaskSuggestionsPage = lazy(() => import('./task-suggestions/TaskSuggestionsPage'));
+const AIImagePromptCenterPage = lazy(() => import('./ai-image-prompts/AIImagePromptCenterPage'));
 const SalaryEmployeesPage = lazy(() => import('./salary/SalaryEmployeesPage'));
 const SalaryPeriodsPage = lazy(() => import('./salary/SalaryPeriodsPage'));
 const SalaryImportTemplatesPage = lazy(() => import('./salary/SalaryImportTemplatesPage'));
@@ -448,6 +449,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const isOperationDiagnosisPage = activeRoute.path === '/admin/operation-diagnosis';
   const isTaskCenterPage = activeRoute.path === '/admin/tasks';
   const isTaskSuggestionsPage = activeRoute.path === '/admin/task-suggestions';
+  const isAIImagePromptCenterPage = activeRoute.path === '/admin/ai-image-prompts';
   const isSalaryEmployeesPage = activeRoute.path === '/admin/salary/employees';
   const isSalaryPeriodsPage = activeRoute.path === '/admin/salary/periods';
   const isSalaryImportTemplatesPage = activeRoute.path === '/admin/salary/import-templates';
@@ -588,6 +590,8 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
             <TaskCenterPage currentUser={currentUser} />
           ) : isTaskSuggestionsPage ? (
             <TaskSuggestionsPage />
+          ) : isAIImagePromptCenterPage ? (
+            <AIImagePromptCenterPage currentUser={currentUser} />
           ) : isSalaryEmployeesPage ? (
             <SalaryEmployeesPage />
           ) : isSalaryPeriodsPage ? (

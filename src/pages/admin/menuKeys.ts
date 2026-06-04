@@ -23,6 +23,7 @@ export const menuKeys = {
   operationLoop: 'operation-loop',
   operationTasks: 'operation-tasks',
   taskSuggestions: 'task-suggestions',
+  aiImagePromptCenter: 'ai-image-prompt-center',
   ruleCenter: 'rule-center',
   kpiRules: 'kpi-rules',
   rankingRules: 'ranking-rules',
@@ -90,6 +91,7 @@ export const menuGroups: { key: MenuKey; label: string; children: { key: MenuKey
     children: [
       { key: menuKeys.operationTasks, label: '运营任务中心' },
       { key: menuKeys.taskSuggestions, label: '处理建议模板' },
+      { key: menuKeys.aiImagePromptCenter, label: 'AI图片提示词中心' },
     ],
   },
   {

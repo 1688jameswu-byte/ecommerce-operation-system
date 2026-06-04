@@ -102,6 +102,14 @@ export const adminRoutes: AdminRoute[] = [
     description: '维护流量、转化、成交和增长机会的运营处理建议模板。',
   },
   {
+    path: '/admin/ai-image-prompts',
+    menuKey: menuKeys.aiImagePromptCenter,
+    parentMenuKey: menuKeys.operationLoop,
+    label: 'AI图片提示词中心',
+    group: '运营闭环',
+    description: '根据平台、图片用途和产品信息生成标准化图片提示词。',
+  },
+  {
     path: '/admin/config/kpi',
     menuKey: menuKeys.kpiRules,
     parentMenuKey: menuKeys.ruleCenter,
