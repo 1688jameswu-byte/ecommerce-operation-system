@@ -360,11 +360,11 @@ function getOrderStockQuantity(order: TemuOrderDetail) {
 function buildAveragePriceRows(params: {
   orderImportStore: TemuOrderImportStore;
   rows: OperatorRow[];
-  visibleStoreKeys: Set<string>;
+  storeKeys?: Set<string>;
 }) {
   const visibleOrders = (params.orderImportStore.batches ?? [])
     .flatMap((batch) => batch.orders ?? [])
-    .filter((order) => storeKeyMatches(params.visibleStoreKeys, undefined, order.storeName));
+    .filter((order) => !params.storeKeys || storeKeyMatches(params.storeKeys, undefined, order.storeName));
   const latestDate = visibleOrders
     .map(getOrderDate)
     .filter(Boolean)
@@ -688,21 +688,25 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const effortTaskDoneRate = effortSummary.taskCount > 0 ? effortSummary.doneTaskCount / effortSummary.taskCount : 0;
   const effortFirstOrderRate = effortSummary.effectiveListingCount > 0 ? effortSummary.firstOrderCount / effortSummary.effectiveListingCount : 0;
   const visibleStoreKeys = useMemo(() => new Set(rows.flatMap((row) => Array.from(row.storeNames))), [rows]);
-  const averagePriceRows = useMemo(() => buildAveragePriceRows({
+  const visibleAveragePriceRows = useMemo(() => buildAveragePriceRows({
     orderImportStore,
     rows,
-    visibleStoreKeys,
+    storeKeys: visibleStoreKeys,
   }), [orderImportStore, rows, visibleStoreKeys]);
+  const allStoreAveragePriceRows = useMemo(() => buildAveragePriceRows({
+    orderImportStore,
+    rows,
+  }), [orderImportStore, rows]);
   const averagePriceSummary = useMemo(() => {
-    const salesAmount = averagePriceRows.reduce((total, row) => total + row.salesAmount, 0);
-    const stockQuantity = averagePriceRows.reduce((total, row) => total + row.stockQuantity, 0);
+    const salesAmount = visibleAveragePriceRows.reduce((total, row) => total + row.salesAmount, 0);
+    const stockQuantity = visibleAveragePriceRows.reduce((total, row) => total + row.stockQuantity, 0);
     return {
       salesAmount,
       stockQuantity,
       averagePrice: stockQuantity > 0 ? salesAmount / stockQuantity : null,
     };
-  }, [averagePriceRows]);
-  const hasAveragePriceStockData = averagePriceSummary.stockQuantity > 0;
+  }, [visibleAveragePriceRows]);
+  const hasAveragePriceStockData = allStoreAveragePriceRows.some((row) => row.stockQuantity > 0);
   const latestEffectDate = useMemo(() => {
     const dates = [
       ...orderDailyRecords
@@ -824,7 +828,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
               </tr>
             </thead>
             <tbody>
-              {hasAveragePriceStockData && averagePriceRows.slice(0, 10).map((row, index) => (
+              {hasAveragePriceStockData && allStoreAveragePriceRows.slice(0, 10).map((row, index) => (
                 <tr key={row.storeName}>
                   <td>{index + 1}</td>
                   <td title={row.storeName}><span className="operator-store-names">{row.storeName}</span></td>
