@@ -282,7 +282,7 @@ const defaultSetConsistencyRequirements: SetConsistencyRequirement[] = [
 
 const commonRequirements: RequirementPreset = {
   positive: ['保持产品原始形状', '保持产品真实比例', '保持产品颜色准确', '保持孔位和结构清晰', '产品真实自然', '金属质感真实', '产品主体完整展示'],
-  negative: ['不改变产品形状', '不改变产品比例', '不改变产品颜色', '不改变孔位和结构', '不添加不存在的配件', '不让产品变形', '不让产品模糊', '不出现乱码文字', '不出现水印', '不出现品牌Logo'],
+  negative: ['不添加不存在的配件', '不让产品变形', '不让产品模糊', '不出现乱码文字', '不出现水印', '不出现品牌Logo'],
 };
 
 const platformRequirementPresets: Record<Platform, RequirementPreset> = {
@@ -357,23 +357,143 @@ function uniqueItems<T extends string>(items: T[]) {
   return Array.from(new Set(items));
 }
 
+const cleanPositiveRequirementItems: PositiveRequirement[] = [
+  '保持产品原始形状',
+  '保持产品真实比例',
+  '保持产品颜色准确',
+  '保持孔位和结构清晰',
+  '产品真实自然',
+  '金属质感真实',
+  '产品主体完整展示',
+  '突出产品主体',
+  '背景干净简洁',
+  '适合1688主图',
+  '适合点击测试',
+  '适合批发采购',
+  '突出现货',
+  '突出源头工厂',
+  '小配件需要放大展示',
+  '展示库存感',
+  '展示采购场景',
+];
+
+const cleanNegativeRequirementItems: NegativeRequirement[] = [
+  '不添加不存在的配件',
+  '不让产品变形',
+  '不让产品模糊',
+  '不出现乱码文字',
+  '不出现水印',
+  '不出现品牌Logo',
+  '不要过度品牌海报化',
+  '不要奢侈品广告感太强',
+  '不要文字过多',
+  '不要产品太小',
+  '不要画面过空',
+  '不要复杂拼图',
+  '不要生成平台Logo',
+  '不要生成价格',
+  '不使用复杂背景',
+  '不让道具抢镜',
+  '不让画面脏乱',
+  '不使用虚假工厂信息',
+  '不生成错误库存数量',
+];
+
+const positiveRequirementAliases: Partial<Record<PositiveRequirement, PositiveRequirement>> = {
+  产品一眼可识别: '突出产品主体',
+  适合手机端浏览: '适合点击测试',
+  产品占比合理: '突出产品主体',
+  突出现货供应: '突出现货',
+  产品主体仍然清晰: '产品主体完整展示',
+};
+
+const negativeRequirementAliases: Partial<Record<NegativeRequirement, NegativeRequirement>> = {
+  不生成价格: '不要生成价格',
+  不生成平台Logo: '不要生成平台Logo',
+  不突出文字: '不要文字过多',
+  不生成促销标签: '不要文字过多',
+  不让主体过小: '不要产品太小',
+  不让产品主体变小: '不要产品太小',
+  不使用复杂拼图: '不要复杂拼图',
+  不让工厂背景抢镜: '不让道具抢镜',
+  不要背景杂乱: '不让画面脏乱',
+  不要背景过乱: '不让画面脏乱',
+  不要乱码文字: '不出现乱码文字',
+  不要产品变形: '不让产品变形',
+  不要水印Logo: '不出现水印',
+};
+
+const negativeBlockedByPositive: Partial<Record<PositiveRequirement, NegativeRequirement[]>> = {
+  保持产品原始形状: ['不改变产品形状'],
+  保持产品真实比例: ['不改变产品比例'],
+  保持产品颜色准确: ['不改变产品颜色'],
+  保持孔位和结构清晰: ['不改变孔位和结构'],
+};
+
+const droppedPositiveRequirementItems: PositiveRequirement[] = [
+  '适合手机端浏览',
+];
+
+const droppedNegativeRequirementItems: NegativeRequirement[] = [
+  '不改变产品形状',
+  '不改变产品比例',
+  '不改变产品颜色',
+  '不改变孔位和结构',
+  '不生成促销标签',
+  '不让工厂背景抢镜',
+];
+
+function normalizeRequirementList<T extends string>(
+  items: T[],
+  aliases: Partial<Record<T, T>>,
+  preferredItems: T[],
+  droppedItems: T[],
+) {
+  const preferredSet = new Set(preferredItems);
+  const droppedSet = new Set(droppedItems);
+  const normalizedItems = uniqueItems(
+    items
+      .map((item) => aliases[item] ?? item)
+      .filter((item): item is T => !droppedSet.has(item)),
+  );
+  return [
+    ...preferredItems.filter((item) => normalizedItems.includes(item)),
+    ...normalizedItems.filter((item) => !preferredSet.has(item)),
+  ];
+}
+
+function getCleanPositiveRequirements(items: PositiveRequirement[]) {
+  return normalizeRequirementList(items, positiveRequirementAliases, cleanPositiveRequirementItems, droppedPositiveRequirementItems);
+}
+
+function getCleanNegativeRequirements(items: NegativeRequirement[], positiveRequirements: PositiveRequirement[] = []) {
+  const blockedItems = new Set(positiveRequirements.flatMap((item) => negativeBlockedByPositive[item] ?? []));
+  return normalizeRequirementList(
+    items.filter((item) => !blockedItems.has(item)),
+    negativeRequirementAliases,
+    cleanNegativeRequirementItems,
+    droppedNegativeRequirementItems,
+  );
+}
+
 function getRequirementPreset(platform: Platform, imageType: ImageType): RequirementPreset {
   const platformPreset = platformRequirementPresets[platform];
   const imageTypePreset = imageTypeRequirementPresets[imageType];
   const useFactoryStock = platform === '1688' && imageType === '1688主图';
+  const positive = getCleanPositiveRequirements([
+    ...commonRequirements.positive,
+    ...platformPreset.positive,
+    ...imageTypePreset.positive,
+    ...(useFactoryStock ? factoryStockRequirementPreset.positive : []),
+  ]);
   return {
-    positive: uniqueItems([
-      ...commonRequirements.positive,
-      ...platformPreset.positive,
-      ...imageTypePreset.positive,
-      ...(useFactoryStock ? factoryStockRequirementPreset.positive : []),
-    ]),
-    negative: uniqueItems([
+    positive,
+    negative: getCleanNegativeRequirements([
       ...commonRequirements.negative,
       ...platformPreset.negative,
       ...imageTypePreset.negative,
       ...(useFactoryStock ? factoryStockRequirementPreset.negative : []),
-    ]),
+    ], positive),
   };
 }
 
@@ -547,7 +667,6 @@ const negativeRequirementText: Record<NegativeRequirement, string> = {
   不使用夸张奢侈场景: '不使用夸张奢侈场景。',
 };
 
-const defaultRequirements = getRequirementPreset('1688', '1688主图');
 const defaultForm: PromptForm = {
   platform: '1688',
   imageType: '1688主图',
@@ -555,8 +674,8 @@ const defaultForm: PromptForm = {
   material: '304不锈钢',
   ratio: '方形1:1',
   backgroundStyle: '暖色干净背景',
-  positiveRequirements: defaultRequirements.positive,
-  negativeRequirements: defaultRequirements.negative,
+  positiveRequirements: [],
+  negativeRequirements: [],
   extraRequirement: '',
 };
 
@@ -821,12 +940,12 @@ function readRecords(): PromptRecord[] {
 }
 
 function normalizeRecord(record: LegacyPromptRecord): PromptRecord {
-  const preset = getRequirementPreset(record.platform, record.imageType);
+  const positiveRequirements = getCleanPositiveRequirements(record.positiveRequirements ?? []);
   return {
     ...record,
     extraRequirement: record.extraRequirement ?? '',
-    positiveRequirements: record.positiveRequirements ?? preset.positive,
-    negativeRequirements: record.negativeRequirements ?? preset.negative,
+    positiveRequirements,
+    negativeRequirements: getCleanNegativeRequirements(record.negativeRequirements ?? [], positiveRequirements),
   };
 }
 
@@ -844,6 +963,8 @@ function toNumberedLines(lines: string[]) {
 
 function buildPrompt(form: PromptForm) {
   const ratio = ratioLabel(form.ratio);
+  const cleanPositiveRequirements = getCleanPositiveRequirements(form.positiveRequirements);
+  const cleanNegativeRequirements = getCleanNegativeRequirements(form.negativeRequirements, cleanPositiveRequirements);
   const intro = form.platform === '1688' && form.imageType === '1688主图'
     ? `请基于我上传的产品图，生成一张适合1688平台使用的${ratio}产品主图。`
     : `请基于我上传的产品图，生成一张适合${form.platform}平台使用的${ratio}${form.imageType}。`;
@@ -882,8 +1003,8 @@ function buildPrompt(form: PromptForm) {
     baseRequirements.push(`背景使用${form.backgroundStyle}。`);
   }
 
-  const positiveLines = form.positiveRequirements.map((requirement) => positiveRequirementText[requirement]);
-  const negativeLines = form.negativeRequirements.map((requirement) => negativeRequirementText[requirement]);
+  const positiveLines = cleanPositiveRequirements.map((requirement) => positiveRequirementText[requirement]);
+  const negativeLines = cleanNegativeRequirements.map((requirement) => negativeRequirementText[requirement]);
 
   if (form.extraRequirement.trim()) {
     positiveLines.push(form.extraRequirement.trim());
@@ -920,8 +1041,10 @@ function buildBatchPrompt(
   batchVariationDimensions: BatchVariationDimension[],
 ) {
   const directions = getBatchDirections(batchMode, batchCount);
-  const positiveRequirements = form.positiveRequirements.map((requirement) => positiveRequirementText[requirement] ?? requirement);
-  const negativeRequirements = form.negativeRequirements.map((requirement) => negativeRequirementText[requirement] ?? requirement);
+  const cleanPositiveRequirements = getCleanPositiveRequirements(form.positiveRequirements);
+  const cleanNegativeRequirements = getCleanNegativeRequirements(form.negativeRequirements, cleanPositiveRequirements);
+  const positiveRequirements = cleanPositiveRequirements.map((requirement) => positiveRequirementText[requirement] ?? requirement);
+  const negativeRequirements = cleanNegativeRequirements.map((requirement) => negativeRequirementText[requirement] ?? requirement);
   const directionText = directions.map((direction, index) => (
     `第${index + 1}张：${direction.title}\n图片目的：${direction.purpose}\n具体要求：${direction.detail}`
   )).join('\n\n');
@@ -943,17 +1066,13 @@ function buildBatchPrompt(
 2. 必须保持产品真实比例。
 3. 必须保持产品颜色准确。
 4. 必须保持孔位和结构清晰。
-5. 必须保持金属质感真实。
-6. 不要改变产品结构。
-7. 不要改变产品比例。
-8. 不要改变孔位。
-9. 不要添加不存在的配件。
-10. 不要让产品变形。
-11. 不要让产品模糊。
-12. 不要出现水印、品牌Logo、乱码文字。
-13. 每张图片只改变背景、构图、光线、场景或展示重点，不改变产品本身。
-14. 产品主体必须清晰，占画面主要位置。
-15. 不要在图片中生成大段文字，卖点只作为画面风格参考。
+5. 不要添加不存在的配件。
+6. 不要让产品变形。
+7. 不要让产品模糊。
+8. 不要出现水印、品牌Logo、乱码文字。
+9. 每张图片只改变背景、构图、光线、场景或展示重点，不改变产品本身。
+10. 产品主体必须清晰，占画面主要位置。
+11. 不要在图片中生成大段文字，卖点只作为画面风格参考。
 
 变化维度：
 ${buildVariationInstruction(batchVariationDimensions)}
@@ -1041,8 +1160,10 @@ function buildSetPrompt(
   setConsistencyRequirements: SetConsistencyRequirement[],
 ) {
   const setCount = selectedItems.length;
-  const positiveRequirements = form.positiveRequirements.map((requirement) => positiveRequirementText[requirement] ?? requirement);
-  const negativeRequirements = form.negativeRequirements.map((requirement) => negativeRequirementText[requirement] ?? requirement);
+  const cleanPositiveRequirements = getCleanPositiveRequirements(form.positiveRequirements);
+  const cleanNegativeRequirements = getCleanNegativeRequirements(form.negativeRequirements, cleanPositiveRequirements);
+  const positiveRequirements = cleanPositiveRequirements.map((requirement) => positiveRequirementText[requirement] ?? requirement);
+  const negativeRequirements = cleanNegativeRequirements.map((requirement) => negativeRequirementText[requirement] ?? requirement);
   const itemText = selectedItems.map((item, index) => (
     `第${index + 1}张：${item.name}\n图片用途：${item.purpose}\n具体要求：${getSetItemDetail(item.name)}`
   )).join('\n\n');
@@ -1071,16 +1192,13 @@ ${getPlatformSetStyle(form.platform)}
 3. 必须保持产品颜色准确。
 4. 必须保持孔位和结构清晰。
 5. 必须保持金属质感真实。
-6. 不要改变产品结构。
-7. 不要改变产品比例。
-8. 不要改变孔位。
-9. 不要添加不存在的配件。
-10. 不要让产品变形。
-11. 不要让产品模糊。
-12. 不要出现水印、品牌Logo、乱码文字。
-13. 不要每张图都生成成不同产品。
-14. 不要在图片中生成大段文字。
-15. 如果需要表达卖点，只作为画面方向参考，不要生成乱码文字。
+6. 不要添加不存在的配件。
+7. 不要让产品变形。
+8. 不要让产品模糊。
+9. 不要出现水印、品牌Logo、乱码文字。
+10. 不要每张图都生成成不同产品。
+11. 不要在图片中生成大段文字。
+12. 如果需要表达卖点，只作为画面方向参考，不要生成乱码文字。
 
 正向要求：
 ${positiveRequirements.join('；')}
@@ -1123,12 +1241,15 @@ function AIImagePromptCenterPage({ currentUser }: { currentUser: CurrentUser }) 
   }, []);
 
   const positiveRequirementOptions = useMemo(
-    () => uniqueItems([...getRequirementPreset(form.platform, form.imageType).positive, ...form.positiveRequirements]),
+    () => getCleanPositiveRequirements([...getRequirementPreset(form.platform, form.imageType).positive, ...form.positiveRequirements]),
     [form.imageType, form.platform, form.positiveRequirements],
   );
   const negativeRequirementOptions = useMemo(
-    () => uniqueItems([...getRequirementPreset(form.platform, form.imageType).negative, ...form.negativeRequirements]),
-    [form.imageType, form.platform, form.negativeRequirements],
+    () => getCleanNegativeRequirements(
+      [...getRequirementPreset(form.platform, form.imageType).negative, ...form.negativeRequirements],
+      getCleanPositiveRequirements(form.positiveRequirements),
+    ),
+    [form.imageType, form.platform, form.negativeRequirements, form.positiveRequirements],
   );
 
   const filteredRecords = useMemo(() => {
@@ -1147,13 +1268,10 @@ function AIImagePromptCenterPage({ currentUser }: { currentUser: CurrentUser }) 
     saveRecords(nextRecords);
   };
 
-  const applyScenarioRequirements = (platform: Platform, imageType: ImageType) => {
-    const preset = getRequirementPreset(platform, imageType);
-    return {
-      positiveRequirements: preset.positive,
-      negativeRequirements: preset.negative,
-    };
-  };
+  const applyScenarioRequirements = (_platform: Platform, _imageType: ImageType) => ({
+    positiveRequirements: [],
+    negativeRequirements: [],
+  });
 
   const updatePlatform = (platform: Platform) => {
     setForm((current) => ({
@@ -1176,8 +1294,12 @@ function AIImagePromptCenterPage({ currentUser }: { currentUser: CurrentUser }) 
 
   const generatePrompt = () => {
     const nextPrompt = buildPrompt(form);
+    const cleanPositiveRequirements = getCleanPositiveRequirements(form.positiveRequirements);
+    const cleanNegativeRequirements = getCleanNegativeRequirements(form.negativeRequirements, cleanPositiveRequirements);
     const nextRecord: PromptRecord = {
       ...form,
+      positiveRequirements: cleanPositiveRequirements,
+      negativeRequirements: cleanNegativeRequirements,
       id: makeId(),
       createdAt: new Date().toISOString(),
       operator: currentUser.displayName || currentUser.username || '当前用户',
@@ -1264,11 +1386,15 @@ function AIImagePromptCenterPage({ currentUser }: { currentUser: CurrentUser }) 
   const togglePositiveRequirement = (requirement: PositiveRequirement) => {
     setForm((current) => {
       const hasRequirement = current.positiveRequirements.includes(requirement);
-      return {
-        ...current,
-        positiveRequirements: hasRequirement
+      const positiveRequirements = getCleanPositiveRequirements(
+        hasRequirement
           ? current.positiveRequirements.filter((item) => item !== requirement)
           : [...current.positiveRequirements, requirement],
+      );
+      return {
+        ...current,
+        positiveRequirements,
+        negativeRequirements: getCleanNegativeRequirements(current.negativeRequirements, positiveRequirements),
       };
     });
   };
@@ -1276,11 +1402,16 @@ function AIImagePromptCenterPage({ currentUser }: { currentUser: CurrentUser }) 
   const toggleNegativeRequirement = (requirement: NegativeRequirement) => {
     setForm((current) => {
       const hasRequirement = current.negativeRequirements.includes(requirement);
+      const positiveRequirements = getCleanPositiveRequirements(current.positiveRequirements);
       return {
         ...current,
-        negativeRequirements: hasRequirement
-          ? current.negativeRequirements.filter((item) => item !== requirement)
-          : [...current.negativeRequirements, requirement],
+        positiveRequirements,
+        negativeRequirements: getCleanNegativeRequirements(
+          hasRequirement
+            ? current.negativeRequirements.filter((item) => item !== requirement)
+            : [...current.negativeRequirements, requirement],
+          positiveRequirements,
+        ),
       };
     });
   };
@@ -1364,7 +1495,7 @@ function AIImagePromptCenterPage({ currentUser }: { currentUser: CurrentUser }) 
 
         <section className="ai-prompt-requirements">
           <strong>图片生成要求</strong>
-          <p>系统会根据平台和图片类型自动匹配要求，也可以手动勾选或取消。</p>
+          <p>系统会根据平台和图片类型自动匹配要求，并自动去除重复项，也可以手动勾选或取消。</p>
           <div className="ai-prompt-requirement-group ai-prompt-positive-group">
             <h3>正向要求：希望图片做到</h3>
             <div className="ai-prompt-requirement-tags">
