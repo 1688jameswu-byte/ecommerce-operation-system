@@ -2518,10 +2518,77 @@ function resolveOrderDateRange(data, searchParams) {
   return { start: formatOrderDateKey(startDate), end: latest };
 }
 
+function getOrderStockQuantityForSummary(order) {
+  const value = Number(
+    order?.quantity ??
+    order?.['\u5907\u8d27\u6570\u91cf'] ??
+    order?.stockQuantity ??
+    order?.prepareQuantity ??
+    order?.backupQuantity ??
+    order?.qty ??
+    0,
+  );
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function buildStoreAveragePriceSummary(data, searchParams) {
+  const { start, end } = resolveOrderDateRange(data, searchParams);
+  const groups = new Map();
+
+  for (const batch of data?.batches ?? []) {
+    for (const order of batch.orders ?? []) {
+      const date = getOrderDateKey(order);
+      if (!date || (start && date < start) || (end && date > end)) {
+        continue;
+      }
+
+      const storeName = normalizeOrderImportStoreName(order?.storeName);
+      const current = groups.get(storeName) ?? {
+        storeName,
+        salesAmount: 0,
+        stockQuantity: 0,
+      };
+      current.salesAmount += Number(order?.salesAmount) || 0;
+      current.stockQuantity += getOrderStockQuantityForSummary(order);
+      groups.set(storeName, current);
+    }
+  }
+
+  return {
+    dateStart: start,
+    dateEnd: end,
+    records: Array.from(groups.values())
+      .map((item) => ({
+        storeName: item.storeName,
+        salesAmount: Number(item.salesAmount.toFixed(2)),
+        stockQuantity: item.stockQuantity,
+        averagePrice: item.stockQuantity > 0 ? Number((item.salesAmount / item.stockQuantity).toFixed(2)) : null,
+        dateStart: start,
+        dateEnd: end,
+      }))
+      .sort((first, second) => {
+        if (first.averagePrice === null && second.averagePrice === null) {
+          return first.storeName.localeCompare(second.storeName);
+        }
+        if (first.averagePrice === null) {
+          return 1;
+        }
+        if (second.averagePrice === null) {
+          return -1;
+        }
+        return second.averagePrice - first.averagePrice || first.storeName.localeCompare(second.storeName);
+      }),
+  };
+}
+
 function filterOrderImportStoreByQuery(data, searchParams, currentUser) {
   const view = searchParams.get('view') || '';
   if (view === 'store-business-daily') {
     return buildStoreBusinessOrderDaily(data, searchParams);
+  }
+
+  if (view === 'store-average-price-summary') {
+    return buildStoreAveragePriceSummary(data, searchParams);
   }
 
   if (view === 'records') {

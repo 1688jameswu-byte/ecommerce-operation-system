@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { orderImportStorageDataSource } from '../../../data-source/orderImportStorageDataSource';
 import { salaryFinancialDataSource } from '../../../data-source/salaryFinancialDataSource';
 import { referenceDataService } from '../../../services/referenceDataService';
 import type { EffectiveNewListingRecord } from '../../../types/effectiveNewListing';
 import type { CurrentUser } from '../../../types/auth';
 import type { OperatorRecord } from '../../../types/operator';
-import type { TemuOrderDetail, TemuOrderImportStore } from '../../../types/order';
 import type { OperatorSalaryStatisticRow, OperatorSalaryStoreDetail } from '../../../types/salary';
 import type { OperationTaskRecord } from '../../../types/task';
 import type { StoreOperatorRelation } from '../../../types/storeOperator';
@@ -87,6 +85,15 @@ type AveragePriceStoreRow = {
   averagePrice: number | null;
 };
 
+type StoreAveragePriceSummaryRecord = {
+  storeName: string;
+  salesAmount: number;
+  stockQuantity: number;
+  averagePrice: number | null;
+  dateStart?: string;
+  dateEnd?: string;
+};
+
 interface StoreBusinessOrderDailyRecord {
   storeName: string;
   orderDate: string;
@@ -97,6 +104,12 @@ interface StoreBusinessOrderDailyRecord {
 
 interface StoreBusinessOrderDailyResponse {
   records: StoreBusinessOrderDailyRecord[];
+}
+
+interface StoreAveragePriceSummaryResponse {
+  dateStart?: string;
+  dateEnd?: string;
+  records: StoreAveragePriceSummaryRecord[];
 }
 
 interface StoreBusinessTrafficRecord {
@@ -340,80 +353,6 @@ function buildEffectSummary(params: {
   return finalizeEffectSummary(summary);
 }
 
-function getOrderDate(order: TemuOrderDetail) {
-  return String(order.orderDate || order.orderTime || '').slice(0, 10);
-}
-
-function getOrderStockQuantity(order: TemuOrderDetail) {
-  const source = order as TemuOrderDetail & Record<string, unknown>;
-  const candidates = [
-    source['备货数量'],
-    source.quantity,
-    source.stockQuantity,
-    source.prepareQuantity,
-    source.backupQuantity,
-    source.qty,
-  ];
-  const value = candidates.map(toAmount).find((item) => item > 0);
-  return value ?? 0;
-}
-
-function buildAveragePriceRows(params: {
-  orderImportStore: TemuOrderImportStore;
-  rows: OperatorRow[];
-}) {
-  const visibleOrders = (params.orderImportStore.batches ?? [])
-    .flatMap((batch) => batch.orders ?? []);
-  const latestDate = visibleOrders
-    .map(getOrderDate)
-    .filter(Boolean)
-    .sort((first, second) => toDateValue(second) - toDateValue(first))[0] || '';
-
-  if (!latestDate) {
-    return [];
-  }
-
-  const startDate = addDays(latestDate, -29);
-  const byStore = new Map<string, { storeName: string; salesAmount: number; stockQuantity: number }>();
-
-  visibleOrders
-    .filter((order) => inDateRange(getOrderDate(order), startDate, latestDate))
-    .forEach((order) => {
-      const storeName = String(order.storeName || '').trim();
-      if (!storeName) {
-        return;
-      }
-      const current = byStore.get(storeName) ?? { storeName, salesAmount: 0, stockQuantity: 0 };
-      current.salesAmount += toAmount(order.salesAmount);
-      current.stockQuantity += getOrderStockQuantity(order);
-      byStore.set(storeName, current);
-    });
-
-  return Array.from(byStore.values())
-    .map<AveragePriceStoreRow>((item) => {
-      const operatorRow = params.rows.find((row) => storeMatches(row, undefined, item.storeName));
-      return {
-        storeName: item.storeName,
-        operatorName: operatorRow?.operatorName || '暂无数据',
-        salesAmount: item.salesAmount,
-        stockQuantity: item.stockQuantity,
-        averagePrice: item.stockQuantity > 0 ? item.salesAmount / item.stockQuantity : null,
-      };
-    })
-    .sort((first, second) => {
-      if (first.averagePrice === null && second.averagePrice === null) {
-        return first.storeName.localeCompare(second.storeName);
-      }
-      if (first.averagePrice === null) {
-        return 1;
-      }
-      if (second.averagePrice === null) {
-        return -1;
-      }
-      return second.averagePrice - first.averagePrice || first.storeName.localeCompare(second.storeName);
-    });
-}
-
 function buildEffectComparison(current: EffectSummary, baseline: EffectSummary, mode: EffectComparison['mode']): EffectComparison {
   const metrics = {
     salesAmount: { current: current.salesAmount, baseline: baseline.salesAmount, changeRate: changeRate(current.salesAmount, baseline.salesAmount) },
@@ -448,7 +387,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const [operators, setOperators] = useState<OperatorRecord[]>([]);
   const [relations, setRelations] = useState<StoreOperatorRelation[]>([]);
   const [tasks, setTasks] = useState<OperationTaskRecord[]>([]);
-  const [orderImportStore, setOrderImportStore] = useState<TemuOrderImportStore>({ batches: [] });
+  const [averagePriceRecords, setAveragePriceRecords] = useState<StoreAveragePriceSummaryRecord[]>([]);
   const [orderDailyRecords, setOrderDailyRecords] = useState<StoreBusinessOrderDailyRecord[]>([]);
   const [trafficRecords, setTrafficRecords] = useState<StoreBusinessTrafficRecord[]>([]);
   const [effectiveNewListings, setEffectiveNewListings] = useState<EffectiveNewListingRecord[]>([]);
@@ -465,11 +404,11 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       referenceDataService.loadOperators(),
       referenceDataService.loadStoreOperatorRelations(),
       fetchJson<OperationTaskRecord[]>('/api/tasks', []),
-      orderImportStorageDataSource.loadRecentStore({ recentDays: 30, limit: 0 }),
+      fetchJson<StoreAveragePriceSummaryResponse>('/api/persistent-data/orderImportStore?view=store-average-price-summary&recentDays=30', { records: [] }),
       fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=62', { records: [] }),
       fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=62', { records: [] }),
       fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []),
-    ]).then(([analysisStore, nextOperators, nextRelations, nextTasks, nextOrderImportStore, orderStore, trafficStore, nextEffectiveNewListings]) => {
+    ]).then(([analysisStore, nextOperators, nextRelations, nextTasks, averagePriceStore, orderStore, trafficStore, nextEffectiveNewListings]) => {
       if (cancelled) {
         return;
       }
@@ -477,7 +416,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       setOperators(nextOperators.filter((operator) => operator.status !== 'inactive'));
       setRelations(filterRecordsByPermission(nextRelations.filter((relation) => relation.status !== 'inactive'), currentUser));
       setTasks(filterTasksByPermission(nextTasks, currentUser));
-      setOrderImportStore(nextOrderImportStore ?? { batches: [] });
+      setAveragePriceRecords(averagePriceStore.records ?? []);
       setOrderDailyRecords(orderStore.records ?? []);
       setTrafficRecords(trafficStore.records ?? []);
       setEffectiveNewListings(nextEffectiveNewListings ?? []);
@@ -687,10 +626,33 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const effortTaskDoneRate = effortSummary.taskCount > 0 ? effortSummary.doneTaskCount / effortSummary.taskCount : 0;
   const effortFirstOrderRate = effortSummary.effectiveListingCount > 0 ? effortSummary.firstOrderCount / effortSummary.effectiveListingCount : 0;
   const visibleStoreKeys = useMemo(() => new Set(rows.flatMap((row) => Array.from(row.storeNames))), [rows]);
-  const allStoreAveragePriceRows = useMemo(() => buildAveragePriceRows({
-    orderImportStore,
-    rows,
-  }), [orderImportStore, rows]);
+  const allStoreAveragePriceRows = useMemo<AveragePriceStoreRow[]>(() => averagePriceRecords
+    .map((record) => {
+      const storeName = String(record.storeName || '').trim();
+      const operatorRow = rows.find((row) => storeMatches(row, undefined, storeName));
+      const salesAmount = toAmount(record.salesAmount);
+      const stockQuantity = toAmount(record.stockQuantity);
+      return {
+        storeName,
+        operatorName: operatorRow?.operatorName || '暂无数据',
+        salesAmount,
+        stockQuantity,
+        averagePrice: stockQuantity > 0 ? toAmount(record.averagePrice ?? salesAmount / stockQuantity) : null,
+      };
+    })
+    .filter((row) => row.storeName)
+    .sort((first, second) => {
+      if (first.averagePrice === null && second.averagePrice === null) {
+        return first.storeName.localeCompare(second.storeName);
+      }
+      if (first.averagePrice === null) {
+        return 1;
+      }
+      if (second.averagePrice === null) {
+        return -1;
+      }
+      return second.averagePrice - first.averagePrice || first.storeName.localeCompare(second.storeName);
+    }), [averagePriceRecords, rows]);
   const visibleAveragePriceRows = useMemo(() => allStoreAveragePriceRows
     .filter((row) => storeKeyMatches(visibleStoreKeys, undefined, row.storeName)), [allStoreAveragePriceRows, visibleStoreKeys]);
   const averagePriceSummary = useMemo(() => {

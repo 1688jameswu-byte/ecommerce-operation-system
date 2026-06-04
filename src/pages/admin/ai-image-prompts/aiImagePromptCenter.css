@@ -168,6 +168,11 @@
   padding-top: 16px;
 }
 
+.ai-prompt-mode-panel {
+  display: grid;
+  gap: 12px;
+}
+
 .ai-prompt-extra textarea {
   min-height: 82px;
   resize: vertical;
@@ -247,6 +252,52 @@
   color: #64748b;
   font-size: 13px;
   line-height: 1.5;
+}
+
+.ai-prompt-mode-card {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+}
+
+.ai-prompt-mode-card > strong {
+  color: #334155;
+  font-size: 13px;
+}
+
+.ai-prompt-mode-card > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.ai-prompt-mode-card button {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #d8e2ef;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+  color: #334155;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.ai-prompt-mode-card button.active,
+.ai-prompt-mode-card button:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.ai-prompt-mode-card b {
+  color: #172033;
+}
+
+.ai-prompt-mode-card span {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .ai-prompt-batch-card {
@@ -341,6 +392,59 @@
   line-height: 1.65;
 }
 
+.ai-prompt-set-items {
+  display: grid;
+  gap: 10px;
+}
+
+.ai-prompt-set-items > strong {
+  color: #334155;
+  font-size: 13px;
+}
+
+.ai-prompt-set-items > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.ai-prompt-set-items label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid #d8e2ef;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.ai-prompt-set-items label.active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.ai-prompt-set-items input {
+  margin-top: 3px;
+}
+
+.ai-prompt-set-items span {
+  display: grid;
+  gap: 4px;
+}
+
+.ai-prompt-set-items b {
+  color: #172033;
+  font-size: 14px;
+}
+
+.ai-prompt-set-items em {
+  color: #64748b;
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.45;
+}
+
 .ai-prompt-filter-bar {
   display: grid;
   grid-template-columns: repeat(3, minmax(160px, 220px)) auto;
@@ -431,6 +535,8 @@
 @media (max-width: 1180px) {
   .ai-prompt-form-grid,
   .ai-prompt-batch-controls,
+  .ai-prompt-mode-card > div,
+  .ai-prompt-set-items > div,
   .ai-prompt-template-grid,
   .ai-prompt-filter-bar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -446,6 +552,8 @@
 
   .ai-prompt-form-grid,
   .ai-prompt-batch-controls,
+  .ai-prompt-mode-card > div,
+  .ai-prompt-set-items > div,
   .ai-prompt-template-grid,
   .ai-prompt-filter-bar {
     grid-template-columns: 1fr;
