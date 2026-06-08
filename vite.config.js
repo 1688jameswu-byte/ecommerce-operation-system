@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { handleAlibaba1688Api } from './server/alibaba1688/api/alibaba1688ApiHandler.js';
 
 const resolveProjectPath = (value, fallback) => path.resolve(process.cwd(), value || fallback);
 
@@ -224,6 +225,12 @@ const menuKeys = {
   accountManagement: 'account-management',
   businessAnalysis: 'business-analysis',
   businessAnalysisCenter: 'business-analysis-center',
+  business1688Center: '1688-business-center',
+  business1688Products: '1688-products',
+  business1688ListingTasks: '1688-listing-tasks',
+  business1688Images: '1688-images',
+  business1688Suppliers: '1688-suppliers',
+  business1688Settings: '1688-settings',
   storeBusinessCenter: 'store-business-center',
   operatorAnalysisCenter: 'operator-analysis-center',
   operationDiagnosis: 'operation-diagnosis',
@@ -231,6 +238,7 @@ const menuKeys = {
   operatorPerformance: 'operator-performance',
   growthOpportunities: 'growth-opportunities',
   operationLoop: 'operation-loop',
+  operationTools: 'operation-tools',
   operationTasks: 'operation-tasks',
   taskSuggestions: 'task-suggestions',
   aiImagePromptCenter: 'ai-image-prompt-center',
@@ -262,6 +270,124 @@ const menuKeyAliases = {
   operatorAnalysisCenter: menuKeys.operatorAnalysisCenter,
   'operator-performance': menuKeys.operatorAnalysisCenter,
 };
+const platformKeys = ['TEMU', '1688', 'Amazon', 'TikTok', 'SHEIN', 'Shopify', 'Other'];
+const fieldPermissionKeys = ['supplier.read', 'cost.read', 'margin.read', 'settlement.read', 'bossRemark.read'];
+const operationPermissionKeys = ['create', 'edit', 'delete', 'audit', 'export'];
+const sensitiveFieldPermissionMap = {
+  supplierName: 'supplier.read',
+  supplierContact: 'supplier.read',
+  supplierContacts: 'supplier.read',
+  supplierPhone: 'supplier.read',
+  supplierMobile: 'supplier.read',
+  supplierWechat: 'supplier.read',
+  supplierAddress: 'supplier.read',
+  purchasePrice: 'cost.read',
+  purchaseCost: 'cost.read',
+  costPrice: 'cost.read',
+  costAmount: 'cost.read',
+  grossMargin: 'margin.read',
+  grossMarginRate: 'margin.read',
+  marginRate: 'margin.read',
+  grossProfit: 'margin.read',
+  grossProfitRate: 'margin.read',
+  settlementMethod: 'settlement.read',
+  settlementType: 'settlement.read',
+  settlementCycle: 'settlement.read',
+  bossRemark: 'bossRemark.read',
+  bossNotes: 'bossRemark.read',
+};
+const legacyRoleCodes = ['admin', 'leader', 'operator'];
+const roleDefinitions = {
+  admin: {
+    role: 'admin',
+    platform: '',
+    platformKeys,
+    allowedMenuKeys: allMenuKeys,
+    fieldPermissionKeys,
+    operationPermissionKeys,
+  },
+  leader: {
+    role: 'leader',
+    platform: 'TEMU',
+    platformKeys: ['TEMU'],
+    allowedMenuKeys: [
+      menuKeys.dashboard,
+      menuKeys.orderSalesImport,
+      menuKeys.effectiveNewListings,
+      menuKeys.trafficConversionImport,
+      menuKeys.storeBusinessCenter,
+      menuKeys.operatorAnalysisCenter,
+      menuKeys.businessAnalysisCenter,
+      menuKeys.operationDiagnosis,
+      menuKeys.growthOpportunities,
+      menuKeys.operationTasks,
+      menuKeys.operatorManagement,
+      menuKeys.taskSuggestions,
+    ],
+    fieldPermissionKeys,
+    operationPermissionKeys: ['create', 'edit', 'audit', 'export'],
+  },
+  operator: {
+    role: 'operator',
+    platform: 'TEMU',
+    platformKeys: ['TEMU'],
+    allowedMenuKeys: [
+      menuKeys.dashboard,
+      menuKeys.orderSalesImport,
+      menuKeys.trafficConversionImport,
+      menuKeys.storeBusinessCenter,
+      menuKeys.operatorAnalysisCenter,
+      menuKeys.businessAnalysisCenter,
+      menuKeys.operationDiagnosis,
+      menuKeys.growthOpportunities,
+      menuKeys.operationTasks,
+    ],
+    fieldPermissionKeys,
+    operationPermissionKeys: ['create', 'edit'],
+  },
+  temu_lead: null,
+  temu_operator: null,
+  '1688_lead': {
+    role: 'leader',
+    platform: '1688',
+    platformKeys: ['1688'],
+    allowedMenuKeys: [
+      menuKeys.dashboard,
+      menuKeys.business1688Products,
+      menuKeys.business1688ListingTasks,
+      menuKeys.business1688Images,
+      menuKeys.business1688Suppliers,
+      menuKeys.business1688Settings,
+      menuKeys.aiImagePromptCenter,
+    ],
+    fieldPermissionKeys,
+    operationPermissionKeys: ['create', 'edit', 'audit', 'export'],
+  },
+  '1688_sales': {
+    role: 'operator',
+    platform: '1688',
+    platformKeys: ['1688'],
+    allowedMenuKeys: [
+      menuKeys.dashboard,
+      menuKeys.business1688Products,
+      menuKeys.business1688ListingTasks,
+      menuKeys.business1688Images,
+      menuKeys.aiImagePromptCenter,
+    ],
+    fieldPermissionKeys: [],
+    operationPermissionKeys: ['create', 'edit'],
+  },
+  amazon_lead: null,
+  amazon_operator: null,
+  tiktok_lead: null,
+  tiktok_operator: null,
+};
+roleDefinitions.temu_lead = { ...roleDefinitions.leader };
+roleDefinitions.temu_operator = { ...roleDefinitions.operator };
+roleDefinitions.amazon_lead = { ...roleDefinitions.leader, platform: 'Amazon', platformKeys: ['Amazon'] };
+roleDefinitions.amazon_operator = { ...roleDefinitions.operator, platform: 'Amazon', platformKeys: ['Amazon'] };
+roleDefinitions.tiktok_lead = { ...roleDefinitions.leader, platform: 'TikTok', platformKeys: ['TikTok'] };
+roleDefinitions.tiktok_operator = { ...roleDefinitions.operator, platform: 'TikTok', platformKeys: ['TikTok'] };
 
 function normalizeMenuKey(value) {
   return menuKeyAliases[value] ?? value;
@@ -336,12 +462,15 @@ function toCurrentUser(user) {
     return null;
   }
 
+  const permissions = resolveUserPermissions(user);
   const permission = getUserPermission(user.userId);
   const baseUser = {
     userId: user.userId,
     username: user.username,
     displayName: user.displayName,
     role: user.role,
+    roleCode: permissions.roleCode,
+    platform: permissions.platform,
     operatorId: user.operatorId ?? '',
     operatorName: user.operatorName ?? user.displayName ?? user.username ?? '',
     teamId: user.teamId ?? '',
@@ -354,7 +483,10 @@ function toCurrentUser(user) {
   return {
     ...baseUser,
     allowedStoreIds: baseUser.role === 'admin' ? [] : visibleStoreKeys,
-    allowedMenuKeys: getAllowedMenuKeys(user),
+    platformKeys: permissions.platformKeys,
+    allowedMenuKeys: permissions.allowedMenuKeys,
+    fieldPermissionKeys: permissions.fieldPermissionKeys,
+    operationPermissionKeys: permissions.operationPermissionKeys,
     passwordUpdatedAt: user.passwordUpdatedAt ?? '',
     forceChangePassword: Boolean(user.forceChangePassword),
   };
@@ -369,6 +501,19 @@ function toPublicUser(user) {
     createdAt: user.createdAt ?? '',
     updatedAt: user.updatedAt ?? '',
   };
+}
+
+function isAlibaba1688Assignee(user) {
+  const publicUser = toPublicUser(user);
+
+  return publicUser.status === 'active' &&
+    publicUser.role === 'operator' &&
+    (
+      publicUser.roleCode === '1688_sales' ||
+      publicUser.platform === '1688' ||
+      publicUser.platformKeys?.includes('1688') ||
+      publicUser.allowedMenuKeys?.includes(menuKeys.business1688ListingTasks)
+    );
 }
 
 function requireAdminLegacy(req, res) {
@@ -399,6 +544,125 @@ function normalizeAllowedMenuKeys(value, role) {
     : [];
 }
 
+function normalizeRoleCode(value, role = 'operator') {
+  const text = String(value ?? '').trim();
+  if (Object.prototype.hasOwnProperty.call(roleDefinitions, text)) {
+    return text;
+  }
+
+  return legacyRoleCodes.includes(role) ? role : 'operator';
+}
+
+function getRoleDefinition(roleCode, role = 'operator') {
+  return roleDefinitions[normalizeRoleCode(roleCode, role)] ?? roleDefinitions.operator;
+}
+
+function normalizePlatformKeys(value, roleCode, role) {
+  const definition = getRoleDefinition(roleCode, role);
+  if (definition.role === 'admin') {
+    return platformKeys;
+  }
+
+  return Array.isArray(value)
+    ? unique(value.map((item) => String(item ?? '').trim()).filter((item) => platformKeys.includes(item)))
+    : [...definition.platformKeys];
+}
+
+function normalizePermissionKeys(value, validKeys, defaults) {
+  return Array.isArray(value)
+    ? unique(value.map((item) => String(item ?? '').trim()).filter((item) => validKeys.includes(item)))
+    : [...defaults];
+}
+
+function resolveUserPermissions(user) {
+  if (!user) {
+    return {
+      roleCode: 'operator',
+      platform: 'TEMU',
+      platformKeys: [],
+      allowedMenuKeys: [],
+      fieldPermissionKeys: [],
+      operationPermissionKeys: [],
+    };
+  }
+
+  const roleCode = normalizeRoleCode(user.roleCode, user.role);
+  const definition = getRoleDefinition(roleCode, user.role);
+  const permission = getUserPermission(user.userId);
+
+  if (definition.role === 'admin' || user.role === 'admin') {
+    return {
+      roleCode: 'admin',
+      platform: user.platform ?? '',
+      platformKeys,
+      allowedMenuKeys: allMenuKeys,
+      fieldPermissionKeys,
+      operationPermissionKeys,
+    };
+  }
+
+  return {
+    roleCode,
+    platform: platformKeys.includes(user.platform) ? user.platform : definition.platform,
+    platformKeys: normalizePlatformKeys(permission?.platformKeys ?? user.platformKeys, roleCode, user.role),
+    allowedMenuKeys: normalizeAllowedMenuKeys(permission?.allowedMenuKeys ?? user.allowedMenuKeys ?? definition.allowedMenuKeys, user.role),
+    fieldPermissionKeys: normalizePermissionKeys(
+      permission?.fieldPermissionKeys ?? user.fieldPermissionKeys,
+      fieldPermissionKeys,
+      definition.fieldPermissionKeys,
+    ),
+    operationPermissionKeys: normalizePermissionKeys(
+      permission?.operationPermissionKeys ?? user.operationPermissionKeys,
+      operationPermissionKeys,
+      definition.operationPermissionKeys,
+    ),
+  };
+}
+
+function canAccessPlatform(currentUser, platform) {
+  const value = String(platform ?? '').trim();
+  if (!value) {
+    return true;
+  }
+
+  if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
+    return true;
+  }
+
+  const permissions = resolveUserPermissions(currentUser);
+  return permissions.platformKeys.includes(value);
+}
+
+function sanitizeSensitiveFields(value, currentUser) {
+  if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
+    return value;
+  }
+
+  const permissions = resolveUserPermissions(currentUser);
+  const allowedFields = new Set(permissions.fieldPermissionKeys);
+
+  function sanitizeItem(item) {
+    if (Array.isArray(item)) {
+      return item.map(sanitizeItem);
+    }
+
+    if (!item || typeof item !== 'object') {
+      return item;
+    }
+
+    return Object.fromEntries(Object.entries(item).map(([key, nestedValue]) => {
+      const permissionKey = sensitiveFieldPermissionMap[key];
+      if (permissionKey && !allowedFields.has(permissionKey)) {
+        return [key, null];
+      }
+
+      return [key, sanitizeItem(nestedValue)];
+    }));
+  }
+
+  return sanitizeItem(value);
+}
+
 function readUserPermissions() {
   const value = readJsonFile('userPermissions');
   return Array.isArray(value) ? value : [];
@@ -411,11 +675,24 @@ function getUserPermission(userId) {
 function writeUserPermission(userId, payload, role) {
   const permissions = readUserPermissions();
   const current = permissions.find((item) => item?.userId === userId) ?? {};
+  const roleCode = normalizeRoleCode(payload.roleCode ?? current.roleCode, role);
+  const definition = getRoleDefinition(roleCode, role);
   const next = {
     ...current,
     userId,
+    platformKeys: normalizePlatformKeys(payload.platformKeys ?? current.platformKeys, roleCode, role),
     visibleStoreIds: normalizeAllowedStoreIds(payload.allowedStoreIds ?? payload.visibleStoreIds ?? current.visibleStoreIds),
-    allowedMenuKeys: normalizeAllowedMenuKeys(payload.allowedMenuKeys ?? current.allowedMenuKeys, role),
+    allowedMenuKeys: normalizeAllowedMenuKeys(payload.allowedMenuKeys ?? current.allowedMenuKeys ?? definition.allowedMenuKeys, role),
+    fieldPermissionKeys: normalizePermissionKeys(
+      payload.fieldPermissionKeys ?? current.fieldPermissionKeys,
+      fieldPermissionKeys,
+      definition.fieldPermissionKeys,
+    ),
+    operationPermissionKeys: normalizePermissionKeys(
+      payload.operationPermissionKeys ?? current.operationPermissionKeys,
+      operationPermissionKeys,
+      definition.operationPermissionKeys,
+    ),
   };
   writeJsonFile('userPermissions', [
     ...permissions.filter((item) => item?.userId !== userId),
@@ -428,8 +705,7 @@ function getAllowedMenuKeys(user) {
     return [];
   }
 
-  const permission = getUserPermission(user.userId);
-  return normalizeAllowedMenuKeys(permission?.allowedMenuKeys ?? user.allowedMenuKeys, user.role);
+  return resolveUserPermissions(user).allowedMenuKeys;
 }
 
 function userCanAccessMenu(user, menuKey) {
@@ -459,11 +735,31 @@ function requireAdmin(req, res, message = '仅管理员可删除导入数据。'
   return user;
 }
 
+function userCanOperate(currentUser, operationKey) {
+  if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
+    return true;
+  }
+
+  return resolveUserPermissions(currentUser).operationPermissionKeys.includes(operationKey);
+}
+
+function requireOperation(res, currentUser, operationKey, message = '当前账号无权执行该操作') {
+  if (userCanOperate(currentUser, operationKey)) {
+    return true;
+  }
+
+  res.statusCode = 403;
+  res.end(JSON.stringify({ ok: false, success: false, message, error: message }));
+  return false;
+}
+
 function normalizeUserPayload(payload, current) {
   const time = nowIso();
   const username = String(payload.username ?? current?.username ?? '').trim();
   const displayName = String(payload.displayName ?? current?.displayName ?? username).trim();
-  const role = ['admin', 'leader', 'operator'].includes(payload.role) ? payload.role : current?.role ?? 'operator';
+  const incomingRoleCode = normalizeRoleCode(payload.roleCode ?? current?.roleCode, payload.role ?? current?.role);
+  const roleDefinition = getRoleDefinition(incomingRoleCode, payload.role ?? current?.role);
+  const role = roleDefinition.role ?? current?.role ?? 'operator';
   const status = ['active', 'disabled'].includes(payload.status) ? payload.status : current?.status ?? 'active';
 
   if (!username) {
@@ -476,6 +772,8 @@ function normalizeUserPayload(payload, current) {
     username,
     displayName,
     role,
+    roleCode: incomingRoleCode,
+    platform: platformKeys.includes(payload.platform) ? payload.platform : current?.platform ?? roleDefinition.platform ?? '',
     operatorId: String(payload.operatorId ?? current?.operatorId ?? '').trim(),
     teamId: String(payload.teamId ?? current?.teamId ?? '').trim(),
     allowedStoreIds: normalizeAllowedStoreIds(payload.allowedStoreIds ?? current?.allowedStoreIds),
@@ -673,6 +971,30 @@ async function handleAuthApi(req, res, next) {
     return;
   }
 
+  if (pathname === '/1688-assignees' && req.method === 'GET') {
+    const user = findCurrentUser(req);
+    const currentUser = user ? toCurrentUser(user) : null;
+    const canReadAssignees = currentUser &&
+      (
+        currentUser.role === 'admin' ||
+        currentUser.role === 'leader' ||
+        currentUser.allowedMenuKeys?.includes(menuKeys.business1688ListingTasks)
+      );
+
+    if (!canReadAssignees) {
+      res.statusCode = 403;
+      res.end(JSON.stringify({ success: false, message: '无权访问' }));
+      return;
+    }
+
+    const users = readJsonFile('users');
+    res.end(JSON.stringify({
+      success: true,
+      users: Array.isArray(users) ? users.filter(isAlibaba1688Assignee).map(toPublicUser) : [],
+    }));
+    return;
+  }
+
   if (pathname === '/users' && req.method === 'POST') {
     if (!requireAdmin(req, res)) {
       return;
@@ -697,7 +1019,10 @@ async function handleAuthApi(req, res, next) {
       };
       writeJsonFile('users', [...users, user]);
       writeUserPermission(user.userId, body, user.role);
-      res.end(JSON.stringify({ success: true, user: toPublicUser(user) }));
+      syncOperatorUsers();
+      const syncedUser = (Array.isArray(readJsonFile('users')) ? readJsonFile('users') : [])
+        .find((item) => item.userId === user.userId) ?? user;
+      res.end(JSON.stringify({ success: true, user: toPublicUser(syncedUser) }));
     } catch (error) {
       res.statusCode = 400;
       res.end(JSON.stringify({
@@ -750,7 +1075,10 @@ async function handleAuthApi(req, res, next) {
     };
     writeJsonFile('users', users.map((user) => user.userId === userId ? next : user));
     writeUserPermission(next.userId, body, next.role);
-    res.end(JSON.stringify({ success: true, user: toPublicUser(next) }));
+    syncOperatorUsers();
+    const syncedUser = (Array.isArray(readJsonFile('users')) ? readJsonFile('users') : [])
+      .find((user) => user.userId === userId) ?? next;
+    res.end(JSON.stringify({ success: true, user: toPublicUser(syncedUser) }));
     return;
   }
 
@@ -906,7 +1234,7 @@ function normalizeStorePayload(payload, current) {
     ...current,
     id: current?.id ?? payload.id ?? createId('store'),
     storeName,
-    platform: ['TEMU', '1688', 'Amazon', 'TikTok', 'Shopify', 'Other'].includes(payload.platform)
+    platform: platformKeys.includes(payload.platform)
       ? payload.platform
       : current?.platform ?? 'TEMU',
     platformStoreId: String(payload.platformStoreId ?? current?.platformStoreId ?? '').trim(),
@@ -919,6 +1247,40 @@ function normalizeStorePayload(payload, current) {
     createdAt: current?.createdAt ?? payload.createdAt ?? time,
     updatedAt: time,
   };
+}
+
+function syncCommonStoreFromAlibabaStore(alibabaStore) {
+  const storeName = String(alibabaStore?.storeName ?? '').trim();
+  if (!storeName) {
+    return;
+  }
+
+  const stores = Array.isArray(readJsonFile('stores')) ? readJsonFile('stores') : [];
+  const time = nowIso();
+  const id = String(alibabaStore.id ?? '').trim()
+    ? `1688-${String(alibabaStore.id).trim()}`
+    : `1688-${storeName}`;
+  const current = stores.find((store) => store.id === id || (store.platform === '1688' && store.storeName === storeName));
+  const next = {
+    ...current,
+    id: current?.id ?? id,
+    storeName,
+    platform: '1688',
+    platformStoreId: String(alibabaStore.id ?? current?.platformStoreId ?? '').trim(),
+    shopUrl: String(alibabaStore.shopUrl ?? current?.shopUrl ?? '').trim(),
+    siteCountry: String(current?.siteCountry ?? '').trim(),
+    storeGroup: String(current?.storeGroup ?? '').trim(),
+    country: String(current?.country ?? '').trim(),
+    status: alibabaStore.isActive === false ? 'inactive' : 'active',
+    groupName: String(current?.groupName ?? '').trim(),
+    remark: String(alibabaStore.remark ?? current?.remark ?? '来自1688店铺映射').trim(),
+    createdAt: current?.createdAt ?? alibabaStore.createdAt ?? time,
+    updatedAt: time,
+  };
+
+  writeJsonFile('stores', current
+    ? stores.map((store) => store.id === current.id ? next : store)
+    : [...stores, next]);
 }
 
 function getStores() {
@@ -967,6 +1329,7 @@ function getStores() {
 }
 
 function getOperators() {
+  syncOperatorUsers();
   const operators = readJsonFile('operators');
 
   if (Array.isArray(operators) && operators.length > 0) {
@@ -1012,6 +1375,91 @@ function getOperators() {
   }
 
   return migratedOperators;
+}
+
+function getOperatorNameFromUser(user) {
+  const displayName = String(user?.displayName ?? '').trim();
+  const username = String(user?.username ?? '').trim();
+  const rawName = displayName || username;
+  const cleanedName = rawName
+    .replace(/^(1688业务员|运营|业务员|1688销售|销售)[-－—_\s]*/u, '')
+    .trim();
+
+  return cleanedName || username;
+}
+
+function shouldSyncUserToOperator(user) {
+  return user?.role === 'operator' || normalizeRoleCode(user?.roleCode, user?.role) === 'operator';
+}
+
+function syncOperatorUsers() {
+  const users = readJsonFile('users');
+  const operators = readJsonFile('operators');
+
+  if (!Array.isArray(users) || !Array.isArray(operators)) {
+    return;
+  }
+
+  const time = nowIso();
+  let operatorsChanged = false;
+  let usersChanged = false;
+  const nextOperators = operators.map((operator) => ({
+    ...operator,
+    operatorName: operator.operatorName ?? operator.name ?? '',
+  }));
+  const operatorById = new Map(nextOperators.map((operator) => [operator.id, operator]));
+  const operatorByName = new Map(nextOperators.map((operator) => [String(operator.operatorName ?? '').trim(), operator]));
+  const nextUsers = users.map((user) => {
+    if (!shouldSyncUserToOperator(user)) {
+      return user;
+    }
+
+    const operatorName = getOperatorNameFromUser(user);
+    if (!operatorName) {
+      return user;
+    }
+
+    const currentOperator = String(user.operatorId ?? '').trim()
+      ? operatorById.get(String(user.operatorId).trim())
+      : null;
+    let operator = currentOperator || operatorByName.get(operatorName);
+
+    if (!operator) {
+      operator = {
+        id: createId('operator'),
+        operatorName,
+        groupName: '',
+        level: '',
+        status: user.status === 'disabled' ? 'inactive' : 'active',
+        remark: user.platform ? `来自账号管理：${user.platform}` : '来自账号管理',
+        createdAt: time,
+        updatedAt: time,
+      };
+      nextOperators.push(operator);
+      operatorById.set(operator.id, operator);
+      operatorByName.set(operatorName, operator);
+      operatorsChanged = true;
+    }
+
+    if (String(user.operatorId ?? '') !== operator.id) {
+      usersChanged = true;
+      return {
+        ...user,
+        operatorId: operator.id,
+        updatedAt: time,
+      };
+    }
+
+    return user;
+  });
+
+  if (operatorsChanged) {
+    writeJsonFile('operators', nextOperators);
+  }
+
+  if (usersChanged) {
+    writeJsonFile('users', nextUsers);
+  }
 }
 
 function normalizeRelationPayload(payload, current) {
@@ -1337,6 +1785,10 @@ async function handleCollectionApi(req, res, name, prefix) {
     const collection = readCollection(name);
 
     if (req.method === 'POST') {
+      if (!requireOperation(res, currentUser, 'create', '当前账号无权新增数据')) {
+        return;
+      }
+
       const body = JSON.parse((await readBody(req)) || '{}');
       if (name === 'stores') {
         const next = normalizeStorePayload(body);
@@ -1379,6 +1831,10 @@ async function handleCollectionApi(req, res, name, prefix) {
     }
 
     if (req.method === 'PUT' && id) {
+      if (!requireOperation(res, currentUser, 'edit', '当前账号无权编辑数据')) {
+        return;
+      }
+
       const body = JSON.parse((await readBody(req)) || '{}');
       if (name === 'stores') {
         const stores = getStores();
@@ -1458,6 +1914,10 @@ async function handleCollectionApi(req, res, name, prefix) {
     }
 
     if (req.method === 'DELETE' && id) {
+      if (!requireOperation(res, currentUser, 'delete', '当前账号无权删除数据')) {
+        return;
+      }
+
       if (name === 'tasks' && currentUser?.role !== 'admin') {
         res.statusCode = 403;
         res.end(JSON.stringify({ ok: false, message: '普通运营无权删除任务' }));
@@ -1617,7 +2077,10 @@ function getVisibleStores(currentUser) {
   const storeIds = getVisibleStoreIds(currentUser);
   const storeIdSet = new Set(storeIds);
 
-  return stores.filter((store) => storeIdSet.has(store.id) || storeIdSet.has(store.storeName));
+  return stores.filter((store) => (
+    canAccessPlatform(currentUser, store.platform) &&
+    (storeIdSet.has(store.id) || storeIdSet.has(store.storeName))
+  ));
 }
 
 function getVisibleStoreKeys(currentUser) {
@@ -1636,6 +2099,14 @@ function itemMatchesVisibleStore(item, visibleStoreKeys) {
 function itemMatchesVisibleStoreRecord(item, visibleStoreKeys) {
   return visibleStoreKeys.has(String(item?.id ?? '').trim()) ||
     visibleStoreKeys.has(String(item?.storeName ?? '').trim());
+}
+
+function itemMatchesPlatform(item, currentUser) {
+  if (!item || typeof item !== 'object') {
+    return true;
+  }
+
+  return canAccessPlatform(currentUser, item.platform);
 }
 
 function canWriteStoreScopedItem(name, item, currentUser) {
@@ -2035,24 +2506,25 @@ function mergeAttendanceRecords(existing, incoming) {
 
 function filterCollectionForUser(name, data, currentUser) {
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
-    return data;
+    return sanitizeSensitiveFields(data, currentUser);
   }
 
   const visibleStoreKeys = getVisibleStoreKeys(currentUser);
+  const sanitize = (value) => sanitizeSensitiveFields(value, currentUser);
 
   if (name === 'stores') {
-    return getVisibleStores(currentUser);
+    return sanitize(getVisibleStores(currentUser));
   }
 
   if (name === 'tasks') {
-    return Array.isArray(data) ? data.filter((item) => itemMatchesVisibleTask(item, visibleStoreKeys, currentUser)) : data;
+    return sanitize(Array.isArray(data) ? data.filter((item) => itemMatchesPlatform(item, currentUser) && itemMatchesVisibleTask(item, visibleStoreKeys, currentUser)) : data);
   }
 
   if (name === 'storeOperatorRelations') {
-    return Array.isArray(data) ? data.filter((item) => itemMatchesVisibleStore(item, visibleStoreKeys)) : data;
+    return sanitize(Array.isArray(data) ? data.filter((item) => itemMatchesPlatform(item, currentUser) && itemMatchesVisibleStore(item, visibleStoreKeys)) : data);
   }
 
-  return data;
+  return sanitize(Array.isArray(data) ? data.filter((item) => itemMatchesPlatform(item, currentUser)) : data);
 }
 
 function filterPersistentDataForUser(name, data, currentUser) {
@@ -2061,37 +2533,38 @@ function filterPersistentDataForUser(name, data, currentUser) {
   }
 
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
-    return data;
+    return sanitizeSensitiveFields(data, currentUser);
   }
 
   const visibleStoreKeys = getVisibleStoreKeys(currentUser);
+  const sanitize = (value) => sanitizeSensitiveFields(value, currentUser);
 
   if (name === 'orderImportStore' && data?.batches) {
-    return {
+    return sanitize({
       ...data,
       batches: data.batches.map((batch) => ({
         ...batch,
-        orders: (batch.orders ?? []).filter((order) => itemMatchesVisibleStore(order, visibleStoreKeys)),
+        orders: (batch.orders ?? []).filter((order) => itemMatchesPlatform(order, currentUser) && itemMatchesVisibleStore(order, visibleStoreKeys)),
       })).filter((batch) => batch.orders.length > 0),
-    };
+    });
   }
 
   if (name === 'trafficConversionStore') {
-    return {
+    return sanitize({
       ...data,
-      records: (data?.records ?? []).filter((record) => itemMatchesVisibleStore(record, visibleStoreKeys)),
-      batches: (data?.batches ?? []).filter((batch) => itemMatchesVisibleStore(batch, visibleStoreKeys)),
-    };
+      records: (data?.records ?? []).filter((record) => itemMatchesPlatform(record, currentUser) && itemMatchesVisibleStore(record, visibleStoreKeys)),
+      batches: (data?.batches ?? []).filter((batch) => itemMatchesPlatform(batch, currentUser) && itemMatchesVisibleStore(batch, visibleStoreKeys)),
+    });
   }
 
   if (['orderDailySummary', 'trafficDailySummary', 'riskResults', 'growthOpportunities', 'businessAnalysisItems'].includes(name)) {
-    return {
+    return sanitize({
       ...data,
-      items: (data?.items ?? []).filter((item) => itemMatchesVisibleStore(item, visibleStoreKeys)),
-    };
+      items: (data?.items ?? []).filter((item) => itemMatchesPlatform(item, currentUser) && itemMatchesVisibleStore(item, visibleStoreKeys)),
+    });
   }
 
-  return data;
+  return sanitize(data);
 }
 
 function normalizeEffectiveListingPayload(payload, current) {
@@ -2146,16 +2619,19 @@ function assertUniqueEffectiveListing(items, next) {
 
 function filterEffectiveListingsForUser(items, currentUser) {
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin' || !currentUser) {
-    return items;
+    return sanitizeSensitiveFields(items, currentUser);
   }
 
   const visibleStoreKeys = getVisibleStoreKeys(currentUser);
-  return items.filter((item) => itemMatchesVisibleStore(item, visibleStoreKeys));
+  return sanitizeSensitiveFields(
+    items.filter((item) => itemMatchesPlatform(item, currentUser) && itemMatchesVisibleStore(item, visibleStoreKeys)),
+    currentUser,
+  );
 }
 
 function canWriteEffectiveListing(item, currentUser) {
   return String(currentUser?.role ?? '').toLowerCase() === 'admin' ||
-    getVisibleStoreKeys(currentUser).has(String(item?.storeId ?? '').trim());
+    (itemMatchesPlatform(item, currentUser) && getVisibleStoreKeys(currentUser).has(String(item?.storeId ?? '').trim()));
 }
 
 async function handleEffectiveNewListingsApi(req, res) {
@@ -2180,6 +2656,10 @@ async function handleEffectiveNewListingsApi(req, res) {
     }
 
     if (req.method === 'POST') {
+      if (!requireOperation(res, currentUser, 'create', '当前账号无权新增有效上新')) {
+        return;
+      }
+
       const body = JSON.parse((await readBody(req)) || '{}');
       const next = {
         ...normalizeEffectiveListingPayload(body),
@@ -2211,6 +2691,10 @@ async function handleEffectiveNewListingsApi(req, res) {
     }
 
     if (req.method === 'PUT') {
+      if (!requireOperation(res, currentUser, 'edit', '当前账号无权编辑有效上新')) {
+        return;
+      }
+
       const body = JSON.parse((await readBody(req)) || '{}');
       const next = normalizeEffectiveListingPayload(body, current);
       if (!canWriteEffectiveListing(next, currentUser)) {
@@ -2225,6 +2709,10 @@ async function handleEffectiveNewListingsApi(req, res) {
     }
 
     if (req.method === 'DELETE') {
+      if (!requireOperation(res, currentUser, 'delete', '当前账号无权删除有效上新')) {
+        return;
+      }
+
       writeJsonFile('effectiveNewListings', items.filter((item) => item.id !== id));
       res.end(JSON.stringify({ ok: true }));
       return;
@@ -2956,11 +3444,14 @@ function filterFinancialItems(items, searchParams) {
 
 function filterFinancialForUser(items, currentUser) {
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
-    return items;
+    return sanitizeSensitiveFields(items, currentUser);
   }
 
   const visibleStoreKeys = getVisibleStoreKeys(currentUser);
-  return (Array.isArray(items) ? items : []).filter((item) => itemMatchesVisibleStore(item, visibleStoreKeys));
+  return sanitizeSensitiveFields(
+    (Array.isArray(items) ? items : []).filter((item) => itemMatchesPlatform(item, currentUser) && itemMatchesVisibleStore(item, visibleStoreKeys)),
+    currentUser,
+  );
 }
 
 function paginate(items, searchParams) {
@@ -3340,7 +3831,7 @@ function handleSalaryFinancialSummariesApi(req, res) {
     requestUrl.searchParams,
     currentUser,
   );
-  res.end(JSON.stringify({ records }));
+  res.end(JSON.stringify({ records: sanitizeSensitiveFields(records, currentUser) }));
 }
 
 function handleOperatorSalaryStatisticsApi(req, res) {
@@ -3357,7 +3848,7 @@ function handleOperatorSalaryStatisticsApi(req, res) {
 
   const requestUrl = new URL(req.url ?? '/', 'http://local');
   const currentUser = toCurrentUser(findCurrentUser(req));
-  res.end(JSON.stringify({ records: buildOperatorSalaryStatistics(requestUrl.searchParams, currentUser) }));
+  res.end(JSON.stringify({ records: sanitizeSensitiveFields(buildOperatorSalaryStatistics(requestUrl.searchParams, currentUser), currentUser) }));
 }
 
 function getCollectionMenuKey(name) {
@@ -3400,8 +3891,8 @@ function handleVisibleStoresApi(req, res) {
 
   try {
     const currentUser = readCurrentUser(req);
-    const storeIds = getVisibleStoreIds(currentUser);
     const stores = getVisibleStores(currentUser);
+    const storeIds = unique(stores.flatMap((store) => [store.id, store.storeName].filter(Boolean)));
     const role = String(currentUser?.role ?? '').toLowerCase();
     const message = role !== 'admin' && storeIds.length === 0 ? '当前用户暂未绑定可见店铺' : undefined;
 
@@ -3696,6 +4187,12 @@ function localDataPlugin() {
       });
 
       server.middlewares.use('/api/auth/visible-stores', handleVisibleStoresApi);
+      server.middlewares.use('/api/alibaba-1688', (req, res) => handleAlibaba1688Api(req, res, {
+        getCurrentUser: () => toCurrentUser(findCurrentUser(req)),
+        readBody,
+        requireOperation,
+        syncStore: syncCommonStoreFromAlibabaStore,
+      }));
       server.middlewares.use('/api/stores', (req, res) => handleCollectionApi(req, res, 'stores', 'store'));
       server.middlewares.use('/api/operators', (req, res) => handleCollectionApi(req, res, 'operators', 'operator'));
       server.middlewares.use('/api/tasks', (req, res) => handleCollectionApi(req, res, 'tasks', 'task'));
@@ -3783,8 +4280,11 @@ function localDataPlugin() {
 
         if (req.method === 'PUT') {
           try {
-            const bodyText = await readBody(req);
             const currentUser = toCurrentUser(findCurrentUser(req));
+            if (!requireOperation(res, currentUser, 'edit', '当前账号无权修改数据')) {
+              return;
+            }
+            const bodyText = await readBody(req);
             const rawParsed = JSON.parse(bodyText || 'null');
             const hasGuardPayload = rawParsed && typeof rawParsed === 'object' && Object.prototype.hasOwnProperty.call(rawParsed, '__payload');
             const parsed = hasGuardPayload ? rawParsed.__payload : rawParsed;

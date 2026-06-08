@@ -8,11 +8,14 @@
     "build": "tsc -b && vite build --configLoader runner",
     "start": "node scripts/start.js",
     "preview": "vite preview --host 0.0.0.0",
-    "backup": "node scripts/backup-data.js"
+    "backup": "node scripts/backup-data.js",
+    "verify:1688-db": "node scripts/verify-alibaba1688-postgres.js",
+    "backup:1688-db": "node scripts/backup-1688-postgres.js"
   },
   "dependencies": {
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",
+    "pg": "^8.21.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "xlsx": "^0.18.5"

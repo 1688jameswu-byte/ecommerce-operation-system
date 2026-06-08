@@ -1,4 +1,4 @@
-export type StorePlatform = 'TEMU' | '1688' | 'Amazon' | 'TikTok' | 'Shopify' | 'Other';
+export type StorePlatform = 'TEMU' | '1688' | 'Amazon' | 'TikTok' | 'SHEIN' | 'Shopify' | 'Other';
 export type StoreStatus = 'active' | 'inactive' | 'disabled' | 'paused' | 'closed';
 
 export interface StoreRecord {

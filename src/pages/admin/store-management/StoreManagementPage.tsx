@@ -6,7 +6,7 @@ import type { StorePlatform, StoreRecord, StoreStatus } from '../../../types/sto
 import { getStatusLabel } from '../../../utils/statusLabel';
 import ConfirmDeleteModal from '../ConfirmDeleteModal';
 
-const platforms: StorePlatform[] = ['TEMU', '1688', 'Amazon', 'TikTok', 'Shopify'];
+const platforms: StorePlatform[] = ['TEMU', '1688', 'Amazon', 'TikTok', 'SHEIN', 'Shopify'];
 const statuses: StoreStatus[] = ['active', 'inactive', 'disabled', 'paused', 'closed'];
 
 type StoreForm = Pick<StoreRecord, 'storeName' | 'platform' | 'status'> &

@@ -1,8 +1,10 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { adminRoutes, type AdminRoute } from './routes';
+import { menuKeys } from './menuKeys';
 import PlaceholderPage from './PlaceholderPage';
 import { useVisibleStores } from '../../auth/useVisibleStores';
 import { logoutCurrentUser } from '../../auth/currentUser';
+import { getRoleLabel } from '../../auth/rolePermissions';
 import type { CurrentUser, UserRole } from '../../types/auth';
 import type { DashboardData } from '../../types/dashboard';
 import type { SalesOrderRecord } from '../../types/fact';
@@ -25,6 +27,11 @@ const OperationDiagnosisPage = lazy(() => import('./operation-diagnosis/Operatio
 const TaskCenterPage = lazy(() => import('./task-center/TaskCenterPage'));
 const TaskSuggestionsPage = lazy(() => import('./task-suggestions/TaskSuggestionsPage'));
 const AIImagePromptCenterPage = lazy(() => import('./ai-image-prompts/AIImagePromptCenterPage'));
+const Alibaba1688ProductsPage = lazy(() => import('./alibaba1688/Alibaba1688ProductsPage'));
+const Alibaba1688ListingTasksPage = lazy(() => import('./alibaba1688/Alibaba1688ListingTasksPage'));
+const Alibaba1688ImagesPage = lazy(() => import('./alibaba1688/Alibaba1688ImagesPage'));
+const Alibaba1688SuppliersPage = lazy(() => import('./alibaba1688/Alibaba1688SuppliersPage'));
+const Alibaba1688SettingsPage = lazy(() => import('./alibaba1688/Alibaba1688SettingsPage'));
 const SalaryEmployeesPage = lazy(() => import('./salary/SalaryEmployeesPage'));
 const SalaryPeriodsPage = lazy(() => import('./salary/SalaryPeriodsPage'));
 const SalaryImportTemplatesPage = lazy(() => import('./salary/SalaryImportTemplatesPage'));
@@ -44,6 +51,10 @@ const roleLabels: Record<UserRole, string> = {
 
 function getActiveRoute() {
   const pathname = window.location.pathname;
+
+  if (pathname === '/admin/1688-business') {
+    return adminRoutes.find((route) => route.path === '/admin/1688-business/settings') ?? adminRoutes[0];
+  }
 
   return adminRoutes.find((route) => route.path === pathname) ?? adminRoutes[0];
 }
@@ -417,7 +428,8 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const canAccessRoute = (route: AdminRoute) => (
     currentUser.role === 'admin' ||
     allowedMenuKeys.has(route.menuKey) ||
-    Boolean(route.parentMenuKey && allowedMenuKeys.has(route.parentMenuKey))
+    Boolean(route.parentMenuKey && allowedMenuKeys.has(route.parentMenuKey)) ||
+    (route.menuKey === menuKeys.aiImagePromptCenter && allowedMenuKeys.has(menuKeys.operationLoop))
   );
   const visibleAdminRoutes = adminRoutes.filter(canAccessRoute);
   const menuAdminRoutes = visibleAdminRoutes.filter((route) => route.path !== '/admin/operator-performance');
@@ -430,7 +442,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
       ? `可见店铺：${visibleStoreNames.join('、')}`
       : `可见店铺 ${visibleStoreNames.length} 个`;
   const dashboardRoute = menuAdminRoutes.find((route) => route.menuKey === 'dashboard');
-  const groupOrder = ['数据', '基础资料', '经营分析', '运营闭环', '规则中心', '数据源', '薪资绩效'];
+  const groupOrder = ['数据', '基础资料', '经营分析', '运营闭环', '1688业务', '运营工具', '规则中心', '数据源', '薪资绩效'];
   const groupLabels: Record<string, string> = { 数据: '数据中心' };
   const groups = groupOrder.filter((group) => menuAdminRoutes.some((route) => route.group === group));
   const activeRouteGroup = groups.includes(activeRoute.group) ? activeRoute.group : null;
@@ -450,6 +462,11 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const isTaskCenterPage = activeRoute.path === '/admin/tasks';
   const isTaskSuggestionsPage = activeRoute.path === '/admin/task-suggestions';
   const isAIImagePromptCenterPage = activeRoute.path === '/admin/ai-image-prompts';
+  const isAlibaba1688ProductsPage = activeRoute.path === '/admin/1688-business/products';
+  const isAlibaba1688ListingTasksPage = activeRoute.path === '/admin/1688-business/listing-tasks';
+  const isAlibaba1688ImagesPage = activeRoute.path === '/admin/1688-business/images';
+  const isAlibaba1688SuppliersPage = activeRoute.path === '/admin/1688-business/suppliers';
+  const isAlibaba1688SettingsPage = activeRoute.path === '/admin/1688-business/settings' || window.location.pathname === '/admin/1688-business';
   const isSalaryEmployeesPage = activeRoute.path === '/admin/salary/employees';
   const isSalaryPeriodsPage = activeRoute.path === '/admin/salary/periods';
   const isSalaryImportTemplatesPage = activeRoute.path === '/admin/salary/import-templates';
@@ -491,42 +508,44 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
               {dashboardRoute.label}
             </a>
           )}
-          {groups.map((group) => (
-            <section key={group} className="admin-nav-group">
-              <button
-                className="admin-nav-group-title"
-                type="button"
-                onClick={() => setActiveOpenGroup((current) => (
-                  current === group && activeRoute.group !== group ? null : group
-                ))}
-              >
-                <span>{groupLabels[group] ?? group}</span>
-                <b>{activeOpenGroup === group ? '⌄' : '›'}</b>
-              </button>
-              {activeOpenGroup === group && (
-                <div className="admin-nav-group-links">
-                  {group === '数据' ? (
-                    <DataCenterMenuLinks
-                      routes={menuAdminRoutes.filter((route) => route.group === group)}
-                      activeRoute={activeRoute}
-                    />
-                  ) : (
-                    menuAdminRoutes
-                      .filter((route) => route.group === group)
-                      .map((route) => (
-                        <a
-                          key={route.path}
-                          className={route.path === activeRoute.path ? 'active' : ''}
-                          href={route.path}
-                        >
-                          {route.label}
-                        </a>
-                      ))
-                  )}
-                </div>
-              )}
-            </section>
-          ))}
+          {groups.map((group) => {
+            const groupRoutes = menuAdminRoutes.filter((route) => route.group === group);
+
+            return (
+              <section key={group} className="admin-nav-group">
+                <button
+                  className="admin-nav-group-title"
+                  type="button"
+                  onClick={() => setActiveOpenGroup((current) => (
+                    current === group && activeRoute.group !== group ? null : group
+                  ))}
+                >
+                  <span>{groupLabels[group] ?? group}</span>
+                  <b>{activeOpenGroup === group ? '⌄' : '›'}</b>
+                </button>
+                {activeOpenGroup === group && (
+                  <div className="admin-nav-group-links">
+                    {group === '数据' ? (
+                      <DataCenterMenuLinks
+                        routes={groupRoutes}
+                        activeRoute={activeRoute}
+                      />
+                    ) : (
+                      groupRoutes.map((route) => (
+                          <a
+                            key={route.path}
+                            className={route.path === activeRoute.path ? 'active' : ''}
+                            href={route.path}
+                          >
+                            {route.label}
+                          </a>
+                        ))
+                    )}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </nav>
       </aside>
 
@@ -537,7 +556,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
           </div>
           <div className="admin-user-bar">
             <span>{currentUser.displayName}</span>
-            <strong>{roleLabels[currentUser.role]}</strong>
+            <strong>{getRoleLabel(currentUser.roleCode, currentUser.role)}</strong>
             <span className={`admin-visible-stores ${visibleStoreNames.length === 0 ? 'empty' : ''}`}>
               {visibleStoreLabel}
               {visibleStoreNames.length > 3 && (
@@ -592,6 +611,16 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
             <TaskSuggestionsPage />
           ) : isAIImagePromptCenterPage ? (
             <AIImagePromptCenterPage currentUser={currentUser} />
+          ) : isAlibaba1688ProductsPage ? (
+            <Alibaba1688ProductsPage currentUser={currentUser} />
+          ) : isAlibaba1688ListingTasksPage ? (
+            <Alibaba1688ListingTasksPage currentUser={currentUser} />
+          ) : isAlibaba1688ImagesPage ? (
+            <Alibaba1688ImagesPage currentUser={currentUser} />
+          ) : isAlibaba1688SuppliersPage ? (
+            <Alibaba1688SuppliersPage currentUser={currentUser} />
+          ) : isAlibaba1688SettingsPage ? (
+            <Alibaba1688SettingsPage currentUser={currentUser} />
           ) : isSalaryEmployeesPage ? (
             <SalaryEmployeesPage />
           ) : isSalaryPeriodsPage ? (

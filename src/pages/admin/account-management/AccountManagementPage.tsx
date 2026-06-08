@@ -1,8 +1,23 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+  fieldPermissionOptions,
+  getBaseRoleForRoleCode,
+  getDefaultPermissionsForRoleCode,
+  getRoleLabel,
+  operationPermissionOptions,
+  platformOptions,
+  roleCodeOptions,
+} from '../../../auth/rolePermissions';
 import { allMenuKeys, menuGroups } from '../menuKeys';
 import { referenceDataService } from '../../../services/referenceDataService';
-import type { CurrentUser, UserRole } from '../../../types/auth';
-import type { StoreRecord } from '../../../types/store';
+import type {
+  CurrentUser,
+  FieldPermissionKey,
+  OperationPermissionKey,
+  UserRole,
+  UserRoleCode,
+} from '../../../types/auth';
+import type { StorePlatform, StoreRecord } from '../../../types/store';
 
 type UserStatus = 'active' | 'disabled';
 
@@ -12,43 +27,46 @@ interface ManagedUser extends CurrentUser {
   updatedAt: string;
 }
 
-const roleLabels: Record<UserRole, string> = {
-  admin: '管理员',
-  leader: '组长',
-  operator: '运营',
-};
+interface AccountFormState {
+  username: string;
+  displayName: string;
+  role: UserRole;
+  roleCode: UserRoleCode;
+  platform: StorePlatform | '';
+  password: string;
+  status: UserStatus;
+  platformKeys: StorePlatform[];
+  allowedStoreIds: string[];
+  allowedMenuKeys: string[];
+  fieldPermissionKeys: FieldPermissionKey[];
+  operationPermissionKeys: OperationPermissionKey[];
+}
 
 const statusLabels: Record<UserStatus, string> = {
   active: '启用',
   disabled: '停用',
 };
 
+const menuKeyAliases: Record<string, string> = {
+  'store-data': 'store-business-center',
+  'store-business': 'store-business-center',
+  storeBusinessCenter: 'store-business-center',
+  'operation-data': 'operator-analysis-center',
+  'operator-analysis': 'operator-analysis-center',
+  operatorAnalysisCenter: 'operator-analysis-center',
+  'operator-performance': 'operator-analysis-center',
+};
+
 function formatPasswordTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 16) : '-';
 }
 
-const emptyForm = {
-  username: '',
-  displayName: '',
-  role: 'operator' as UserRole,
-  password: '',
-  status: 'active' as UserStatus,
-  allowedStoreIds: [] as string[],
-  allowedMenuKeys: [] as string[],
-};
-
-const menuKeyAliases: Record<string, string> = {
-  'store-data': 'store-business-center',
-  'store-business': 'store-business-center',
-  'storeBusinessCenter': 'store-business-center',
-  'operation-data': 'operator-analysis-center',
-  'operator-analysis': 'operator-analysis-center',
-  'operatorAnalysisCenter': 'operator-analysis-center',
-  'operator-performance': 'operator-analysis-center',
-};
-
 function normalizeMenuKey(key: string) {
   return menuKeyAliases[key] ?? key;
+}
+
+function unique<T>(values: T[]) {
+  return Array.from(new Set(values.filter(Boolean)));
 }
 
 function expandMenuKeys(keys: string[]) {
@@ -64,12 +82,37 @@ function expandMenuKeys(keys: string[]) {
   return Array.from(keySet);
 }
 
+function buildFormFromRole(roleCode: UserRoleCode): AccountFormState {
+  const defaults = getDefaultPermissionsForRoleCode(roleCode);
+
+  return {
+    username: '',
+    displayName: '',
+    role: defaults.role,
+    roleCode,
+    platform: defaults.platform ?? '',
+    password: '',
+    status: 'active',
+    platformKeys: defaults.platformKeys,
+    allowedStoreIds: [],
+    allowedMenuKeys: defaults.allowedMenuKeys,
+    fieldPermissionKeys: defaults.fieldPermissionKeys,
+    operationPermissionKeys: defaults.operationPermissionKeys,
+  };
+}
+
+const emptyForm = buildFormFromRole('operator');
+
 function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [stores, setStores] = useState<StoreRecord[]>([]);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState<AccountFormState>(emptyForm);
   const [editingUserId, setEditingUserId] = useState('');
   const [message, setMessage] = useState('');
+
+  const selectedStoreCount = useMemo(() => (
+    getAuthorizedStoreIds({ role: form.role, allowedStoreIds: form.allowedStoreIds }).length
+  ), [form.allowedStoreIds, form.role, stores]);
 
   async function loadUsers() {
     const response = await fetch('/api/auth/users', { credentials: 'include', cache: 'no-store' });
@@ -117,17 +160,24 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
   }
 
   function startEdit(user: ManagedUser) {
+    const roleCode = (user.roleCode ?? user.role) as UserRoleCode;
+    const defaults = getDefaultPermissionsForRoleCode(roleCode);
     setEditingUserId(user.userId);
     setForm({
       username: user.username,
       displayName: user.displayName,
       role: user.role,
+      roleCode,
+      platform: user.platform ?? defaults.platform ?? '',
       password: '',
       status: user.status,
+      platformKeys: user.role === 'admin' ? platformOptions : unique(user.platformKeys ?? defaults.platformKeys),
       allowedStoreIds: getAuthorizedStoreIds(user),
-      allowedMenuKeys: expandMenuKeys(user.allowedMenuKeys ?? []),
+      allowedMenuKeys: expandMenuKeys(user.allowedMenuKeys ?? defaults.allowedMenuKeys),
+      fieldPermissionKeys: user.role === 'admin' ? defaults.fieldPermissionKeys : unique(user.fieldPermissionKeys ?? defaults.fieldPermissionKeys),
+      operationPermissionKeys: user.role === 'admin' ? defaults.operationPermissionKeys : unique(user.operationPermissionKeys ?? defaults.operationPermissionKeys),
     });
-    setMessage('正在编辑账号，留空密码则不修改密码。');
+    setMessage('正在编辑账号，留空密码则不修改原密码。');
   }
 
   function resetForm() {
@@ -135,18 +185,38 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
     setForm(emptyForm);
   }
 
+  function updateRoleCode(roleCode: UserRoleCode) {
+    const defaults = getDefaultPermissionsForRoleCode(roleCode);
+    setForm({
+      ...form,
+      role: getBaseRoleForRoleCode(roleCode),
+      roleCode,
+      platform: defaults.platform ?? '',
+      platformKeys: defaults.platformKeys,
+      allowedStoreIds: [],
+      allowedMenuKeys: defaults.allowedMenuKeys,
+      fieldPermissionKeys: defaults.fieldPermissionKeys,
+      operationPermissionKeys: defaults.operationPermissionKeys,
+    });
+  }
+
+  function toggleListValue<T extends string>(values: T[], value: T, checked: boolean) {
+    return checked ? unique([...values, value]) : values.filter((item) => item !== value);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage('');
 
     try {
-      if (editingUserId === currentUser.userId && !form.allowedMenuKeys.includes('account-management')) {
+      if (editingUserId === currentUser.userId && form.role !== 'admin' && !form.allowedMenuKeys.includes('account-management')) {
         throw new Error('不能移除当前账号的账号管理权限');
       }
 
       const payload = {
         ...form,
-        allowedMenuKeys: Array.from(new Set(form.allowedMenuKeys.map(normalizeMenuKey))),
+        platform: form.platform || undefined,
+        allowedMenuKeys: unique(form.allowedMenuKeys.map(normalizeMenuKey)),
       };
       const url = editingUserId ? `/api/auth/users/${encodeURIComponent(editingUserId)}` : '/api/auth/users';
       const response = await fetch(url, {
@@ -251,6 +321,12 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
   }
 
   function renderAccountFormFields(isEditing: boolean) {
+    const isAdminRole = form.role === 'admin';
+    const activePlatformSet = new Set(form.platformKeys);
+    const visibleStores = isAdminRole
+      ? stores
+      : stores.filter((store) => activePlatformSet.size === 0 || activePlatformSet.has(store.platform));
+
     return (
       <>
         <div className="account-form-section">
@@ -269,12 +345,16 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
               <input value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} />
             </label>
             <label>
-              角色
-              <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as UserRole })}>
-                <option value="admin">管理员</option>
-                <option value="leader">组长</option>
-                <option value="operator">运营</option>
+              岗位角色
+              <select value={form.roleCode} onChange={(event) => updateRoleCode(event.target.value as UserRoleCode)}>
+                {roleCodeOptions.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
               </select>
+            </label>
+            <label>
+              基础角色
+              <input value={getRoleLabel(form.role, form.role)} disabled />
             </label>
             <label>
               状态
@@ -299,8 +379,82 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
           <div className="account-permission-grid">
             <section className="account-permission-card">
               <header>
+                <strong>平台权限</strong>
+                {isAdminRole && <span>管理员默认全部平台</span>}
+              </header>
+              <div className="account-checkbox-grid compact">
+                {platformOptions.filter((platform) => platform !== 'Other').map((platform) => (
+                  <label key={platform}>
+                    <input
+                      checked={isAdminRole || form.platformKeys.includes(platform)}
+                      disabled={isAdminRole}
+                      type="checkbox"
+                      onChange={(event) => setForm({
+                        ...form,
+                        platform: event.target.checked ? platform : form.platform === platform ? '' : form.platform,
+                        platformKeys: toggleListValue(form.platformKeys, platform, event.target.checked),
+                        allowedStoreIds: form.allowedStoreIds.filter((storeId) => {
+                          const store = stores.find((item) => (item.id || item.storeName) === storeId);
+                          return !store || toggleListValue(form.platformKeys, platform, event.target.checked).includes(store.platform);
+                        }),
+                      })}
+                    />
+                    {platform}
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            <section className="account-permission-card">
+              <header>
+                <strong>字段权限</strong>
+                <span>{isAdminRole ? fieldPermissionOptions.length : form.fieldPermissionKeys.length} 项</span>
+              </header>
+              <div className="account-checkbox-grid compact">
+                {fieldPermissionOptions.map((item) => (
+                  <label key={item.value}>
+                    <input
+                      checked={isAdminRole || form.fieldPermissionKeys.includes(item.value)}
+                      disabled={isAdminRole}
+                      type="checkbox"
+                      onChange={(event) => setForm({
+                        ...form,
+                        fieldPermissionKeys: toggleListValue(form.fieldPermissionKeys, item.value, event.target.checked),
+                      })}
+                    />
+                    {item.label}
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            <section className="account-permission-card">
+              <header>
+                <strong>操作权限</strong>
+                <span>{isAdminRole ? operationPermissionOptions.length : form.operationPermissionKeys.length} 项</span>
+              </header>
+              <div className="account-checkbox-grid compact">
+                {operationPermissionOptions.map((item) => (
+                  <label key={item.value}>
+                    <input
+                      checked={isAdminRole || form.operationPermissionKeys.includes(item.value)}
+                      disabled={isAdminRole}
+                      type="checkbox"
+                      onChange={(event) => setForm({
+                        ...form,
+                        operationPermissionKeys: toggleListValue(form.operationPermissionKeys, item.value, event.target.checked),
+                      })}
+                    />
+                    {item.label}
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            <section className="account-permission-card">
+              <header>
                 <strong>可访问菜单</strong>
-                {form.role === 'admin' && <span>管理员默认拥有全部菜单权限</span>}
+                {isAdminRole && <span>管理员默认拥有全部菜单权限</span>}
               </header>
               <div className="account-menu-tree">
                 {menuGroups.map((group) => (
@@ -310,15 +464,15 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
                       {group.children.map((item) => (
                         <label key={item.key}>
                           <input
-                            checked={form.role === 'admin' || form.allowedMenuKeys.includes(item.key)}
-                            disabled={form.role === 'admin'}
+                            checked={isAdminRole || form.allowedMenuKeys.includes(item.key)}
+                            disabled={isAdminRole}
                             type="checkbox"
                             onChange={(event) => {
                               const checked = event.target.checked;
                               setForm({
                                 ...form,
                                 allowedMenuKeys: checked
-                                  ? Array.from(new Set([...form.allowedMenuKeys, item.key]))
+                                  ? unique([...form.allowedMenuKeys, item.key])
                                   : form.allowedMenuKeys.filter((key) => key !== item.key),
                               });
                             }}
@@ -332,34 +486,37 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
               </div>
             </section>
 
-            <section className="account-permission-card">
+            <section className="account-permission-card account-permission-card-wide">
               <header>
                 <strong>授权店铺</strong>
-                <span>{getAuthorizedStoreIds({ role: form.role, allowedStoreIds: form.allowedStoreIds }).length} 个已选</span>
+                <span>{selectedStoreCount} 个已选</span>
               </header>
               <div className="account-checkbox-grid stores">
-                {stores.map((store) => {
+                {visibleStores.map((store) => {
                   const storeId = store.id || store.storeName;
 
                   return (
                     <label key={storeId}>
                       <input
-                        checked={form.allowedStoreIds.includes(storeId)}
+                        checked={isAdminRole || form.allowedStoreIds.includes(storeId)}
+                        disabled={isAdminRole}
                         type="checkbox"
                         onChange={(event) => {
                           const checked = event.target.checked;
                           setForm({
                             ...form,
                             allowedStoreIds: checked
-                              ? Array.from(new Set([...form.allowedStoreIds, storeId]))
+                              ? unique([...form.allowedStoreIds, storeId])
                               : form.allowedStoreIds.filter((id) => id !== storeId),
                           });
                         }}
                       />
                       {store.storeName}
+                      <em>{store.platform}</em>
                     </label>
                   );
                 })}
+                {visibleStores.length === 0 && <span>当前平台下暂无可选店铺</span>}
               </div>
             </section>
           </div>
@@ -400,10 +557,13 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
               <tr>
                 <th>用户名</th>
                 <th>显示名称</th>
-                <th>角色</th>
+                <th>岗位角色</th>
+                <th>平台</th>
                 <th>状态</th>
                 <th>授权店铺数量</th>
-                <th>可访问菜单数量</th>
+                <th>菜单数</th>
+                <th>字段权限</th>
+                <th>操作权限</th>
                 <th>密码状态</th>
                 <th>密码最后修改时间</th>
                 <th>操作</th>
@@ -414,10 +574,13 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
                 <tr key={user.userId}>
                   <td>{user.username}</td>
                   <td>{user.displayName}</td>
-                  <td>{roleLabels[user.role]}</td>
+                  <td>{getRoleLabel(user.roleCode, user.role)}</td>
+                  <td>{user.role === 'admin' ? '全部' : (user.platformKeys ?? []).join('、') || user.platform || '-'}</td>
                   <td>{statusLabels[user.status]}</td>
                   <td>{getAuthorizedStoreIds(user).length}</td>
                   <td>{user.role === 'admin' ? allMenuKeys.length : user.allowedMenuKeys?.length ?? 0}</td>
+                  <td>{user.role === 'admin' ? fieldPermissionOptions.length : user.fieldPermissionKeys?.length ?? 0}</td>
+                  <td>{user.role === 'admin' ? operationPermissionOptions.length : user.operationPermissionKeys?.length ?? 0}</td>
                   <td>{user.forceChangePassword ? '需修改' : '正常'}</td>
                   <td>{formatPasswordTime(user.passwordUpdatedAt)}</td>
                   <td className="account-table-actions">
@@ -453,7 +616,7 @@ function AccountManagementPage({ currentUser }: { currentUser: CurrentUser }) {
                 <h2 id="account-edit-title">编辑账号</h2>
                 <p>留空密码则保持原密码不变。</p>
               </div>
-              <button type="button" aria-label="关闭编辑弹窗" onClick={resetForm}>×</button>
+              <button type="button" aria-label="关闭编辑弹窗" onClick={resetForm}>x</button>
             </header>
 
             <div className="account-edit-modal-body">

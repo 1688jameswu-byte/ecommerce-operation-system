@@ -3797,7 +3797,7 @@
 
 .account-basic-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  grid-template-columns: repeat(6, minmax(130px, 1fr));
   gap: 12px;
 }
 
@@ -3860,6 +3860,10 @@
   grid-template-columns: repeat(2, minmax(120px, 1fr));
 }
 
+.account-checkbox-grid.compact {
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+}
+
 .account-menu-tree {
   display: grid;
   gap: 12px;
@@ -3879,10 +3883,14 @@
 }
 
 .account-checkbox-grid.stores {
-  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
   overflow: auto;
   max-height: 220px;
   padding-right: 4px;
+}
+
+.account-permission-card-wide {
+  grid-column: 1 / -1;
 }
 
 .account-checkbox-grid label {
@@ -3895,6 +3903,13 @@
   padding: 8px 9px;
   color: #c8d9eb;
   font-size: 13px;
+}
+
+.account-checkbox-grid label em {
+  margin-left: auto;
+  color: #7dd3fc;
+  font-size: 11px;
+  font-style: normal;
 }
 
 .account-checkbox-grid input {
@@ -4860,6 +4875,862 @@
 .store-info-tooltip:focus-within .store-info-tooltip-content,
 .store-info-tooltip-open .store-info-tooltip-content {
   display: block;
+}
+
+.alibaba-settings-page {
+  display: grid;
+  gap: 18px;
+}
+
+.alibaba-settings-status {
+  display: grid;
+  gap: 14px;
+}
+
+.alibaba-settings-status > header button,
+.alibaba-store-form button,
+.alibaba-setting-input button {
+  border: 1px solid rgba(82, 167, 255, 0.48);
+  border-radius: 7px;
+  padding: 9px 12px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.alibaba-settings-status button:disabled,
+.alibaba-store-form button:disabled,
+.alibaba-setting-input button:disabled,
+.alibaba-store-list button:disabled,
+.alibaba-setting-list button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.alibaba-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.alibaba-status-grid article {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(86, 154, 230, 0.18);
+  border-radius: 8px;
+  background: rgba(3, 13, 32, 0.28);
+  padding: 14px;
+}
+
+.alibaba-status-grid span {
+  color: #8eaac8;
+  font-size: 13px;
+}
+
+.alibaba-status-grid strong {
+  color: #f4f9ff;
+  font-size: 22px;
+}
+
+.alibaba-status-grid .ok {
+  border-color: rgba(74, 222, 128, 0.34);
+}
+
+.alibaba-status-grid .ok strong {
+  color: #86efac;
+}
+
+.alibaba-status-grid .warning {
+  border-color: rgba(251, 191, 36, 0.34);
+}
+
+.alibaba-status-grid .warning strong,
+.alibaba-settings-error strong {
+  color: #fde68a;
+}
+
+.alibaba-table-status-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.alibaba-table-status-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(86, 154, 230, 0.22);
+  border-radius: 999px;
+  background: rgba(42, 127, 255, 0.1);
+  padding: 6px 10px;
+  color: #dbeeff;
+  font-size: 12px;
+}
+
+.alibaba-table-status-list b {
+  color: #86efac;
+}
+
+.alibaba-table-status-list .warning {
+  border-color: rgba(251, 191, 36, 0.34);
+}
+
+.alibaba-table-status-list .warning b {
+  color: #fde68a;
+}
+
+.alibaba-settings-error,
+.alibaba-settings-message {
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.alibaba-settings-error {
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.alibaba-settings-error span {
+  color: #d6b877;
+  font-size: 13px;
+}
+
+.alibaba-settings-message {
+  margin: 0;
+  border: 1px solid rgba(74, 222, 128, 0.26);
+  background: rgba(22, 101, 52, 0.14);
+  color: #86efac;
+}
+
+.alibaba-permission-note {
+  margin: 0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.alibaba-permission-note.ok {
+  border: 1px solid rgba(74, 222, 128, 0.26);
+  background: rgba(22, 101, 52, 0.14);
+  color: #86efac;
+}
+
+.alibaba-permission-note.readonly {
+  border: 1px solid rgba(251, 191, 36, 0.26);
+  background: rgba(251, 191, 36, 0.08);
+  color: #fde68a;
+}
+
+.alibaba-store-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(240px, 1.3fr) minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.alibaba-store-form label,
+.alibaba-setting-input {
+  display: grid;
+  gap: 7px;
+}
+
+.alibaba-store-form label {
+  color: #8eaac8;
+  font-size: 13px;
+}
+
+.alibaba-store-form input,
+.alibaba-store-form select,
+.alibaba-setting-input input {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid rgba(86, 154, 230, 0.28);
+  border-radius: 6px;
+  background: #081933;
+  padding: 9px 10px;
+  color: #edf6ff;
+  font: inherit;
+}
+
+.alibaba-store-form select {
+  height: 38px;
+  appearance: none;
+  background-color: #081933;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #8bd7ff 50%),
+    linear-gradient(135deg, #8bd7ff 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) 16px,
+    calc(100% - 11px) 16px;
+  background-repeat: no-repeat;
+  background-size: 5px 5px, 5px 5px;
+  padding-right: 34px;
+}
+
+.alibaba-store-form select option {
+  background: #081933;
+  color: #edf6ff;
+}
+
+.alibaba-form-wide {
+  grid-column: 1 / span 3;
+}
+
+.alibaba-form-actions,
+.alibaba-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.alibaba-store-form .alibaba-form-actions {
+  grid-column: 4;
+  justify-content: flex-end;
+}
+
+.alibaba-form-actions button {
+  border: 1px solid rgba(86, 154, 230, 0.28);
+  border-radius: 7px;
+  background: rgba(42, 127, 255, 0.12);
+  padding: 9px 12px;
+  color: #dcecff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.alibaba-store-list {
+  display: grid;
+  gap: 10px;
+}
+
+.alibaba-store-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(86, 154, 230, 0.16);
+  border-radius: 8px;
+  background: rgba(3, 13, 32, 0.28);
+  padding: 12px;
+}
+
+.alibaba-store-list article div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.alibaba-store-list strong,
+.alibaba-setting-list b {
+  color: #f4f9ff;
+}
+
+.alibaba-store-list span,
+.alibaba-store-list em {
+  overflow: hidden;
+  color: #8eaac8;
+  font-size: 13px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alibaba-store-list button {
+  border: 1px solid rgba(86, 154, 230, 0.28);
+  border-radius: 6px;
+  background: rgba(42, 127, 255, 0.12);
+  padding: 7px 10px;
+  color: #dcecff;
+  cursor: pointer;
+  font: inherit;
+  white-space: nowrap;
+}
+
+.alibaba-state-on,
+.alibaba-state-off {
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.alibaba-state-on {
+  border: 1px solid rgba(74, 222, 128, 0.28);
+  color: #86efac;
+  background: rgba(22, 101, 52, 0.14);
+}
+
+.alibaba-state-off {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.alibaba-setting-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.alibaba-setting-group {
+  display: grid;
+  gap: 14px;
+}
+
+.alibaba-setting-input {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.alibaba-setting-input:has(button + button) {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.alibaba-setting-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.alibaba-setting-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(86, 154, 230, 0.22);
+  border-radius: 8px;
+  background: rgba(42, 127, 255, 0.1);
+  padding: 7px 8px 7px 10px;
+}
+
+.alibaba-setting-list span.disabled {
+  opacity: 0.55;
+}
+
+.alibaba-setting-list button {
+  border: 1px solid rgba(86, 154, 230, 0.24);
+  border-radius: 6px;
+  background: rgba(3, 13, 32, 0.34);
+  padding: 4px 7px;
+  color: #b9cce2;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.alibaba-setting-list em {
+  color: #7ea6cc;
+  font-size: 13px;
+  font-style: normal;
+}
+
+.alibaba-setting-list span > em {
+  border-radius: 999px;
+  background: rgba(86, 154, 230, 0.12);
+  padding: 3px 7px;
+}
+
+.alibaba-products-page {
+  display: grid;
+  gap: 18px;
+}
+
+.alibaba-products-page .alibaba-product-toolbar,
+.alibaba-image-toolbar {
+  grid-template-columns: minmax(220px, 360px) auto auto minmax(220px, 1fr);
+}
+
+.alibaba-product-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) auto minmax(220px, 1fr);
+  align-items: end;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.alibaba-product-toolbar label,
+.alibaba-product-form label,
+.alibaba-sku-form label {
+  display: grid;
+  gap: 7px;
+  color: #8eaac8;
+  font-size: 13px;
+}
+
+.alibaba-product-toolbar input,
+.alibaba-product-toolbar select,
+.alibaba-product-form input,
+.alibaba-product-form select,
+.alibaba-sku-form input,
+.alibaba-sku-form select {
+  min-width: 0;
+  border: 1px solid rgba(86, 154, 230, 0.28);
+  border-radius: 6px;
+  background: #081933;
+  padding: 9px 10px;
+  color: #edf6ff;
+  font: inherit;
+}
+
+.alibaba-product-toolbar button,
+.alibaba-product-form button,
+.alibaba-sku-form button,
+.alibaba-product-table button {
+  border: 1px solid rgba(86, 154, 230, 0.28);
+  border-radius: 6px;
+  background: rgba(42, 127, 255, 0.12);
+  padding: 7px 10px;
+  color: #dcecff;
+  cursor: pointer;
+  font: inherit;
+  white-space: nowrap;
+}
+
+.alibaba-product-toolbar button:disabled,
+.alibaba-product-form button:disabled,
+.alibaba-sku-form button:disabled,
+.alibaba-product-table button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.alibaba-product-form,
+.alibaba-sku-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.alibaba-sku-form {
+  grid-template-columns: repeat(4, minmax(130px, 1fr)) auto;
+  border-top: 1px solid rgba(92, 151, 220, 0.16);
+  margin-top: 14px;
+  padding-top: 16px;
+}
+
+.alibaba-checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+}
+
+.alibaba-checkbox-label input {
+  width: auto;
+}
+
+.alibaba-product-table-wrap {
+  overflow-x: auto;
+}
+
+.alibaba-product-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+
+.alibaba-product-table th,
+.alibaba-product-table td {
+  border-bottom: 1px solid rgba(86, 154, 230, 0.14);
+  padding: 10px;
+  color: #c8d9eb;
+  font-size: 13px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.alibaba-product-table th {
+  color: #8bd7ff;
+  font-weight: 700;
+}
+
+.alibaba-product-table tbody tr:hover,
+.alibaba-product-table tbody tr.selected {
+  background: rgba(42, 127, 255, 0.1);
+}
+
+.alibaba-product-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.alibaba-product-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.alibaba-product-detail-grid article {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(86, 154, 230, 0.16);
+  border-radius: 8px;
+  background: rgba(3, 13, 32, 0.28);
+  padding: 12px;
+}
+
+.alibaba-product-detail-grid span {
+  color: #8eaac8;
+  font-size: 12px;
+}
+
+.alibaba-product-detail-grid strong {
+  overflow: hidden;
+  color: #f4f9ff;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alibaba-suppliers-page {
+  display: grid;
+  gap: 18px;
+}
+
+.alibaba-images-page {
+  display: grid;
+  gap: 18px;
+}
+
+.alibaba-listing-tasks-page {
+  display: grid;
+  gap: 18px;
+}
+
+.alibaba-suppliers-page .alibaba-product-toolbar {
+  grid-template-columns: minmax(220px, 360px) auto auto minmax(220px, 1fr);
+}
+
+.alibaba-listing-tasks-page .alibaba-task-toolbar {
+  grid-template-columns: minmax(220px, 340px) minmax(160px, 220px) auto auto minmax(220px, 1fr);
+}
+
+.alibaba-supplier-table {
+  min-width: 1180px;
+}
+
+.alibaba-image-table {
+  min-width: 1240px;
+}
+
+.alibaba-task-table {
+  min-width: 1320px;
+}
+
+.alibaba-supplier-table td strong,
+.alibaba-image-table td strong,
+.alibaba-task-table td strong {
+  display: block;
+  color: #f4f9ff;
+  font-size: 13px;
+}
+
+.alibaba-image-table td span:not(.alibaba-state-on):not(.alibaba-state-off),
+.alibaba-task-table td span:not(.alibaba-task-status) {
+  display: block;
+  max-width: 360px;
+  overflow: hidden;
+  color: #8eaac8;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alibaba-supplier-table td a {
+  display: inline-block;
+  margin-top: 4px;
+  color: #8bd7ff;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.alibaba-task-table td a {
+  color: #8bd7ff;
+  text-decoration: none;
+}
+
+.alibaba-task-status {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.alibaba-task-status-pending {
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  background: rgba(251, 191, 36, 0.1);
+  color: #fde68a;
+}
+
+.alibaba-task-status-processing {
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  background: rgba(14, 116, 144, 0.18);
+  color: #7dd3fc;
+}
+
+.alibaba-task-status-completed {
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  background: rgba(22, 101, 52, 0.14);
+  color: #86efac;
+}
+
+.alibaba-task-status-failed {
+  border: 1px solid rgba(248, 113, 113, 0.34);
+  background: rgba(127, 29, 29, 0.16);
+  color: #fecaca;
+}
+
+.alibaba-task-status-disabled {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  background: rgba(148, 163, 184, 0.1);
+  color: #cbd5e1;
+}
+
+.alibaba-listing-flow-panel,
+.alibaba-listing-package {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(86, 154, 230, 0.16);
+  border-radius: 8px;
+  background: rgba(3, 13, 32, 0.24);
+  padding: 14px;
+}
+
+.alibaba-listing-flow-panel > header,
+.alibaba-listing-package > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.alibaba-listing-flow-panel h3,
+.alibaba-listing-package h3 {
+  margin: 0;
+  color: #f4f9ff;
+  font-size: 17px;
+}
+
+.alibaba-listing-flow-panel p,
+.alibaba-listing-package p {
+  margin: 5px 0 0;
+  color: #8eaac8;
+  font-size: 13px;
+}
+
+.alibaba-listing-check {
+  display: grid;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.alibaba-listing-check.ok {
+  border: 1px solid rgba(74, 222, 128, 0.26);
+  background: rgba(22, 101, 52, 0.14);
+  color: #86efac;
+}
+
+.alibaba-listing-check.warning {
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  background: rgba(251, 191, 36, 0.08);
+  color: #fde68a;
+}
+
+.alibaba-listing-check span,
+.alibaba-listing-check p,
+.alibaba-listing-task-note {
+  margin: 0;
+  color: #b9cce2;
+  font-size: 13px;
+}
+
+.alibaba-package-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.alibaba-package-grid article {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(86, 154, 230, 0.14);
+  border-radius: 8px;
+  background: rgba(42, 127, 255, 0.08);
+  padding: 10px;
+}
+
+.alibaba-package-grid span,
+.alibaba-package-images strong {
+  color: #8bd7ff;
+  font-size: 12px;
+}
+
+.alibaba-package-grid strong {
+  overflow: hidden;
+  min-height: 36px;
+  color: #f4f9ff;
+  font-size: 13px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+}
+
+.alibaba-package-grid button {
+  border: 1px solid rgba(82, 167, 255, 0.38);
+  border-radius: 6px;
+  background: rgba(42, 127, 255, 0.12);
+  padding: 7px 9px;
+  color: #dcecff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.alibaba-package-grid button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.alibaba-package-images {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.alibaba-package-images span,
+.alibaba-package-images em {
+  border: 1px solid rgba(86, 154, 230, 0.18);
+  border-radius: 999px;
+  background: rgba(42, 127, 255, 0.08);
+  padding: 5px 9px;
+  color: #c8d9eb;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.alibaba-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 8, 23, 0.72);
+  padding: 24px;
+}
+
+.alibaba-edit-modal {
+  display: grid;
+  gap: 18px;
+  width: min(920px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  border: 1px solid rgba(86, 154, 230, 0.24);
+  border-radius: 8px;
+  background: #071529;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  padding: 20px;
+}
+
+.alibaba-edit-modal > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(86, 154, 230, 0.16);
+  padding-bottom: 14px;
+}
+
+.alibaba-edit-modal h2 {
+  margin: 0;
+  color: #f4f9ff;
+  font-size: 20px;
+}
+
+.alibaba-edit-modal p {
+  margin: 6px 0 0;
+  color: #8eaac8;
+  font-size: 13px;
+}
+
+.alibaba-edit-modal button {
+  border: 1px solid rgba(86, 154, 230, 0.28);
+  border-radius: 6px;
+  background: rgba(42, 127, 255, 0.12);
+  padding: 8px 11px;
+  color: #dcecff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.alibaba-edit-modal button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.alibaba-modal-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.alibaba-modal-form-grid label {
+  display: grid;
+  gap: 7px;
+  color: #8eaac8;
+  font-size: 13px;
+}
+
+.alibaba-modal-form-grid input,
+.alibaba-modal-form-grid select,
+.alibaba-modal-form-grid textarea {
+  min-width: 0;
+  border: 1px solid rgba(86, 154, 230, 0.28);
+  border-radius: 6px;
+  background: #081933;
+  padding: 9px 10px;
+  color: #edf6ff;
+  font: inherit;
+}
+
+.alibaba-modal-form-grid textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.alibaba-modal-actions {
+  justify-content: flex-end;
+  border-top: 1px solid rgba(86, 154, 230, 0.16);
+  padding-top: 14px;
+}
+
+@media (max-width: 1120px) {
+  .alibaba-store-form,
+  .alibaba-setting-groups,
+  .alibaba-status-grid,
+  .alibaba-modal-form-grid,
+  .alibaba-package-grid,
+  .alibaba-product-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .alibaba-products-page .alibaba-product-toolbar,
+  .alibaba-listing-tasks-page .alibaba-task-toolbar,
+  .alibaba-suppliers-page .alibaba-product-toolbar,
+  .alibaba-image-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .alibaba-form-wide {
+    grid-column: auto;
+  }
+
+  .alibaba-store-form .alibaba-form-actions {
+    grid-column: auto;
+    justify-content: flex-start;
+  }
 }
 
 .store-metric-strongUp {

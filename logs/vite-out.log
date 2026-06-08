@@ -765,3 +765,170 @@
 [2m18:54:03[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/traffic-import/TrafficImportPage.tsx[22m
 [2m19:08:31[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/traffic-import/TrafficImportPage.tsx[22m
 [2m19:08:42[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/traffic-import/TrafficImportPage.tsx[22m
+
+> ecommerce-operations-center@0.1.0 dev
+> vite --configLoader runner --host 127.0.0.1 --port 5176
+
+[2m13:42:05[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because lockfile has changed
+
+  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m589[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m13:43:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m13:43:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m13:44:02[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m13:44:18[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m13:44:18[22m [36m[1m[vite][22m[39m server restarted.
+[2m14:24:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m14:24:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m14:24:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m14:25:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+
+> ecommerce-operations-center@0.1.0 dev
+> vite --configLoader runner --host 127.0.0.1 --port 5176
+
+
+  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m6428[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m09:45:58[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/sqliteDatabase.js changed, restarting server...[39m
+[2m09:46:30[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/repositories/alibaba1688RepositoryFactory.js changed, restarting server...[39m
+[2m09:46:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because lockfile has changed
+[2m09:46:30[22m [36m[1m[vite][22m[39m server restarted.
+[2m09:47:10[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/repositories/alibaba1688ProductRepository.js changed, restarting server...[39m
+[2m09:47:10[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/repositories/alibaba1688ImageRecordRepository.js changed, restarting server...[39m
+[2m09:47:10[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/repositories/alibaba1688SkuRepository.js changed, restarting server...[39m
+[2m09:47:10[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/repositories/alibaba1688AiGenerationRepository.js changed, restarting server...[39m
+[2m09:47:10[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/repositories/alibaba1688ImportBatchRepository.js changed, restarting server...[39m
+[2m09:47:10[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/repositories/alibaba1688ListingDraftRepository.js changed, restarting server...[39m
+[2m09:47:10[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/repositories/alibaba1688ListingReviewRepository.js changed, restarting server...[39m
+[2m09:47:42[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m09:47:42[22m [36m[1m[vite][22m[39m server restarted.
+[2m09:52:38[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/repositories/alibaba1688RepositoryFactory.js changed, restarting server...[39m
+[2m09:52:38[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:05:47[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m11:06:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m11:07:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m11:07:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m11:08:06[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/postgresDatabase.js changed, restarting server...[39m
+[2m11:08:06[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:08:23[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m11:08:23[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:09:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m11:10:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m11:10:53[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m11:15:05[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/postgresDatabase.js changed, restarting server...[39m
+[2m11:15:05[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:15:33[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m11:15:33[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:15:53[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688SettingsPage.tsx[22m
+[2m11:16:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688SettingsPage.tsx[22m
+[2m11:16:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m11:22:09[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/postgresDatabase.js changed, restarting server...[39m
+[2m11:22:09[22m [36m[1m[vite][22m[39m server restarted.
+[2m11:47:03[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
+[2m11:47:03[22m [36m[1m[vite][22m[39m server restarted.
+[2m13:36:42[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
+[2m13:36:42[22m [36m[1m[vite][22m[39m server restarted.
+[2m13:42:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m13:42:44[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m13:42:44[22m [36m[1m[vite][22m[39m server restarted.
+[2m13:43:00[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m13:43:00[22m [36m[1m[vite][22m[39m server restarted.
+[2m13:43:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m13:52:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m13:53:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m13:54:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m13:55:24[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m13:55:25[22m [36m[1m[vite][22m[39m server restarted.
+[2m13:55:35[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m13:55:36[22m [36m[1m[vite][22m[39m server restarted.
+[2m13:55:50[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m13:55:50[22m [36m[1m[vite][22m[39m server restarted.
+[2m13:56:46[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m13:56:46[22m [36m[1m[vite][22m[39m server restarted.
+[2m13:57:38[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m13:57:39[22m [36m[1m[vite][22m[39m server restarted.
+[2m13:58:38[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m13:59:09[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m13:59:27[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m13:59:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m14:02:11[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m14:05:04[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m14:05:04[22m [36m[1m[vite][22m[39m server restarted.
+[2m14:13:19[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m14:13:19[22m [36m[1m[vite][22m[39m server restarted.
+[2m14:13:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m14:13:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m14:14:52[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m14:15:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m14:27:23[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m14:27:23[22m [36m[1m[vite][22m[39m server restarted.
+[2m14:27:34[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m14:27:35[22m [36m[1m[vite][22m[39m server restarted.
+[2m14:28:42[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m14:30:01[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m14:30:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m14:30:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m14:30:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688SuppliersPage.tsx[22m
+[2m14:40:49[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/postgresDatabase.js changed, restarting server...[39m
+[2m14:40:50[22m [36m[1m[vite][22m[39m server restarted.
+[2m14:40:59[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/postgresDatabase.js changed, restarting server...[39m
+[2m14:41:29[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/postgresDatabase.js changed, restarting server...[39m
+[2m14:41:29[22m [36m[1m[vite][22m[39m server restarted.
+[2m14:44:57[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m14:44:58[22m [36m[1m[vite][22m[39m server restarted.
+[2m14:46:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m14:47:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m14:48:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m14:48:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m14:48:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m14:53:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m14:53:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m15:02:36[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m15:02:36[22m [36m[1m[vite][22m[39m server restarted.
+[2m15:02:53[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m15:02:54[22m [36m[1m[vite][22m[39m server restarted.
+[2m15:09:15[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m15:14:55[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m15:14:55[22m [36m[1m[vite][22m[39m server restarted.
+[2m15:15:11[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m15:15:11[22m [36m[1m[vite][22m[39m server restarted.
+[2m15:17:47[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m15:17:48[22m [36m[1m[vite][22m[39m server restarted.
+[2m15:20:52[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m15:20:52[22m [36m[1m[vite][22m[39m server restarted.
+[2m15:21:12[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m15:21:12[22m [36m[1m[vite][22m[39m server restarted.
+[2m15:21:26[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m15:21:26[22m [36m[1m[vite][22m[39m server restarted.
+[2m15:36:44[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m15:36:44[22m [36m[1m[vite][22m[39m server restarted.
+[2m15:37:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx, /src/pages/admin/account-management/AccountManagementPage.tsx[22m
+[2m15:42:33[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m15:42:33[22m [36m[1m[vite][22m[39m server restarted.
+[2m15:42:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:13:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:13:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688SuppliersPage.tsx[22m
+[2m16:13:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ImagesPage.tsx[22m
+[2m16:13:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ListingTasksPage.tsx[22m
+[2m16:13:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688SettingsPage.tsx[22m
+[2m16:19:44[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:19:45[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:19:58[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:19:58[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:22:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:23:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:23:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:23:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:23:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:24:11[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:27:32[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688SettingsPage.tsx[22m
+[2m16:27:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688SettingsPage.tsx[22m
+[2m16:30:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:30:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:35:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:35:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:37:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m

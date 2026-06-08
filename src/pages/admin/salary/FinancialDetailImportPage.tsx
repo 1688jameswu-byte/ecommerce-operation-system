@@ -8,7 +8,7 @@ import type { StorePlatform, StoreRecord } from '../../../types/store';
 import type { FinancialExpenseCategory, SalaryFinancialDetail, SalaryFinancialDetailPage, SalaryFinancialImportBatch } from '../../../types/salary';
 import ConfirmDeleteModal from '../ConfirmDeleteModal';
 
-const platforms: StorePlatform[] = ['TEMU', 'Amazon', 'TikTok', 'Shopify', '1688', 'Other'];
+const platforms: StorePlatform[] = ['TEMU', 'Amazon', 'TikTok', 'SHEIN', 'Shopify', '1688', 'Other'];
 const requiredHeaders = ['账务时间', '账务类型', '币种', '收支金额', '备注'];
 const pageSize = 20;
 const detailPageSize = 50;

@@ -1,0 +1,42 @@
+import { createAlibaba1688Repository } from './alibaba1688RepositoryFactory.js';
+
+export const alibaba1688SkuRepository = createAlibaba1688Repository({
+  tableName: '"1688_product_skus"',
+  fields: [
+    'id',
+    'productId',
+    'skuCode',
+    'color',
+    'size',
+    'specification',
+    'supplierSkuCode',
+    'platformSkuCode',
+    'purchasePrice',
+    'wholesalePrice',
+    'suggestedPrice',
+    'minOrderQuantity',
+    'stockQuantity',
+    'skuImageId',
+    'isActive',
+    'remark',
+    'createdAt',
+    'updatedAt',
+  ],
+  defaults: {
+    skuCode: '',
+    purchasePrice: 0,
+    wholesalePrice: 0,
+    suggestedPrice: 0,
+    minOrderQuantity: 0,
+    stockQuantity: 0,
+    isActive: true,
+  },
+  requiredFields: ['productId'],
+  searchColumns: ['sku_code', 'supplier_sku_code', 'platform_sku_code', 'specification', 'color', 'size'],
+  filterColumns: {
+    productId: 'product_id',
+    color: 'color',
+    size: 'size',
+    isActive: 'is_active',
+  },
+});
