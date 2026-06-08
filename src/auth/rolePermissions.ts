@@ -94,7 +94,6 @@ export function getDefaultPermissionsForRoleCode(roleCode: UserRoleCode) {
       platform: '1688' as StorePlatform,
       platformKeys: ['1688'] as StorePlatform[],
       allowedMenuKeys: [
-        menuKeys.dashboard,
         menuKeys.business1688Products,
         menuKeys.business1688ListingTasks,
         menuKeys.business1688Images,
@@ -111,7 +110,6 @@ export function getDefaultPermissionsForRoleCode(roleCode: UserRoleCode) {
       platform: '1688' as StorePlatform,
       platformKeys: ['1688'] as StorePlatform[],
       allowedMenuKeys: [
-        menuKeys.dashboard,
         menuKeys.business1688Products,
         menuKeys.business1688ListingTasks,
         menuKeys.business1688Images,

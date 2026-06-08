@@ -422,7 +422,7 @@ function AdminHome({
 }
 
 function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
-  const activeRoute = getActiveRoute();
+  const requestedRoute = getActiveRoute();
   const visibleStores = useVisibleStores(currentUser);
   const allowedMenuKeys = new Set(currentUser.allowedMenuKeys ?? []);
   const canAccessRoute = (route: AdminRoute) => (
@@ -434,6 +434,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const visibleAdminRoutes = adminRoutes.filter(canAccessRoute);
   const menuAdminRoutes = visibleAdminRoutes.filter((route) => route.path !== '/admin/operator-performance');
   const hasAnyMenuPermission = currentUser.role === 'admin' || visibleAdminRoutes.length > 0;
+  const activeRoute = canAccessRoute(requestedRoute) ? requestedRoute : visibleAdminRoutes[0] ?? requestedRoute;
   const canAccessActiveRoute = canAccessRoute(activeRoute);
   const visibleStoreNames = visibleStores.stores.map((store) => store.storeName || store.id).filter(Boolean);
   const visibleStoreLabel = visibleStoreNames.length === 0
@@ -487,6 +488,12 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   useEffect(() => {
     setActiveOpenGroup(activeRouteGroup);
   }, [activeRouteGroup]);
+
+  useEffect(() => {
+    if (requestedRoute.path !== activeRoute.path && canAccessActiveRoute) {
+      window.history.replaceState(null, '', activeRoute.path);
+    }
+  }, [activeRoute.path, canAccessActiveRoute, requestedRoute.path]);
 
   return (
     <main className="admin-shell">

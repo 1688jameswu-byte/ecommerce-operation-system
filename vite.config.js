@@ -352,7 +352,6 @@ const roleDefinitions = {
     platform: '1688',
     platformKeys: ['1688'],
     allowedMenuKeys: [
-      menuKeys.dashboard,
       menuKeys.business1688Products,
       menuKeys.business1688ListingTasks,
       menuKeys.business1688Images,
@@ -368,7 +367,6 @@ const roleDefinitions = {
     platform: '1688',
     platformKeys: ['1688'],
     allowedMenuKeys: [
-      menuKeys.dashboard,
       menuKeys.business1688Products,
       menuKeys.business1688ListingTasks,
       menuKeys.business1688Images,
