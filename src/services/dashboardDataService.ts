@@ -54,7 +54,7 @@ function isOrderStore(value: unknown): value is TemuOrderImportStore {
 
 async function loadCompanyOrderStore(): Promise<TemuOrderImportStore> {
   const data = await fetchCompanyJson<unknown>(
-    `/api/persistent-data/orderImportStore?recentDays=${DASHBOARD_ORDER_RECENT_DAYS}`,
+    `/api/persistent-data/orderImportStore?view=dashboard-orders&recentDays=${DASHBOARD_ORDER_RECENT_DAYS}`,
     emptyOrderStore(),
   );
   return isOrderStore(data) ? data : emptyOrderStore();

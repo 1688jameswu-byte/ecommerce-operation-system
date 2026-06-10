@@ -2908,6 +2908,51 @@ function buildStoreBusinessOrderDaily(data, searchParams) {
   };
 }
 
+function buildDashboardOrderStore(data, searchParams) {
+  const { start, end } = resolveOrderDateRange(data, searchParams);
+  const temuStoreNames = new Set(getStores()
+    .filter((store) => store.platform === 'TEMU')
+    .map((store) => normalizeOrderImportStoreName(store.storeName || store.id))
+    .filter(Boolean));
+
+  return {
+    batches: (data?.batches ?? []).map((batch) => {
+      const orders = (batch.orders ?? [])
+        .filter((order) => {
+          const date = getOrderDateKey(order);
+          const storeName = normalizeOrderImportStoreName(order?.storeName);
+          return (!start || date >= start) &&
+            (!end || date <= end) &&
+            (!temuStoreNames.size || temuStoreNames.has(storeName));
+        })
+        .map((order) => ({
+          orderId: order?.orderId ?? '',
+          isFirstOrder: Boolean(order?.isFirstOrder),
+          skc: order?.skc ?? '',
+          skcCode: order?.skcCode ?? '',
+          skuCode: order?.skuCode ?? '',
+          productSku: order?.productSku ?? '',
+          productName: order?.productName ?? '',
+          declarePrice: Number(order?.declarePrice) || 0,
+          quantity: Number(order?.quantity) || 0,
+          orderTime: order?.orderTime ?? '',
+          orderDate: getOrderDateKey(order),
+          month: order?.month ?? String(getOrderDateKey(order)).slice(0, 7),
+          storeName: normalizeOrderImportStoreName(order?.storeName),
+          salesAmount: Number(order?.salesAmount) || 0,
+          uniqueKey: order?.uniqueKey ?? '',
+        }));
+
+      return {
+        batchId: batch?.batchId ?? batch?.id ?? '',
+        fileName: batch?.fileName ?? '',
+        importedAt: batch?.importedAt ?? '',
+        orders,
+      };
+    }).filter((batch) => batch.orders.length > 0),
+  };
+}
+
 function resolveTrafficDateRange(data, searchParams) {
   const start = searchParams.get('dateStart') || searchParams.get('startDate') || '';
   const end = searchParams.get('dateEnd') || searchParams.get('endDate') || '';
@@ -3070,6 +3115,10 @@ function buildStoreAveragePriceSummary(data, searchParams) {
 
 function filterOrderImportStoreByQuery(data, searchParams, currentUser) {
   const view = searchParams.get('view') || '';
+  if (view === 'dashboard-orders') {
+    return buildDashboardOrderStore(data, searchParams);
+  }
+
   if (view === 'store-business-daily') {
     return buildStoreBusinessOrderDaily(data, searchParams);
   }
