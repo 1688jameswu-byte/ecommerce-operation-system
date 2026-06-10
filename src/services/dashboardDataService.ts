@@ -60,6 +60,12 @@ async function loadCompanyOrderStore(): Promise<TemuOrderImportStore> {
   return isOrderStore(data) ? data : emptyOrderStore();
 }
 
+async function loadCompanyDashboardData(): Promise<DashboardData | null> {
+  const data = await fetchCompanyJson<DashboardData | { ok?: false }>('/api/dashboard/company', { ok: false });
+
+  return data && 'metrics' in data && Array.isArray(data.metrics) ? data : null;
+}
+
 function buildImportResult(store: TemuOrderImportStore): TemuOrderImportResult | null {
   const batches = store.batches;
 
@@ -349,6 +355,11 @@ function toStandardSalesOrders(store: TemuOrderImportStore, context: OrderOwnerC
 }
 
 async function buildDashboardData(): Promise<DashboardData> {
+  const companyDashboardData = await loadCompanyDashboardData();
+  if (companyDashboardData) {
+    return companyDashboardData;
+  }
+
   const [trafficWarnings, growthOpportunities, effectiveNewListings, orderStore, ownerContext] = await Promise.all([
     safeTrafficWarnings(),
     safeGrowthOpportunities(),

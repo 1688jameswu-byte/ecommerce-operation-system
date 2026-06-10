@@ -2953,6 +2953,237 @@ function buildDashboardOrderStore(data, searchParams) {
   };
 }
 
+const dashboardMetricFallbacks = {
+  yesterdaySalesAmount: { title: '最新订单日销售额', unit: '¥', iconType: 'sales', colorTheme: 'gold' },
+  monthlySalesAmount: { title: '本月销售额', unit: '¥', iconType: 'sales', colorTheme: 'blue' },
+  yesterdayOrderCount: { title: '最新订单日订单数', iconType: 'order', colorTheme: 'cyan' },
+  monthlyOrderCount: { title: '本月订单数', iconType: 'order', colorTheme: 'purple' },
+  storeCount: { title: '店铺数量', iconType: 'store', colorTheme: 'green' },
+  abnormalStoreCount: { title: '异常店铺数', iconType: 'warning', colorTheme: 'red' },
+};
+
+function normalizeDashboardOperatorName(value) {
+  return String(value ?? '').replace(/[\u0000-\u001f\u007f-\u009f\u00a0\u2000-\u200f\u202a-\u202e\ufeff]/g, '').trim();
+}
+
+function getDashboardOperatorKey(operatorId, operatorName) {
+  return normalizeDashboardOperatorName(operatorName) || String(operatorId ?? '').trim();
+}
+
+function dashboardRelationActiveOnDate(relation, date) {
+  return relation?.status === 'active' &&
+    relation?.role === 'primary' &&
+    (!relation.startDate || relation.startDate <= date) &&
+    (!relation.endDate || relation.endDate >= date);
+}
+
+function getDashboardDateFromOrder(order) {
+  return getOrderDateKey(order);
+}
+
+function getDashboardOrderSalesAmount(order) {
+  const salesAmount = Number(order?.salesAmount);
+  if (Number.isFinite(salesAmount) && salesAmount > 0) return salesAmount;
+  const declarePrice = Number(order?.declarePrice);
+  const quantity = Number(order?.quantity) || 0;
+  return Number.isFinite(declarePrice) ? declarePrice * quantity : 0;
+}
+
+function metricItem(id, value, overrides = {}) {
+  const fallback = dashboardMetricFallbacks[id] ?? {};
+  return {
+    id,
+    title: fallback.title ?? id,
+    value: Number((Number(value) || 0).toFixed(2)),
+    unit: fallback.unit,
+    compareText: '',
+    trend: 'flat',
+    iconType: fallback.iconType ?? 'sales',
+    colorTheme: fallback.colorTheme ?? 'blue',
+    ...overrides,
+  };
+}
+
+function buildDashboardRanking(entries, unit, limit = 10) {
+  return entries
+    .sort((first, second) => second[1] - first[1] || String(first[0]).localeCompare(String(second[0])))
+    .slice(0, limit)
+    .map(([name, value], index) => ({
+      rank: index + 1,
+      name,
+      value: Number((Number(value) || 0).toFixed(2)),
+      unit,
+      trend: 'flat',
+    }));
+}
+
+function buildCompanyDashboardData() {
+  const orderStore = readJsonFile('orderImportStore');
+  const allStores = Array.isArray(readJsonFile('stores')) ? readJsonFile('stores') : [];
+  const allRelations = Array.isArray(readJsonFile('storeOperatorRelations')) ? readJsonFile('storeOperatorRelations') : [];
+  const allOperators = Array.isArray(readJsonFile('operators')) ? readJsonFile('operators') : [];
+  const effectiveListings = Array.isArray(readJsonFile('effectiveNewListings')) ? readJsonFile('effectiveNewListings') : [];
+  const riskStore = readJsonFile('riskResults') || { items: [] };
+  const growthStore = readJsonFile('growthOpportunities') || { items: [] };
+  const stores = allStores.filter((store) => store?.platform === 'TEMU');
+  const storeIds = new Set(stores.map((store) => store.id).filter(Boolean));
+  const storeNames = new Set(stores.map((store) => normalizeOrderImportStoreName(store.storeName || store.id)).filter(Boolean));
+  const relations = allRelations.filter((relation) =>
+    relation?.platform === 'TEMU' ||
+    storeIds.has(relation?.storeId) ||
+    storeNames.has(normalizeOrderImportStoreName(relation?.storeName)),
+  );
+  const operatorIds = new Set(relations.map((relation) => relation.operatorId).filter(Boolean));
+  const operatorNames = new Set(relations.map((relation) => normalizeDashboardOperatorName(relation.operatorName)).filter(Boolean));
+  const operators = allOperators.filter((operator) =>
+    operatorIds.has(operator.id) || operatorNames.has(normalizeDashboardOperatorName(operator.operatorName)),
+  );
+  const operatorById = new Map(operators.map((operator) => [operator.id, operator]));
+  const latestImportedAt = (orderStore?.batches ?? []).map((batch) => batch.importedAt).filter(Boolean).sort().at(-1) || nowIso();
+  const orders = (orderStore?.batches ?? []).flatMap((batch) =>
+    (batch.orders ?? []).map((order) => {
+      const date = getDashboardDateFromOrder(order);
+      const storeName = normalizeOrderImportStoreName(order?.storeName);
+      if (!date || !storeNames.has(storeName)) return null;
+      const store = stores.find((item) => item.id === order?.storeId || normalizeOrderImportStoreName(item.storeName) === storeName);
+      const storeId = store?.id || order?.storeId || storeName;
+      const relation = relations.find((item) => dashboardRelationActiveOnDate(item, date) && (item.storeId === storeId || normalizeOrderImportStoreName(item.storeName) === storeName));
+      const operator = relation ? operatorById.get(relation.operatorId) : undefined;
+      const operatorName = operator?.operatorName || relation?.operatorName || '未绑定运营';
+      return {
+        ...order,
+        date,
+        month: order?.month || date.slice(0, 7),
+        storeId,
+        storeName: store?.storeName || storeName,
+        operatorId: relation?.operatorId || '未绑定运营',
+        operatorName,
+        salesAmount: getDashboardOrderSalesAmount(order),
+      };
+    }).filter(Boolean),
+  );
+  const reportDateKey = orders.map((order) => order.date).filter(Boolean).sort().at(-1) || formatOrderDateKey(new Date());
+  const reportDate = new Date(`${reportDateKey}T00:00:00`);
+  const currentMonth = reportDateKey.slice(0, 7);
+  const reportDateOrders = orders.filter((order) => order.date === reportDateKey);
+  const monthOrders = orders.filter((order) => order.month === currentMonth);
+  const sumSales = (items) => items.reduce((total, order) => total + getDashboardOrderSalesAmount(order), 0);
+  const sumQuantity = (items) => items.reduce((total, order) => total + (Number(order?.quantity) || 0), 0);
+  const groupSales = (items, getKey, getName, baseEntries = []) => {
+    const totals = new Map(baseEntries.map((item) => [item.key, { name: item.name, value: 0 }]));
+    for (const order of items) {
+      const key = getKey(order);
+      const current = totals.get(key) ?? { name: getName(order), value: 0 };
+      current.value += getDashboardOrderSalesAmount(order);
+      totals.set(key, current);
+    }
+    return Array.from(totals.values()).map((item) => [item.name, item.value]);
+  };
+  const operatorBase = operators.map((operator) => ({
+    key: getDashboardOperatorKey(operator.id, operator.operatorName),
+    name: normalizeDashboardOperatorName(operator.operatorName) || operator.id,
+  }));
+  const storeBase = stores.map((store) => ({ key: store.id || store.storeName, name: store.storeName || store.id }));
+  const dateKeys30 = Array.from({ length: 30 }, (_, index) => {
+    const date = new Date(reportDate);
+    date.setDate(reportDate.getDate() - (29 - index));
+    return formatOrderDateKey(date);
+  });
+  const salesTrend30Days = dateKeys30.map((date) => {
+    const dailyOrders = orders.filter((order) => order.date === date);
+    return { date: date.slice(5), salesAmount: Number(sumSales(dailyOrders).toFixed(2)), orderCount: dailyOrders.length };
+  });
+  const listingStoreIds = storeIds;
+  const listingStoreNames = storeNames;
+  const newProductGroups = new Map(operatorBase.map((item) => [item.key, { name: item.name, skcs: new Set() }]));
+  for (const item of effectiveListings) {
+    if (String(item?.siteJoinDate ?? '').slice(0, 7) !== currentMonth) continue;
+    if (!listingStoreIds.has(item?.storeId) && !listingStoreNames.has(normalizeOrderImportStoreName(item?.storeName))) continue;
+    const relation = relations.find((relation) => dashboardRelationActiveOnDate(relation, item.siteJoinDate) && (relation.storeId === item.storeId || normalizeOrderImportStoreName(relation.storeName) === normalizeOrderImportStoreName(item.storeName)));
+    const operator = relation ? operatorById.get(relation.operatorId) : undefined;
+    const key = getDashboardOperatorKey(operator?.id || relation?.operatorId || item?.operatorId || item?.createdBy, operator?.operatorName || relation?.operatorName || item?.operatorName || item?.createdByName);
+    const current = newProductGroups.get(key) ?? { name: normalizeDashboardOperatorName(operator?.operatorName || relation?.operatorName || item?.operatorName || item?.createdByName) || key, skcs: new Set() };
+    if (item?.skc) current.skcs.add(String(item.skc).trim().toLowerCase());
+    newProductGroups.set(key, current);
+  }
+  const firstOrderGroups = new Map(operatorBase.map((item) => [item.key, { name: item.name, products: new Set() }]));
+  for (const order of orders) {
+    if (!order?.isFirstOrder || order.month !== currentMonth) continue;
+    const productKey = String(order.skc || order.skcCode || order.productSku || order.skuCode || order.productName || order.uniqueKey || '').trim().toLowerCase();
+    if (!productKey) continue;
+    const key = getDashboardOperatorKey(order.operatorId, order.operatorName);
+    const current = firstOrderGroups.get(key) ?? { name: normalizeDashboardOperatorName(order.operatorName) || key, products: new Set() };
+    current.products.add(productKey);
+    firstOrderGroups.set(key, current);
+  }
+  const firstOrderTrendStores = [];
+  const firstOrderTrend30Days = dateKeys30.map((date) => ({ date: date.slice(5), firstOrderCount: orders.filter((order) => order.date === date && order.isFirstOrder).length }));
+  const warnings = (riskStore?.items ?? [])
+    .filter((item) => item?.level && item.level !== 'insufficient')
+    .slice(0, 5)
+    .map((item, index) => ({
+      id: item.id || `traffic-${index}`,
+      type: item.type || 'traffic',
+      storeName: item.storeName || '-',
+      content: item.content || '-',
+      time: String(item.triggeredAt || item.date || '').replace('T', ' ').slice(11, 16),
+      level: item.level === 'critical' ? 'critical' : 'high',
+    }));
+  const growthOpportunities = (growthStore?.items ?? []).slice(0, 5).map((item, index) => ({
+    id: item.id || `growth-${index}`,
+    type: item.type || 'traffic',
+    storeName: item.storeName || '-',
+    content: item.content || '-',
+    growthRate: Number(item.growthRate) || 0,
+  }));
+  const firstOrderDangerCount = firstOrderTrendStores.filter((item) => item.status === 'danger').length;
+
+  return {
+    updatedAt: String(latestImportedAt).replace('T', ' ').slice(0, 19),
+    dataSource: '真实数据',
+    statisticsPeriod: currentMonth,
+    metrics: [
+      metricItem('yesterdaySalesAmount', sumSales(reportDateOrders), { compareText: `订单日期 ${reportDateKey}` }),
+      metricItem('monthlySalesAmount', sumSales(monthOrders), { compareText: `${currentMonth} Excel订单明细` }),
+      metricItem('yesterdayOrderCount', sumQuantity(reportDateOrders), { compareText: `订单日期 ${reportDateKey}` }),
+      metricItem('monthlyOrderCount', sumQuantity(monthOrders), { compareText: `${currentMonth} Excel有效明细` }),
+      metricItem('storeCount', stores.length, { compareText: `TEMU店铺 ${stores.length}` }),
+      metricItem('abnormalStoreCount', firstOrderDangerCount, { compareText: '首单趋势风险' }),
+    ],
+    operatorSalesRanking: buildDashboardRanking(groupSales(monthOrders, (order) => getDashboardOperatorKey(order.operatorId, order.operatorName), (order) => order.operatorName, operatorBase), '¥', operatorBase.length || 10),
+    storeSalesRanking: buildDashboardRanking(groupSales(monthOrders, (order) => order.storeId || order.storeName, (order) => order.storeName, storeBase), '¥', storeBase.length || 10),
+    newProductRanking: buildDashboardRanking(Array.from(newProductGroups.values()).map((item) => [item.name, item.skcs.size]), '款', newProductGroups.size || 10),
+    firstOrderRanking: buildDashboardRanking(Array.from(firstOrderGroups.values()).map((item) => [item.name, item.products.size]), '款', firstOrderGroups.size || 10),
+    salesTrend30Days,
+    firstOrderTrendStores,
+    firstOrderTrend30Days,
+    storeStatus: { total: stores.length, normal: Math.max(stores.length - firstOrderDangerCount, 0), abnormal: firstOrderDangerCount, closed: 0 },
+    warnings,
+    growthOpportunities,
+  };
+}
+
+function handleCompanyDashboardApi(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+
+  if (req.method !== 'GET') {
+    res.statusCode = 405;
+    res.end(JSON.stringify({ ok: false, message: 'Method not allowed' }));
+    return;
+  }
+
+  try {
+    res.end(JSON.stringify(buildCompanyDashboardData()));
+  } catch (error) {
+    res.statusCode = 500;
+    res.end(JSON.stringify({
+      ok: false,
+      message: error instanceof Error ? error.message : String(error),
+    }));
+  }
+}
+
 function resolveTrafficDateRange(data, searchParams) {
   const start = searchParams.get('dateStart') || searchParams.get('startDate') || '';
   const end = searchParams.get('dateEnd') || searchParams.get('endDate') || '';
@@ -4234,6 +4465,7 @@ function localDataPlugin() {
       });
 
       server.middlewares.use('/api/auth/visible-stores', handleVisibleStoresApi);
+      server.middlewares.use('/api/dashboard/company', handleCompanyDashboardApi);
       server.middlewares.use('/api/alibaba-1688', (req, res) => handleAlibaba1688Api(req, res, {
         getCurrentUser: () => toCurrentUser(findCurrentUser(req)),
         readBody,
