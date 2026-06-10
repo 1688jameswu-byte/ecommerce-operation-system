@@ -14,6 +14,7 @@ const levelRank = { critical: 0, high: 1, medium: 2, low: 3 };
 const UNBOUND_OPERATOR = '未绑定运营';
 const COMPANY_DASHBOARD_SCOPE = 'scope=company-dashboard';
 const DASHBOARD_ORDER_RECENT_DAYS = 62;
+const DASHBOARD_PLATFORM = 'TEMU';
 let dashboardDataCache: DashboardData | null = null;
 let dashboardDataPromise: Promise<DashboardData> | null = null;
 
@@ -157,6 +158,8 @@ function buildEffectiveNewListingRanking(
   month = getCurrentMonthKey(),
 ): RankingItem[] {
   const grouped = new Map<string, { name: string; skcs: Set<string> }>();
+  const storeIds = new Set(context.stores.map((store) => store.id).filter(Boolean));
+  const storeNames = new Set(context.stores.map((store) => store.storeName).filter(Boolean));
 
   for (const operator of getVisibleOperators(context.operators)) {
     const key = getOperatorRankingKey(operator.id, operator.operatorName);
@@ -164,7 +167,10 @@ function buildEffectiveNewListingRanking(
   }
 
   items
-    .filter((item) => item.siteJoinDate.slice(0, 7) === month)
+    .filter((item) =>
+      item.siteJoinDate.slice(0, 7) === month &&
+      (storeIds.has(item.storeId) || storeNames.has(item.storeName || '')),
+    )
     .forEach((item) => {
       const owner = resolveEffectiveListingOwner(context, item);
       const skc = item.skc.trim();
@@ -234,15 +240,28 @@ function uniqueOperatorsByName(operators: OperatorRecord[]) {
 }
 
 async function buildOrderOwnerContext(): Promise<OrderOwnerContext> {
-  const [stores, relations, operators] = await Promise.all([
+  const [allStores, allRelations, operators] = await Promise.all([
     fetchCompanyJson<StoreRecord[]>('/api/stores', []),
     fetchCompanyJson<StoreOperatorRelation[]>('/api/store-operator-relations', []),
     fetchCompanyJson<OperatorRecord[]>('/api/operators', []),
   ]);
+  const stores = allStores.filter((store) => store.platform === DASHBOARD_PLATFORM);
+  const storeIds = new Set(stores.map((store) => store.id).filter(Boolean));
+  const storeNames = new Set(stores.map((store) => store.storeName).filter(Boolean));
+  const relations = allRelations.filter((relation) =>
+    relation.platform === DASHBOARD_PLATFORM ||
+    storeIds.has(relation.storeId) ||
+    storeNames.has(relation.storeName || ''),
+  );
+  const operatorIds = new Set(relations.map((relation) => relation.operatorId).filter(Boolean));
+  const operatorNames = new Set(relations.map((relation) => normalizeOperatorName(relation.operatorName)).filter(Boolean));
+  const dashboardOperators = operators.filter((operator) =>
+    operatorIds.has(operator.id) || operatorNames.has(normalizeOperatorName(operator.operatorName)),
+  );
   const matcher = createStoreMatcher(stores);
-  const operatorById = new Map(operators.map((operator) => [operator.id, operator]));
+  const operatorById = new Map(dashboardOperators.map((operator) => [operator.id, operator]));
 
-  return { stores, operators, matcher, relations, operatorById };
+  return { stores, operators: dashboardOperators, matcher, relations, operatorById };
 }
 
 function resolvePrimaryOwner(
@@ -319,8 +338,13 @@ function toSalesOrder(order: TemuOrderDetail & { batchId?: string }, context: Or
 }
 
 function toStandardSalesOrders(store: TemuOrderImportStore, context: OrderOwnerContext): SalesOrderRecord[] {
+  const storeIds = new Set(context.stores.map((item) => item.id).filter(Boolean));
+  const storeNames = new Set(context.stores.map((item) => item.storeName).filter(Boolean));
+
   return store.batches.flatMap((batch) =>
-    (batch.orders ?? []).map((order) => toSalesOrder({ ...order, batchId: batch.batchId }, context)),
+    (batch.orders ?? [])
+      .map((order) => toSalesOrder({ ...order, batchId: batch.batchId }, context))
+      .filter((order) => storeIds.has(order.storeId) || storeNames.has(order.storeName)),
   );
 }
 
