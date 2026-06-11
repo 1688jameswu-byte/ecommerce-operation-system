@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { alibaba1688DataSource, type Alibaba1688ProductStats } from '../../../data-source/alibaba1688DataSource';
 import type {
   Alibaba1688ImageRecord,
@@ -191,8 +192,8 @@ function ProductImagePreview({ src, name }: { src?: string; name: string }) {
   function showPreview(event: MouseEvent<HTMLSpanElement>) {
     if (!canPreview) return;
     const rect = event.currentTarget.getBoundingClientRect();
-    const left = Math.max(12, Math.min(rect.left, window.innerWidth - 312));
-    const top = Math.max(12, Math.min(rect.top, window.innerHeight - 312));
+    const left = Math.max(12, Math.min(rect.left, window.innerWidth - 532));
+    const top = Math.max(12, Math.min(rect.top, window.innerHeight - 532));
     setPreviewPosition({ left, top });
   }
 
@@ -200,13 +201,16 @@ function ProductImagePreview({ src, name }: { src?: string; name: string }) {
     <span className="alibaba-products-v1-image-preview" onMouseEnter={showPreview} onMouseLeave={() => setPreviewPosition(null)}>
       <ProductImage src={src} name={name} />
       {canPreview && previewPosition && (
-        <img
-          className="alibaba-products-v1-image-popover"
-          src={src}
-          alt={name || 'product image preview'}
-          loading="lazy"
-          style={{ left: previewPosition.left, top: previewPosition.top }}
-        />
+        createPortal(
+          <img
+            className="alibaba-products-v1-image-popover"
+            src={src}
+            alt={name || 'product image preview'}
+            loading="lazy"
+            style={{ left: previewPosition.left, top: previewPosition.top }}
+          />,
+          document.body,
+        )
       )}
     </span>
   );
@@ -945,7 +949,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
         </div>
       </section>
 
-      {detail && (
+      {detail && createPortal((
         <div className="alibaba-products-v1-modal-backdrop" role="dialog" aria-modal="true" aria-label="编辑产品">
           <section className="alibaba-products-v1-edit-modal">
             <header>
@@ -1042,7 +1046,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
             </section>
           </section>
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 }
