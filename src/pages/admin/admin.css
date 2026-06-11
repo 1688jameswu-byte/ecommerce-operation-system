@@ -6524,6 +6524,21 @@
   table-layout: fixed;
 }
 
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th:nth-child(1),
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table td:nth-child(1) {
+  width: 12%;
+}
+
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th:nth-child(2),
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table td:nth-child(2) {
+  width: 34%;
+}
+
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th:last-child,
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table td:last-child {
+  width: 76px;
+}
+
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th,
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table td {
   border-bottom-color: #1e3a5f;

@@ -167,7 +167,8 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string) {
 async function buildCroppedProductImageFile(file: File, fileNameBase: string) {
   const safeNameBase = sanitizeUploadFileNameBase(fileNameBase);
   const image = await loadImageElement(file);
-  const shouldResize = image.naturalWidth > 300 || image.naturalHeight > 300;
+  const targetSize = 800;
+  const shouldResize = image.naturalWidth > targetSize || image.naturalHeight > targetSize;
 
   if (!shouldResize) {
     return new File([file], `${safeNameBase}.${getFileExtension(file)}`, {
@@ -180,8 +181,8 @@ async function buildCroppedProductImageFile(file: File, fileNameBase: string) {
   const sourceX = Math.max(0, Math.floor((image.naturalWidth - sourceSize) / 2));
   const sourceY = Math.max(0, Math.floor((image.naturalHeight - sourceSize) / 2));
   const canvas = document.createElement('canvas');
-  canvas.width = 300;
-  canvas.height = 300;
+  canvas.width = targetSize;
+  canvas.height = targetSize;
   const context = canvas.getContext('2d');
   if (!context) {
     throw new Error('当前浏览器不支持图片裁剪，请更换浏览器后重试');
@@ -189,7 +190,7 @@ async function buildCroppedProductImageFile(file: File, fileNameBase: string) {
 
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = 'high';
-  context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, 300, 300);
+  context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, targetSize, targetSize);
 
   const blob = await canvasToBlob(canvas, 'image/png');
   if (!blob || blob.size === 0) {

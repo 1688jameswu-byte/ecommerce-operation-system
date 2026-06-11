@@ -523,7 +523,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     const previewUrl = URL.createObjectURL(file);
     setDetailImageEdit((current) => {
       if (current.previewUrl) URL.revokeObjectURL(current.previewUrl);
-      return { file, previewUrl, fileName: `${file.name}（保存时自动裁剪为 300×300）` };
+      return { file, previewUrl, fileName: `${file.name}（保存时自动裁剪为 800×800）` };
     });
     setError('');
   }
