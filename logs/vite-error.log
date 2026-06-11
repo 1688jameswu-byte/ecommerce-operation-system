@@ -2955,3 +2955,338 @@ F:/项目/TEMU运营数据大屏/src/pages/admin/routes.ts:18:35: ERROR: Untermi
       at TypeScriptParserMixin.allowInAnd (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12438:16)
       at TypeScriptParserMixin.parseMaybeAssignAllowIn (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:17)
       at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13401:91)
+[2m18:32:17[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\alibaba1688\Alibaba1688ProductsPage.tsx: Unexpected token, expected "," (1049:7)
+
+[0m [90m 1047 |[31m           [33m<[31m[33m/[31m[33msection[31m[33m>[31m
+ [90m 1048 |[31m         [33m<[31m[33m/[31m[33mdiv[31m[33m>[31m
+[31m[1m>[22m[31m[90m 1049 |[31m       )}
+ [90m      |[31m        [31m[1m^[22m[31m
+ [90m 1050 |[31m     [33m<[31m[33m/[31m[33mdiv[31m[33m>[31m
+ [90m 1051 |[31m   )[33m;[31m
+ [90m 1052 |[31m }[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[39m:1049:7
+[33m  1047 |            </section>
+  1048 |          </div>
+  1049 |        )}
+       |         ^
+  1050 |      </div>
+  1051 |    );[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.expect (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6916:12)
+      at TypeScriptParserMixin.parseCallExpressionArguments (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11260:14)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOpBaseRightExpr (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11003:34)
+      at TypeScriptParserMixin.parseExprOpRightExpr (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10998:21)
+      at TypeScriptParserMixin.parseExprOp (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10964:27)
+      at TypeScriptParserMixin.parseExprOp (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10801:23)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4644:31)
+      at TypeScriptParserMixin.jsxParseElementAt (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4723:36)
+      at TypeScriptParserMixin.jsxParseElement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10848:21)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9792:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11692:28)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11348:23)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11083:21)
+[2m18:32:37[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\alibaba1688\Alibaba1688ProductsPage.tsx: Unexpected token, expected "}" (214:22)
+
+[0m [90m 212 |[31m           document[33m.[31mbody[33m,[31m
+ [90m 213 |[31m         )
+[31m[1m>[22m[31m[90m 214 |[31m       )[33m,[31m document[33m.[31mbody)}
+ [90m     |[31m                       [31m[1m^[22m[31m
+ [90m 215 |[31m     [33m<[31m[33m/[31m[33mspan[31m[33m>[31m
+ [90m 216 |[31m   )[33m;[31m
+ [90m 217 |[31m }[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[39m:214:22
+[33m  212 |            document.body,
+  213 |          )
+  214 |        ), document.body)}
+      |                        ^
+  215 |      </span>
+  216 |    );[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.expect (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6916:12)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4649:10)
+      at TypeScriptParserMixin.jsxParseElementAt (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4723:36)
+      at TypeScriptParserMixin.jsxParseElement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10848:21)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9792:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11692:28)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11348:23)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10801:23)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseExpression (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseReturnStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13159:28)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12815:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+[2m18:33:25[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\alibaba1688\Alibaba1688ProductsPage.tsx: Unexpected token, expected "}" (737:22)
+
+[0m [90m 735 |[31m           {toast[33m.[31mmessage}
+ [90m 736 |[31m         [33m<[31m[33m/[31m[33mdiv[31m[33m>[31m
+[31m[1m>[22m[31m[90m 737 |[31m       )[33m,[31m document[33m.[31mbody)}
+ [90m     |[31m                       [31m[1m^[22m[31m
+ [90m 738 |[31m       [33m<[31m[33msection[31m className[33m=[31m[32m"alibaba-products-v1-main"[31m[33m>[31m
+ [90m 739 |[31m         [33m<[31m[33mheader[31m className[33m=[31m[32m"alibaba-products-v1-header"[31m[33m>[31m
+ [90m 740 |[31m           [33m<[31m[33mspan[31m aria[33m-[31mhidden[33m=[31m[32m"true"[31m [33m/[31m[33m>[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[39m:737:22
+[33m  735 |            {toast.message}
+  736 |          </div>
+  737 |        ), document.body)}
+      |                        ^
+  738 |        <section className="alibaba-products-v1-main">
+  739 |          <header className="alibaba-products-v1-header">[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.expect (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6916:12)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4649:10)
+      at TypeScriptParserMixin.jsxParseElementAt (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4723:36)
+      at TypeScriptParserMixin.jsxParseElement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10848:21)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9792:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11692:28)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11348:23)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10801:23)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseExpression (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseReturnStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13159:28)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12815:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+[2m18:34:11[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\alibaba1688\Alibaba1688ProductsPage.tsx: Unexpected token, expected "}" (737:22)
+
+[0m [90m 735 |[31m           {toast[33m.[31mmessage}
+ [90m 736 |[31m         [33m<[31m[33m/[31m[33mdiv[31m[33m>[31m
+[31m[1m>[22m[31m[90m 737 |[31m       )[33m,[31m document[33m.[31mbody)}
+ [90m     |[31m                       [31m[1m^[22m[31m
+ [90m 738 |[31m       [33m<[31m[33msection[31m className[33m=[31m[32m"alibaba-products-v1-main"[31m[33m>[31m
+ [90m 739 |[31m         [33m<[31m[33mheader[31m className[33m=[31m[32m"alibaba-products-v1-header"[31m[33m>[31m
+ [90m 740 |[31m           [33m<[31m[33mspan[31m aria[33m-[31mhidden[33m=[31m[32m"true"[31m [33m/[31m[33m>[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[39m:737:22
+[33m  735 |            {toast.message}
+  736 |          </div>
+  737 |        ), document.body)}
+      |                        ^
+  738 |        <section className="alibaba-products-v1-main">
+  739 |          <header className="alibaba-products-v1-header">[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.expect (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6916:12)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4649:10)
+      at TypeScriptParserMixin.jsxParseElementAt (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4723:36)
+      at TypeScriptParserMixin.jsxParseElement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10848:21)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9792:18)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11692:28)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11348:23)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10801:23)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseExpression (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseReturnStatement (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13159:28)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12815:21)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9189:18)
+[2m18:58:39[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\alibaba1688\Alibaba1688ProductsPage.tsx: Unterminated string constant. (63:34)
+
+[0m [90m 61 |[31m
+ [90m 62 |[31m [36mconst[31m productStatuses [33m=[31m [
+[31m[1m>[22m[31m[90m 63 |[31m   { value[33m:[31m [32m'missing_cost'[31m[33m,[31m label[33m:[31m [32m'待补充成�? },[31m
+ [90m    |[31m                                   [31m[1m^[22m[31m
+ [90m 64 |[31m   { value[33m:[31m [32m'pending_price'[31m[33m,[31m label[33m:[31m [32m'待定销售价'[31m }[33m,[31m
+ [90m 65 |[31m   { value[33m:[31m [32m'priced'[31m[33m,[31m label[33m:[31m [32m'已定�? },[31m
+ [90m 66 |[31m   { value[33m:[31m [32m'ready'[31m[33m,[31m label[33m:[31m [32m'可上�? },[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[39m:63:34
+[33m  61 |  
+  62 |  const productStatuses = [
+  63 |    { value: 'missing_cost', label: '待补充成�? },
+     |                                    ^
+  64 |    { value: 'pending_price', label: '待定销售价' },
+  65 |    { value: 'priced', label: '已定�? },[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at Object.unterminated (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:5681:20)
+      at readStringContents (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:5423:16)
+      at TypeScriptParserMixin.readString (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6515:9)
+      at TypeScriptParserMixin.getTokenFromCode (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6275:14)
+      at TypeScriptParserMixin.getTokenFromCode (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4809:11)
+      at TypeScriptParserMixin.getTokenFromCode (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10004:11)
+      at TypeScriptParserMixin.nextToken (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:5799:10)
+      at TypeScriptParserMixin.next (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:5709:10)
+      at TypeScriptParserMixin.eat (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:5713:12)
+      at TypeScriptParserMixin.parseObjectProperty (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11966:14)
+      at TypeScriptParserMixin.parseObjPropValue (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11995:100)
+      at TypeScriptParserMixin.parseObjPropValue (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9761:18)
+      at TypeScriptParserMixin.parsePropertyDefinition (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11932:17)
+      at TypeScriptParserMixin.parseObjectLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11849:21)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11356:23)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9803:20)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseExprList (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12167:22)
+      at TypeScriptParserMixin.parseArrayLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12074:26)
+      at TypeScriptParserMixin.parseArrayLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9210:24)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11352:23)
+      at TypeScriptParserMixin.parseExprAtom (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9803:20)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13401:91)

@@ -176,6 +176,23 @@ function pickImageUrl(images: Alibaba1688ImageRecord[] = []) {
     .find(Boolean) || '';
 }
 
+function latestImageUpdatedAt(images: Alibaba1688ImageRecord[] = []) {
+  return [...images]
+    .map((image) => image.updatedAt)
+    .filter(Boolean)
+    .sort()
+    .at(-1) || '';
+}
+
+function versionedImageUrl(src?: string, version?: string) {
+  const next = String(src ?? '').trim();
+  const cacheVersion = String(version ?? '').trim();
+  if (!isRenderableImageSource(next) || !cacheVersion || next.startsWith('data:') || next.startsWith('blob:')) {
+    return next;
+  }
+  return `${next}${next.includes('?') ? '&' : '?'}v=${encodeURIComponent(cacheVersion)}`;
+}
+
 function ProductImage({ src, name, large = false }: { src?: string; name: string; large?: boolean }) {
   const className = large ? 'alibaba-product-image alibaba-product-image-large' : 'alibaba-product-image';
   if (isRenderableImageSource(src)) {
@@ -289,7 +306,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     [categories],
   );
   const previewImageUrl = detail
-    ? (detailImageEdit.previewUrl || detail.mainImageUrl || pickImageUrl(detail.images))
+    ? (detailImageEdit.previewUrl || versionedImageUrl(detail.mainImageUrl || pickImageUrl(detail.images), latestImageUpdatedAt(detail.images) || detail.updatedAt))
     : '';
   const hasProductActions = permissions.canEditProductContent || permissions.canDeleteProduct;
   const canBulkBindSupplier = permissions.canEditPricing && permissions.canViewSupplier;
@@ -860,7 +877,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                     )}
                     <td>
                       <div className="alibaba-products-v1-product-cell">
-                        <ProductImagePreview src={product.mainImageUrl} name={product.productName} />
+                        <ProductImagePreview src={versionedImageUrl(product.mainImageUrl, product.latestUpdatedAt || product.updatedAt)} name={product.productName} />
                         <div>
                           <strong>{product.productName || '-'}</strong>
                           <span>{product.productCode || product.id.slice(0, 8)}</span>
