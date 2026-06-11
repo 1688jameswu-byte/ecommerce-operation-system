@@ -158,13 +158,13 @@ function loadImageElement(file: File) {
   });
 }
 
-function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
+function canvasToBlob(canvas: HTMLCanvasElement, type: string) {
   return new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, type, quality);
+    canvas.toBlob(resolve, type);
   });
 }
 
-async function buildCompressedProductImageFile(file: File, fileNameBase: string) {
+async function buildCroppedProductImageFile(file: File, fileNameBase: string) {
   const safeNameBase = sanitizeUploadFileNameBase(fileNameBase);
   const image = await loadImageElement(file);
   const shouldResize = image.naturalWidth > 300 || image.naturalHeight > 300;
@@ -184,25 +184,20 @@ async function buildCompressedProductImageFile(file: File, fileNameBase: string)
   canvas.height = 300;
   const context = canvas.getContext('2d');
   if (!context) {
-    throw new Error('当前浏览器不支持图片压缩，请更换浏览器后重试');
+    throw new Error('当前浏览器不支持图片裁剪，请更换浏览器后重试');
   }
 
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = 'high';
   context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, 300, 300);
 
-  let blob = await canvasToBlob(canvas, 'image/webp', 0.82);
-  let extension = 'webp';
-  let contentType = blob?.type || 'image/webp';
-  if (!blob || blob.size === 0 || contentType !== 'image/webp') {
-    blob = await canvasToBlob(canvas, 'image/jpeg', 0.86);
-    extension = 'jpg';
-    contentType = 'image/jpeg';
-  }
+  const blob = await canvasToBlob(canvas, 'image/png');
   if (!blob || blob.size === 0) {
-    throw new Error('图片压缩失败，请更换图片后重试');
+    throw new Error('图片裁剪失败，请更换图片后重试');
   }
 
-  return new File([blob], `${safeNameBase}.${extension}`, {
-    type: contentType,
+  return new File([blob], `${safeNameBase}.png`, {
+    type: 'image/png',
     lastModified: Date.now(),
   });
 }
@@ -223,7 +218,7 @@ export const alibaba1688DataSource = {
   },
   async uploadImage(file: File, fileNameBase?: string) {
     const uploadFile = fileNameBase
-      ? await buildCompressedProductImageFile(file, fileNameBase)
+      ? await buildCroppedProductImageFile(file, fileNameBase)
       : file;
     const dataUrl = await readFileAsDataUrl(uploadFile);
     const response = await fetch(`${apiBase}/upload-image`, {

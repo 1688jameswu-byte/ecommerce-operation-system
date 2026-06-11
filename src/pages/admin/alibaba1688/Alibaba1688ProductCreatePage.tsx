@@ -26,6 +26,7 @@ interface ProductCreateForm {
 const colorOptions = [
   { label: '钢色', suffix: 'S' },
   { label: '金色', suffix: 'G' },
+  { label: '白色', suffix: 'W' },
   { label: '玫瑰金', suffix: 'RG' },
   { label: '黑色', suffix: 'B' },
 ];
@@ -185,8 +186,8 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
       });
       setMainImageFile(file);
       setForm((current) => ({ ...current, mainImagePath: '' }));
-      setUploadedImageName(`${file.name}（提交时自动压缩为 300×300）`);
-      setMessage('主图已选择，提交产品时会按第一条 SKU 编号压缩上传。');
+      setUploadedImageName(`${file.name}（提交时自动裁剪为 300×300）`);
+      setMessage('主图已选择，提交产品时会按第一条 SKU 编号裁剪上传。');
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : '图片读取失败');
     } finally {

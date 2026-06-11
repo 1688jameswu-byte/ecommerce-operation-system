@@ -31,6 +31,12 @@ interface ProductPriceDraft {
   wholesalePrice: string;
 }
 
+interface ProductImageEditState {
+  file: File | null;
+  previewUrl: string;
+  fileName: string;
+}
+
 interface CreatorUserLookup {
   userId?: string;
   username?: string;
@@ -45,6 +51,8 @@ interface ProductToast {
   type: ProductToastType;
 }
 
+const UNBOUND_SUPPLIER_FILTER = '__unbound__';
+
 const productStatuses = [
   { value: 'missing_cost', label: '待补充成本' },
   { value: 'pending_price', label: '待定销售价' },
@@ -58,6 +66,7 @@ const productStatuses = [
 function getAlibaba1688ProductPermissions(currentUser: CurrentUser) {
   const role = String(currentUser?.role ?? '').toLowerCase();
   const isManager = role === 'admin' || role === 'leader';
+  const isAdmin = role === 'admin';
   const allowedMenus = new Set(currentUser.allowedMenuKeys ?? []);
   const operations = new Set(currentUser.operationPermissionKeys ?? []);
   const platforms = new Set(currentUser.platformKeys ?? []);
@@ -72,10 +81,12 @@ function getAlibaba1688ProductPermissions(currentUser: CurrentUser) {
 
   return {
     canSubmitProduct,
+    canEditProductContent: canSubmitProduct,
     canViewCost: isManager,
     canViewSupplier: isManager,
     canViewSalesPrice: true,
     canEditPricing: isManager,
+    canDeleteProduct: isAdmin,
   };
 }
 
@@ -244,9 +255,13 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   const [detailStatus, setDetailStatus] = useState('missing_cost');
   const [detailSupplierId, setDetailSupplierId] = useState('');
   const [detailRemark, setDetailRemark] = useState('');
+  const [detailImageEdit, setDetailImageEdit] = useState<ProductImageEditState>({ file: null, previewUrl: '', fileName: '' });
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [supplierFilter, setSupplierFilter] = useState('');
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [bulkSupplierId, setBulkSupplierId] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, ProductPriceDraft>>({});
@@ -260,10 +275,23 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     [categories],
   );
   const previewImageUrl = detail
-    ? (detail.mainImageUrl || pickImageUrl(detail.images))
+    ? (detailImageEdit.previewUrl || detail.mainImageUrl || pickImageUrl(detail.images))
     : '';
+  const hasProductActions = permissions.canEditProductContent || permissions.canDeleteProduct;
+  const canBulkBindSupplier = permissions.canEditPricing && permissions.canViewSupplier;
+  const productTableColumnCount = 6
+    + (permissions.canViewCost ? 2 : 0)
+    + (permissions.canViewSupplier ? 1 : 0)
+    + (hasProductActions ? 1 : 0)
+    + (canBulkBindSupplier ? 1 : 0);
+  const skuTableColumnCount = 3
+    + (permissions.canViewCost ? 2 : 0)
+    + (permissions.canViewSupplier ? 2 : 0)
+    + (permissions.canEditProductContent ? 1 : 0);
   const missingCostProducts = products.filter((product) => (product.missingCostCount ?? 0) > 0 || product.status === 'missing_cost' || product.status === 'draft').length;
   const pricedProducts = products.filter((product) => product.status === 'priced' || product.status === 'ready').length;
+  const visibleProductIds = useMemo(() => products.map((product) => product.id), [products]);
+  const allVisibleProductsSelected = visibleProductIds.length > 0 && visibleProductIds.every((id) => selectedProductIds.includes(id));
 
   async function loadReferenceData() {
     const [storePage, supplierPage, categoryPage] = await Promise.all([
@@ -303,10 +331,11 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     }
   }
 
-  async function loadProducts(overrides: Partial<{ keyword: string; status: string; categoryId: string }> = {}) {
+  async function loadProducts(overrides: Partial<{ keyword: string; status: string; categoryId: string; supplierId: string }> = {}) {
     const nextKeyword = overrides.keyword ?? keyword;
     const nextStatus = overrides.status ?? statusFilter;
     const nextCategory = overrides.categoryId ?? categoryFilter;
+    const nextSupplier = permissions.canViewSupplier ? (overrides.supplierId ?? supplierFilter) : '';
     setLoading(true);
     setError('');
     try {
@@ -316,6 +345,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
         keyword: nextKeyword.trim(),
         status: nextStatus,
         categoryId: nextCategory,
+        supplierId: nextSupplier,
       });
       setProducts(page.records);
       setPriceDrafts((current) => {
@@ -336,6 +366,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
         setSelectedProductId('');
         setDetail(null);
       }
+      setSelectedProductIds((current) => current.filter((id) => page.records.some((product) => product.id === id)));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : '产品库加载失败');
     } finally {
@@ -356,6 +387,10 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       setDetailStatus(nextDetail.status || 'missing_cost');
       setDetailSupplierId(nextDetail.supplierId || '');
       setDetailRemark(nextDetail.remark || '');
+      setDetailImageEdit((current) => {
+        if (current.previewUrl) URL.revokeObjectURL(current.previewUrl);
+        return { file: null, previewUrl: '', fileName: '' };
+      });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : '产品详情加载失败');
     } finally {
@@ -372,12 +407,16 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     setDetailStatus('missing_cost');
     setDetailSupplierId('');
     setDetailRemark('');
+    setDetailImageEdit((current) => {
+      if (current.previewUrl) URL.revokeObjectURL(current.previewUrl);
+      return { file: null, previewUrl: '', fileName: '' };
+    });
   }
 
   useEffect(() => {
     void loadReferenceData();
     void loadCreatorNames();
-    void loadProducts({ keyword: '', status: '', categoryId: '' });
+    void loadProducts({ keyword: '', status: '', categoryId: '', supplierId: '' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -395,7 +434,26 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     setKeyword('');
     setStatusFilter('');
     setCategoryFilter('');
-    void loadProducts({ keyword: '', status: '', categoryId: '' });
+    setSupplierFilter('');
+    void loadProducts({ keyword: '', status: '', categoryId: '', supplierId: '' });
+  }
+
+  function toggleProductSelection(productId: string, checked: boolean) {
+    setSelectedProductIds((current) => {
+      if (checked) {
+        return current.includes(productId) ? current : [...current, productId];
+      }
+      return current.filter((id) => id !== productId);
+    });
+  }
+
+  function toggleAllVisibleProducts(checked: boolean) {
+    setSelectedProductIds((current) => {
+      if (!checked) {
+        return current.filter((id) => !visibleProductIds.includes(id));
+      }
+      return Array.from(new Set([...current, ...visibleProductIds]));
+    });
   }
 
   function updatePricingRow(id: string, patch: Partial<PricingRow>) {
@@ -427,6 +485,61 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     }));
   }
 
+  function handleDetailImageFileChange(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('请选择图片文件');
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setDetailImageEdit((current) => {
+      if (current.previewUrl) URL.revokeObjectURL(current.previewUrl);
+      return { file, previewUrl, fileName: `${file.name}（保存时自动裁剪为 300×300）` };
+    });
+    setError('');
+  }
+
+  async function saveProductImage() {
+    if (!detail || !permissions.canEditProductContent || !detailImageEdit.file) return;
+    const firstSkuCode = pricingRows.find((row) => row.skuCode.trim())?.skuCode.trim() || detail.productCode || detail.id.slice(0, 8);
+    setSaving(true);
+    setMessage('');
+    setError('');
+    try {
+      const upload = await alibaba1688DataSource.uploadImage(detailImageEdit.file, firstSkuCode);
+      const existingMainImage = [...detail.images]
+        .sort((left, right) => {
+          const leftRank = left.isMain ? 0 : left.imageType === 'main_image' ? 1 : 2;
+          const rightRank = right.isMain ? 0 : right.imageType === 'main_image' ? 1 : 2;
+          return leftRank - rightRank || (left.sortOrder ?? 0) - (right.sortOrder ?? 0);
+        })[0];
+      const imagePayload: Partial<Alibaba1688ImageRecord> = {
+        productId: detail.id,
+        imageType: 'main_image',
+        imageStatus: 'ready',
+        isMain: true,
+        sortOrder: 0,
+        fileName: upload.fileName,
+        filePath: upload.filePath,
+        fileUrl: upload.fileUrl,
+      };
+      if (existingMainImage) {
+        await alibaba1688DataSource.images.update(existingMainImage.id, imagePayload);
+      } else {
+        await alibaba1688DataSource.images.create(imagePayload);
+      }
+      await loadDetail(detail.id);
+      await loadProducts();
+      showToast('保存成功');
+      setMessage('产品主图已保存。');
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : '产品主图保存失败');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function saveProductMeta() {
     if (!detail || !permissions.canEditPricing) return;
     setSaving(true);
@@ -452,24 +565,27 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   }
 
   async function saveSkuPricing(row: PricingRow) {
-    if (!permissions.canEditPricing) return;
+    if (!permissions.canEditProductContent) return;
     const purchasePrice = toNumber(row.purchasePrice);
     const wholesalePrice = toNumber(row.wholesalePrice);
-    if (isLossPrice(purchasePrice, wholesalePrice)) {
+    if (permissions.canEditPricing && isLossPrice(purchasePrice, wholesalePrice)) {
       showToast('亏本，亏本！', 'warning');
     }
     setSaving(true);
     setMessage('');
     setError('');
     try {
-      await alibaba1688DataSource.skus.update(row.id, {
+      const payload: Partial<Alibaba1688SkuRecord> = {
         color: row.color.trim(),
         skuCode: row.skuCode.trim(),
-        purchasePrice,
-        wholesalePrice,
-        supplierSkuCode: row.supplierSkuCode.trim(),
-        remark: row.remark.trim(),
-      });
+      };
+      if (permissions.canEditPricing) {
+        payload.purchasePrice = purchasePrice;
+        payload.wholesalePrice = wholesalePrice;
+        payload.supplierSkuCode = row.supplierSkuCode.trim();
+        payload.remark = row.remark.trim();
+      }
+      await alibaba1688DataSource.skus.update(row.id, payload);
       if (detail) await loadDetail(detail.id);
       await loadProducts();
       showToast('保存成功');
@@ -526,6 +642,82 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     }
   }
 
+  async function bindSelectedProductsToSupplier() {
+    if (!canBulkBindSupplier) return;
+    if (selectedProductIds.length === 0) {
+      setError('请先选择需要绑定供应商的产品。');
+      return;
+    }
+    if (!bulkSupplierId) {
+      setError('请选择要绑定的供应商。');
+      return;
+    }
+
+    const supplier = suppliers.find((item) => item.id === bulkSupplierId);
+    const supplierName = supplier?.supplierName || '所选供应商';
+    if (!window.confirm(`确认将 ${selectedProductIds.length} 个产品绑定到「${supplierName}」吗？`)) {
+      return;
+    }
+
+    setSaving(true);
+    setMessage('');
+    setError('');
+    try {
+      const results = await Promise.allSettled(
+        selectedProductIds.map((productId) => alibaba1688DataSource.products.update(productId, {
+          supplierId: bulkSupplierId,
+        } as Partial<Alibaba1688ProductRecord>)),
+      );
+      const successCount = results.filter((result) => result.status === 'fulfilled').length;
+      const failedCount = results.length - successCount;
+      setSelectedProductIds([]);
+      setBulkSupplierId('');
+      await loadProducts();
+      if (failedCount > 0) {
+        setError(`已成功绑定 ${successCount} 个产品，${failedCount} 个产品绑定失败，请稍后重试。`);
+      } else {
+        showToast('批量绑定成功');
+        setMessage(`已将 ${successCount} 个产品绑定到「${supplierName}」。`);
+      }
+    } catch (bindError) {
+      setError(bindError instanceof Error ? bindError.message : '批量绑定供应商失败');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeProduct(product: Alibaba1688ProductRecord) {
+    if (!permissions.canDeleteProduct) {
+      setError('当前账号无权删除产品。');
+      return;
+    }
+    const productName = product.productName || product.productCode || product.id.slice(0, 8);
+    if (!window.confirm(`确认删除产品“${productName}”？删除后会同时删除该产品的 SKU、图片素材记录和上架任务。`)) {
+      return;
+    }
+
+    setSaving(true);
+    setMessage('');
+    setError('');
+    try {
+      const productDetail = await alibaba1688DataSource.products.loadDetail(product.id);
+      await Promise.all(productDetail.listingTasks.map((task) => alibaba1688DataSource.listingTasks.remove(task.id)));
+      await Promise.all(productDetail.images.map((image) => alibaba1688DataSource.images.remove(image.id)));
+      await Promise.all(productDetail.skus.map((sku) => alibaba1688DataSource.skus.remove(sku.id)));
+      await alibaba1688DataSource.products.remove(product.id);
+      if (selectedProductId === product.id) {
+        closeDetailModal();
+      }
+      await loadProducts();
+      showToast('删除成功');
+      setMessage('产品已删除。');
+    } catch (removeError) {
+      setError(removeError instanceof Error ? removeError.message : '产品删除失败');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="alibaba-products-v1-page">
       {toast && (
@@ -563,14 +755,57 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
             <option value="">全部类目</option>
             {categories.map((category) => <option key={category.id} value={category.settingKey}>{settingLabel(category)}</option>)}
           </select>
+          {permissions.canViewSupplier && (
+            <select value={supplierFilter} onChange={(event) => setSupplierFilter(event.target.value)}>
+              <option value="">全部供应商</option>
+              <option value={UNBOUND_SUPPLIER_FILTER}>未绑定供应商</option>
+              {suppliers.map((supplier) => (
+                <option key={supplier.id} value={supplier.id}>{supplier.supplierName}</option>
+              ))}
+            </select>
+          )}
           <button type="button" onClick={() => void loadProducts()} disabled={loading}>筛选</button>
           <button type="button" onClick={resetFilters} disabled={loading}>重置</button>
         </div>
+
+        {canBulkBindSupplier && (
+          <div className="alibaba-products-v1-bulk-toolbar">
+            <span>已选 {selectedProductIds.length} 个产品</span>
+            <select value={bulkSupplierId} onChange={(event) => setBulkSupplierId(event.target.value)}>
+              <option value="">选择供应商</option>
+              {suppliers.map((supplier) => (
+                <option key={supplier.id} value={supplier.id}>{supplier.supplierName}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => void bindSelectedProductsToSupplier()}
+              disabled={saving || selectedProductIds.length === 0 || !bulkSupplierId}
+            >
+              批量绑定供应商
+            </button>
+            {selectedProductIds.length > 0 && (
+              <button type="button" onClick={() => setSelectedProductIds([])} disabled={saving}>
+                清空选择
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="alibaba-products-v1-table-wrap">
           <table className="alibaba-products-v1-table">
             <thead>
               <tr>
+                {canBulkBindSupplier && (
+                  <th className="alibaba-products-v1-select-col">
+                    <input
+                      type="checkbox"
+                      checked={allVisibleProductsSelected}
+                      onChange={(event) => toggleAllVisibleProducts(event.target.checked)}
+                      aria-label="选择当前页产品"
+                    />
+                  </th>
+                )}
                 <th>产品</th>
                 <th>颜色 SKU</th>
                 <th>销售价</th>
@@ -580,7 +815,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                 <th>状态</th>
                 <th>创建人</th>
                 <th>最近更新</th>
-                {permissions.canEditPricing && <th>操作</th>}
+                {hasProductActions && <th>操作</th>}
               </tr>
             </thead>
             <tbody>
@@ -592,6 +827,16 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                 const draft = priceDrafts[product.id] ?? { purchasePrice: '', supplierId: product.supplierId || '', wholesalePrice: '' };
                 return (
                   <tr key={product.id}>
+                    {canBulkBindSupplier && (
+                      <td className="alibaba-products-v1-select-col">
+                        <input
+                          type="checkbox"
+                          checked={selectedProductIds.includes(product.id)}
+                          onChange={(event) => toggleProductSelection(product.id, event.target.checked)}
+                          aria-label={`选择 ${product.productName || product.productCode || product.id}`}
+                        />
+                      </td>
+                    )}
                     <td>
                       <div className="alibaba-products-v1-product-cell">
                         <ProductImagePreview src={product.mainImageUrl} name={product.productName} />
@@ -641,31 +886,45 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                     <td><span className={`alibaba-status-badge status-${product.status || 'missing_cost'}`}>{statusLabel(product.status)}</span></td>
                     <td>{formatCreatorName(product.createdBy, currentUser, creatorNameByKey)}</td>
                     <td>{formatDateTime(product.latestUpdatedAt || product.updatedAt)}</td>
-                    {permissions.canEditPricing && (
+                    {hasProductActions && (
                       <td>
-                        <button
-                          type="button"
-                          className="alibaba-products-v1-save-price"
-                          onClick={() => void saveProductPrices(product)}
-                          disabled={saving}
-                        >
-                          保存
-                        </button>
-                        <button
-                          type="button"
-                          className="alibaba-products-v1-edit"
-                          onClick={() => void loadDetail(product.id)}
-                          disabled={loading}
-                        >
-                          编辑
-                        </button>
+                        {permissions.canEditPricing && (
+                          <button
+                            type="button"
+                            className="alibaba-products-v1-save-price"
+                            onClick={() => void saveProductPrices(product)}
+                            disabled={saving}
+                          >
+                            保存
+                          </button>
+                        )}
+                        {permissions.canEditProductContent && (
+                          <button
+                            type="button"
+                            className="alibaba-products-v1-edit"
+                            onClick={() => void loadDetail(product.id)}
+                            disabled={loading}
+                          >
+                            编辑
+                          </button>
+                        )}
+                        {permissions.canDeleteProduct && (
+                          <button
+                            type="button"
+                            className="alibaba-products-v1-delete"
+                            onClick={() => void removeProduct(product)}
+                            disabled={saving}
+                          >
+                            删除
+                          </button>
+                        )}
                       </td>
                     )}
                   </tr>
                 );
               })}
               {!loading && products.length === 0 && (
-                <tr><td colSpan={permissions.canEditPricing ? 10 : 6}>暂无产品数据。</td></tr>
+                <tr><td colSpan={productTableColumnCount}>暂无产品数据。</td></tr>
               )}
             </tbody>
           </table>
@@ -684,7 +943,26 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
             </header>
 
             <section className="alibaba-products-v1-edit-basic">
-              <ProductImage src={previewImageUrl} name={detail.productName} large />
+              <div className="alibaba-products-v1-edit-image-panel">
+                <ProductImage src={previewImageUrl} name={detail.productName} large />
+                {permissions.canEditProductContent && (
+                  <div className="alibaba-products-v1-image-actions">
+                    <label>
+                      选择新主图
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        onChange={(event) => handleDetailImageFileChange(event.target.files?.[0])}
+                        disabled={saving}
+                      />
+                    </label>
+                    <span>{detailImageEdit.fileName || '未选择新主图'}</span>
+                    <button type="button" onClick={() => void saveProductImage()} disabled={saving || !detailImageEdit.file}>
+                      保存主图
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="alibaba-products-v1-admin-form">
                 <label>
                   产品名称
@@ -718,7 +996,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
             </section>
 
             <section className="alibaba-products-v1-sku-panel">
-              <h4>{permissions.canEditPricing ? '颜色 SKU 定价' : '颜色 SKU'}</h4>
+              <h4>{permissions.canEditPricing ? '颜色 SKU 定价' : '颜色 SKU 信息'}</h4>
               <div className="alibaba-products-v1-sku-table-wrap">
                 <table className="alibaba-products-v1-sku-table">
                   <thead>
@@ -730,23 +1008,23 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                       {permissions.canViewCost && <th>毛利率</th>}
                       {permissions.canViewSupplier && <th>供应商货号</th>}
                       {permissions.canViewSupplier && <th>管理备注</th>}
-                      {permissions.canEditPricing && <th>操作</th>}
+                      {permissions.canEditProductContent && <th>操作</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {pricingRows.map((row) => (
                       <tr key={row.id}>
-                        <td>{permissions.canEditPricing ? <input value={row.color} onChange={(event) => updatePricingRow(row.id, { color: event.target.value })} /> : row.color || '-'}</td>
-                        <td>{permissions.canEditPricing ? <input value={row.skuCode} onChange={(event) => updatePricingRow(row.id, { skuCode: event.target.value })} /> : row.skuCode || '-'}</td>
+                        <td>{permissions.canEditProductContent ? <input value={row.color} onChange={(event) => updatePricingRow(row.id, { color: event.target.value })} /> : row.color || '-'}</td>
+                        <td>{permissions.canEditProductContent ? <input value={row.skuCode} onChange={(event) => updatePricingRow(row.id, { skuCode: event.target.value })} /> : row.skuCode || '-'}</td>
                         {permissions.canViewCost && <td><input value={row.purchasePrice} onChange={(event) => updatePricingRow(row.id, { purchasePrice: event.target.value })} disabled={!permissions.canEditPricing} /></td>}
                         {permissions.canViewSalesPrice && <td><input value={row.wholesalePrice} onChange={(event) => updatePricingRow(row.id, { wholesalePrice: event.target.value })} disabled={!permissions.canEditPricing} /></td>}
                         {permissions.canViewCost && <td>{calculateMargin(toNumber(row.purchasePrice), toNumber(row.wholesalePrice))}</td>}
                         {permissions.canViewSupplier && <td><input value={row.supplierSkuCode} onChange={(event) => updatePricingRow(row.id, { supplierSkuCode: event.target.value })} disabled={!permissions.canEditPricing} /></td>}
                         {permissions.canViewSupplier && <td><input value={row.remark} onChange={(event) => updatePricingRow(row.id, { remark: event.target.value })} disabled={!permissions.canEditPricing} /></td>}
-                        {permissions.canEditPricing && <td><button type="button" onClick={() => void saveSkuPricing(row)} disabled={saving}>保存</button></td>}
+                        {permissions.canEditProductContent && <td><button type="button" onClick={() => void saveSkuPricing(row)} disabled={saving}>保存</button></td>}
                       </tr>
                     ))}
-                    {pricingRows.length === 0 && <tr><td colSpan={permissions.canEditPricing ? 8 : 2}>暂无颜色 SKU。</td></tr>}
+                    {pricingRows.length === 0 && <tr><td colSpan={skuTableColumnCount}>暂无颜色 SKU。</td></tr>}
                   </tbody>
                 </table>
               </div>

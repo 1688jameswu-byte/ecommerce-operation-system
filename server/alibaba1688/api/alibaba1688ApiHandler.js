@@ -378,7 +378,11 @@ function buildProductWhere(params = {}, currentUser) {
   }
 
   if (params.supplierId) {
-    clauses.push(`p.supplier_id::text = ${addParam(params.supplierId)}`);
+    if (String(params.supplierId) === '__unbound__') {
+      clauses.push('p.supplier_id IS NULL');
+    } else {
+      clauses.push(`p.supplier_id::text = ${addParam(params.supplierId)}`);
+    }
   }
 
   if (params.storeId) {
@@ -1115,6 +1119,9 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
     if (req.method === 'DELETE' && id) {
       if (!requireAlibaba1688ResourceWriter(res, currentUser, resource)) {
         return;
+      }
+      if (resource === 'products' && String(currentUser?.role ?? '').toLowerCase() !== 'admin') {
+        throw createForbiddenError('只有管理员可以删除产品');
       }
       sendJson(res, 200, { ok: await repository.remove(id) });
       return;
