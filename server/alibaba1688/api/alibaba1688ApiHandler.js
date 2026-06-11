@@ -385,6 +385,10 @@ function buildProductWhere(params = {}, currentUser) {
     }
   }
 
+  if (params.createdBy) {
+    clauses.push(`p.created_by = ${addParam(params.createdBy)}`);
+  }
+
   if (params.storeId) {
     clauses.push(`p.store_id::text = ${addParam(params.storeId)}`);
   }

@@ -44,6 +44,11 @@ interface CreatorUserLookup {
   displayName?: string;
 }
 
+interface CreatorFilterOption {
+  value: string;
+  label: string;
+}
+
 type ProductToastType = 'success' | 'warning';
 
 interface ProductToast {
@@ -261,6 +266,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [supplierFilter, setSupplierFilter] = useState('');
+  const [creatorFilter, setCreatorFilter] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [bulkSupplierId, setBulkSupplierId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -293,6 +299,24 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   const pricedProducts = products.filter((product) => product.status === 'priced' || product.status === 'ready').length;
   const visibleProductIds = useMemo(() => products.map((product) => product.id), [products]);
   const allVisibleProductsSelected = visibleProductIds.length > 0 && visibleProductIds.every((id) => selectedProductIds.includes(id));
+  const creatorFilterOptions = useMemo(() => {
+    const optionByValue = new Map<string, CreatorFilterOption>();
+    for (const product of products) {
+      const value = String(product.createdBy ?? '').trim();
+      if (!value || optionByValue.has(value)) continue;
+      optionByValue.set(value, {
+        value,
+        label: formatCreatorName(value, currentUser, creatorNameByKey),
+      });
+    }
+    if (creatorFilter && !optionByValue.has(creatorFilter)) {
+      optionByValue.set(creatorFilter, {
+        value: creatorFilter,
+        label: formatCreatorName(creatorFilter, currentUser, creatorNameByKey),
+      });
+    }
+    return Array.from(optionByValue.values()).sort((left, right) => left.label.localeCompare(right.label, 'zh-CN'));
+  }, [creatorFilter, creatorNameByKey, currentUser, products]);
 
   async function loadReferenceData() {
     const [storePage, supplierPage, categoryPage] = await Promise.all([
@@ -332,11 +356,12 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     }
   }
 
-  async function loadProducts(overrides: Partial<{ keyword: string; status: string; categoryId: string; supplierId: string }> = {}) {
+  async function loadProducts(overrides: Partial<{ keyword: string; status: string; categoryId: string; supplierId: string; createdBy: string }> = {}) {
     const nextKeyword = overrides.keyword ?? keyword;
     const nextStatus = overrides.status ?? statusFilter;
     const nextCategory = overrides.categoryId ?? categoryFilter;
     const nextSupplier = permissions.canViewSupplier ? (overrides.supplierId ?? supplierFilter) : '';
+    const nextCreator = permissions.canEditPricing ? (overrides.createdBy ?? creatorFilter) : '';
     setLoading(true);
     setError('');
     try {
@@ -347,6 +372,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
         status: nextStatus,
         categoryId: nextCategory,
         supplierId: nextSupplier,
+        createdBy: nextCreator,
       });
       setProducts(page.records);
       setPriceDrafts((current) => {
@@ -417,7 +443,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   useEffect(() => {
     void loadReferenceData();
     void loadCreatorNames();
-    void loadProducts({ keyword: '', status: '', categoryId: '', supplierId: '' });
+    void loadProducts({ keyword: '', status: '', categoryId: '', supplierId: '', createdBy: '' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -436,7 +462,8 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     setStatusFilter('');
     setCategoryFilter('');
     setSupplierFilter('');
-    void loadProducts({ keyword: '', status: '', categoryId: '', supplierId: '' });
+    setCreatorFilter('');
+    void loadProducts({ keyword: '', status: '', categoryId: '', supplierId: '', createdBy: '' });
   }
 
   function toggleProductSelection(productId: string, checked: boolean) {
@@ -740,6 +767,14 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
               <option value={UNBOUND_SUPPLIER_FILTER}>未绑定供应商</option>
               {suppliers.map((supplier) => (
                 <option key={supplier.id} value={supplier.id}>{supplier.supplierName}</option>
+              ))}
+            </select>
+          )}
+          {permissions.canEditPricing && (
+            <select value={creatorFilter} onChange={(event) => setCreatorFilter(event.target.value)}>
+              <option value="">全部创建人</option>
+              {creatorFilterOptions.map((creator) => (
+                <option key={creator.value} value={creator.value}>{creator.label}</option>
               ))}
             </select>
           )}

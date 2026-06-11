@@ -6020,7 +6020,7 @@
 
 .alibaba-products-v1-toolbar {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) repeat(3, minmax(140px, 180px)) auto auto;
+  grid-template-columns: minmax(240px, 1fr) repeat(4, minmax(140px, 180px)) auto auto;
   gap: 10px;
   margin-bottom: 12px;
 }
@@ -6391,9 +6391,11 @@
 .alibaba-products-v1-edit-modal {
   display: grid;
   gap: 16px;
-  width: min(1120px, 100%);
+  box-sizing: border-box;
+  width: min(1280px, calc(100vw - 48px));
   max-height: calc(100vh - 48px);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid #2b517d;
   border-radius: 10px;
   background: #071427;
@@ -6493,6 +6495,7 @@
 .alibaba-products-v1-edit-modal .alibaba-products-v1-admin-form select,
 .alibaba-products-v1-edit-modal .alibaba-products-v1-admin-form textarea,
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table input {
+  width: 100%;
   border-color: #2b517d;
   background: #081a30;
   color: #ffffff;
@@ -6508,12 +6511,24 @@
 
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-panel {
   border-top-color: #1e3a5f;
+  min-width: 0;
+}
+
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table-wrap {
+  overflow: visible;
+  min-width: 0;
+}
+
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table {
+  min-width: 0;
+  table-layout: fixed;
 }
 
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th,
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table td {
   border-bottom-color: #1e3a5f;
   color: #ffffff;
+  overflow-wrap: anywhere;
 }
 
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th {
@@ -6532,6 +6547,28 @@
   border-radius: 8px;
   background: #071427;
   padding: 14px;
+}
+
+@media (max-width: 760px) {
+  .alibaba-products-v1-modal-backdrop {
+    padding: 12px;
+  }
+
+  .alibaba-products-v1-edit-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    padding: 14px;
+  }
+
+  .alibaba-products-v1-edit-basic,
+  .alibaba-products-v1-admin-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .alibaba-products-v1-edit-image-panel,
+  .alibaba-products-v1-edit-modal .alibaba-product-image-large {
+    width: 100%;
+  }
 }
 
 .alibaba-products-v1-detail header {
