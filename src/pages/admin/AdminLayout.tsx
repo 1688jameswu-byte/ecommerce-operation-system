@@ -28,6 +28,7 @@ const TaskCenterPage = lazy(() => import('./task-center/TaskCenterPage'));
 const TaskSuggestionsPage = lazy(() => import('./task-suggestions/TaskSuggestionsPage'));
 const AIImagePromptCenterPage = lazy(() => import('./ai-image-prompts/AIImagePromptCenterPage'));
 const Alibaba1688ProductsPage = lazy(() => import('./alibaba1688/Alibaba1688ProductsPage'));
+const Alibaba1688ProductCreatePage = lazy(() => import('./alibaba1688/Alibaba1688ProductCreatePage'));
 const Alibaba1688ListingTasksPage = lazy(() => import('./alibaba1688/Alibaba1688ListingTasksPage'));
 const Alibaba1688ImagesPage = lazy(() => import('./alibaba1688/Alibaba1688ImagesPage'));
 const Alibaba1688SuppliersPage = lazy(() => import('./alibaba1688/Alibaba1688SuppliersPage'));
@@ -432,7 +433,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
     (route.menuKey === menuKeys.aiImagePromptCenter && allowedMenuKeys.has(menuKeys.operationLoop))
   );
   const visibleAdminRoutes = adminRoutes.filter(canAccessRoute);
-  const menuAdminRoutes = visibleAdminRoutes.filter((route) => route.path !== '/admin/operator-performance');
+  const menuAdminRoutes = visibleAdminRoutes.filter((route) => route.path !== '/admin/operator-performance' && !route.hideInMenu);
   const hasAnyMenuPermission = currentUser.role === 'admin' || visibleAdminRoutes.length > 0;
   const activeRoute = canAccessRoute(requestedRoute) ? requestedRoute : visibleAdminRoutes[0] ?? requestedRoute;
   const canAccessActiveRoute = canAccessRoute(activeRoute);
@@ -464,6 +465,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const isTaskSuggestionsPage = activeRoute.path === '/admin/task-suggestions';
   const isAIImagePromptCenterPage = activeRoute.path === '/admin/ai-image-prompts';
   const isAlibaba1688ProductsPage = activeRoute.path === '/admin/1688-business/products';
+  const isAlibaba1688ProductCreatePage = activeRoute.path === '/admin/1688-business/products/new';
   const isAlibaba1688ListingTasksPage = activeRoute.path === '/admin/1688-business/listing-tasks';
   const isAlibaba1688ImagesPage = activeRoute.path === '/admin/1688-business/images';
   const isAlibaba1688SuppliersPage = activeRoute.path === '/admin/1688-business/suppliers';
@@ -618,6 +620,8 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
             <TaskSuggestionsPage />
           ) : isAIImagePromptCenterPage ? (
             <AIImagePromptCenterPage currentUser={currentUser} />
+          ) : isAlibaba1688ProductCreatePage ? (
+            <Alibaba1688ProductCreatePage currentUser={currentUser} />
           ) : isAlibaba1688ProductsPage ? (
             <Alibaba1688ProductsPage currentUser={currentUser} />
           ) : isAlibaba1688ListingTasksPage ? (

@@ -9,6 +9,7 @@ export interface AdminRoute {
   parentMenuKey?: MenuKey;
   menuSection?: string;
   isPlaceholder?: boolean;
+  hideInMenu?: boolean;
 }
 
 export const adminRoutes: AdminRoute[] = [
@@ -149,6 +150,15 @@ export const adminRoutes: AdminRoute[] = [
     label: '产品库',
     group: '1688业务',
     description: '维护 1688 产品资料和 SKU，图片、供应商和上架任务后续分模块处理。',
+  },
+  {
+    path: '/admin/1688-business/products/new',
+    menuKey: menuKeys.business1688Products,
+    parentMenuKey: menuKeys.business1688Center,
+    label: '新增商品',
+    group: '1688业务',
+    description: '分步骤新增 1688 商品资料、SKU、图片路径和上架基础信息。',
+    hideInMenu: true,
   },
   {
     path: '/admin/1688-business/listing-tasks',

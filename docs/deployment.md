@@ -27,6 +27,11 @@
 | `DATA_DIR` | `./data` | 数据根目录 |
 | `DATABASE_PATH` | `./data/database.sqlite` | 后续数据库文件位置 |
 | `BACKUP_DIR` | `./data/backup` | 数据备份目录 |
+| `DATABASE_URL` | `postgresql://.../ecommerce_ops` | 1688业务 PostgreSQL 连接，仅服务端使用 |
+| `DATABASE_SSL` | `false` | 1688业务 PostgreSQL 是否启用 SSL |
+| `BACKUP_1688_DIR` | `/data/ecommerce-ops/backups/alibaba-1688` | 1688数据库和图片备份目录 |
+| `UPLOADS_1688_DIR` | `/data/ecommerce-ops/uploads/alibaba-1688` | 1688产品图片持久化目录 |
+| `PG_DUMP_PATH` | `/usr/bin/pg_dump` | 可选，PostgreSQL client 的 pg_dump 路径 |
 | `SESSION_SECRET` | `replace-with-a-long-random-string` | 会话密钥，生产环境需替换 |
 
 ## 4. 安装依赖
@@ -80,7 +85,7 @@ server {
 
 ## 9. 数据备份方法
 
-命令行备份：
+旧 JSON 数据备份：
 
 ```bash
 npm run backup
@@ -89,6 +94,40 @@ npm run backup
 默认会把 `DATA_DIR` 下的数据复制到 `BACKUP_DIR/backup-YYYY-MM-DD-HHMMSS/`，不删除原始数据。
 
 应用内备份接口也会使用同一个 `BACKUP_DIR`。
+
+1688业务数据备份：
+
+```bash
+npm run backup:1688-db
+```
+
+该命令会备份：
+
+- PostgreSQL 数据库 `ecommerce_ops`
+- 1688上传图片目录，默认 `public/uploads/alibaba-1688`，生产建议设置为 `UPLOADS_1688_DIR`
+
+全量备份命令：
+
+```bash
+npm run backup:all
+```
+
+腾讯云建议把可写数据放在项目目录外，避免发版覆盖：
+
+```bash
+DATA_DIR=/data/ecommerce-ops/data
+BACKUP_DIR=/data/ecommerce-ops/backups/json
+BACKUP_1688_DIR=/data/ecommerce-ops/backups/alibaba-1688
+UPLOADS_1688_DIR=/data/ecommerce-ops/uploads/alibaba-1688
+```
+
+每天 02:30 定时备份示例：
+
+```bash
+30 2 * * * cd /www/wwwroot/ecommerce-ops && /usr/bin/npm run backup:all >> /data/ecommerce-ops/backups/backup.log 2>&1
+```
+
+启用前需要确认项目实际路径、`npm` 路径、`pg_dump` 是否已安装，并确保运行应用的 Linux 用户有这些目录的读写权限。
 
 ## 10. 常见问题
 

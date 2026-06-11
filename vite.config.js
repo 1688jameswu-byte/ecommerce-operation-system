@@ -2081,12 +2081,68 @@ function getVisibleStores(currentUser) {
   ));
 }
 
+function isTemuStore(store) {
+  return String(store?.platform ?? 'TEMU').trim().toUpperCase() === 'TEMU';
+}
+
+function getTemuStores() {
+  return getStores().filter(isTemuStore);
+}
+
+function getTemuVisibleStores(currentUser) {
+  const stores = getTemuStores();
+  const role = String(currentUser?.role ?? '').toLowerCase();
+
+  if (role === 'admin') {
+    return stores;
+  }
+
+  const storeIds = getVisibleStoreIds(currentUser);
+  const storeIdSet = new Set(storeIds);
+
+  return stores.filter((store) => (
+    canAccessPlatform(currentUser, store.platform) &&
+    (storeIdSet.has(store.id) || storeIdSet.has(store.storeName))
+  ));
+}
+
 function getVisibleStoreKeys(currentUser) {
   return new Set(getVisibleStores(currentUser).flatMap((store) => [store.id, store.storeName].filter(Boolean)));
 }
 
+function getTemuVisibleStoreKeys(currentUser) {
+  return new Set(getTemuVisibleStores(currentUser).flatMap((store) => [store.id, store.storeName].filter(Boolean)));
+}
+
 function normalizeSearchText(value) {
   return String(value ?? '').replace(/\s+/g, '').toLowerCase();
+}
+
+function findKnownStoreByKey(storeKey) {
+  const normalizedKey = normalizeSearchText(storeKey);
+  if (!normalizedKey) {
+    return null;
+  }
+
+  return getStores().find((store) =>
+    normalizeSearchText(store?.id) === normalizedKey ||
+    normalizeSearchText(store?.storeName) === normalizedKey,
+  ) ?? null;
+}
+
+function itemMatchesTemuImportStore(item) {
+  const explicitPlatform = String(item?.platform ?? '').trim();
+  if (explicitPlatform) {
+    return explicitPlatform.toUpperCase() === 'TEMU';
+  }
+
+  const store = findKnownStoreByKey(item?.storeId) ?? findKnownStoreByKey(item?.storeName);
+  return store ? isTemuStore(store) : true;
+}
+
+function isTemuImportStoreKey(storeKey) {
+  const store = findKnownStoreByKey(storeKey);
+  return store ? isTemuStore(store) : true;
 }
 
 function itemMatchesVisibleStore(item, visibleStoreKeys) {
@@ -2374,14 +2430,14 @@ function assertTrafficImportSearchText(searchableText, currentUser) {
     return;
   }
 
-  const authorizedStores = getVisibleStores(currentUser);
+  const authorizedStores = getTemuVisibleStores(currentUser);
   if (authorizedStores.length === 0) {
     throw new Error('当前账号未配置可导入店铺，请联系管理员。');
   }
 
   const authorizedKeys = new Set(authorizedStores.flatMap((store) => [store.id, store.storeName].filter(Boolean)));
   const searchable = normalizeSearchText(searchableText);
-  const blockedStores = getStores()
+  const blockedStores = getTemuStores()
     .filter((store) => !authorizedKeys.has(store.id) && !authorizedKeys.has(store.storeName))
     .filter((store) => store.storeName && searchable.includes(normalizeSearchText(store.storeName)))
     .map((store) => store.storeName);
@@ -2391,7 +2447,20 @@ function assertTrafficImportSearchText(searchableText, currentUser) {
   }
 }
 
+function assertImportDataMatchesTemu(name, data) {
+  if (!['orderImportStore', 'trafficConversionStore'].includes(name)) {
+    return;
+  }
+
+  const blockedStores = unique(getImportStoreKeys(name, data).filter((storeKey) => !isTemuImportStoreKey(storeKey)));
+  if (blockedStores.length > 0) {
+    throw new Error(`导入失败：${blockedStores.join('、')} 不是 TEMU 店铺，请不要在订单销售导入或流量转化导入中导入。`);
+  }
+}
+
 function assertCanWriteImportData(name, data, currentUser, searchableText = '') {
+  assertImportDataMatchesTemu(name, data);
+
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin' || !['orderImportStore', 'trafficConversionStore'].includes(name)) {
     return;
   }
@@ -2400,7 +2469,7 @@ function assertCanWriteImportData(name, data, currentUser, searchableText = '') 
     assertTrafficImportSearchText(searchableText, currentUser);
   }
 
-  const visibleStoreKeys = getVisibleStoreKeys(currentUser);
+  const visibleStoreKeys = getTemuVisibleStoreKeys(currentUser);
   if (visibleStoreKeys.size === 0) {
     throw new Error('当前账号未配置可导入店铺，请联系管理员。');
   }
@@ -2418,7 +2487,7 @@ function mergeVisibleImportData(name, incoming, currentUser) {
   }
 
   const existing = readJsonFile(name);
-  const visibleStoreKeys = getVisibleStoreKeys(currentUser);
+  const visibleStoreKeys = getTemuVisibleStoreKeys(currentUser);
 
   if (name === 'orderImportStore') {
     const hiddenBatches = (existing?.batches ?? []).map((batch) => ({
@@ -2772,16 +2841,16 @@ function getRecentOrderCheckDates(days = 7) {
 
 function getVisibleOrderStoreNames(currentUser, data) {
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
-    const stores = getStores().map((store) => normalizeOrderImportStoreName(store?.storeName || store?.id)).filter(Boolean);
+    const stores = getTemuStores().map((store) => normalizeOrderImportStoreName(store?.storeName || store?.id)).filter(Boolean);
     return stores.length ? unique(stores) : unique((data?.batches ?? []).flatMap((batch) =>
       (batch.orders ?? []).map((order) => normalizeOrderImportStoreName(order?.storeName)),
-    ));
+    )).filter((storeName) => isTemuImportStoreKey(storeName));
   }
 
-  const visible = getVisibleStores(currentUser).map((store) => normalizeOrderImportStoreName(store?.storeName || store?.id)).filter(Boolean);
+  const visible = getTemuVisibleStores(currentUser).map((store) => normalizeOrderImportStoreName(store?.storeName || store?.id)).filter(Boolean);
   return visible.length ? unique(visible) : unique((data?.batches ?? []).flatMap((batch) =>
     (batch.orders ?? []).map((order) => normalizeOrderImportStoreName(order?.storeName)),
-  ));
+  )).filter((storeName) => isTemuImportStoreKey(storeName));
 }
 
 function buildOrderImportRecords(data) {
@@ -2843,7 +2912,7 @@ function buildOrderImportSummary(data, records, currentUser) {
   const today = formatOrderDateKey(new Date());
   const todayRows = records.filter((row) => row.orderDate === today);
   const importedKeys = new Set(records.map((row) => `${normalizeOrderImportStoreName(row.storeName)}|${row.orderDate}`));
-  const storeOptions = unique(records.map((row) => row.storeName)).sort();
+  const storeOptions = unique(records.filter(itemMatchesTemuImportStore).map((row) => row.storeName)).sort();
   const dateOptions = unique(records.map((row) => row.orderDate)).sort().reverse();
   const visibleStoreNames = getVisibleOrderStoreNames(currentUser, data);
   const missingOrderItems = visibleStoreNames.flatMap((storeName) =>
@@ -3359,7 +3428,7 @@ function filterOrderImportStoreByQuery(data, searchParams, currentUser) {
   }
 
   if (view === 'records') {
-    const allRecords = buildOrderImportRecords(data);
+    const allRecords = buildOrderImportRecords(data).filter(itemMatchesTemuImportStore);
     const filteredRecords = filterOrderImportRecords(allRecords, searchParams);
     const pageSize = Math.min(Math.max(1, Number(searchParams.get('pageSize') || 20)), 50);
     const page = Math.max(1, Number(searchParams.get('page') || 1));
@@ -3383,6 +3452,7 @@ function filterOrderImportStoreByQuery(data, searchParams, currentUser) {
     const page = Math.max(1, Number(searchParams.get('page') || 1));
     const batch = (data?.batches ?? []).find((item) => String(item?.batchId ?? '') === batchId);
     const orders = (batch?.orders ?? []).filter((order) =>
+      itemMatchesTemuImportStore(order) &&
       (!storeName || normalizeOrderImportStoreName(order?.storeName) === storeName) &&
       (!orderDate || getOrderDateKey(order) === orderDate)
     );
@@ -3420,7 +3490,7 @@ function filterOrderImportStoreByQuery(data, searchParams, currentUser) {
       const orders = (batch.orders ?? [])
         .filter((order) => {
           const date = getOrderDateKey(order);
-          return (!start || date >= start) && (!end || date <= end);
+          return itemMatchesTemuImportStore(order) && (!start || date >= start) && (!end || date <= end);
         })
         .slice(0, remaining);
 
@@ -3459,21 +3529,23 @@ function filterTrafficConversionStoreByQuery(data, searchParams, currentUser) {
     const page = Math.max(1, Number(searchParams.get('page') || 1));
     const batches = (data?.batches ?? [])
       .filter((batch) =>
+        itemMatchesTemuImportStore(batch) &&
         (!storeName || batch.storeName === storeName) &&
         (!importDate || String(batch.importedAt ?? '').slice(0, 10) === importDate) &&
         (!dataDate || (String(batch.dateStart ?? '') <= dataDate && String(batch.dateEnd ?? '') >= dataDate)) &&
         (!status || batch.status === status)
       )
       .sort((first, second) => String(second.importedAt ?? '').localeCompare(String(first.importedAt ?? '')));
-    const importedKeys = new Set((data?.records ?? []).map((record) => `${record.storeName}|${record.date}`));
+    const temuRecords = (data?.records ?? []).filter(itemMatchesTemuImportStore);
+    const importedKeys = new Set(temuRecords.map((record) => `${record.storeName}|${record.date}`));
     const visibleStoreNames = String(currentUser?.role ?? '').toLowerCase() === 'admin'
-      ? getStores().map((store) => store.storeName).filter(Boolean)
-      : getVisibleStores(currentUser).map((store) => store.storeName).filter(Boolean);
+      ? getTemuStores().map((store) => store.storeName).filter(Boolean)
+      : getTemuVisibleStores(currentUser).map((store) => store.storeName).filter(Boolean);
     const storeNames = unique([
       ...visibleStoreNames,
       ...batches.map((batch) => batch.storeName).filter(Boolean),
     ]);
-    const checkEnd = (data?.records ?? []).map((record) => String(record?.date ?? '').slice(0, 10)).filter(Boolean).sort().at(-1) || formatOrderDateKey(new Date());
+    const checkEnd = temuRecords.map((record) => String(record?.date ?? '').slice(0, 10)).filter(Boolean).sort().at(-1) || formatOrderDateKey(new Date());
     const checkStart = new Date(`${checkEnd}T00:00:00`);
     checkStart.setDate(checkStart.getDate() - 6);
     const checkDates = Array.from({ length: 7 }, (_, index) => {
@@ -3488,7 +3560,7 @@ function filterTrafficConversionStoreByQuery(data, searchParams, currentUser) {
       total: batches.length,
       page,
       pageSize,
-      stores: unique((data?.batches ?? []).map((batch) => batch.storeName).filter(Boolean)).sort(),
+      stores: unique((data?.batches ?? []).filter(itemMatchesTemuImportStore).map((batch) => batch.storeName).filter(Boolean)).sort(),
       missingTrafficItems: storeNames.flatMap((name) =>
         checkDates.filter((date) => !importedKeys.has(`${name}|${date}`)).map((date) => ({ storeName: name, date })),
       ),
@@ -3498,7 +3570,7 @@ function filterTrafficConversionStoreByQuery(data, searchParams, currentUser) {
   if (view === 'detail') {
     const batchId = String(searchParams.get('batchId') || '').trim();
     const records = (data?.records ?? [])
-      .filter((record) => String(record?.batchId ?? '') === batchId)
+      .filter((record) => itemMatchesTemuImportStore(record) && String(record?.batchId ?? '') === batchId)
       .sort((first, second) => String(first.date ?? '').localeCompare(String(second.date ?? '')));
     return { records, total: records.length };
   }
@@ -4338,9 +4410,57 @@ async function requestOpenAiAdvice(request, prompt) {
 }
 
 function localDataPlugin() {
+  const uploadRoot = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public/uploads'));
+  const alibaba1688UploadRoot = path.resolve(process.env.UPLOADS_1688_DIR || path.join(uploadRoot, 'alibaba-1688'));
+  const uploadContentTypes = {
+    '.gif': 'image/gif',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+  };
+
+  function isPathInside(root, filePath) {
+    return filePath === root || filePath.startsWith(`${root}${path.sep}`);
+  }
+
+  function resolveUploadedFilePath(relativePath) {
+    const parts = relativePath.replace(/\\/g, '/').split('/').filter(Boolean);
+    if (parts[0] === 'alibaba-1688') {
+      const filePath = path.resolve(alibaba1688UploadRoot, ...parts.slice(1));
+      return isPathInside(alibaba1688UploadRoot, filePath) ? filePath : '';
+    }
+
+    const filePath = path.resolve(uploadRoot, ...parts);
+    return isPathInside(uploadRoot, filePath) ? filePath : '';
+  }
+
+  function serveUploadedFile(req, res, next) {
+    const requestUrl = new URL(req.url ?? '/', 'http://local');
+    const relativePath = decodeURIComponent(requestUrl.pathname.replace(/^\/+/, ''));
+    const filePath = resolveUploadedFilePath(relativePath);
+
+    if (!filePath) {
+      res.statusCode = 403;
+      res.end('Forbidden');
+      return;
+    }
+
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+      next();
+      return;
+    }
+
+    res.setHeader('Content-Type', uploadContentTypes[path.extname(filePath).toLowerCase()] || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    fs.createReadStream(filePath).pipe(res);
+  }
+
   const plugin = {
     name: 'local-data-storage',
     configureServer(server) {
+      server.middlewares.use('/uploads', serveUploadedFile);
+
       server.middlewares.use('/api/data-path', (_req, res) => {
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         const user = findCurrentUser(_req);
@@ -4573,11 +4693,13 @@ function localDataPlugin() {
             const searchableText = hasGuardPayload
               ? rawParsed.__trafficImportSearchableText ?? rawParsed.__trafficImportSearchText ?? ''
               : '';
-            assertCanWriteImportData(name, parsed, currentUser, searchableText);
             const isOrderImportDelete = hasGuardPayload && rawParsed.__deleteImportData && name === 'orderImportStore';
             const isTrafficImportDelete = hasGuardPayload && rawParsed.__deleteImportData && name === 'trafficConversionStore';
             const isTrafficImportAppend = hasGuardPayload && rawParsed.__appendImportBatch && name === 'trafficConversionStore';
             const isAttendanceMerge = name === 'salaryAttendanceRecords' && requestUrl.searchParams.get('mode') === 'merge';
+            if (!isOrderImportDelete && !isTrafficImportDelete) {
+              assertCanWriteImportData(name, parsed, currentUser, searchableText);
+            }
             const deleteBefore = isOrderImportDelete ? summarizeOrderImportStore(JSON.parse(fs.readFileSync(filePath, 'utf-8'))) : null;
             let trafficAppendBatch = null;
             let trafficDeleteSummary = null;

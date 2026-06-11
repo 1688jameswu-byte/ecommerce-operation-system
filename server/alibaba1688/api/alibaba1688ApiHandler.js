@@ -1,4 +1,6 @@
 ﻿import { queryAlibaba1688Database } from '../postgresDatabase.js';
+import fs from 'fs/promises';
+import path from 'path';
 import { alibaba1688ImageRecordRepository } from '../repositories/alibaba1688ImageRecordRepository.js';
 import { alibaba1688ListingTaskRepository } from '../repositories/alibaba1688ListingTaskRepository.js';
 import { alibaba1688ProductRepository } from '../repositories/alibaba1688ProductRepository.js';
@@ -28,6 +30,14 @@ const businessTables = [
   '1688_stores',
   '1688_settings',
 ];
+
+const imageUploadMaxBytes = 8 * 1024 * 1024;
+const allowedImageMimeTypes = new Map([
+  ['image/jpeg', 'jpg'],
+  ['image/png', 'png'],
+  ['image/webp', 'webp'],
+  ['image/gif', 'gif'],
+]);
 
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -70,9 +80,11 @@ function canWriteAlibaba1688Resource(currentUser, resource) {
   const allowedMenus = new Set(Array.isArray(currentUser?.allowedMenuKeys) ? currentUser.allowedMenuKeys : []);
   const operations = new Set(Array.isArray(currentUser?.operationPermissionKeys) ? currentUser.operationPermissionKeys : []);
   const platforms = new Set(Array.isArray(currentUser?.platformKeys) ? currentUser.platformKeys : []);
+  const roleCode = String(currentUser?.roleCode ?? '');
+  const has1688Platform = currentUser?.platform === '1688' || platforms.has('1688') || roleCode.startsWith('1688_');
 
   return Boolean(menuKey) &&
-    (currentUser?.platform === '1688' || platforms.has('1688')) &&
+    has1688Platform &&
     allowedMenus.has(menuKey) &&
     operations.has('create') &&
     operations.has('edit');
@@ -118,6 +130,38 @@ function sanitizeSkuRecordForUser(record, currentUser) {
   return next;
 }
 
+function sanitizeSkuWritePayloadForUser(payload, currentUser) {
+  if (canManageAlibaba1688Data(currentUser) || !payload) {
+    return payload;
+  }
+
+  const next = { ...payload };
+  delete next.purchasePrice;
+  delete next.wholesalePrice;
+  delete next.suggestedPrice;
+  delete next.supplierSkuCode;
+  delete next.platformSkuCode;
+  delete next.remark;
+  return next;
+}
+
+function sanitizeProductWritePayloadForUser(payload, currentUser) {
+  if (canManageAlibaba1688Data(currentUser) || !payload) {
+    return payload;
+  }
+
+  const next = { ...payload };
+  delete next.supplierId;
+  delete next.supplier_id;
+  return next;
+}
+
+function canCreateProductChildResource(currentUser, resource, body) {
+  return ['skus', 'images', 'product-images'].includes(resource) &&
+    Boolean(body?.productId) &&
+    canWriteAlibaba1688Resource(currentUser, 'products');
+}
+
 function sanitizeSkuPageForUser(page, currentUser) {
   if (canManageAlibaba1688Data(currentUser)) {
     return page;
@@ -126,6 +170,30 @@ function sanitizeSkuPageForUser(page, currentUser) {
   return {
     ...page,
     records: page.records.map((record) => sanitizeSkuRecordForUser(record, currentUser)),
+  };
+}
+
+function sanitizeProductRecordForUser(record, currentUser) {
+  if (canManageAlibaba1688Data(currentUser) || !record) {
+    return record;
+  }
+
+  const next = { ...record };
+  delete next.supplierId;
+  delete next.minPurchasePrice;
+  delete next.maxPurchasePrice;
+  delete next.missingCostCount;
+  return next;
+}
+
+function sanitizeProductPageForUser(page, currentUser) {
+  if (canManageAlibaba1688Data(currentUser)) {
+    return page;
+  }
+
+  return {
+    ...page,
+    records: page.records.map((record) => sanitizeProductRecordForUser(record, currentUser)),
   };
 }
 
@@ -151,6 +219,76 @@ function createForbiddenError(message) {
   const error = new Error(message);
   error.statusCode = 403;
   return error;
+}
+
+function createBadRequestError(message) {
+  const error = new Error(message);
+  error.statusCode = 400;
+  return error;
+}
+
+function buildUploadFileName(originalName, contentType) {
+  const fallbackExtension = allowedImageMimeTypes.get(contentType) || 'png';
+  const parsed = path.parse(String(originalName ?? 'product-image').replace(/[\\/]/g, ''));
+  const sourceName = parsed.name || 'product-image';
+  const safeStem = sourceName
+    .normalize('NFKD')
+    .replace(/[^\w.-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48) || 'product-image';
+  const originalExtension = parsed.ext.replace(/^\./, '').toLowerCase();
+  const extension = Array.from(allowedImageMimeTypes.values()).includes(originalExtension)
+    ? originalExtension
+    : fallbackExtension;
+  const uniquePart = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return `${safeStem}-${uniquePart}.${extension}`;
+}
+
+async function saveAlibaba1688ProductImageUpload(body) {
+  const dataUrl = String(body?.dataUrl ?? '');
+  const match = dataUrl.match(/^data:(image\/(?:jpeg|png|webp|gif));base64,([\s\S]+)$/i);
+  if (!match) {
+    throw createBadRequestError('请上传 JPG、PNG、WEBP 或 GIF 图片');
+  }
+
+  const contentType = match[1].toLowerCase();
+  if (!allowedImageMimeTypes.has(contentType)) {
+    throw createBadRequestError('图片格式不支持，请上传 JPG、PNG、WEBP 或 GIF');
+  }
+
+  const buffer = Buffer.from(match[2], 'base64');
+  if (buffer.length === 0) {
+    throw createBadRequestError('图片文件为空');
+  }
+  if (buffer.length > imageUploadMaxBytes) {
+    throw createBadRequestError('图片不能超过 8MB');
+  }
+
+  const now = new Date();
+  const year = String(now.getFullYear());
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const fileName = buildUploadFileName(body?.fileName, contentType);
+  const uploadRelativeDir = path.join('alibaba-1688', year, month);
+  const uploadRoot = path.resolve(process.env.UPLOADS_1688_DIR || path.join(process.cwd(), 'public', 'uploads', 'alibaba-1688'));
+  const uploadDir = path.join(uploadRoot, year, month);
+  const filePath = path.join(uploadDir, fileName);
+  const safeRoot = path.resolve(uploadRoot);
+  const safeFilePath = path.resolve(filePath);
+
+  if (!safeFilePath.startsWith(`${safeRoot}${path.sep}`)) {
+    throw createBadRequestError('图片文件名不合法');
+  }
+
+  await fs.mkdir(uploadDir, { recursive: true });
+  await fs.writeFile(filePath, buffer);
+
+  return {
+    fileName,
+    filePath,
+    fileUrl: `/uploads/${uploadRelativeDir.replace(/\\/g, '/')}/${fileName}`,
+    contentType,
+    size: buffer.length,
+  };
 }
 
 function getUserStoreScopeValues(currentUser) {
@@ -209,6 +347,172 @@ function filterProductPageForUser(page, currentUser) {
     records,
     total: records.length,
   };
+}
+
+function buildProductWhere(params = {}, currentUser) {
+  const clauses = [];
+  const values = [];
+
+  function addParam(value) {
+    values.push(value);
+    return `$${values.length}`;
+  }
+
+  if (params.keyword) {
+    const keyword = `%${String(params.keyword).trim()}%`;
+    const placeholder = addParam(keyword);
+    clauses.push(`(
+      p.product_code ILIKE ${placeholder} OR
+      p.product_name ILIKE ${placeholder} OR
+      p.listing_title ILIKE ${placeholder} OR
+      p.keywords ILIKE ${placeholder}
+    )`);
+  }
+
+  if (params.status) {
+    clauses.push(`p.status = ${addParam(params.status)}`);
+  }
+
+  if (params.categoryId) {
+    clauses.push(`p.category_id = ${addParam(params.categoryId)}`);
+  }
+
+  if (params.supplierId) {
+    clauses.push(`p.supplier_id::text = ${addParam(params.supplierId)}`);
+  }
+
+  if (params.storeId) {
+    clauses.push(`p.store_id::text = ${addParam(params.storeId)}`);
+  }
+
+  if (!canManageAlibaba1688Data(currentUser)) {
+    const scopeValues = Array.from(getUserStoreScopeValues(currentUser));
+    if (scopeValues.length === 0) {
+      clauses.push('FALSE');
+    } else {
+      const placeholder = addParam(scopeValues);
+      clauses.push(`(p.store_id::text = ANY(${placeholder}::text[]) OR p.created_by = ANY(${placeholder}::text[]))`);
+    }
+  }
+
+  return {
+    sql: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '',
+    values,
+  };
+}
+
+async function getProductPageStats(params, currentUser) {
+  const where = buildProductWhere(params, currentUser);
+  const result = await queryAlibaba1688Database(
+    `SELECT
+       COUNT(*)::int AS total_products,
+       COUNT(*) FILTER (WHERE p.status = 'listed' OR p.listing_status = 'listed')::int AS listed_products
+     FROM "1688_products" p
+     ${where.sql}`,
+    where.values,
+  );
+  const row = result.rows[0] ?? {};
+
+  return {
+    totalProducts: row.total_products ?? 0,
+    listedProducts: row.listed_products ?? 0,
+  };
+}
+
+async function addProductListAggregates(records) {
+  if (records.length === 0) {
+    return records;
+  }
+
+  const ids = records.map((product) => product.id);
+  const result = await queryAlibaba1688Database(
+    `WITH selected_products AS (
+       SELECT id, position
+       FROM unnest($1::uuid[]) WITH ORDINALITY AS input(id, position)
+     )
+     SELECT
+       selected_products.id::text AS id,
+       COALESCE(sku_summary.sku_count, 0)::int AS sku_count,
+       sku_summary.first_sku_code,
+       sku_summary.sku_colors,
+       sku_summary.min_purchase_price,
+       sku_summary.max_purchase_price,
+       sku_summary.min_wholesale_price,
+       sku_summary.max_wholesale_price,
+       sku_summary.missing_cost_count,
+       sku_summary.missing_price_count,
+       image_summary.main_image_url,
+       GREATEST(
+         p.updated_at,
+         COALESCE(sku_summary.latest_sku_updated_at, p.updated_at),
+         COALESCE(image_summary.latest_image_updated_at, p.updated_at)
+       ) AS latest_updated_at
+     FROM selected_products
+     JOIN "1688_products" p ON p.id = selected_products.id
+     LEFT JOIN LATERAL (
+       SELECT
+         COUNT(*) FILTER (WHERE is_active)::int AS sku_count,
+         (ARRAY_AGG(sku_code ORDER BY created_at) FILTER (WHERE is_active AND COALESCE(sku_code, '') <> ''))[1] AS first_sku_code,
+         STRING_AGG(DISTINCT NULLIF(color, ''), '、') FILTER (WHERE is_active) AS sku_colors,
+         MIN(purchase_price) FILTER (WHERE is_active AND purchase_price > 0) AS min_purchase_price,
+         MAX(purchase_price) FILTER (WHERE is_active AND purchase_price > 0) AS max_purchase_price,
+         MIN(wholesale_price) FILTER (WHERE is_active AND wholesale_price > 0) AS min_wholesale_price,
+         MAX(wholesale_price) FILTER (WHERE is_active AND wholesale_price > 0) AS max_wholesale_price,
+         COUNT(*) FILTER (WHERE is_active AND purchase_price <= 0)::int AS missing_cost_count,
+         COUNT(*) FILTER (WHERE is_active AND wholesale_price <= 0)::int AS missing_price_count,
+         MAX(updated_at) AS latest_sku_updated_at
+       FROM "1688_product_skus"
+       WHERE product_id = p.id
+     ) sku_summary ON TRUE
+     LEFT JOIN LATERAL (
+       SELECT
+         (ARRAY_AGG(
+           COALESCE(NULLIF(file_url, ''), NULLIF(file_path, ''))
+           ORDER BY
+             CASE
+               WHEN is_main THEN 0
+               WHEN image_type = 'main_image' THEN 1
+               ELSE 2
+             END,
+             sort_order,
+             created_at
+         ) FILTER (WHERE COALESCE(NULLIF(file_url, ''), NULLIF(file_path, '')) IS NOT NULL))[1] AS main_image_url,
+         MAX(updated_at) AS latest_image_updated_at
+       FROM "1688_product_images"
+       WHERE product_id = p.id
+     ) image_summary ON TRUE
+     ORDER BY selected_products.position`,
+    [ids],
+  );
+  const aggregatesById = new Map(result.rows.map((row) => [row.id, row]));
+
+  return records.map((product) => {
+    const aggregate = aggregatesById.get(product.id) ?? {};
+    return {
+      ...product,
+      mainImageUrl: aggregate.main_image_url || '',
+      skuCount: aggregate.sku_count ?? 0,
+      skuColors: Array.isArray(aggregate.sku_colors)
+        ? aggregate.sku_colors.filter(Boolean)
+        : String(aggregate.sku_colors ?? '').split('、').map((item) => item.trim()).filter(Boolean),
+      firstSkuCode: aggregate.first_sku_code || '',
+      minWholesalePrice: aggregate.min_wholesale_price === null || aggregate.min_wholesale_price === undefined
+        ? undefined
+        : Number(aggregate.min_wholesale_price),
+      maxWholesalePrice: aggregate.max_wholesale_price === null || aggregate.max_wholesale_price === undefined
+        ? undefined
+        : Number(aggregate.max_wholesale_price),
+      minPurchasePrice: aggregate.min_purchase_price === null || aggregate.min_purchase_price === undefined
+        ? undefined
+        : Number(aggregate.min_purchase_price),
+      maxPurchasePrice: aggregate.max_purchase_price === null || aggregate.max_purchase_price === undefined
+        ? undefined
+        : Number(aggregate.max_purchase_price),
+      missingCostCount: aggregate.missing_cost_count ?? 0,
+      missingPriceCount: aggregate.missing_price_count ?? 0,
+      latestUpdatedAt: aggregate.latest_updated_at || product.updatedAt,
+    };
+  });
 }
 
 async function canReadSkuRecord(sku, currentUser) {
@@ -608,6 +912,23 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
       return;
     }
 
+    if (resource === 'upload-image') {
+      if (req.method !== 'POST') {
+        res.statusCode = 405;
+        res.end('Method not allowed');
+        return;
+      }
+
+      if (!canWriteAlibaba1688Resource(currentUser, 'products')) {
+        requireAlibaba1688ResourceWriter(res, currentUser, 'products');
+        return;
+      }
+
+      const upload = await saveAlibaba1688ProductImageUpload(await readJsonBody(req, options));
+      sendJson(res, 200, { ok: true, ...upload });
+      return;
+    }
+
     const repository = repositories[resource];
 
     if (!repository) {
@@ -639,7 +960,7 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
           return;
         }
         sendJson(res, 200, {
-          ...detail,
+          ...sanitizeProductRecordForUser(detail, currentUser),
           skus: detail.skus.map((sku) => sanitizeSkuRecordForUser(sku, currentUser)),
         });
         return;
@@ -680,7 +1001,8 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
         return;
       }
 
-      const page = await repository.list(searchParamsToObject(searchParams));
+      const params = searchParamsToObject(searchParams);
+      const page = await repository.list(params);
       const scopedPage = resource === 'stores'
         ? filterStorePageForUser(page, currentUser)
         : resource === 'products'
@@ -694,7 +1016,16 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
                 : resource === 'suppliers'
                   ? sanitizeSupplierPageForUser(page, currentUser)
                   : page;
-      const outputPage = resource === 'skus' ? sanitizeSkuPageForUser(scopedPage, currentUser) : scopedPage;
+      const outputPage = resource === 'products'
+        ? {
+          ...scopedPage,
+          records: sanitizeProductPageForUser({
+            records: await addProductListAggregates(scopedPage.records),
+            total: scopedPage.total,
+          }, currentUser).records,
+          stats: await getProductPageStats(params, currentUser),
+        }
+        : resource === 'skus' ? sanitizeSkuPageForUser(scopedPage, currentUser) : scopedPage;
       sendJson(res, 200, outputPage);
       return;
     }
@@ -714,14 +1045,22 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
     }
 
     if (req.method === 'POST') {
-      if (!requireAlibaba1688ResourceWriter(res, currentUser, resource)) {
+      const body = await readJsonBody(req, options);
+      const canWriteResource = canWriteAlibaba1688Resource(currentUser, resource) ||
+        canCreateProductChildResource(currentUser, resource, body);
+      if (!canWriteResource) {
+        requireAlibaba1688ResourceWriter(res, currentUser, resource);
         return;
       }
 
-      const body = await readJsonBody(req, options);
+      const safeBody = resource === 'skus'
+        ? sanitizeSkuWritePayloadForUser(body, currentUser)
+        : resource === 'products'
+          ? sanitizeProductWritePayloadForUser(body, currentUser)
+          : body;
       const payload = ['products', 'images', 'product-images', 'listing-tasks', 'tasks'].includes(resource)
-        ? { createdBy: currentUser.userId || currentUser.username || '', ...body }
-        : body;
+        ? { createdBy: currentUser.userId || currentUser.username || '', ...safeBody }
+        : safeBody;
       const created = await repository.create(payload);
       if (resource === 'stores') {
         options.syncStore?.(created);
@@ -755,7 +1094,13 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
         return;
       }
 
-      const next = await repository.update(id, await readJsonBody(req, options));
+      const body = await readJsonBody(req, options);
+      const safeBody = resource === 'skus'
+        ? sanitizeSkuWritePayloadForUser(body, currentUser)
+        : resource === 'products'
+          ? sanitizeProductWritePayloadForUser(body, currentUser)
+          : body;
+      const next = await repository.update(id, safeBody);
       if (!next) {
         sendJson(res, 404, { ok: false, message: 'Not found' });
         return;

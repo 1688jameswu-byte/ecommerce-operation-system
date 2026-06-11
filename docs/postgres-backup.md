@@ -2,43 +2,66 @@
 
 ## Scope
 
-This backup process only exports the PostgreSQL database used by the 1688 business module:
+This backup process exports the PostgreSQL database used by the 1688 business module and copies the uploaded 1688 product images:
 
 - Database: `ecommerce_ops`
-- Expected host: `localhost`
-- Expected port: `5433`
+- Uploaded images: `public/uploads/alibaba-1688` by default
 
-It does not back up old JSON data, uploaded files, images, `node_modules`, `dist`, or `.env`.
+It does not back up old JSON data, `node_modules`, `dist`, or `.env`.
 
 ## Manual Backup
 
 Run from the project root:
 
-```powershell
-npm.cmd run backup:1688-db
+```bash
+npm run backup:1688-db
 ```
 
 The script reads `DATABASE_URL` from the project root `.env` file and calls the official PostgreSQL `pg_dump` binary.
 
-Backups are saved to:
+Backups are saved to `BACKUP_1688_DIR`, then `BACKUP_DIR`, then this default:
 
 ```text
-F:\ecommerce-operation-system\backup\postgres
+./data/backup/alibaba-1688
 ```
 
-Backup file names use this format:
+Each backup creates one timestamped directory:
 
 ```text
-ecommerce_ops_YYYYMMDD_HHmmss.sql
+1688-YYYYMMDD_HHmmss/
+  manifest.json
+  postgres/ecommerce_ops_YYYYMMDD_HHmmss.sql
+  uploads/alibaba-1688/...
 ```
 
-Example:
+Recommended Tencent Cloud paths:
 
 ```text
-ecommerce_ops_20260608_153000.sql
+BACKUP_1688_DIR=/data/ecommerce-ops/backups/alibaba-1688
+UPLOADS_1688_DIR=/data/ecommerce-ops/uploads/alibaba-1688
 ```
 
-The script verifies that the generated backup file exists and is larger than 0 bytes.
+If `UPLOADS_1688_DIR` is not set, the script copies `public/uploads/alibaba-1688`.
+
+The script verifies that the generated database backup file exists and is larger than 0 bytes.
+
+## Full Project Data Backup
+
+To back up old JSON data plus 1688 PostgreSQL and uploaded 1688 images, run:
+
+```bash
+npm run backup:all
+```
+
+## Tencent Cloud Cron Example
+
+Run daily at 02:30:
+
+```bash
+30 2 * * * cd /www/wwwroot/ecommerce-ops && /usr/bin/npm run backup:all >> /data/ecommerce-ops/backups/backup.log 2>&1
+```
+
+Confirm the actual project path and npm path on the server before enabling cron.
 
 ## Restore Reference
 
@@ -46,15 +69,15 @@ Restore is intentionally manual. Do not run restore commands unless the target d
 
 Reference command:
 
-```powershell
-$env:PGPASSWORD = "<database password>"
-& "C:\Program Files\PostgreSQL\16\bin\psql.exe" `
-  -h localhost `
-  -p 5433 `
-  -U ecommerce_ops_user `
-  -d ecommerce_ops `
-  -f "F:\ecommerce-operation-system\backup\postgres\ecommerce_ops_YYYYMMDD_HHmmss.sql"
-Remove-Item Env:\PGPASSWORD
+```bash
+export PGPASSWORD="<database password>"
+psql \
+  -h localhost \
+  -p 5432 \
+  -U ecommerce_ops_user \
+  -d ecommerce_ops \
+  -f "/data/ecommerce-ops/backups/alibaba-1688/1688-YYYYMMDD_HHmmss/postgres/ecommerce_ops_YYYYMMDD_HHmmss.sql"
+unset PGPASSWORD
 ```
 
 Before restoring, confirm:

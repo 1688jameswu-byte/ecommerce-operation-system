@@ -2,9 +2,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const pgDumpPath = 'C:\\Program Files\\PostgreSQL\\16\\bin\\pg_dump.exe';
-const backupDir = 'F:\\ecommerce-operation-system\\backup\\postgres';
-const databaseName = 'ecommerce_ops';
+const databaseName = process.env.BACKUP_1688_DATABASE_NAME || 'ecommerce_ops';
 
 function loadLocalEnv() {
   const envPath = path.join(process.cwd(), '.env');
@@ -81,16 +79,39 @@ function formatTimestamp(date = new Date()) {
 }
 
 function formatBytes(bytes) {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
+  if (bytes < 1024) return `${bytes} B`;
   const kb = bytes / 1024;
-  if (kb < 1024) {
-    return `${kb.toFixed(2)} KB`;
+  if (kb < 1024) return `${kb.toFixed(2)} KB`;
+  return `${(kb / 1024).toFixed(2)} MB`;
+}
+
+function resolveBackupRootDir() {
+  return path.resolve(
+    process.env.BACKUP_1688_DIR ||
+    process.env.BACKUP_DIR ||
+    path.join(process.cwd(), 'data', 'backup', 'alibaba-1688'),
+  );
+}
+
+function resolveUploadsDir() {
+  return path.resolve(
+    process.env.UPLOADS_1688_DIR ||
+    process.env.UPLOADS_DIR ||
+    path.join(process.cwd(), 'public', 'uploads', 'alibaba-1688'),
+  );
+}
+
+function resolvePgDumpCommand() {
+  if (process.env.PG_DUMP_PATH) {
+    return process.env.PG_DUMP_PATH;
   }
 
-  return `${(kb / 1024).toFixed(2)} MB`;
+  const windowsDefault = 'C:\\Program Files\\PostgreSQL\\16\\bin\\pg_dump.exe';
+  if (process.platform === 'win32' && fs.existsSync(windowsDefault)) {
+    return windowsDefault;
+  }
+
+  return 'pg_dump';
 }
 
 function runPgDump(config, outputPath) {
@@ -120,7 +141,7 @@ function runPgDump(config, outputPath) {
   ];
 
   return new Promise((resolve, reject) => {
-    const child = spawn(pgDumpPath, args, {
+    const child = spawn(resolvePgDumpCommand(), args, {
       env,
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -128,13 +149,13 @@ function runPgDump(config, outputPath) {
     let stderr = '';
 
     child.stdout.on('data', () => {
-      // pg_dump writes the backup to --file; stdout is intentionally ignored to avoid noisy output.
+      // pg_dump writes the backup to --file; stdout is intentionally ignored.
     });
     child.stderr.on('data', (chunk) => {
       stderr += chunk.toString();
     });
     child.on('error', (error) => {
-      reject(error);
+      reject(new Error(`pg_dump 启动失败：${error.message}。请确认服务器已安装 PostgreSQL client，或设置 PG_DUMP_PATH。`));
     });
     child.on('close', (code) => {
       if (code === 0) {
@@ -147,40 +168,103 @@ function runPgDump(config, outputPath) {
   });
 }
 
+function copyDirectory(sourceDir, targetDir) {
+  const summary = { fileCount: 0, totalBytes: 0 };
+  if (!fs.existsSync(sourceDir)) {
+    return summary;
+  }
+
+  fs.mkdirSync(targetDir, { recursive: true });
+  for (const item of fs.readdirSync(sourceDir, { withFileTypes: true })) {
+    const sourcePath = path.join(sourceDir, item.name);
+    const targetPath = path.join(targetDir, item.name);
+
+    if (item.isDirectory()) {
+      const child = copyDirectory(sourcePath, targetPath);
+      summary.fileCount += child.fileCount;
+      summary.totalBytes += child.totalBytes;
+      continue;
+    }
+
+    if (!item.isFile()) {
+      continue;
+    }
+
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+    fs.copyFileSync(sourcePath, targetPath);
+    const stat = fs.statSync(targetPath);
+    summary.fileCount += 1;
+    summary.totalBytes += stat.size;
+  }
+
+  return summary;
+}
+
+function writeManifest(manifestPath, manifest) {
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf-8');
+}
+
 async function main() {
   loadLocalEnv();
-
-  if (!fs.existsSync(pgDumpPath)) {
-    throw new Error(`未找到 pg_dump：${pgDumpPath}。请确认 PostgreSQL 16 客户端工具已安装。`);
-  }
 
   const config = getDatabaseConfig();
   if (config.database !== databaseName) {
     throw new Error(`当前 DATABASE_URL 指向数据库 ${config.database}，本脚本只允许备份 ${databaseName}。`);
   }
 
-  fs.mkdirSync(backupDir, { recursive: true });
   const startedAt = new Date();
-  const outputPath = path.join(backupDir, `${databaseName}_${formatTimestamp(startedAt)}.sql`);
+  const backupRootDir = resolveBackupRootDir();
+  const backupDir = path.join(backupRootDir, `1688-${formatTimestamp(startedAt)}`);
+  const postgresDir = path.join(backupDir, 'postgres');
+  const uploadsBackupDir = path.join(backupDir, 'uploads', 'alibaba-1688');
+  const uploadsSourceDir = resolveUploadsDir();
+  const outputPath = path.join(postgresDir, `${databaseName}_${formatTimestamp(startedAt)}.sql`);
 
+  fs.mkdirSync(postgresDir, { recursive: true });
   await runPgDump(config, outputPath);
 
   if (!fs.existsSync(outputPath)) {
     throw new Error(`备份失败：未生成备份文件 ${outputPath}`);
   }
 
-  const stats = fs.statSync(outputPath);
-  if (stats.size <= 0) {
+  const sqlStats = fs.statSync(outputPath);
+  if (sqlStats.size <= 0) {
     throw new Error(`备份失败：备份文件为空 ${outputPath}`);
   }
 
-  console.log('1688 PostgreSQL 备份完成');
-  console.log(`备份文件：${outputPath}`);
-  console.log(`文件大小：${formatBytes(stats.size)} (${stats.size} bytes)`);
-  console.log(`备份时间：${startedAt.toLocaleString('zh-CN', { hour12: false })}`);
+  const uploadsSummary = copyDirectory(uploadsSourceDir, uploadsBackupDir);
+  const manifestPath = path.join(backupDir, 'manifest.json');
+  writeManifest(manifestPath, {
+    createdAt: startedAt.toISOString(),
+    database: {
+      host: config.host,
+      port: config.port,
+      name: config.database,
+      username: config.username,
+      dumpFile: path.relative(backupDir, outputPath),
+      dumpBytes: sqlStats.size,
+    },
+    uploads: {
+      sourceDir: uploadsSourceDir,
+      backupDir: path.relative(backupDir, uploadsBackupDir),
+      fileCount: uploadsSummary.fileCount,
+      totalBytes: uploadsSummary.totalBytes,
+      existed: fs.existsSync(uploadsSourceDir),
+    },
+  });
+
+  console.log('1688 数据备份完成');
+  console.log(`备份目录：${backupDir}`);
+  console.log(`数据库备份：${outputPath}`);
+  console.log(`数据库大小：${formatBytes(sqlStats.size)} (${sqlStats.size} bytes)`);
+  console.log(`图片文件：${uploadsSummary.fileCount} 个，${formatBytes(uploadsSummary.totalBytes)}`);
+  if (!fs.existsSync(uploadsSourceDir)) {
+    console.log(`图片目录不存在，已跳过：${uploadsSourceDir}`);
+  }
+  console.log(`清单文件：${manifestPath}`);
 }
 
 main().catch((error) => {
-  console.error(`1688 PostgreSQL 备份失败：${error.message}`);
+  console.error(`1688 数据备份失败：${error.message}`);
   process.exitCode = 1;
 });

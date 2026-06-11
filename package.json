@@ -9,6 +9,7 @@
     "start": "node scripts/start.js",
     "preview": "vite preview --host 0.0.0.0",
     "backup": "node scripts/backup-data.js",
+    "backup:all": "npm run backup && npm run backup:1688-db",
     "verify:1688-db": "node scripts/verify-alibaba1688-postgres.js",
     "backup:1688-db": "node scripts/backup-1688-postgres.js"
   },

@@ -66,6 +66,17 @@ export interface Alibaba1688ProductRecord extends Alibaba1688TimestampedRecord {
   supplierId?: string;
   createdBy?: string;
   remark?: string;
+  mainImageUrl?: string;
+  skuCount?: number;
+  skuColors?: string[];
+  firstSkuCode?: string;
+  minWholesalePrice?: number;
+  maxWholesalePrice?: number;
+  minPurchasePrice?: number;
+  maxPurchasePrice?: number;
+  missingCostCount?: number;
+  missingPriceCount?: number;
+  latestUpdatedAt?: string;
 }
 
 export interface Alibaba1688SkuRecord extends Alibaba1688TimestampedRecord {

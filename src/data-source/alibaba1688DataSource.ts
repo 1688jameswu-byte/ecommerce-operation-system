@@ -35,6 +35,15 @@ export interface Alibaba1688DatabaseStatus {
   message: string;
 }
 
+export interface Alibaba1688ProductStats {
+  totalProducts: number;
+  listedProducts: number;
+}
+
+export interface Alibaba1688ProductPage extends Alibaba1688Page<Alibaba1688ProductRecord> {
+  stats?: Alibaba1688ProductStats;
+}
+
 export interface Alibaba1688ListingCheckResult {
   ok: boolean;
   missingItems: string[];
@@ -42,6 +51,15 @@ export interface Alibaba1688ListingCheckResult {
   availableImageCount: number;
   message: string;
   product?: Alibaba1688ProductRecord;
+}
+
+export interface Alibaba1688ImageUploadResult {
+  ok: boolean;
+  fileName: string;
+  filePath: string;
+  fileUrl: string;
+  contentType: string;
+  size: number;
 }
 
 function buildQuery(params: Record<string, string | number | boolean | undefined> = {}) {
@@ -92,6 +110,15 @@ function createResourceDataSource<TRecord extends { id: string }, TInput>(resour
   };
 }
 
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(new Error('图片读取失败，请重新选择文件'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export const alibaba1688DataSource = {
   async loadStatus() {
     const response = await fetch(`${apiBase}/status?t=${Date.now()}`, {
@@ -106,8 +133,33 @@ export const alibaba1688DataSource = {
 
     return data as Alibaba1688DatabaseStatus;
   },
+  async uploadImage(file: File) {
+    const dataUrl = await readFileAsDataUrl(file);
+    const response = await fetch(`${apiBase}/upload-image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      credentials: 'include',
+      cache: 'no-store',
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type,
+        size: file.size,
+        dataUrl,
+      }),
+    });
+    const data = await response.json().catch(() => null) as (Partial<Alibaba1688ImageUploadResult> & { message?: string; error?: string }) | null;
+
+    if (!response.ok) {
+      throw new Error(data?.message || data?.error || '图片上传失败');
+    }
+
+    return data as Alibaba1688ImageUploadResult;
+  },
   products: {
     ...createResourceDataSource<Alibaba1688ProductRecord, Partial<Omit<Alibaba1688ProductRecord, 'id' | 'createdAt' | 'updatedAt'>>>('products'),
+    loadPage(params: Alibaba1688PageParams & Record<string, string | number | boolean | undefined> = {}) {
+      return request<Alibaba1688ProductPage>('products', 'GET', buildQuery(params));
+    },
     loadDetail(id: string) {
       return request<Alibaba1688ProductDetail>('products', 'GET', `/${encodeURIComponent(id)}`);
     },

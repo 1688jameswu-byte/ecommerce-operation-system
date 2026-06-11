@@ -75,6 +75,10 @@ const operatorVerifierUser = {
   displayName: 'Codex Operator Verifier',
   role: 'operator',
   roleCode: '1688_sales',
+  platform: '1688',
+  platformKeys: ['1688'],
+  allowedMenuKeys: ['1688-products'],
+  operationPermissionKeys: ['create', 'edit'],
 };
 
 const leaderVerifierUser = {
@@ -482,9 +486,12 @@ async function verifyCrud() {
     const operatorCreateImage = await callApiAsUser(scopedOperatorUser, 'POST', '/images', {
       productId: product.id,
       imageType: 'main_image',
-      filePath: `operator-forbidden-${stamp}.jpg`,
-    }, { allowError: true });
-    assert(operatorCreateImage.statusCode === 403, 'operator image create should return 403');
+      filePath: `operator-product-image-${stamp}.jpg`,
+      imageStatus: 'ready',
+      isMain: false,
+    });
+    assert(operatorCreateImage.statusCode === 200, 'operator product image create should be allowed');
+    created.extraImages.push(operatorCreateImage.data.id);
 
     const operatorUpdateImage = await callApiAsUser(scopedOperatorUser, 'PUT', `/images/${created.image}`, {
       remark: 'operator update should be forbidden',
