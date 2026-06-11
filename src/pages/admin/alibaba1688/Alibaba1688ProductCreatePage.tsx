@@ -11,11 +11,16 @@ interface Alibaba1688ProductCreatePageProps {
   currentUser: CurrentUser;
 }
 
+interface SkuInputRow {
+  id: string;
+  skuCode: string;
+}
+
 interface ProductCreateForm {
   mainImagePath: string;
   productName: string;
   selectedColors: string[];
-  skuCodesByColor: Record<string, string>;
+  skuRowsByColor: Record<string, SkuInputRow[]>;
 }
 
 const colorOptions = [
@@ -29,8 +34,15 @@ const emptyForm: ProductCreateForm = {
   mainImagePath: '',
   productName: '',
   selectedColors: [],
-  skuCodesByColor: {},
+  skuRowsByColor: {},
 };
+
+function createSkuInputRow(): SkuInputRow {
+  return {
+    id: `sku-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    skuCode: '',
+  };
+}
 
 function getAlibaba1688ProductPermissions(currentUser: CurrentUser) {
   const role = String(currentUser?.role ?? '').toLowerCase();
@@ -65,15 +77,30 @@ function toImageColumns(fileValue: string) {
 export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688ProductCreatePageProps) {
   const permissions = useMemo(() => getAlibaba1688ProductPermissions(currentUser), [currentUser]);
   const [form, setForm] = useState<ProductCreateForm>(emptyForm);
+  const [mainImageFile, setMainImageFile] = useState<File | null>(null);
+  const [mainImagePreviewUrl, setMainImagePreviewUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadedImageName, setUploadedImageName] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  const skuGroups = useMemo(
+    () => form.selectedColors.map((color) => ({
+      color,
+      rows: form.skuRowsByColor[color]?.length ? form.skuRowsByColor[color] : [createSkuInputRow()],
+    })),
+    [form.selectedColors, form.skuRowsByColor],
+  );
+
   const skuPreview = useMemo(
-    () => form.selectedColors.map((color) => ({ color, skuCode: form.skuCodesByColor[color] ?? '' })),
-    [form.selectedColors, form.skuCodesByColor],
+    () => skuGroups.flatMap((group) => group.rows.map((row, index) => ({
+      color: group.color,
+      row,
+      index,
+      skuCode: row.skuCode,
+    }))),
+    [skuGroups],
   );
 
   useEffect(() => {
@@ -82,24 +109,58 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
     return () => window.clearTimeout(timer);
   }, [message]);
 
+  useEffect(() => {
+    return () => {
+      if (mainImagePreviewUrl) {
+        URL.revokeObjectURL(mainImagePreviewUrl);
+      }
+    };
+  }, [mainImagePreviewUrl]);
+
   function toggleColor(color: string, checked: boolean) {
     setForm((current) => ({
       ...current,
       selectedColors: checked
         ? [...current.selectedColors, color]
         : current.selectedColors.filter((item) => item !== color),
-      skuCodesByColor: checked
-        ? { ...current.skuCodesByColor, [color]: current.skuCodesByColor[color] ?? '' }
-        : Object.fromEntries(Object.entries(current.skuCodesByColor).filter(([key]) => key !== color)),
+      skuRowsByColor: checked
+        ? { ...current.skuRowsByColor, [color]: current.skuRowsByColor[color]?.length ? current.skuRowsByColor[color] : [createSkuInputRow()] }
+        : Object.fromEntries(Object.entries(current.skuRowsByColor).filter(([key]) => key !== color)),
     }));
   }
 
-  function updateSkuCode(color: string, skuCode: string) {
+  function addSkuRow(color: string) {
     setForm((current) => ({
       ...current,
-      skuCodesByColor: {
-        ...current.skuCodesByColor,
-        [color]: skuCode,
+      skuRowsByColor: {
+        ...current.skuRowsByColor,
+        [color]: [...(current.skuRowsByColor[color] ?? [createSkuInputRow()]), createSkuInputRow()],
+      },
+    }));
+  }
+
+  function removeSkuRow(color: string, rowId: string) {
+    setForm((current) => {
+      const rows = current.skuRowsByColor[color] ?? [];
+      if (rows.length <= 1) return current;
+      return {
+        ...current,
+        skuRowsByColor: {
+          ...current.skuRowsByColor,
+          [color]: rows.filter((row) => row.id !== rowId),
+        },
+      };
+    });
+  }
+
+  function updateSkuCode(color: string, rowId: string, skuCode: string) {
+    setForm((current) => ({
+      ...current,
+      skuRowsByColor: {
+        ...current.skuRowsByColor,
+        [color]: (current.skuRowsByColor[color] ?? [createSkuInputRow()]).map((row) => (
+          row.id === rowId ? { ...row, skuCode } : row
+        )),
       },
     }));
   }
@@ -117,12 +178,17 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
     setMessage('');
     setError('');
     try {
-      const upload = await alibaba1688DataSource.uploadImage(file);
-      setForm((current) => ({ ...current, mainImagePath: upload.fileUrl }));
-      setUploadedImageName(upload.fileName);
-      setMessage('主图已上传，提交产品时会自动保存到图片素材记录。');
+      const previewUrl = URL.createObjectURL(file);
+      setMainImagePreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return previewUrl;
+      });
+      setMainImageFile(file);
+      setForm((current) => ({ ...current, mainImagePath: '' }));
+      setUploadedImageName(`${file.name}（提交时自动压缩为 300×300）`);
+      setMessage('主图已选择，提交产品时会按第一条 SKU 编号压缩上传。');
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : '图片上传失败');
+      setError(uploadError instanceof Error ? uploadError.message : '图片读取失败');
     } finally {
       setUploadingImage(false);
     }
@@ -130,11 +196,13 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
 
   function validateForm() {
     const missing: string[] = [];
-    if (!form.mainImagePath.trim()) missing.push('产品主图');
+    if (!mainImageFile && !form.mainImagePath.trim()) missing.push('产品主图');
     if (!form.productName.trim()) missing.push('产品名称');
     if (form.selectedColors.length === 0) missing.push('至少 1 个颜色');
-    const missingSkuColors = skuPreview.filter((item) => !item.skuCode.trim()).map((item) => item.color);
-    if (missingSkuColors.length > 0) missing.push(`${missingSkuColors.join('、')} SKU 编号`);
+    const missingSkuRows = skuPreview
+      .filter((item) => !item.skuCode.trim())
+      .map((item) => `${item.color} SKU ${item.index + 1}`);
+    if (missingSkuRows.length > 0) missing.push(`${missingSkuRows.join('、')} 编号`);
     return missing;
   }
 
@@ -154,9 +222,18 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
     setMessage('');
     setError('');
     try {
+      const firstSkuCode = skuPreview[0]?.skuCode.trim() || '';
+      if (!firstSkuCode) {
+        setError('请先填写第一条颜色 SKU 编号，用于命名主图文件。');
+        return;
+      }
+      const upload = mainImageFile
+        ? await alibaba1688DataSource.uploadImage(mainImageFile, firstSkuCode)
+        : null;
+      const mainImagePath = upload?.fileUrl || form.mainImagePath;
       const productPayload: Partial<Alibaba1688ProductRecord> = {
         productName: form.productName.trim(),
-        productCode: skuPreview[0]?.skuCode.trim() || '',
+        productCode: firstSkuCode,
         colorDescription: form.selectedColors.join('、'),
         status: 'missing_cost',
         listingStatus: 'not_listed',
@@ -169,8 +246,11 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
         imageStatus: 'ready',
         isMain: true,
         sortOrder: 0,
-        ...toImageColumns(form.mainImagePath),
+        ...toImageColumns(mainImagePath),
       };
+      if (upload?.fileName) {
+        imagePayload.fileName = upload.fileName;
+      }
       await alibaba1688DataSource.images.create(imagePayload);
 
       for (const item of skuPreview) {
@@ -191,6 +271,11 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
 
       setMessage('提交成功');
       setForm(emptyForm);
+      setMainImageFile(null);
+      setMainImagePreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return '';
+      });
       setUploadedImageName('');
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : '产品提交失败');
@@ -224,7 +309,6 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
           <section className="alibaba-local-image-panel wide">
             <div className="alibaba-local-image-head">
               <strong>产品主图</strong>
-              <span>支持本地 JPG、PNG、WEBP、GIF，单张不超过 8MB</span>
             </div>
             <label className="alibaba-local-image-upload">
               <input
@@ -233,8 +317,8 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
                 disabled={uploadingImage || saving}
                 onChange={(event) => void handleMainImageFileChange(event.target.files?.[0])}
               />
-              {form.mainImagePath ? (
-                <img src={form.mainImagePath} alt="产品主图预览" />
+              {mainImagePreviewUrl || form.mainImagePath ? (
+                <img src={mainImagePreviewUrl || form.mainImagePath} alt="产品主图预览" />
               ) : (
                 <span>选择本地图片</span>
               )}
@@ -248,9 +332,9 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
                   input?.click();
                 }}
               >
-                {uploadingImage ? '上传中...' : form.mainImagePath ? '重新上传' : '上传图片'}
+                {uploadingImage ? '读取中...' : mainImagePreviewUrl || form.mainImagePath ? '重新选择' : '选择图片'}
               </button>
-              <span>{uploadedImageName || form.mainImagePath || '未上传主图'}</span>
+              <span>{uploadedImageName || form.mainImagePath || '未选择主图'}</span>
             </div>
           </section>
           <label className="required alibaba-product-name-field">
@@ -284,25 +368,42 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
 
           <section className="alibaba-sku-preview-panel">
             <strong>颜色 SKU 预览</strong>
-            <table>
-              <thead><tr><th>颜色</th><th>SKU 编号</th></tr></thead>
-              <tbody>
-                {skuPreview.map((item) => (
-                  <tr key={item.color}>
-                    <td>{item.color}</td>
-                    <td>
-                      <input
-                        className="alibaba-sku-code-input"
-                        value={item.skuCode}
-                        placeholder={`请输入${item.color} SKU 编号`}
-                        onChange={(event) => updateSkuCode(item.color, event.target.value)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-                {skuPreview.length === 0 && <tr><td colSpan={2}>请选择颜色后填写 SKU 编号。</td></tr>}
-              </tbody>
-            </table>
+            <div className="alibaba-sku-group-list">
+              {skuGroups.map((group) => (
+                <article key={group.color} className="alibaba-sku-color-group">
+                  <header>
+                    <div>
+                      <span>{group.color}</span>
+                      <em>{group.rows.length} 个 SKU</em>
+                    </div>
+                    <button type="button" onClick={() => addSkuRow(group.color)} disabled={saving}>
+                      新增 SKU
+                    </button>
+                  </header>
+                  <div className="alibaba-sku-row-list">
+                    {group.rows.map((row, index) => (
+                      <div key={row.id} className="alibaba-sku-input-row">
+                        <label>
+                          <span>{group.color} SKU {index + 1}</span>
+                          <input
+                            className="alibaba-sku-code-input"
+                            value={row.skuCode}
+                            placeholder={`请输入${group.color} SKU 编号`}
+                            onChange={(event) => updateSkuCode(group.color, row.id, event.target.value)}
+                          />
+                        </label>
+                        {group.rows.length > 1 && (
+                          <button type="button" onClick={() => removeSkuRow(group.color, row.id)} disabled={saving}>
+                            删除
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+              {skuGroups.length === 0 && <p className="alibaba-sku-empty">请选择颜色后填写 SKU 编号。</p>}
+            </div>
           </section>
 
           <div className="alibaba-create-simple-actions">

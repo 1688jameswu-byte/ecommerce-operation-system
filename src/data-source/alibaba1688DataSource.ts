@@ -119,6 +119,94 @@ function readFileAsDataUrl(file: File) {
   });
 }
 
+function sanitizeUploadFileNameBase(value: string) {
+  return value
+    .trim()
+    .replace(/\.[^.]+$/, '')
+    .replace(/[^\w.-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'product-image';
+}
+
+function getFileExtension(file: File) {
+  const typeExtension = file.type === 'image/png'
+    ? 'png'
+    : file.type === 'image/webp'
+      ? 'webp'
+      : file.type === 'image/gif'
+        ? 'gif'
+        : file.type === 'image/jpeg'
+          ? 'jpg'
+          : '';
+  const nameExtension = file.name.split('.').pop()?.toLowerCase() || '';
+  return typeExtension || nameExtension || 'jpg';
+}
+
+function loadImageElement(file: File) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const imageUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(imageUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(imageUrl);
+      reject(new Error('图片加载失败，请更换图片后重试'));
+    };
+    image.src = imageUrl;
+  });
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
+  return new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, type, quality);
+  });
+}
+
+async function buildCompressedProductImageFile(file: File, fileNameBase: string) {
+  const safeNameBase = sanitizeUploadFileNameBase(fileNameBase);
+  const image = await loadImageElement(file);
+  const shouldResize = image.naturalWidth > 300 || image.naturalHeight > 300;
+
+  if (!shouldResize) {
+    return new File([file], `${safeNameBase}.${getFileExtension(file)}`, {
+      type: file.type || 'image/jpeg',
+      lastModified: Date.now(),
+    });
+  }
+
+  const sourceSize = Math.min(image.naturalWidth, image.naturalHeight);
+  const sourceX = Math.max(0, Math.floor((image.naturalWidth - sourceSize) / 2));
+  const sourceY = Math.max(0, Math.floor((image.naturalHeight - sourceSize) / 2));
+  const canvas = document.createElement('canvas');
+  canvas.width = 300;
+  canvas.height = 300;
+  const context = canvas.getContext('2d');
+  if (!context) {
+    throw new Error('当前浏览器不支持图片压缩，请更换浏览器后重试');
+  }
+
+  context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, 300, 300);
+
+  let blob = await canvasToBlob(canvas, 'image/webp', 0.82);
+  let extension = 'webp';
+  let contentType = blob?.type || 'image/webp';
+  if (!blob || blob.size === 0 || contentType !== 'image/webp') {
+    blob = await canvasToBlob(canvas, 'image/jpeg', 0.86);
+    extension = 'jpg';
+    contentType = 'image/jpeg';
+  }
+  if (!blob || blob.size === 0) {
+    throw new Error('图片压缩失败，请更换图片后重试');
+  }
+
+  return new File([blob], `${safeNameBase}.${extension}`, {
+    type: contentType,
+    lastModified: Date.now(),
+  });
+}
+
 export const alibaba1688DataSource = {
   async loadStatus() {
     const response = await fetch(`${apiBase}/status?t=${Date.now()}`, {
@@ -133,17 +221,20 @@ export const alibaba1688DataSource = {
 
     return data as Alibaba1688DatabaseStatus;
   },
-  async uploadImage(file: File) {
-    const dataUrl = await readFileAsDataUrl(file);
+  async uploadImage(file: File, fileNameBase?: string) {
+    const uploadFile = fileNameBase
+      ? await buildCompressedProductImageFile(file, fileNameBase)
+      : file;
+    const dataUrl = await readFileAsDataUrl(uploadFile);
     const response = await fetch(`${apiBase}/upload-image`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       credentials: 'include',
       cache: 'no-store',
       body: JSON.stringify({
-        fileName: file.name,
-        contentType: file.type,
-        size: file.size,
+        fileName: uploadFile.name,
+        contentType: uploadFile.type,
+        size: uploadFile.size,
         dataUrl,
       }),
     });
