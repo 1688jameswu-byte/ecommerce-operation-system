@@ -154,6 +154,7 @@ function isRenderableImageSource(value?: string) {
     next.startsWith('http://') ||
     next.startsWith('https://') ||
     next.startsWith('data:') ||
+    next.startsWith('blob:') ||
     next.startsWith('/')
   );
 }
@@ -500,63 +501,54 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     setError('');
   }
 
-  async function saveProductImage() {
-    if (!detail || !permissions.canEditProductContent || !detailImageEdit.file) return;
+  async function saveSelectedProductImage(productId: string, images: Alibaba1688ImageRecord[]) {
+    if (!detail || !detailImageEdit.file) return;
     const firstSkuCode = pricingRows.find((row) => row.skuCode.trim())?.skuCode.trim() || detail.productCode || detail.id.slice(0, 8);
-    setSaving(true);
-    setMessage('');
-    setError('');
-    try {
-      const upload = await alibaba1688DataSource.uploadImage(detailImageEdit.file, firstSkuCode);
-      const existingMainImage = [...detail.images]
-        .sort((left, right) => {
-          const leftRank = left.isMain ? 0 : left.imageType === 'main_image' ? 1 : 2;
-          const rightRank = right.isMain ? 0 : right.imageType === 'main_image' ? 1 : 2;
-          return leftRank - rightRank || (left.sortOrder ?? 0) - (right.sortOrder ?? 0);
-        })[0];
-      const imagePayload: Partial<Alibaba1688ImageRecord> = {
-        productId: detail.id,
-        imageType: 'main_image',
-        imageStatus: 'ready',
-        isMain: true,
-        sortOrder: 0,
-        fileName: upload.fileName,
-        filePath: upload.filePath,
-        fileUrl: upload.fileUrl,
-      };
-      if (existingMainImage) {
-        await alibaba1688DataSource.images.update(existingMainImage.id, imagePayload);
-      } else {
-        await alibaba1688DataSource.images.create(imagePayload);
-      }
-      await loadDetail(detail.id);
-      await loadProducts();
-      showToast('保存成功');
-      setMessage('产品主图已保存。');
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : '产品主图保存失败');
-    } finally {
-      setSaving(false);
+    const upload = await alibaba1688DataSource.uploadImage(detailImageEdit.file, firstSkuCode);
+    const existingMainImage = [...images]
+      .sort((left, right) => {
+        const leftRank = left.isMain ? 0 : left.imageType === 'main_image' ? 1 : 2;
+        const rightRank = right.isMain ? 0 : right.imageType === 'main_image' ? 1 : 2;
+        return leftRank - rightRank || (left.sortOrder ?? 0) - (right.sortOrder ?? 0);
+      })[0];
+    const imagePayload: Partial<Alibaba1688ImageRecord> = {
+      productId,
+      imageType: 'main_image',
+      imageStatus: 'ready',
+      isMain: true,
+      sortOrder: 0,
+      fileName: upload.fileName,
+      filePath: upload.filePath,
+      fileUrl: upload.fileUrl,
+    };
+    if (existingMainImage) {
+      await alibaba1688DataSource.images.update(existingMainImage.id, imagePayload);
+    } else {
+      await alibaba1688DataSource.images.create(imagePayload);
     }
   }
 
   async function saveProductMeta() {
     if (!detail || !permissions.canEditPricing) return;
+    const hasNewMainImage = Boolean(detailImageEdit.file);
     setSaving(true);
     setMessage('');
     setError('');
     try {
-      const saved = await alibaba1688DataSource.products.update(detail.id, {
+      await alibaba1688DataSource.products.update(detail.id, {
         productName: detailProductName.trim(),
         productCode: detailProductCode.trim(),
         status: detailStatus,
         supplierId: detailSupplierId,
         remark: detailRemark,
       });
-      setDetail((current) => current ? { ...current, ...saved } : current);
+      if (hasNewMainImage) {
+        await saveSelectedProductImage(detail.id, detail.images);
+      }
+      await loadDetail(detail.id);
       await loadProducts();
       showToast('保存成功');
-      setMessage('产品状态和供应商信息已保存。');
+      setMessage(hasNewMainImage ? '产品信息和主图已保存。' : '产品信息已保存。');
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : '产品信息保存失败');
     } finally {
@@ -956,10 +948,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                         disabled={saving}
                       />
                     </label>
-                    <span>{detailImageEdit.fileName || '未选择新主图'}</span>
-                    <button type="button" onClick={() => void saveProductImage()} disabled={saving || !detailImageEdit.file}>
-                      保存主图
-                    </button>
+                    <span>{detailImageEdit.fileName ? `${detailImageEdit.fileName}，点击保存产品信息后生效` : '未选择新主图'}</span>
                   </div>
                 )}
               </div>
