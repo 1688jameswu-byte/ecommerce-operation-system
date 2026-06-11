@@ -170,7 +170,10 @@ function pickImageUrl(images: Alibaba1688ImageRecord[] = []) {
     .sort((left, right) => {
       const leftRank = left.isMain ? 0 : left.imageType === 'main_image' ? 1 : 2;
       const rightRank = right.isMain ? 0 : right.imageType === 'main_image' ? 1 : 2;
-      return leftRank - rightRank || (left.sortOrder ?? 0) - (right.sortOrder ?? 0);
+      return leftRank - rightRank ||
+        (left.sortOrder ?? 0) - (right.sortOrder ?? 0) ||
+        String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')) ||
+        String(right.createdAt ?? '').localeCompare(String(left.createdAt ?? ''));
     })
     .map((image) => image.fileUrl || image.filePath || '')
     .find(Boolean) || '';

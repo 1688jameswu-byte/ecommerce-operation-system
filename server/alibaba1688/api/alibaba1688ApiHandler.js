@@ -483,7 +483,8 @@ async function addProductListAggregates(records) {
                ELSE 2
              END,
              sort_order,
-             created_at
+             updated_at DESC,
+             created_at DESC
          ) FILTER (WHERE COALESCE(NULLIF(file_url, ''), NULLIF(file_path, '')) IS NOT NULL))[1] AS main_image_url,
          MAX(updated_at) AS latest_image_updated_at
        FROM "1688_product_images"
