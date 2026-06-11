@@ -260,6 +260,14 @@ export const alibaba1688DataSource = {
         payload,
       );
     },
+    replaceMainImage(id: string, payload: Pick<Alibaba1688ImageUploadResult, 'fileName' | 'filePath' | 'fileUrl'>) {
+      return request<Alibaba1688ImageRecord>(
+        'products',
+        'POST',
+        `/${encodeURIComponent(id)}/main-image`,
+        payload,
+      );
+    },
   },
   skus: createResourceDataSource<Alibaba1688SkuRecord, Partial<Omit<Alibaba1688SkuRecord, 'id' | 'createdAt' | 'updatedAt'>>>('skus'),
   images: createResourceDataSource<Alibaba1688ImageRecord, Partial<Omit<Alibaba1688ImageRecord, 'id' | 'createdAt' | 'updatedAt'>>>('images'),

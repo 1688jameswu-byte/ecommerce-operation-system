@@ -501,31 +501,15 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     setError('');
   }
 
-  async function saveSelectedProductImage(productId: string, images: Alibaba1688ImageRecord[]) {
+  async function saveSelectedProductImage(productId: string) {
     if (!detail || !detailImageEdit.file) return;
     const firstSkuCode = pricingRows.find((row) => row.skuCode.trim())?.skuCode.trim() || detail.productCode || detail.id.slice(0, 8);
     const upload = await alibaba1688DataSource.uploadImage(detailImageEdit.file, firstSkuCode);
-    const existingMainImage = [...images]
-      .sort((left, right) => {
-        const leftRank = left.isMain ? 0 : left.imageType === 'main_image' ? 1 : 2;
-        const rightRank = right.isMain ? 0 : right.imageType === 'main_image' ? 1 : 2;
-        return leftRank - rightRank || (left.sortOrder ?? 0) - (right.sortOrder ?? 0);
-      })[0];
-    const imagePayload: Partial<Alibaba1688ImageRecord> = {
-      productId,
-      imageType: 'main_image',
-      imageStatus: 'ready',
-      isMain: true,
-      sortOrder: 0,
+    await alibaba1688DataSource.products.replaceMainImage(productId, {
       fileName: upload.fileName,
       filePath: upload.filePath,
       fileUrl: upload.fileUrl,
-    };
-    if (existingMainImage) {
-      await alibaba1688DataSource.images.update(existingMainImage.id, imagePayload);
-    } else {
-      await alibaba1688DataSource.images.create(imagePayload);
-    }
+    });
   }
 
   async function saveProductMeta() {
@@ -546,7 +530,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       }
       await alibaba1688DataSource.products.update(detail.id, productPayload);
       if (hasNewMainImage) {
-        await saveSelectedProductImage(detail.id, detail.images);
+        await saveSelectedProductImage(detail.id);
       }
       await loadDetail(detail.id);
       await loadProducts();

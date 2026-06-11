@@ -678,6 +678,47 @@ async function getProductDetail(productId) {
   };
 }
 
+async function replaceProductMainImage(productId, body, currentUser) {
+  const product = await alibaba1688ProductRepository.getById(productId);
+  if (!product) {
+    return null;
+  }
+  if (!canReadProductRecord(product, currentUser) || !canWriteAlibaba1688Resource(currentUser, 'products')) {
+    throw createForbiddenError('当前账号无权更换该产品主图');
+  }
+
+  const imagePayload = {
+    productId,
+    imageType: 'main_image',
+    imageStatus: 'ready',
+    isMain: true,
+    sortOrder: 0,
+    fileName: body.fileName,
+    filePath: body.filePath,
+    fileUrl: body.fileUrl,
+    createdBy: currentUser.userId || currentUser.username || '',
+    remark: body.remark,
+  };
+
+  await queryAlibaba1688Database(
+    `UPDATE "1688_product_images"
+     SET is_main = false,
+         sort_order = GREATEST(COALESCE(sort_order, 0), 0) + 1,
+         updated_at = NOW()
+     WHERE product_id = $1`,
+    [productId],
+  );
+
+  const image = await alibaba1688ImageRecordRepository.create(imagePayload);
+  await queryAlibaba1688Database(
+    `UPDATE "1688_products"
+     SET updated_at = NOW()
+     WHERE id = $1`,
+    [productId],
+  );
+  return image;
+}
+
 function isPositiveNumber(value) {
   const next = Number(value);
   return Number.isFinite(next) && next > 0;
@@ -1045,6 +1086,16 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
         return;
       }
       sendJson(res, 200, result);
+      return;
+    }
+
+    if (req.method === 'POST' && resource === 'products' && id && action === 'main-image') {
+      const image = await replaceProductMainImage(id, await readJsonBody(req, options), currentUser);
+      if (!image) {
+        sendJson(res, 404, { ok: false, message: 'Not found' });
+        return;
+      }
+      sendJson(res, 200, image);
       return;
     }
 
