@@ -704,16 +704,35 @@ async function replaceProductMainImage(productId, body, currentUser) {
     remark: body.remark,
   };
 
+  const existingMainImage = await queryAlibaba1688Database(
+    `SELECT id::text
+     FROM "1688_product_images"
+     WHERE product_id = $1
+       AND (is_main = true OR image_type = 'main_image')
+     ORDER BY
+       CASE WHEN is_main = true THEN 0 ELSE 1 END,
+       sort_order,
+       updated_at DESC,
+       created_at DESC
+     LIMIT 1`,
+    [productId],
+  );
+
+  const mainImageId = existingMainImage.rows[0]?.id;
+  const image = mainImageId
+    ? await alibaba1688ImageRecordRepository.update(mainImageId, imagePayload)
+    : await alibaba1688ImageRecordRepository.create(imagePayload);
+
   await queryAlibaba1688Database(
     `UPDATE "1688_product_images"
      SET is_main = false,
          sort_order = GREATEST(COALESCE(sort_order, 0), 0) + 1,
          updated_at = NOW()
-     WHERE product_id = $1`,
-    [productId],
+     WHERE product_id = $1
+       AND id::text <> $2`,
+    [productId, image.id],
   );
 
-  const image = await alibaba1688ImageRecordRepository.create(imagePayload);
   await queryAlibaba1688Database(
     `UPDATE "1688_products"
      SET updated_at = NOW()

@@ -553,10 +553,10 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   }
 
   async function saveSelectedProductImage(productId: string) {
-    if (!detail || !detailImageEdit.file) return;
+    if (!detail || !detailImageEdit.file) return null;
     const firstSkuCode = pricingRows.find((row) => row.skuCode.trim())?.skuCode.trim() || detail.productCode || detail.id.slice(0, 8);
     const upload = await alibaba1688DataSource.uploadImage(detailImageEdit.file, firstSkuCode);
-    await alibaba1688DataSource.products.replaceMainImage(productId, {
+    return alibaba1688DataSource.products.replaceMainImage(productId, {
       fileName: upload.fileName,
       filePath: upload.filePath,
       fileUrl: upload.fileUrl,
@@ -580,8 +580,28 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
         productPayload.supplierId = detailSupplierId;
       }
       await alibaba1688DataSource.products.update(detail.id, productPayload);
+      let savedMainImage: Alibaba1688ImageRecord | null = null;
       if (hasNewMainImage) {
-        await saveSelectedProductImage(detail.id);
+        savedMainImage = await saveSelectedProductImage(detail.id);
+      }
+      if (savedMainImage) {
+        const nextMainImageUrl = savedMainImage.fileUrl || savedMainImage.filePath || '';
+        setDetail((current) => current && current.id === detail.id ? {
+          ...current,
+          mainImageUrl: nextMainImageUrl,
+          latestUpdatedAt: savedMainImage.updatedAt || current.latestUpdatedAt,
+          updatedAt: savedMainImage.updatedAt || current.updatedAt,
+          images: [
+            savedMainImage,
+            ...current.images
+              .filter((image) => image.id !== savedMainImage.id)
+              .map((image) => image.isMain ? { ...image, isMain: false } : image),
+          ],
+        } : current);
+        setDetailImageEdit((current) => {
+          if (current.previewUrl) URL.revokeObjectURL(current.previewUrl);
+          return { file: null, previewUrl: '', fileName: '' };
+        });
       }
       await loadDetail(detail.id);
       await loadProducts();
