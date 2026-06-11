@@ -6360,6 +6360,7 @@
 
 .alibaba-products-v1-image-preview {
   position: relative;
+  z-index: 1;
   display: inline-flex;
   width: 48px;
   height: 48px;

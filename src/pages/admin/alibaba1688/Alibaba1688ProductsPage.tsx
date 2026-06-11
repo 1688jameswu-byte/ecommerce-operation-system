@@ -192,8 +192,12 @@ function ProductImagePreview({ src, name }: { src?: string; name: string }) {
   function showPreview(event: MouseEvent<HTMLSpanElement>) {
     if (!canPreview) return;
     const rect = event.currentTarget.getBoundingClientRect();
-    const left = Math.max(12, Math.min(rect.left, window.innerWidth - 532));
-    const top = Math.max(12, Math.min(rect.top, window.innerHeight - 532));
+    const previewSize = 520;
+    const gap = 12;
+    const hasRoomOnRight = rect.right + gap + previewSize <= window.innerWidth - gap;
+    const preferredLeft = hasRoomOnRight ? rect.right + gap : rect.left - previewSize - gap;
+    const left = Math.max(gap, Math.min(preferredLeft, window.innerWidth - previewSize - gap));
+    const top = Math.max(gap, Math.min(rect.top, window.innerHeight - previewSize - gap));
     setPreviewPosition({ left, top });
   }
 
@@ -206,7 +210,6 @@ function ProductImagePreview({ src, name }: { src?: string; name: string }) {
             className="alibaba-products-v1-image-popover"
             src={src}
             alt={name || 'product image preview'}
-            loading="lazy"
             style={{ left: previewPosition.left, top: previewPosition.top }}
           />,
           document.body,
