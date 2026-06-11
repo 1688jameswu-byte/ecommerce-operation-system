@@ -529,19 +529,22 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   }
 
   async function saveProductMeta() {
-    if (!detail || !permissions.canEditPricing) return;
+    if (!detail || !permissions.canEditProductContent) return;
     const hasNewMainImage = Boolean(detailImageEdit.file);
     setSaving(true);
     setMessage('');
     setError('');
     try {
-      await alibaba1688DataSource.products.update(detail.id, {
+      const productPayload: Partial<Alibaba1688ProductRecord> = {
         productName: detailProductName.trim(),
         productCode: detailProductCode.trim(),
-        status: detailStatus,
-        supplierId: detailSupplierId,
         remark: detailRemark,
-      });
+      };
+      if (permissions.canEditPricing) {
+        productPayload.status = detailStatus;
+        productPayload.supplierId = detailSupplierId;
+      }
+      await alibaba1688DataSource.products.update(detail.id, productPayload);
       if (hasNewMainImage) {
         await saveSelectedProductImage(detail.id, detail.images);
       }
@@ -955,11 +958,11 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
               <div className="alibaba-products-v1-admin-form">
                 <label>
                   产品名称
-                  <input value={detailProductName} onChange={(event) => setDetailProductName(event.target.value)} disabled={!permissions.canEditPricing} />
+                  <input value={detailProductName} onChange={(event) => setDetailProductName(event.target.value)} disabled={!permissions.canEditProductContent} />
                 </label>
                 <label>
                   产品编号 / SPU
-                  <input value={detailProductCode} onChange={(event) => setDetailProductCode(event.target.value)} disabled={!permissions.canEditPricing} />
+                  <input value={detailProductCode} onChange={(event) => setDetailProductCode(event.target.value)} disabled={!permissions.canEditProductContent} />
                 </label>
                 <label>
                   状态
@@ -978,9 +981,9 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                 )}
                 <label className="wide">
                   业务备注
-                  <textarea value={detailRemark} onChange={(event) => setDetailRemark(event.target.value)} disabled={!permissions.canEditPricing} rows={3} />
+                  <textarea value={detailRemark} onChange={(event) => setDetailRemark(event.target.value)} disabled={!permissions.canEditProductContent} rows={3} />
                 </label>
-                {permissions.canEditPricing && <button type="button" onClick={() => void saveProductMeta()} disabled={saving}>保存产品信息</button>}
+                {permissions.canEditProductContent && <button type="button" onClick={() => void saveProductMeta()} disabled={saving}>保存产品信息</button>}
               </div>
             </section>
 
