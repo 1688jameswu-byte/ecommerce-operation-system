@@ -62,6 +62,11 @@ export interface Alibaba1688ImageUploadResult {
   size: number;
 }
 
+export interface Alibaba1688MainImageUpdateResult {
+  image: Alibaba1688ImageRecord;
+  product: Pick<Alibaba1688ProductRecord, 'id' | 'mainImageUrl' | 'latestUpdatedAt' | 'updatedAt'>;
+}
+
 function buildQuery(params: Record<string, string | number | boolean | undefined> = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -262,7 +267,7 @@ export const alibaba1688DataSource = {
       );
     },
     replaceMainImage(id: string, payload: Pick<Alibaba1688ImageUploadResult, 'fileName' | 'filePath' | 'fileUrl'>) {
-      return request<Alibaba1688ImageRecord>(
+      return request<Alibaba1688MainImageUpdateResult>(
         'products',
         'POST',
         `/${encodeURIComponent(id)}/main-image`,

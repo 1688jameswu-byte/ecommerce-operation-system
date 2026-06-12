@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { alibaba1688DataSource, type Alibaba1688ProductStats } from '../../../data-source/alibaba1688DataSource';
+import { alibaba1688DataSource, type Alibaba1688MainImageUpdateResult, type Alibaba1688ProductStats } from '../../../data-source/alibaba1688DataSource';
 import type {
   Alibaba1688ImageRecord,
   Alibaba1688ProductDetail,
@@ -194,6 +194,28 @@ function versionedImageUrl(src?: string, version?: string) {
     return next;
   }
   return `${next}${next.includes('?') ? '&' : '?'}v=${encodeURIComponent(cacheVersion)}`;
+}
+
+function normalizeMainImageUpdateResult(
+  result: Alibaba1688MainImageUpdateResult | Alibaba1688ImageRecord | null,
+  productId: string,
+): Alibaba1688MainImageUpdateResult | null {
+  if (!result) return null;
+  if ('image' in result && result.image) {
+    return result;
+  }
+  const image = result as Alibaba1688ImageRecord;
+  const mainImageUrl = image.fileUrl || image.filePath || '';
+  const updatedAt = image.updatedAt || new Date().toISOString();
+  return {
+    image,
+    product: {
+      id: productId,
+      mainImageUrl,
+      latestUpdatedAt: updatedAt,
+      updatedAt,
+    },
+  };
 }
 
 function ProductImage({ src, name, large = false }: { src?: string; name: string; large?: boolean }) {
@@ -589,17 +611,19 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
         productPayload.supplierId = detailSupplierId;
       }
       await alibaba1688DataSource.products.update(detail.id, productPayload);
-      let savedMainImage: Alibaba1688ImageRecord | null = null;
+      let mainImageUpdate: Alibaba1688MainImageUpdateResult | null = null;
       if (hasNewMainImage) {
-        savedMainImage = await saveSelectedProductImage(detail.id);
+        mainImageUpdate = normalizeMainImageUpdateResult(await saveSelectedProductImage(detail.id), detail.id);
       }
-      if (savedMainImage) {
-        const nextMainImageUrl = savedMainImage.fileUrl || savedMainImage.filePath || '';
+      if (mainImageUpdate) {
+        const savedMainImage = mainImageUpdate.image;
+        const nextMainImageUrl = mainImageUpdate.product.mainImageUrl || savedMainImage.fileUrl || savedMainImage.filePath || '';
+        const nextUpdatedAt = mainImageUpdate.product.latestUpdatedAt || mainImageUpdate.product.updatedAt || savedMainImage.updatedAt || new Date().toISOString();
         setDetail((current) => current && current.id === detail.id ? {
           ...current,
           mainImageUrl: nextMainImageUrl,
-          latestUpdatedAt: savedMainImage.updatedAt || current.latestUpdatedAt,
-          updatedAt: savedMainImage.updatedAt || current.updatedAt,
+          latestUpdatedAt: nextUpdatedAt,
+          updatedAt: nextUpdatedAt,
           images: [
             savedMainImage,
             ...current.images
@@ -614,6 +638,16 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       }
       await loadDetail(detail.id);
       await loadProducts();
+      if (mainImageUpdate) {
+        const nextMainImageUrl = mainImageUpdate.product.mainImageUrl || mainImageUpdate.image.fileUrl || mainImageUpdate.image.filePath || '';
+        const nextUpdatedAt = mainImageUpdate.product.latestUpdatedAt || mainImageUpdate.product.updatedAt || mainImageUpdate.image.updatedAt || new Date().toISOString();
+        setProducts((current) => current.map((product) => product.id === detail.id ? {
+          ...product,
+          mainImageUrl: nextMainImageUrl,
+          latestUpdatedAt: nextUpdatedAt,
+          updatedAt: nextUpdatedAt,
+        } : product));
+      }
       showToast('保存成功');
       setMessage(hasNewMainImage ? '产品信息和主图已保存。' : '产品信息已保存。');
     } catch (saveError) {

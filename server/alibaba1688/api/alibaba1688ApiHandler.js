@@ -734,13 +734,24 @@ async function replaceProductMainImage(productId, body, currentUser) {
     [productId, image.id],
   );
 
-  await queryAlibaba1688Database(
+  const productUpdateResult = await queryAlibaba1688Database(
     `UPDATE "1688_products"
      SET updated_at = NOW()
-     WHERE id = $1`,
+     WHERE id = $1
+     RETURNING updated_at`,
     [productId],
   );
-  return image;
+
+  const mainImageUrl = image.fileUrl || image.filePath || '';
+  return {
+    image,
+    product: {
+      id: productId,
+      mainImageUrl,
+      latestUpdatedAt: productUpdateResult.rows[0]?.updated_at || image.updatedAt,
+      updatedAt: productUpdateResult.rows[0]?.updated_at || image.updatedAt,
+    },
+  };
 }
 
 function isPositiveNumber(value) {
