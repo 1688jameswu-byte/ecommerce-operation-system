@@ -146,13 +146,16 @@ function sanitizeSkuWritePayloadForUser(payload, currentUser) {
 }
 
 function sanitizeProductWritePayloadForUser(payload, currentUser) {
-  if (canManageAlibaba1688Data(currentUser) || !payload) {
-    return payload;
-  }
-
   const next = { ...payload };
-  delete next.supplierId;
-  delete next.supplier_id;
+  for (const key of ['supplierId', 'supplier_id', 'storeId', 'store_id', 'categoryId', 'category_id']) {
+    if (next[key] === '') {
+      next[key] = null;
+    }
+  }
+  if (!canManageAlibaba1688Data(currentUser)) {
+    delete next.supplierId;
+    delete next.supplier_id;
+  }
   return next;
 }
 

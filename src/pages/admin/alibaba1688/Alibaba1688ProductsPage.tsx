@@ -664,7 +664,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       };
       if (permissions.canEditPricing) {
         productPayload.status = detailStatus;
-        productPayload.supplierId = detailSupplierId;
+        productPayload.supplierId = (detailSupplierId || null) as Alibaba1688ProductRecord['supplierId'];
       }
       console.info('[product-edit] submit payload', {
         productId: detail.id,
