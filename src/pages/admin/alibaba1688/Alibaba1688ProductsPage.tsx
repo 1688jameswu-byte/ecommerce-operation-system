@@ -434,8 +434,14 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     setError('');
     try {
       const nextDetail = await alibaba1688DataSource.products.loadDetail(productId);
-      setDetail(nextDetail);
-      setPricingRows(buildPricingRows(nextDetail.skus));
+      const safeDetail = {
+        ...nextDetail,
+        skus: Array.isArray(nextDetail.skus) ? nextDetail.skus : [],
+        images: Array.isArray(nextDetail.images) ? nextDetail.images : [],
+        listingTasks: Array.isArray(nextDetail.listingTasks) ? nextDetail.listingTasks : [],
+      };
+      setDetail(safeDetail);
+      setPricingRows(buildPricingRows(safeDetail.skus));
       setDetailProductName(nextDetail.productName || '');
       setDetailProductCode(nextDetail.productCode || '');
       setDetailStatus(nextDetail.status || 'missing_cost');

@@ -1031,6 +1031,8 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
         sendJson(res, 200, {
           ...sanitizeProductRecordForUser(detail, currentUser),
           skus: detail.skus.map((sku) => sanitizeSkuRecordForUser(sku, currentUser)),
+          images: detail.images,
+          listingTasks: detail.listingTasks,
         });
         return;
       }
