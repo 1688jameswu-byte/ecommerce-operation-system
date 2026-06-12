@@ -227,6 +227,32 @@ function createBadRequestError(message) {
   return error;
 }
 
+function createUploadStorageError(message, cause) {
+  const error = new Error(message);
+  error.statusCode = 500;
+  error.cause = cause;
+  return error;
+}
+
+function logAlibaba1688Upload(level, message, details = {}) {
+  const payload = {
+    scope: 'alibaba-1688-upload',
+    message,
+    ...details,
+  };
+  const logger = level === 'error' ? console.error : console.info;
+  logger(JSON.stringify(payload));
+}
+
+async function directoryExists(directoryPath) {
+  try {
+    const stat = await fs.stat(directoryPath);
+    return stat.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 function buildUploadFileName(originalName, contentType) {
   const fallbackExtension = allowedImageMimeTypes.get(contentType) || 'png';
   const parsed = path.parse(String(originalName ?? 'product-image').replace(/[\\/]/g, ''));
@@ -246,13 +272,29 @@ function buildUploadFileName(originalName, contentType) {
 
 async function saveAlibaba1688ProductImageUpload(body) {
   const dataUrl = String(body?.dataUrl ?? '');
+  logAlibaba1688Upload('info', 'upload endpoint called', {
+    cwd: process.cwd(),
+    mode: 'json-data-url',
+    expectedField: 'dataUrl',
+    hasDataUrl: Boolean(dataUrl),
+    hasReqFile: false,
+    bodyFileName: body?.fileName || '',
+    bodyContentType: body?.contentType || '',
+    bodySize: body?.size || 0,
+  });
+
   const match = dataUrl.match(/^data:(image\/(?:jpeg|png|webp|gif));base64,([\s\S]+)$/i);
   if (!match) {
+    logAlibaba1688Upload('error', 'invalid upload payload', {
+      bodyKeys: body && typeof body === 'object' ? Object.keys(body) : [],
+      dataUrlPrefix: dataUrl.slice(0, 32),
+    });
     throw createBadRequestError('请上传 JPG、PNG、WEBP 或 GIF 图片');
   }
 
   const contentType = match[1].toLowerCase();
   if (!allowedImageMimeTypes.has(contentType)) {
+    logAlibaba1688Upload('error', 'unsupported mime type', { contentType });
     throw createBadRequestError('图片格式不支持，请上传 JPG、PNG、WEBP 或 GIF');
   }
 
@@ -274,13 +316,54 @@ async function saveAlibaba1688ProductImageUpload(body) {
   const filePath = path.join(uploadDir, fileName);
   const safeRoot = path.resolve(uploadRoot);
   const safeFilePath = path.resolve(filePath);
+  const uploadDirExistsBefore = await directoryExists(uploadDir);
+
+  logAlibaba1688Upload('info', 'resolved upload target', {
+    cwd: process.cwd(),
+    uploadRoot,
+    uploadDir,
+    uploadDirExistsBefore,
+    fileName,
+    contentType,
+    decodedSize: buffer.length,
+  });
 
   if (!safeFilePath.startsWith(`${safeRoot}${path.sep}`)) {
+    logAlibaba1688Upload('error', 'unsafe upload path rejected', {
+      safeRoot,
+      safeFilePath,
+    });
     throw createBadRequestError('图片文件名不合法');
   }
 
-  await fs.mkdir(uploadDir, { recursive: true });
-  await fs.writeFile(filePath, buffer);
+  try {
+    await fs.mkdir(uploadDir, { recursive: true });
+    await fs.writeFile(filePath, buffer);
+  } catch (error) {
+    logAlibaba1688Upload('error', 'failed to write upload file', {
+      cwd: process.cwd(),
+      uploadRoot,
+      uploadDir,
+      uploadDirExistsAfterMkdir: await directoryExists(uploadDir),
+      fileName,
+      contentType,
+      decodedSize: buffer.length,
+      errorCode: error?.code,
+      errorMessage: error?.message,
+      errorStack: error?.stack,
+    });
+    if (error?.code === 'EACCES' || error?.code === 'EPERM') {
+      throw createUploadStorageError('服务器上传目录不可写，请检查 uploads 目录权限', error);
+    }
+    throw createUploadStorageError('服务器保存图片失败，请检查上传目录配置', error);
+  }
+
+  logAlibaba1688Upload('info', 'upload file saved', {
+    uploadDir,
+    fileName,
+    fileUrl: `/uploads/${uploadRelativeDir.replace(/\\/g, '/')}/${fileName}`,
+    decodedSize: buffer.length,
+  });
 
   return {
     fileName,
@@ -1220,6 +1303,14 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
   } catch (error) {
     const statusCode = error?.statusCode || (String(error?.message ?? '').includes('required') ? 400 : 500);
     const message = error instanceof Error ? error.message : String(error);
+    console.error(JSON.stringify({
+      scope: 'alibaba-1688-api',
+      message: 'request failed',
+      statusCode,
+      errorMessage: message,
+      errorCode: error?.code,
+      errorStack: error?.stack,
+    }));
     sendJson(res, statusCode, {
       ok: false,
       success: false,

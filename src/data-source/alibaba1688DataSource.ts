@@ -163,9 +163,9 @@ function loadImageElement(file: File) {
   });
 }
 
-function canvasToBlob(canvas: HTMLCanvasElement, type: string) {
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number) {
   return new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, type);
+    canvas.toBlob(resolve, type, quality);
   });
 }
 
@@ -197,13 +197,16 @@ async function buildCroppedProductImageFile(file: File, fileNameBase: string) {
   context.imageSmoothingQuality = 'high';
   context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, targetSize, targetSize);
 
-  const blob = await canvasToBlob(canvas, 'image/png');
+  const webpBlob = await canvasToBlob(canvas, 'image/webp', 0.82);
+  const jpegBlob = webpBlob && webpBlob.size > 0 ? null : await canvasToBlob(canvas, 'image/jpeg', 0.88);
+  const blob = webpBlob && webpBlob.size > 0 ? webpBlob : jpegBlob;
   if (!blob || blob.size === 0) {
     throw new Error('图片裁剪失败，请更换图片后重试');
   }
 
-  return new File([blob], `${safeNameBase}.png`, {
-    type: 'image/png',
+  const outputExtension = blob.type === 'image/webp' ? 'webp' : 'jpg';
+  return new File([blob], `${safeNameBase}.${outputExtension}`, {
+    type: blob.type || 'image/jpeg',
     lastModified: Date.now(),
   });
 }
@@ -242,6 +245,12 @@ export const alibaba1688DataSource = {
     const data = await response.json().catch(() => null) as (Partial<Alibaba1688ImageUploadResult> & { message?: string; error?: string }) | null;
 
     if (!response.ok) {
+      if (response.status === 413) {
+        throw new Error('图片太大，服务器拒绝接收；请压缩图片或调整 Nginx client_max_body_size');
+      }
+      if (response.status === 415) {
+        throw new Error('图片格式不支持，请上传 JPG、PNG、WEBP 或 GIF');
+      }
       throw new Error(data?.message || data?.error || '图片上传失败');
     }
 
