@@ -244,6 +244,16 @@ function logAlibaba1688Upload(level, message, details = {}) {
   logger(JSON.stringify(payload));
 }
 
+function logAlibaba1688ProductUpdate(level, message, details = {}) {
+  const payload = {
+    scope: 'product-update',
+    message,
+    ...details,
+  };
+  const logger = level === 'error' ? console.error : console.info;
+  logger(JSON.stringify(payload));
+}
+
 async function directoryExists(directoryPath) {
   try {
     const stat = await fs.stat(directoryPath);
@@ -767,12 +777,24 @@ async function getProductDetail(productId) {
 }
 
 async function replaceProductMainImage(productId, body, currentUser) {
+  logAlibaba1688ProductUpdate('info', 'replace main image called', {
+    productId,
+    bodyFields: body && typeof body === 'object' ? Object.keys(body) : [],
+    containsImageFields: Boolean(body?.fileUrl || body?.filePath || body?.imageUrl || body?.mainImageUrl),
+  });
   const product = await alibaba1688ProductRepository.getById(productId);
   if (!product) {
     return null;
   }
   if (!canReadProductRecord(product, currentUser) || !canWriteAlibaba1688Resource(currentUser, 'products')) {
     throw createForbiddenError('当前账号无权更换该产品主图');
+  }
+  if (!String(body?.fileUrl || body?.filePath || '').trim()) {
+    logAlibaba1688ProductUpdate('error', 'replace main image missing image url', {
+      productId,
+      bodyFields: body && typeof body === 'object' ? Object.keys(body) : [],
+    });
+    throw createBadRequestError('主图地址不能为空，请重新选择图片后保存');
   }
 
   const imagePayload = {
@@ -789,7 +811,7 @@ async function replaceProductMainImage(productId, body, currentUser) {
   };
 
   const existingMainImage = await queryAlibaba1688Database(
-    `SELECT id::text
+    `SELECT id::text, file_url, file_path
      FROM "1688_product_images"
      WHERE product_id = $1
        AND (is_main = true OR image_type = 'main_image')
@@ -803,6 +825,7 @@ async function replaceProductMainImage(productId, body, currentUser) {
   );
 
   const mainImageId = existingMainImage.rows[0]?.id;
+  const oldMainImageUrl = existingMainImage.rows[0]?.file_url || existingMainImage.rows[0]?.file_path || '';
   const image = mainImageId
     ? await alibaba1688ImageRecordRepository.update(mainImageId, imagePayload)
     : await alibaba1688ImageRecordRepository.create(imagePayload);
@@ -826,6 +849,13 @@ async function replaceProductMainImage(productId, body, currentUser) {
   );
 
   const mainImageUrl = image.fileUrl || image.filePath || '';
+  logAlibaba1688ProductUpdate('info', 'replace main image saved', {
+    productId,
+    imageId: image.id,
+    oldMainImageUrl,
+    newMainImageUrl: mainImageUrl,
+    imageFields: Object.keys(imagePayload),
+  });
   return {
     image,
     product: {
@@ -1054,6 +1084,7 @@ async function markListingFailed(taskId, body, currentUser) {
 export async function handleAlibaba1688Api(req, res, options = {}) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
+  const requestContext = parseRequestUrl(req);
 
   try {
     const currentUser = options.getCurrentUser?.() ?? null;
@@ -1062,7 +1093,7 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
       return;
     }
 
-    const { resource, id, action, searchParams } = parseRequestUrl(req);
+    const { resource, id, action, searchParams } = requestContext;
 
     if (resource === 'status') {
       if (req.method !== 'GET') {
@@ -1275,10 +1306,34 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
         : resource === 'products'
           ? sanitizeProductWritePayloadForUser(body, currentUser)
           : body;
+      if (resource === 'products') {
+        logAlibaba1688ProductUpdate('info', 'product update called', {
+          productId: id,
+          bodyFields: body && typeof body === 'object' ? Object.keys(body) : [],
+          safeBodyFields: safeBody && typeof safeBody === 'object' ? Object.keys(safeBody) : [],
+          containsImageFields: Boolean(
+            body?.fileUrl ||
+            body?.filePath ||
+            body?.imageUrl ||
+            body?.mainImageUrl ||
+            body?.image ||
+            body?.mainImage
+          ),
+        });
+      }
       const next = await repository.update(id, safeBody);
       if (!next) {
+        if (resource === 'products') {
+          logAlibaba1688ProductUpdate('error', 'product update not found', { productId: id });
+        }
         sendJson(res, 404, { ok: false, message: 'Not found' });
         return;
+      }
+      if (resource === 'products') {
+        logAlibaba1688ProductUpdate('info', 'product update saved', {
+          productId: id,
+          updatedAt: next.updatedAt,
+        });
       }
       if (resource === 'stores') {
         options.syncStore?.(next);
@@ -1303,6 +1358,15 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
   } catch (error) {
     const statusCode = error?.statusCode || (String(error?.message ?? '').includes('required') ? 400 : 500);
     const message = error instanceof Error ? error.message : String(error);
+    if (requestContext.resource === 'products') {
+      logAlibaba1688ProductUpdate('error', 'product request failed', {
+        productId: requestContext.id,
+        action: requestContext.action,
+        statusCode,
+        errorMessage: message,
+        errorCode: error?.code,
+      });
+    }
     console.error(JSON.stringify({
       scope: 'alibaba-1688-api',
       message: 'request failed',

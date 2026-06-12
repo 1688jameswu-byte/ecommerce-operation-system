@@ -187,6 +187,36 @@ function latestImageUpdatedAt(images: Alibaba1688ImageRecord[] = []) {
     .at(-1) || '';
 }
 
+function getProductMainImage(product?: (Partial<Alibaba1688ProductRecord> & { images?: Alibaba1688ImageRecord[] }) | null) {
+  if (!product) return '';
+  const legacyProduct = product as Record<string, unknown>;
+  const directCandidates = [
+    product.mainImageUrl,
+    legacyProduct.imageUrl,
+    legacyProduct.image,
+    legacyProduct.mainImage,
+    legacyProduct.imagePath,
+    legacyProduct.productImage,
+    legacyProduct.localPath,
+  ];
+  const directImage = directCandidates.find((value) => typeof value === 'string' && value.trim());
+  if (typeof directImage === 'string') {
+    return directImage;
+  }
+
+  const legacyImages = Array.isArray(legacyProduct.images) ? legacyProduct.images : [];
+  const firstLegacyImage = legacyImages
+    .map((image) => {
+      if (typeof image === 'string') return image;
+      if (!image || typeof image !== 'object') return '';
+      const record = image as Record<string, unknown>;
+      return String(record.fileUrl || record.url || record.imageUrl || record.filePath || record.path || '');
+    })
+    .find((value) => value.trim());
+
+  return firstLegacyImage || pickImageUrl(product.images);
+}
+
 function versionedImageUrl(src?: string, version?: string) {
   const next = String(src ?? '').trim();
   const cacheVersion = String(version ?? '').trim();
@@ -331,7 +361,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     [categories],
   );
   const previewImageUrl = detail
-    ? (detailImageEdit.previewUrl || versionedImageUrl(detail.mainImageUrl || pickImageUrl(detail.images), latestImageUpdatedAt(detail.images) || detail.updatedAt))
+    ? (detailImageEdit.previewUrl || versionedImageUrl(getProductMainImage(detail), latestImageUpdatedAt(detail.images) || detail.updatedAt))
     : '';
   const hasProductActions = permissions.canEditProductContent || permissions.canDeleteProduct;
   const canBulkBindSupplier = permissions.canEditPricing && permissions.canViewSupplier;
@@ -595,21 +625,53 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   }
 
   async function saveProductMeta() {
-    if (!detail || !permissions.canEditProductContent) return;
+    console.info('[product-edit] save clicked', {
+      productId: detail?.id || '',
+      hasNewImageFile: Boolean(detailImageEdit.file),
+      currentImageUrl: detail ? getProductMainImage(detail) : '',
+    });
+    if (!detail) {
+      setError('当前没有可保存的产品，请重新打开编辑页面。');
+      return;
+    }
+    if (!permissions.canEditProductContent) {
+      setError('当前账号没有保存产品信息的权限。');
+      return;
+    }
+    if (saving) {
+      setError('产品正在保存中，请稍候。');
+      return;
+    }
+    const nextProductName = detailProductName.trim();
+    const nextProductCode = detailProductCode.trim();
+    if (!nextProductName) {
+      setError('产品名称不能为空。');
+      return;
+    }
+    if (!nextProductCode) {
+      setError('产品编号 / SPU 不能为空。');
+      return;
+    }
     const hasNewMainImage = Boolean(detailImageEdit.file);
     setSaving(true);
-    setMessage('');
+    setMessage(hasNewMainImage ? '正在保存产品信息和主图...' : '正在保存产品信息...');
     setError('');
     try {
       const productPayload: Partial<Alibaba1688ProductRecord> = {
-        productName: detailProductName.trim(),
-        productCode: detailProductCode.trim(),
+        productName: nextProductName,
+        productCode: nextProductCode,
         remark: detailRemark,
       };
       if (permissions.canEditPricing) {
         productPayload.status = detailStatus;
         productPayload.supplierId = detailSupplierId;
       }
+      console.info('[product-edit] submit payload', {
+        productId: detail.id,
+        hasNewImageFile: hasNewMainImage,
+        currentImageUrl: getProductMainImage(detail),
+        payloadFields: Object.keys(productPayload),
+      });
       await alibaba1688DataSource.products.update(detail.id, productPayload);
       let mainImageUpdate: Alibaba1688MainImageUpdateResult | null = null;
       if (hasNewMainImage) {
@@ -648,10 +710,22 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
           updatedAt: nextUpdatedAt,
         } : product));
       }
+      console.info('[product-edit] save success', {
+        productId: detail.id,
+        hasNewImageFile: hasNewMainImage,
+        imageUrl: mainImageUpdate ? (mainImageUpdate.product.mainImageUrl || mainImageUpdate.image.fileUrl || '') : getProductMainImage(detail),
+      });
       showToast('保存成功');
       setMessage(hasNewMainImage ? '产品信息和主图已保存。' : '产品信息已保存。');
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : '产品信息保存失败');
+      const message = saveError instanceof Error ? saveError.message : '产品信息保存失败';
+      console.error('[product-edit] save failed', {
+        productId: detail.id,
+        hasNewImageFile: hasNewMainImage,
+        message,
+      });
+      setError(`产品信息保存失败：${message}`);
+      return;
     } finally {
       setSaving(false);
     }
@@ -940,7 +1014,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                     )}
                     <td>
                       <div className="alibaba-products-v1-product-cell">
-                        <ProductImagePreview src={versionedImageUrl(product.mainImageUrl, product.latestUpdatedAt || product.updatedAt)} name={product.productName} />
+                        <ProductImagePreview src={versionedImageUrl(getProductMainImage(product), product.latestUpdatedAt || product.updatedAt)} name={product.productName} />
                         <div>
                           <strong>{product.productName || '-'}</strong>
                           <span>{product.productCode || product.id.slice(0, 8)}</span>
@@ -1089,7 +1163,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                   业务备注
                   <textarea value={detailRemark} onChange={(event) => setDetailRemark(event.target.value)} disabled={!permissions.canEditProductContent} rows={3} />
                 </label>
-                {permissions.canEditProductContent && <button type="button" onClick={() => void saveProductMeta()} disabled={saving}>保存产品信息</button>}
+                {permissions.canEditProductContent && <button type="button" onClick={() => void saveProductMeta()} disabled={saving}>{saving ? '保存中...' : '保存产品信息'}</button>}
               </div>
             </section>
 
