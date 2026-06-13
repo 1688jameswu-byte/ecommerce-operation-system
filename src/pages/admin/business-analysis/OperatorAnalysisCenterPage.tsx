@@ -970,11 +970,72 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
           <article><span>下降 SKU 数</span><strong>{skuTrendSummary.decliningSkuCount}</strong></article>
           <article><span>稳定 SKU 数</span><strong>{skuTrendSummary.stableSkuCount}</strong></article>
         </section>
-        <section className="operator-performance-subsection">
-          <header>
+        <section className="operator-sku-section">
+          <header className="operator-sku-section-header">
             <div>
-              <h3>下降SKU排行榜</h3>
-              <p>按最近7天日均销量对比前23天日均销量，筛选销量明显下滑的 SKU，用于发现老爆款衰退、链接异常、库存问题或曝光下降。</p>
+              <h3>近30天SKU销量排行榜</h3>
+              <p>按店铺统计最近30天销量前10的SKU，用于查看当前核心热销SKU。</p>
+            </div>
+          </header>
+          {skuTrendRankings.length > 0 ? skuTrendRankings.map((ranking) => {
+          const operatorRow = rows.find((row) => storeMatches(row, undefined, ranking.storeName));
+          const operatorName = operatorRow?.operatorName || '暂无数据';
+          return (
+            <section className="operator-performance-subsection" key={ranking.storeName}>
+              <header>
+                <div>
+                  <h3>{ranking.storeName}</h3>
+                  <p>运营：{operatorName}</p>
+                </div>
+              </header>
+              <div className="import-record-table-wrap operator-performance-table-wrap">
+                <table className="import-record-table operator-performance-table">
+                  <thead>
+                    <tr>
+                      <th>排名</th>
+                      <th>SKU</th>
+                      <th>最近30天销量</th>
+                      <th>最近7天销量</th>
+                      <th>7天占30天比例</th>
+                      <th>趋势判断</th>
+                      <th>运营</th>
+                      <th>店铺</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ranking.topSkus.map((item, index) => (
+                      <tr key={`${ranking.storeName}-${item.sku}`}>
+                        <td>{index + 1}</td>
+                        <td title={item.sku}>{item.sku || '暂无 SKU 数据'}</td>
+                        <td>{formatNumber(Number(item.recent30Quantity) || 0)}</td>
+                        <td>{formatNumber(Number(item.recent7Quantity) || 0)}</td>
+                        <td>{formatPercent((Number(item.recent7Ratio) || 0) * 100)}</td>
+                        <td>{item.trend || '暂无数据'}</td>
+                        <td>{operatorName}</td>
+                        <td>{ranking.storeName}</td>
+                      </tr>
+                    ))}
+                    {ranking.topSkus.length === 0 && <tr><td colSpan={8}>暂无 SKU 销量数据</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          );
+        }) : (
+          <div className="import-record-table-wrap operator-performance-table-wrap">
+            <table className="import-record-table operator-performance-table">
+              <tbody>
+                <tr><td>{skuTrend.dateEnd ? '暂无 SKU 销量数据' : '暂无日期数据'}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+        </section>
+        <section className="operator-sku-section operator-sku-section-risk">
+          <header className="operator-sku-section-header">
+            <div>
+              <h3>下降SKU排行榜 <span>风险预警</span></h3>
+              <p>按最近7天日均销量对比前23天日均销量，筛选销量明显下滑的SKU，用于发现老爆款衰退、链接异常、库存问题或曝光下降。</p>
             </div>
           </header>
           {decliningSkuRankings.length > 0 ? decliningSkuRankings.map((ranking) => {
@@ -1041,59 +1102,6 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
             </div>
           )}
         </section>
-        {skuTrendRankings.length > 0 ? skuTrendRankings.map((ranking) => {
-          const operatorRow = rows.find((row) => storeMatches(row, undefined, ranking.storeName));
-          const operatorName = operatorRow?.operatorName || '暂无数据';
-          return (
-            <section className="operator-performance-subsection" key={ranking.storeName}>
-              <header>
-                <div>
-                  <h3>{ranking.storeName}</h3>
-                  <p>运营：{operatorName}</p>
-                </div>
-              </header>
-              <div className="import-record-table-wrap operator-performance-table-wrap">
-                <table className="import-record-table operator-performance-table">
-                  <thead>
-                    <tr>
-                      <th>排名</th>
-                      <th>SKU</th>
-                      <th>最近30天销量</th>
-                      <th>最近7天销量</th>
-                      <th>7天占30天比例</th>
-                      <th>趋势判断</th>
-                      <th>运营</th>
-                      <th>店铺</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ranking.topSkus.map((item, index) => (
-                      <tr key={`${ranking.storeName}-${item.sku}`}>
-                        <td>{index + 1}</td>
-                        <td title={item.sku}>{item.sku || '暂无 SKU 数据'}</td>
-                        <td>{formatNumber(Number(item.recent30Quantity) || 0)}</td>
-                        <td>{formatNumber(Number(item.recent7Quantity) || 0)}</td>
-                        <td>{formatPercent((Number(item.recent7Ratio) || 0) * 100)}</td>
-                        <td>{item.trend || '暂无数据'}</td>
-                        <td>{operatorName}</td>
-                        <td>{ranking.storeName}</td>
-                      </tr>
-                    ))}
-                    {ranking.topSkus.length === 0 && <tr><td colSpan={8}>暂无 SKU 销量数据</td></tr>}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          );
-        }) : (
-          <div className="import-record-table-wrap operator-performance-table-wrap">
-            <table className="import-record-table operator-performance-table">
-              <tbody>
-                <tr><td>{skuTrend.dateEnd ? '暂无 SKU 销量数据' : '暂无日期数据'}</td></tr>
-              </tbody>
-            </table>
-          </div>
-        )}
       </article>
 
       <article className="excel-record-panel operator-performance-panel">
