@@ -3462,21 +3462,69 @@ function getOrderSkuForSummary(order) {
   ).trim();
 }
 
-function getSkuTrendLabel(recent30Quantity, recent7Quantity) {
+function getSkuTrendLabel(recent30Quantity, recent7Quantity, previous23Quantity) {
   if (recent30Quantity <= 0) {
     return '暂无数据';
   }
-  if (recent7Quantity <= 0) {
-    return '下降';
+  if (previous23Quantity <= 0 && recent7Quantity > 0) {
+    return '新品起量';
   }
-  const ratio = recent7Quantity / recent30Quantity;
-  if (ratio >= 0.35) {
-    return '上升';
+  if (previous23Quantity > 0 && recent7Quantity <= 0) {
+    return '明显下降';
   }
-  if (ratio >= 0.15) {
+
+  const previous23DailyAverage = previous23Quantity / 23;
+  if (previous23DailyAverage <= 0) {
     return '稳定';
   }
-  return '下降';
+
+  const recent7DailyAverage = recent7Quantity / 7;
+  const trendChangeRate = (recent7DailyAverage - previous23DailyAverage) / previous23DailyAverage;
+  if (trendChangeRate >= 0.2) {
+    return '上升';
+  }
+  if (trendChangeRate <= -0.2) {
+    return '下降';
+  }
+  return '稳定';
+}
+
+function getDecliningSkuRiskLevel(previous23Quantity, recent7Quantity, declineRate) {
+  if (previous23Quantity >= 5 && recent7Quantity <= 0) {
+    return '断崖下降';
+  }
+  if (declineRate >= 0.5) {
+    return '严重下降';
+  }
+  if (declineRate >= 0.3) {
+    return '明显下降';
+  }
+  return '轻微下降';
+}
+
+function buildDecliningSkuRanking(allSkus) {
+  return allSkus
+    .map((item) => {
+      const dailyDrop = Math.max(0, item.previous23DailyAverage - item.recent7DailyAverage);
+      const declineRate = item.previous23DailyAverage > 0 ? dailyDrop / item.previous23DailyAverage : null;
+      return {
+        ...item,
+        dailyDrop,
+        declineRate,
+        riskLevel: getDecliningSkuRiskLevel(item.previous23Quantity, item.recent7Quantity, declineRate ?? 1),
+      };
+    })
+    .filter((item) => {
+      const cliffDrop = item.previous23Quantity >= 5 && item.recent7Quantity <= 0;
+      const normalDrop = item.recent30Quantity >= 10 &&
+        item.previous23Quantity >= 5 &&
+        item.declineRate !== null &&
+        item.declineRate >= 0.15 &&
+        item.dailyDrop > 0;
+      return cliffDrop || normalDrop;
+    })
+    .sort((first, second) => second.dailyDrop - first.dailyDrop || (second.declineRate ?? 0) - (first.declineRate ?? 0))
+    .slice(0, 10);
 }
 
 function buildSkuSalesTrendSummary(data) {
@@ -3541,13 +3589,24 @@ function buildSkuSalesTrendSummary(data) {
         const allSkus = Array.from(skuMap.values()).map((item) => {
           const recent30Quantity = Number(item.recent30Quantity) || 0;
           const recent7Quantity = Number(item.recent7Quantity) || 0;
+          const previous23Quantity = Math.max(0, recent30Quantity - recent7Quantity);
           const recent7Ratio = recent30Quantity > 0 ? recent7Quantity / recent30Quantity : 0;
+          const recent7DailyAverage = recent7Quantity / 7;
+          const previous23DailyAverage = previous23Quantity / 23;
+          const trendChangeRate = previous23DailyAverage > 0
+            ? (recent7DailyAverage - previous23DailyAverage) / previous23DailyAverage
+            : null;
+          const trend = getSkuTrendLabel(recent30Quantity, recent7Quantity, previous23Quantity);
           return {
             sku: item.sku,
             recent30Quantity,
             recent7Quantity,
+            previous23Quantity,
             recent7Ratio,
-            trend: getSkuTrendLabel(recent30Quantity, recent7Quantity),
+            recent7DailyAverage,
+            previous23DailyAverage,
+            trendChangeRate,
+            trend,
           };
         });
         return {
@@ -3555,10 +3614,11 @@ function buildSkuSalesTrendSummary(data) {
           summary: {
             recent30ActiveSkuCount: allSkus.filter((item) => item.recent30Quantity > 0).length,
             recent7ActiveSkuCount: allSkus.filter((item) => item.recent7Quantity > 0).length,
-            risingSkuCount: allSkus.filter((item) => item.trend === '上升').length,
+            risingSkuCount: allSkus.filter((item) => item.trend === '上升' || item.trend === '新品起量').length,
             stableSkuCount: allSkus.filter((item) => item.trend === '稳定').length,
-            decliningSkuCount: allSkus.filter((item) => item.trend === '下降').length,
+            decliningSkuCount: allSkus.filter((item) => item.trend === '下降' || item.trend === '明显下降').length,
           },
+          decliningSkus: buildDecliningSkuRanking(allSkus),
           topSkus: allSkus
             .sort((first, second) => second.recent30Quantity - first.recent30Quantity || first.sku.localeCompare(second.sku))
             .slice(0, 10),

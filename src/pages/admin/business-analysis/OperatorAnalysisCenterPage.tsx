@@ -102,7 +102,17 @@ type SkuSalesTrendItem = {
   recent30Quantity: number;
   recent7Quantity: number;
   recent7Ratio: number;
+  previous23Quantity?: number;
+  recent7DailyAverage?: number;
+  previous23DailyAverage?: number;
+  trendChangeRate?: number | null;
   trend: SkuTrend;
+};
+
+type DecliningSkuItem = SkuSalesTrendItem & {
+  dailyDrop?: number;
+  declineRate?: number | null;
+  riskLevel?: string;
 };
 
 type StoreSkuRanking = {
@@ -114,6 +124,7 @@ type StoreSkuRanking = {
     stableSkuCount: number;
     decliningSkuCount: number;
   };
+  decliningSkus?: DecliningSkuItem[];
   topSkus: SkuSalesTrendItem[];
 };
 
@@ -227,6 +238,13 @@ function formatMoney(value: number) {
 
 function formatNumber(value: number) {
   return value.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+}
+
+function formatDecimal(value: number, maximumFractionDigits = 2) {
+  return (Number.isFinite(value) ? value : 0).toLocaleString('zh-CN', {
+    maximumFractionDigits,
+    minimumFractionDigits: 0,
+  });
 }
 
 function formatPercent(value: number) {
@@ -895,6 +913,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
 
   const visibleStoreCount = visibleStoreKeys.size;
   const skuTrendRankings = skuTrend.storeSkuRankings ?? [];
+  const decliningSkuRankings = skuTrendRankings.filter((ranking) => (ranking.decliningSkus ?? []).length > 0);
   const skuTrendSummary = useMemo(
     () => buildSkuSalesTrendSummary(skuTrendRankings, visibleStoreCount),
     [skuTrendRankings, visibleStoreCount],
@@ -950,6 +969,77 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
           <article><span>上升 SKU 数</span><strong>{skuTrendSummary.risingSkuCount}</strong></article>
           <article><span>下降 SKU 数</span><strong>{skuTrendSummary.decliningSkuCount}</strong></article>
           <article><span>稳定 SKU 数</span><strong>{skuTrendSummary.stableSkuCount}</strong></article>
+        </section>
+        <section className="operator-performance-subsection">
+          <header>
+            <div>
+              <h3>下降SKU排行榜</h3>
+              <p>按最近7天日均销量对比前23天日均销量，筛选销量明显下滑的 SKU，用于发现老爆款衰退、链接异常、库存问题或曝光下降。</p>
+            </div>
+          </header>
+          {decliningSkuRankings.length > 0 ? decliningSkuRankings.map((ranking) => {
+            const operatorRow = rows.find((row) => storeMatches(row, undefined, ranking.storeName));
+            const operatorName = operatorRow?.operatorName || '暂无数据';
+            return (
+              <section className="operator-performance-subsection" key={`declining-${ranking.storeName}`}>
+                <header>
+                  <div>
+                    <h3>{ranking.storeName}</h3>
+                    <p>运营：{operatorName}</p>
+                  </div>
+                </header>
+                <div className="import-record-table-wrap operator-performance-table-wrap">
+                  <table className="import-record-table operator-performance-table">
+                    <thead>
+                      <tr>
+                        <th>排名</th>
+                        <th>SKU</th>
+                        <th>最近30天销量</th>
+                        <th>前23天销量</th>
+                        <th>最近7天销量</th>
+                        <th>前23天日均</th>
+                        <th>最近7天日均</th>
+                        <th>日均下降量</th>
+                        <th>下降率</th>
+                        <th>风险等级</th>
+                        <th>运营</th>
+                        <th>店铺</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(ranking.decliningSkus ?? []).map((item, index) => {
+                        const declineRate = item.declineRate ?? null;
+                        return (
+                          <tr key={`declining-${ranking.storeName}-${item.sku}`}>
+                            <td>{index + 1}</td>
+                            <td title={item.sku}>{item.sku || '暂无 SKU 数据'}</td>
+                            <td>{formatNumber(Number(item.recent30Quantity) || 0)}</td>
+                            <td>{formatNumber(Number(item.previous23Quantity) || 0)}</td>
+                            <td>{formatNumber(Number(item.recent7Quantity) || 0)}</td>
+                            <td>{formatDecimal(Number(item.previous23DailyAverage) || 0)}</td>
+                            <td>{formatDecimal(Number(item.recent7DailyAverage) || 0)}</td>
+                            <td>{formatDecimal(Number(item.dailyDrop) || 0)}</td>
+                            <td>{declineRate === null ? '暂无数据' : formatPercent((Number(declineRate) || 0) * 100)}</td>
+                            <td>{item.riskLevel || '暂无数据'}</td>
+                            <td>{operatorName}</td>
+                            <td>{ranking.storeName}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            );
+          }) : (
+            <div className="import-record-table-wrap operator-performance-table-wrap">
+              <table className="import-record-table operator-performance-table">
+                <tbody>
+                  <tr><td>暂无下降SKU数据</td></tr>
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
         {skuTrendRankings.length > 0 ? skuTrendRankings.map((ranking) => {
           const operatorRow = rows.find((row) => storeMatches(row, undefined, ranking.storeName));
