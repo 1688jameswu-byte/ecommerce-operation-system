@@ -174,6 +174,55 @@ function normalizeStoreName(value: unknown) {
   return String(value ?? '').replace(/\s+/g, '').trim().toLowerCase();
 }
 
+function normalizeStoreKey(value: unknown) {
+  return String(value ?? '').trim();
+}
+
+function getStoreKeys(storeId?: string, storeName?: string) {
+  return [normalizeStoreKey(storeId), normalizeStoreKey(storeName)].filter(Boolean);
+}
+
+function getPlatformCandidate(record: unknown) {
+  const value = record as Record<string, unknown>;
+  return value.platform ??
+    value.platformCode ??
+    value.businessPlatform ??
+    value.storePlatform ??
+    value['平台'] ??
+    value.businessType ??
+    value['业务类型'] ??
+    value.storeType ??
+    value['店铺类型'];
+}
+
+function isTemuPlatform(value: unknown) {
+  return String(value ?? '').trim().toLowerCase() === 'temu';
+}
+
+function isTemuStore(store: StoreRecord) {
+  return isTemuPlatform(getPlatformCandidate(store));
+}
+
+function buildStoreKeySet(stores: StoreRecord[]) {
+  return new Set(stores.flatMap((store) => getStoreKeys(store.id, store.storeName)));
+}
+
+function storeKeyMatches(storeKeys: Set<string>, storeId?: string, storeName?: string) {
+  return getStoreKeys(storeId, storeName).some((key) => storeKeys.has(key));
+}
+
+function relationMatchesTemuStore(relation: StoreOperatorRelation, storeKeys: Set<string>) {
+  return isTemuPlatform(relation.platform) || storeKeyMatches(storeKeys, relation.storeId, relation.storeName);
+}
+
+function recordMatchesTemuStore(record: { storeId?: string; storeName?: string }, storeKeys: Set<string>) {
+  return storeKeyMatches(storeKeys, record.storeId, record.storeName);
+}
+
+function listingMatchesTemuStore(record: EffectiveNewListingRecord, storeKeys: Set<string>) {
+  return recordMatchesTemuStore(record, storeKeys) || isTemuPlatform(getPlatformCandidate(record));
+}
+
 function normalizeStorePlatform(value: unknown): StorePlatform {
   const platform = String(value ?? '').trim();
   return ['TEMU', '1688', 'Amazon', 'TikTok', 'Shopify', 'Other'].includes(platform)
@@ -682,21 +731,25 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
       rankingEffectiveNewListings,
     ]) => {
       if (!cancelled) {
-        const visibleStores = getVisibleStores(currentUser, companyStores, companyOperators, companyRelations);
+        const temuStores = companyStores.filter(isTemuStore);
+        const temuStoreKeys = buildStoreKeySet(temuStores);
+        const temuRelations = companyRelations.filter((relation) => relationMatchesTemuStore(relation, temuStoreKeys));
+        const visibleStores = getVisibleStores(currentUser, temuStores, companyOperators, temuRelations);
+        const visibleStoreKeys = buildStoreKeySet(visibleStores);
         setData({
           stores: visibleStores,
-          orderDailyRecords: orderStore.records,
-          trafficRecords: trafficStore.records ?? [],
-          effectiveNewListings,
-          relations: companyRelations,
+          orderDailyRecords: orderStore.records.filter((record) => recordMatchesTemuStore(record, visibleStoreKeys)),
+          trafficRecords: (trafficStore.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleStoreKeys)),
+          effectiveNewListings: effectiveNewListings.filter((record) => listingMatchesTemuStore(record, visibleStoreKeys)),
+          relations: temuRelations,
           operators: companyOperators,
         });
         setRankingData({
-          stores: companyStores,
-          orderDailyRecords: rankingOrderStore.records,
-          trafficRecords: rankingTrafficStore.records ?? [],
-          effectiveNewListings: rankingEffectiveNewListings,
-          relations: companyRelations,
+          stores: temuStores,
+          orderDailyRecords: rankingOrderStore.records.filter((record) => recordMatchesTemuStore(record, temuStoreKeys)),
+          trafficRecords: (rankingTrafficStore.records ?? []).filter((record) => recordMatchesTemuStore(record, temuStoreKeys)),
+          effectiveNewListings: rankingEffectiveNewListings.filter((record) => listingMatchesTemuStore(record, temuStoreKeys)),
+          relations: temuRelations,
           operators: companyOperators,
         });
       }

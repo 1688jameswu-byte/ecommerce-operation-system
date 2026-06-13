@@ -2968,12 +2968,95 @@ function buildStoreBusinessOrderDaily(data, searchParams) {
     }
   }
 
-  return {
+  const result = {
     dateStart: start,
     dateEnd: end,
     records: Array.from(groups.values())
       .map((item) => ({ ...item, salesAmount: Number(item.salesAmount.toFixed(2)) }))
       .sort((first, second) => `${first.storeName} ${first.orderDate}`.localeCompare(`${second.storeName} ${second.orderDate}`)),
+  };
+
+  if (searchParams.get('includeSkuTrend') === '1') {
+    result.skuTrend = buildSkuSalesTrendSummary(data);
+  }
+
+  if (searchParams.get('includeFirstOrderProducts') === '1') {
+    result.firstOrderProducts = buildFirstOrderProductSummary(data);
+  }
+
+  return result;
+}
+
+function getFirstOrderProductKeyForSummary(order) {
+  return String(order?.skc || order?.skcCode || order?.productSku || order?.skuCode || order?.productName || order?.uniqueKey || '')
+    .trim()
+    .toLowerCase();
+}
+
+function buildFirstOrderProductSummary(data) {
+  const latestDate = (data?.batches ?? [])
+    .flatMap((batch) => batch.orders ?? [])
+    .map(getOrderDateKey)
+    .filter(Boolean)
+    .sort()
+    .at(-1) || '';
+  const month = latestDate.slice(0, 7);
+  const stores = getStores().filter((store) => store.platform === 'TEMU');
+  const storeIds = new Set(stores.map((store) => store.id).filter(Boolean));
+  const storeNames = new Set(stores.map((store) => normalizeOrderImportStoreName(store.storeName || store.id)).filter(Boolean));
+  const allRelations = Array.isArray(readJsonFile('storeOperatorRelations')) ? readJsonFile('storeOperatorRelations') : [];
+  const relations = allRelations.filter((relation) =>
+    relation?.platform === 'TEMU' ||
+    storeIds.has(relation?.storeId) ||
+    storeNames.has(normalizeOrderImportStoreName(relation?.storeName)),
+  );
+  const operators = getOperators();
+  const operatorById = new Map(operators.map((operator) => [operator.id, operator]));
+  const groups = new Map();
+
+  for (const batch of data?.batches ?? []) {
+    for (const order of batch.orders ?? []) {
+      const date = getOrderDateKey(order);
+      if (!order?.isFirstOrder || !month || String(order?.month || date.slice(0, 7)) !== month) {
+        continue;
+      }
+
+      const storeName = normalizeOrderImportStoreName(order?.storeName);
+      if (!storeNames.has(storeName)) {
+        continue;
+      }
+
+      const store = stores.find((item) => item.id === order?.storeId || normalizeOrderImportStoreName(item.storeName) === storeName);
+      const storeId = store?.id || order?.storeId || storeName;
+      const relation = relations.find((item) =>
+        dashboardRelationActiveOnDate(item, date) &&
+        (item.storeId === storeId || normalizeOrderImportStoreName(item.storeName) === storeName),
+      );
+      const operator = relation ? operatorById.get(relation.operatorId) : undefined;
+      const operatorId = relation?.operatorId || operator?.id || order?.operatorId || '未绑定运营';
+      const operatorName = operator?.operatorName || relation?.operatorName || order?.operatorName || '未绑定运营';
+      const key = getDashboardOperatorKey(operatorId, operatorName);
+      const productKey = getFirstOrderProductKeyForSummary(order);
+
+      if (!key || !productKey) {
+        continue;
+      }
+
+      const current = groups.get(key) ?? { operatorId, operatorName: normalizeDashboardOperatorName(operatorName) || operatorId, products: new Set() };
+      current.products.add(productKey);
+      groups.set(key, current);
+    }
+  }
+
+  return {
+    month,
+    records: Array.from(groups.values())
+      .map((item) => ({
+        operatorId: item.operatorId,
+        operatorName: item.operatorName,
+        firstOrderCount: item.products.size,
+      }))
+      .sort((first, second) => second.firstOrderCount - first.firstOrderCount || first.operatorName.localeCompare(second.operatorName)),
   };
 }
 
@@ -3361,6 +3444,129 @@ function getOrderStockQuantityForSummary(order) {
     0,
   );
   return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function getOrderSkuForSummary(order) {
+  return String(
+    order?.sku ??
+    order?.skuCode ??
+    order?.productSku ??
+    order?.productSkuCode ??
+    order?.productCode ??
+    order?.skc ??
+    order?.productId ??
+    order?.['\u5546\u54c1SKU'] ??
+    order?.['SKU\u7f16\u7801'] ??
+    order?.['\u5546\u54c1\u7f16\u7801'] ??
+    '',
+  ).trim();
+}
+
+function getSkuTrendLabel(recent30Quantity, recent7Quantity) {
+  if (recent30Quantity <= 0) {
+    return '暂无数据';
+  }
+  if (recent7Quantity <= 0) {
+    return '下降';
+  }
+  const ratio = recent7Quantity / recent30Quantity;
+  if (ratio >= 0.35) {
+    return '上升';
+  }
+  if (ratio >= 0.15) {
+    return '稳定';
+  }
+  return '下降';
+}
+
+function buildSkuSalesTrendSummary(data) {
+  const allOrders = (data?.batches ?? []).flatMap((batch) => batch.orders ?? []);
+  const latest = allOrders
+    .filter(itemMatchesTemuImportStore)
+    .map(getOrderDateKey)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+
+  if (!latest) {
+    return {
+      dateEnd: '',
+      dateStart30: '',
+      dateStart7: '',
+      storeSkuRankings: [],
+    };
+  }
+
+  const start30Date = new Date(`${latest}T00:00:00`);
+  start30Date.setDate(start30Date.getDate() - 29);
+  const start7Date = new Date(`${latest}T00:00:00`);
+  start7Date.setDate(start7Date.getDate() - 6);
+  const dateStart30 = formatOrderDateKey(start30Date);
+  const dateStart7 = formatOrderDateKey(start7Date);
+  const storeGroups = new Map();
+
+  for (const order of allOrders) {
+    if (!itemMatchesTemuImportStore(order)) {
+      continue;
+    }
+
+    const date = getOrderDateKey(order);
+    if (!date || date < dateStart30 || date > latest) {
+      continue;
+    }
+
+    const storeName = normalizeOrderImportStoreName(order?.storeName);
+    const sku = getOrderSkuForSummary(order);
+    const quantity = getOrderStockQuantityForSummary(order);
+    if (!storeName || !sku || quantity <= 0) {
+      continue;
+    }
+
+    const skuMap = storeGroups.get(storeName) ?? new Map();
+    const current = skuMap.get(sku) ?? { sku, recent30Quantity: 0, recent7Quantity: 0 };
+    current.recent30Quantity += quantity;
+    if (date >= dateStart7) {
+      current.recent7Quantity += quantity;
+    }
+    skuMap.set(sku, current);
+    storeGroups.set(storeName, skuMap);
+  }
+
+  return {
+    dateEnd: latest,
+    dateStart30,
+    dateStart7,
+    storeSkuRankings: Array.from(storeGroups.entries())
+      .map(([storeName, skuMap]) => {
+        const allSkus = Array.from(skuMap.values()).map((item) => {
+          const recent30Quantity = Number(item.recent30Quantity) || 0;
+          const recent7Quantity = Number(item.recent7Quantity) || 0;
+          const recent7Ratio = recent30Quantity > 0 ? recent7Quantity / recent30Quantity : 0;
+          return {
+            sku: item.sku,
+            recent30Quantity,
+            recent7Quantity,
+            recent7Ratio,
+            trend: getSkuTrendLabel(recent30Quantity, recent7Quantity),
+          };
+        });
+        return {
+          storeName,
+          summary: {
+            recent30ActiveSkuCount: allSkus.filter((item) => item.recent30Quantity > 0).length,
+            recent7ActiveSkuCount: allSkus.filter((item) => item.recent7Quantity > 0).length,
+            risingSkuCount: allSkus.filter((item) => item.trend === '上升').length,
+            stableSkuCount: allSkus.filter((item) => item.trend === '稳定').length,
+            decliningSkuCount: allSkus.filter((item) => item.trend === '下降').length,
+          },
+          topSkus: allSkus
+            .sort((first, second) => second.recent30Quantity - first.recent30Quantity || first.sku.localeCompare(second.sku))
+            .slice(0, 10),
+        };
+      })
+      .filter((item) => item.topSkus.length > 0)
+      .sort((first, second) => first.storeName.localeCompare(second.storeName)),
+  };
 }
 
 function buildStoreAveragePriceSummary(data, searchParams) {

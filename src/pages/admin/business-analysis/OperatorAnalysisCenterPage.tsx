@@ -6,8 +6,10 @@ import type { CurrentUser } from '../../../types/auth';
 import type { OperatorRecord } from '../../../types/operator';
 import type { OperatorSalaryStatisticRow, OperatorSalaryStoreDetail } from '../../../types/salary';
 import type { OperationTaskRecord } from '../../../types/task';
+import type { StoreRecord } from '../../../types/store';
 import type { StoreOperatorRelation } from '../../../types/storeOperator';
 import type { TrafficAnalysisItem, TrafficAnalysisResultStore } from '../../../types/traffic';
+import { getVisibleStores } from '../../../auth/storeVisibility';
 import { filterRecordsByPermission, filterTasksByPermission } from '../../../utils/permissionScope';
 
 type OperatorRow = {
@@ -32,7 +34,6 @@ type EffortRow = {
   storeNames: string[];
   effectiveListingCount: number;
   firstOrderCount: number;
-  firstOrderRate: number;
   taskCount: number;
   doneTaskCount: number;
   openTaskCount: number;
@@ -94,6 +95,55 @@ type StoreAveragePriceSummaryRecord = {
   dateEnd?: string;
 };
 
+type SkuTrend = '上升' | '稳定' | '下降' | '暂无数据';
+
+type SkuSalesTrendItem = {
+  sku: string;
+  recent30Quantity: number;
+  recent7Quantity: number;
+  recent7Ratio: number;
+  trend: SkuTrend;
+};
+
+type StoreSkuRanking = {
+  storeName: string;
+  summary?: {
+    recent30ActiveSkuCount: number;
+    recent7ActiveSkuCount: number;
+    risingSkuCount: number;
+    stableSkuCount: number;
+    decliningSkuCount: number;
+  };
+  topSkus: SkuSalesTrendItem[];
+};
+
+type SkuSalesTrendSummary = {
+  visibleStoreCount: number;
+  recent30ActiveSkuCount: number;
+  recent7ActiveSkuCount: number;
+  risingSkuCount: number;
+  stableSkuCount: number;
+  decliningSkuCount: number;
+};
+
+type SkuSalesTrendResponse = {
+  dateEnd?: string;
+  dateStart30?: string;
+  dateStart7?: string;
+  storeSkuRankings?: StoreSkuRanking[];
+};
+
+type FirstOrderProductSummaryRecord = {
+  operatorId?: string;
+  operatorName?: string;
+  firstOrderCount: number;
+};
+
+type FirstOrderProductSummaryResponse = {
+  month?: string;
+  records?: FirstOrderProductSummaryRecord[];
+};
+
 interface StoreBusinessOrderDailyRecord {
   storeName: string;
   orderDate: string;
@@ -104,6 +154,8 @@ interface StoreBusinessOrderDailyRecord {
 
 interface StoreBusinessOrderDailyResponse {
   records: StoreBusinessOrderDailyRecord[];
+  skuTrend?: SkuSalesTrendResponse;
+  firstOrderProducts?: FirstOrderProductSummaryResponse;
 }
 
 interface StoreAveragePriceSummaryResponse {
@@ -246,8 +298,61 @@ function storeMatches(row: OperatorRow, storeId?: string, storeName?: string) {
   return stores.has(String(storeId ?? '').trim()) || stores.has(String(storeName ?? '').trim());
 }
 
+function normalizeStoreKey(value: unknown) {
+  return String(value ?? '').trim();
+}
+
+function getStoreKeys(storeId?: string, storeName?: string) {
+  return [normalizeStoreKey(storeId), normalizeStoreKey(storeName)].filter(Boolean);
+}
+
 function storeKeyMatches(storeKeys: Set<string>, storeId?: string, storeName?: string) {
-  return storeKeys.has(String(storeId ?? '').trim()) || storeKeys.has(String(storeName ?? '').trim());
+  return getStoreKeys(storeId, storeName).some((key) => storeKeys.has(key));
+}
+
+function getPlatformCandidate(record: unknown) {
+  const value = record as Record<string, unknown>;
+  return value.platform ??
+    value.platformCode ??
+    value.businessPlatform ??
+    value.storePlatform ??
+    value['平台'] ??
+    value.businessType ??
+    value['业务类型'] ??
+    value.storeType ??
+    value['店铺类型'];
+}
+
+function isTemuPlatform(value: unknown) {
+  return String(value ?? '').trim().toLowerCase() === 'temu';
+}
+
+function isTemuStore(store: StoreRecord) {
+  return isTemuPlatform(getPlatformCandidate(store));
+}
+
+function buildStoreKeySet(stores: StoreRecord[]) {
+  return new Set(stores.flatMap((store) => getStoreKeys(store.id, store.storeName)));
+}
+
+function relationMatchesTemuStore(relation: StoreOperatorRelation, storeKeys: Set<string>) {
+  return isTemuPlatform(relation.platform) || storeKeyMatches(storeKeys, relation.storeId, relation.storeName);
+}
+
+function recordMatchesTemuStore(record: { storeId?: string; storeName?: string }, storeKeys: Set<string>) {
+  return storeKeyMatches(storeKeys, record.storeId, record.storeName);
+}
+
+function listingMatchesTemuStore(record: EffectiveNewListingRecord, storeKeys: Set<string>) {
+  return recordMatchesTemuStore(record, storeKeys) || isTemuPlatform(getPlatformCandidate(record));
+}
+
+function getRelationOperatorKeys(relations: StoreOperatorRelation[]) {
+  const keys = new Set<string>();
+  relations.forEach((relation) => {
+    [relation.operatorId, relation.operatorName].map(normalizeStoreKey).filter(Boolean).forEach((key) => keys.add(key));
+  });
+  return keys;
 }
 
 function operatorMatches(row: OperatorRow, operatorId?: string, operatorName?: string) {
@@ -382,6 +487,28 @@ function buildEffectComparison(current: EffectSummary, baseline: EffectSummary, 
   return { mode, metrics, diagnosis };
 }
 
+function emptySkuSalesTrendSummary(visibleStoreCount = 0): SkuSalesTrendSummary {
+  return {
+    visibleStoreCount,
+    recent30ActiveSkuCount: 0,
+    recent7ActiveSkuCount: 0,
+    risingSkuCount: 0,
+    stableSkuCount: 0,
+    decliningSkuCount: 0,
+  };
+}
+
+function buildSkuSalesTrendSummary(rankings: StoreSkuRanking[], visibleStoreCount: number): SkuSalesTrendSummary {
+  return rankings.reduce((total, ranking) => ({
+    visibleStoreCount,
+    recent30ActiveSkuCount: total.recent30ActiveSkuCount + (Number(ranking.summary?.recent30ActiveSkuCount) || 0),
+    recent7ActiveSkuCount: total.recent7ActiveSkuCount + (Number(ranking.summary?.recent7ActiveSkuCount) || 0),
+    risingSkuCount: total.risingSkuCount + (Number(ranking.summary?.risingSkuCount) || 0),
+    stableSkuCount: total.stableSkuCount + (Number(ranking.summary?.stableSkuCount) || 0),
+    decliningSkuCount: total.decliningSkuCount + (Number(ranking.summary?.decliningSkuCount) || 0),
+  }), emptySkuSalesTrendSummary(visibleStoreCount));
+}
+
 function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser }) {
   const [items, setItems] = useState<TrafficAnalysisItem[]>([]);
   const [operators, setOperators] = useState<OperatorRecord[]>([]);
@@ -389,6 +516,8 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const [tasks, setTasks] = useState<OperationTaskRecord[]>([]);
   const [averagePriceRecords, setAveragePriceRecords] = useState<StoreAveragePriceSummaryRecord[]>([]);
   const [orderDailyRecords, setOrderDailyRecords] = useState<StoreBusinessOrderDailyRecord[]>([]);
+  const [skuTrend, setSkuTrend] = useState<SkuSalesTrendResponse>({ storeSkuRankings: [] });
+  const [firstOrderProductSummary, setFirstOrderProductSummary] = useState<FirstOrderProductSummaryResponse>({ records: [] });
   const [trafficRecords, setTrafficRecords] = useState<StoreBusinessTrafficRecord[]>([]);
   const [effectiveNewListings, setEffectiveNewListings] = useState<EffectiveNewListingRecord[]>([]);
   const [salaryRows, setSalaryRows] = useState<OperatorSalaryStatisticRow[]>([]);
@@ -401,25 +530,47 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     let cancelled = false;
     Promise.all([
       fetchJson<TrafficAnalysisResultStore<TrafficAnalysisItem>>('/api/persistent-data/businessAnalysisItems', { items: [], updatedAt: '' }),
+      referenceDataService.loadCompanyStores(),
       referenceDataService.loadOperators(),
       referenceDataService.loadStoreOperatorRelations(),
       fetchJson<OperationTaskRecord[]>('/api/tasks', []),
       fetchJson<StoreAveragePriceSummaryResponse>('/api/persistent-data/orderImportStore?view=store-average-price-summary&recentDays=30', { records: [] }),
-      fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=62', { records: [] }),
+      fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=62&includeSkuTrend=1&includeFirstOrderProducts=1', { records: [] }),
       fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=62', { records: [] }),
       fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []),
-    ]).then(([analysisStore, nextOperators, nextRelations, nextTasks, averagePriceStore, orderStore, trafficStore, nextEffectiveNewListings]) => {
+    ]).then(([analysisStore, companyStores, nextOperators, nextRelations, nextTasks, averagePriceStore, orderStore, trafficStore, nextEffectiveNewListings]) => {
       if (cancelled) {
         return;
       }
-      setItems(filterRecordsByPermission(analysisStore.items ?? [], currentUser));
-      setOperators(nextOperators.filter((operator) => operator.status !== 'inactive'));
-      setRelations(filterRecordsByPermission(nextRelations.filter((relation) => relation.status !== 'inactive'), currentUser));
-      setTasks(filterTasksByPermission(nextTasks, currentUser));
-      setAveragePriceRecords(averagePriceStore.records ?? []);
-      setOrderDailyRecords(orderStore.records ?? []);
-      setTrafficRecords(trafficStore.records ?? []);
-      setEffectiveNewListings(nextEffectiveNewListings ?? []);
+      const temuStores = companyStores.filter(isTemuStore);
+      const temuStoreKeys = buildStoreKeySet(temuStores);
+      const temuRelations = nextRelations
+        .filter((relation) => relation.status !== 'inactive')
+        .filter((relation) => relationMatchesTemuStore(relation, temuStoreKeys));
+      const visibleTemuStoreKeys = buildStoreKeySet(getVisibleStores(currentUser, temuStores, nextOperators, temuRelations));
+      const visibleTemuRelations = temuRelations.filter((relation) => recordMatchesTemuStore(relation, visibleTemuStoreKeys));
+      const visibleOperatorKeys = getRelationOperatorKeys(visibleTemuRelations);
+      const visibleTemuTasks = filterTasksByPermission(nextTasks, currentUser)
+        .filter((task) => recordMatchesTemuStore(task, visibleTemuStoreKeys));
+
+      setItems(filterRecordsByPermission(analysisStore.items ?? [], currentUser)
+        .filter((item) => recordMatchesTemuStore(item, visibleTemuStoreKeys)));
+      setOperators(nextOperators.filter((operator) =>
+        operator.status !== 'inactive' &&
+        (visibleOperatorKeys.has(normalizeStoreKey(operator.id)) || visibleOperatorKeys.has(normalizeStoreKey(operator.operatorName))),
+      ));
+      setRelations(visibleTemuRelations);
+      setTasks(visibleTemuTasks);
+      setAveragePriceRecords((averagePriceStore.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
+      setOrderDailyRecords((orderStore.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
+      setSkuTrend({
+        ...orderStore.skuTrend,
+        storeSkuRankings: (orderStore.skuTrend?.storeSkuRankings ?? [])
+          .filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)),
+      });
+      setFirstOrderProductSummary(orderStore.firstOrderProducts ?? { records: [] });
+      setTrafficRecords((trafficStore.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
+      setEffectiveNewListings((nextEffectiveNewListings ?? []).filter((record) => listingMatchesTemuStore(record, visibleTemuStoreKeys)));
     });
     return () => {
       cancelled = true;
@@ -564,13 +715,23 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const openTasks = tasks.filter(isTaskOpen);
   const doneTasks = tasks.filter(isTaskDone);
   const overdueTasks = tasks.filter((task) => isTaskOverdue(task, today));
+  const effortPeriod = useMemo(() => {
+    const latestOrderDate = orderDailyRecords
+      .map((record) => String(record.orderDate || '').slice(0, 10))
+      .filter(Boolean)
+      .sort((first, second) => toDateValue(second) - toDateValue(first))[0];
+    return latestOrderDate ? latestOrderDate.slice(0, 7) : period;
+  }, [orderDailyRecords, period]);
   const effortRows = useMemo<EffortRow[]>(() => rows.map((row) => {
+    const rowStoreKeys = new Set(Array.from(row.storeNames));
+    relations
+      .filter((relation) => operatorMatches(row, relation.operatorId, relation.operatorName))
+      .forEach((relation) => {
+        getStoreKeys(relation.storeId, relation.storeName).forEach((key) => rowStoreKeys.add(key));
+      });
     const rowEffectiveListings = effectiveNewListings.filter((item) => (
       operatorMatches(row, item.operatorId, item.operatorName) ||
-      storeMatches(row, item.storeId, item.storeName)
-    ));
-    const rowOrderRecords = orderDailyRecords.filter((record) => (
-      String(record.orderDate || '').startsWith(period) && storeMatches(row, undefined, record.storeName)
+      storeKeyMatches(rowStoreKeys, item.storeId, item.storeName)
     ));
     const rowTasks = tasks.filter((task) => (
       operatorMatches(row, task.operatorId, task.operatorName) ||
@@ -579,8 +740,13 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     const rowDoneTasks = rowTasks.filter(isTaskDone);
     const rowOpenTasks = rowTasks.filter(isTaskOpen);
     const rowOverdueTasks = rowTasks.filter((task) => isTaskOverdue(task, today));
-    const effectiveListingCount = rowEffectiveListings.filter((item) => String(item.siteJoinDate || item.createdAt || '').startsWith(period)).length;
-    const firstOrderCount = rowOrderRecords.reduce((total, record) => total + (Number(record.firstOrderCount) || 0), 0);
+    const effectiveListingCount = new Set(rowEffectiveListings
+      .filter((item) => String(item.siteJoinDate || item.createdAt || '').startsWith(effortPeriod))
+      .map((item) => `${item.storeId || item.storeName || ''}|${String(item.skc || '').trim().toLowerCase()}`)
+      .filter((key) => !key.endsWith('|'))).size;
+    const firstOrderCount = (firstOrderProductSummary.records ?? [])
+      .find((record) => operatorMatches(row, record.operatorId, record.operatorName))
+      ?.firstOrderCount ?? 0;
     const taskCount = rowTasks.length;
     const rowTaskDoneRate = taskCount > 0 ? rowDoneTasks.length / taskCount : 0;
     const status = buildEffortStatus(effectiveListingCount, rowTaskDoneRate, taskCount);
@@ -591,7 +757,6 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       storeNames: Array.from(row.storeNames),
       effectiveListingCount,
       firstOrderCount,
-      firstOrderRate: effectiveListingCount > 0 ? firstOrderCount / effectiveListingCount : 0,
       taskCount,
       doneTaskCount: rowDoneTasks.length,
       openTaskCount: rowOpenTasks.length,
@@ -607,7 +772,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       second.effectiveListingCount - first.effectiveListingCount ||
       second.doneTaskCount - first.doneTaskCount ||
       first.operatorName.localeCompare(second.operatorName);
-  }), [effectiveNewListings, orderDailyRecords, period, rows, tasks, today]);
+  }), [effectiveNewListings, effortPeriod, firstOrderProductSummary.records, relations, rows, tasks, today]);
   const effortSummary = useMemo(() => effortRows.reduce((total, row) => ({
     effectiveListingCount: total.effectiveListingCount + row.effectiveListingCount,
     firstOrderCount: total.firstOrderCount + row.firstOrderCount,
@@ -624,7 +789,6 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     overdueTaskCount: 0,
   }), [effortRows]);
   const effortTaskDoneRate = effortSummary.taskCount > 0 ? effortSummary.doneTaskCount / effortSummary.taskCount : 0;
-  const effortFirstOrderRate = effortSummary.effectiveListingCount > 0 ? effortSummary.firstOrderCount / effortSummary.effectiveListingCount : 0;
   const visibleStoreKeys = useMemo(() => new Set(rows.flatMap((row) => Array.from(row.storeNames))), [rows]);
   const allStoreAveragePriceRows = useMemo<AveragePriceStoreRow[]>(() => averagePriceRecords
     .map((record) => {
@@ -730,6 +894,11 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     .slice(0, 8);
 
   const visibleStoreCount = visibleStoreKeys.size;
+  const skuTrendRankings = skuTrend.storeSkuRankings ?? [];
+  const skuTrendSummary = useMemo(
+    () => buildSkuSalesTrendSummary(skuTrendRankings, visibleStoreCount),
+    [skuTrendRankings, visibleStoreCount],
+  );
 
   return (
     <section className="excel-import-page">
@@ -764,6 +933,77 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
           <article><span>待处理任务数</span><strong>{openTasks.length}</strong></article>
           <article><span>任务完成率</span><strong>{formatPercent(taskDoneRate * 100)}</strong></article>
         </section>
+      </article>
+
+      <article className="excel-record-panel operator-performance-panel">
+        <header>
+          <div>
+            <h2>SKU销量趋势分析</h2>
+            <p>按店铺统计最近30天销量前10的 SKU，并对比最近7天销量变化，用于发现上升 SKU、下降 SKU 和核心热销 SKU。</p>
+          </div>
+          <span>{skuTrend.dateEnd ? `${skuTrend.dateStart30 || '-'} 至 ${skuTrend.dateEnd}` : '暂无日期数据'}</span>
+        </header>
+        <section className="import-overview-grid">
+          <article><span>可见店铺数</span><strong>{skuTrendSummary.visibleStoreCount}</strong></article>
+          <article><span>近30天有销量 SKU 数</span><strong>{skuTrendSummary.recent30ActiveSkuCount}</strong></article>
+          <article><span>近7天有销量 SKU 数</span><strong>{skuTrendSummary.recent7ActiveSkuCount}</strong></article>
+          <article><span>上升 SKU 数</span><strong>{skuTrendSummary.risingSkuCount}</strong></article>
+          <article><span>下降 SKU 数</span><strong>{skuTrendSummary.decliningSkuCount}</strong></article>
+          <article><span>稳定 SKU 数</span><strong>{skuTrendSummary.stableSkuCount}</strong></article>
+        </section>
+        {skuTrendRankings.length > 0 ? skuTrendRankings.map((ranking) => {
+          const operatorRow = rows.find((row) => storeMatches(row, undefined, ranking.storeName));
+          const operatorName = operatorRow?.operatorName || '暂无数据';
+          return (
+            <section className="operator-performance-subsection" key={ranking.storeName}>
+              <header>
+                <div>
+                  <h3>{ranking.storeName}</h3>
+                  <p>运营：{operatorName}</p>
+                </div>
+              </header>
+              <div className="import-record-table-wrap operator-performance-table-wrap">
+                <table className="import-record-table operator-performance-table">
+                  <thead>
+                    <tr>
+                      <th>排名</th>
+                      <th>SKU</th>
+                      <th>最近30天销量</th>
+                      <th>最近7天销量</th>
+                      <th>7天占30天比例</th>
+                      <th>趋势判断</th>
+                      <th>运营</th>
+                      <th>店铺</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ranking.topSkus.map((item, index) => (
+                      <tr key={`${ranking.storeName}-${item.sku}`}>
+                        <td>{index + 1}</td>
+                        <td title={item.sku}>{item.sku || '暂无 SKU 数据'}</td>
+                        <td>{formatNumber(Number(item.recent30Quantity) || 0)}</td>
+                        <td>{formatNumber(Number(item.recent7Quantity) || 0)}</td>
+                        <td>{formatPercent((Number(item.recent7Ratio) || 0) * 100)}</td>
+                        <td>{item.trend || '暂无数据'}</td>
+                        <td>{operatorName}</td>
+                        <td>{ranking.storeName}</td>
+                      </tr>
+                    ))}
+                    {ranking.topSkus.length === 0 && <tr><td colSpan={8}>暂无 SKU 销量数据</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          );
+        }) : (
+          <div className="import-record-table-wrap operator-performance-table-wrap">
+            <table className="import-record-table operator-performance-table">
+              <tbody>
+                <tr><td>{skuTrend.dateEnd ? '暂无 SKU 销量数据' : '暂无日期数据'}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        )}
       </article>
 
       <article className="excel-record-panel operator-performance-panel">
@@ -812,7 +1052,6 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
         <section className="import-overview-grid">
           <article><span>有效上新数量</span><strong>{effortSummary.effectiveListingCount}</strong></article>
           <article><span>首单商品数</span><strong>{effortSummary.firstOrderCount}</strong></article>
-          <article><span>上新首单率</span><strong>{formatPercent(effortFirstOrderRate * 100)}</strong></article>
           <article><span>任务处理数量</span><strong>{effortSummary.taskCount}</strong></article>
           <article><span>已完成任务数</span><strong>{effortSummary.doneTaskCount}</strong></article>
           <article><span>待处理任务数</span><strong>{effortSummary.openTaskCount}</strong></article>
@@ -829,7 +1068,6 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
                 <th>负责店铺</th>
                 <th>有效上新</th>
                 <th>首单商品数</th>
-                <th>上新首单率</th>
                 <th>已完成任务</th>
                 <th>待处理任务</th>
                 <th>超时任务</th>
@@ -844,7 +1082,6 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
                   <td><span className="operator-store-names">{row.storeNames.join('、') || '暂无数据'}</span></td>
                   <td>{row.effectiveListingCount}</td>
                   <td>{row.firstOrderCount}</td>
-                  <td>{formatPercent(row.firstOrderRate * 100)}</td>
                   <td>{row.doneTaskCount}</td>
                   <td>{row.openTaskCount}</td>
                   <td>{row.overdueTaskCount}</td>
@@ -852,7 +1089,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
                   <td>{row.statusText}</td>
                 </tr>
               ))}
-              {effortRows.length === 0 && <tr><td colSpan={10}>暂无数据</td></tr>}
+              {effortRows.length === 0 && <tr><td colSpan={9}>暂无数据</td></tr>}
             </tbody>
           </table>
         </div>
