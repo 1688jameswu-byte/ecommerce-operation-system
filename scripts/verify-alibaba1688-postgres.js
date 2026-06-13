@@ -286,6 +286,39 @@ async function verifyCrud() {
     created.sku = sku.id;
     assert(sku.productId === product.id, 'skus create failed');
 
+    const duplicateSkuCreate = await callApiAsUser(adminVerifierUser, 'POST', '/skus', {
+      productId: product.id,
+      skuCode: `  sku-${String(stamp).toLowerCase()}  `,
+      color: '重复验证',
+      purchasePrice: 1,
+      wholesalePrice: 2,
+      isActive: true,
+    }, { allowError: true });
+    assert(duplicateSkuCreate.statusCode === 409, 'duplicate sku create should return 409');
+    assert(duplicateSkuCreate.data.code === 'DUPLICATE_SKU', 'duplicate sku create should return DUPLICATE_SKU');
+
+    const sameSkuUpdate = await callApiAsUser(adminVerifierUser, 'PUT', `/skus/${sku.id}`, {
+      skuCode: ` ${sku.skuCode} `,
+      stockQuantity: 12,
+    });
+    assert(sameSkuUpdate.data.id === sku.id, 'updating unchanged sku should succeed');
+
+    const duplicateTargetSku = await callApi('POST', '/skus', {
+      productId: product.id,
+      skuCode: `SKU-DUP-TARGET-${stamp}`,
+      color: '重复目标',
+      purchasePrice: 1,
+      wholesalePrice: 2,
+      isActive: true,
+    });
+    created.extraSkus.push(duplicateTargetSku.id);
+
+    const duplicateSkuUpdate = await callApiAsUser(adminVerifierUser, 'PUT', `/skus/${duplicateTargetSku.id}`, {
+      skuCode: ` ${String(sku.skuCode).toLowerCase()} `,
+    }, { allowError: true });
+    assert(duplicateSkuUpdate.statusCode === 409, 'duplicate sku update should return 409');
+    assert(duplicateSkuUpdate.data.code === 'DUPLICATE_SKU', 'duplicate sku update should return DUPLICATE_SKU');
+
     const image = await callApi('POST', '/images', {
       productId: product.id,
       skuId: sku.id,

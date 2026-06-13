@@ -32,6 +32,7 @@ const businessTables = [
 ];
 
 const imageUploadMaxBytes = 8 * 1024 * 1024;
+const duplicateSkuMessage = 'SKU 编码已存在，请更换后再保存';
 const allowedImageMimeTypes = new Map([
   ['image/jpeg', 'jpg'],
   ['image/png', 'png'],
@@ -143,6 +144,65 @@ function sanitizeSkuWritePayloadForUser(payload, currentUser) {
   delete next.platformSkuCode;
   delete next.remark;
   return next;
+}
+
+function normalizeSkuCodeForDuplicateCheck(value) {
+  return String(value ?? '').trim();
+}
+
+async function findDuplicateSkuCode(skuCode, excludeSkuId = '') {
+  const normalizedSku = normalizeSkuCodeForDuplicateCheck(skuCode);
+  if (!normalizedSku) {
+    return null;
+  }
+
+  const values = [normalizedSku];
+  const excludeClause = excludeSkuId ? 'AND id::text <> $2' : '';
+  if (excludeSkuId) {
+    values.push(String(excludeSkuId));
+  }
+
+  const result = await queryAlibaba1688Database(
+    `
+      SELECT id::text, product_id::text, sku_code
+      FROM "1688_product_skus"
+      WHERE LOWER(TRIM(sku_code)) = LOWER(TRIM($1))
+        AND COALESCE(TRIM(sku_code), '') <> ''
+        ${excludeClause}
+      ORDER BY updated_at DESC, created_at DESC
+      LIMIT 1
+    `,
+    values,
+  );
+
+  return result.rows[0] ?? null;
+}
+
+async function assertUniqueSkuCode(payload, options = {}) {
+  const skuCode = normalizeSkuCodeForDuplicateCheck(payload?.skuCode ?? payload?.sku_code);
+  if (!skuCode) {
+    return;
+  }
+
+  const duplicate = await findDuplicateSkuCode(skuCode, options.skuId);
+  if (!duplicate) {
+    return;
+  }
+
+  console.warn(JSON.stringify({
+    scope: '1688-product-sku-check',
+    message: 'duplicate sku',
+    sku: skuCode,
+    skuId: options.skuId || '',
+    productId: options.productId || payload?.productId || payload?.product_id || '',
+    duplicateSkuId: duplicate.id,
+    duplicateProductId: duplicate.product_id,
+  }));
+
+  const error = new Error(duplicateSkuMessage);
+  error.statusCode = 409;
+  error.code = 'DUPLICATE_SKU';
+  throw error;
 }
 
 function sanitizeProductWritePayloadForUser(payload, currentUser) {
@@ -1267,6 +1327,11 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
         : resource === 'products'
           ? sanitizeProductWritePayloadForUser(body, currentUser)
           : body;
+      if (resource === 'skus') {
+        await assertUniqueSkuCode(safeBody, {
+          productId: safeBody?.productId || safeBody?.product_id || body?.productId || body?.product_id || '',
+        });
+      }
       const payload = ['products', 'images', 'product-images', 'listing-tasks', 'tasks'].includes(resource)
         ? { createdBy: currentUser.userId || currentUser.username || '', ...safeBody }
         : safeBody;
@@ -1309,6 +1374,12 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
         : resource === 'products'
           ? sanitizeProductWritePayloadForUser(body, currentUser)
           : body;
+      if (resource === 'skus') {
+        await assertUniqueSkuCode(safeBody, {
+          skuId: id,
+          productId: safeBody?.productId || safeBody?.product_id || body?.productId || body?.product_id || '',
+        });
+      }
       if (resource === 'products') {
         logAlibaba1688ProductUpdate('info', 'product update called', {
           productId: id,
@@ -1381,6 +1452,7 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
     sendJson(res, statusCode, {
       ok: false,
       success: false,
+      code: error?.code,
       message,
       error: message,
     });

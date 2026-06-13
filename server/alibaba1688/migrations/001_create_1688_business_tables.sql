@@ -142,6 +142,9 @@ CREATE INDEX IF NOT EXISTS idx_1688_products_listing_status ON "1688_products" (
 CREATE INDEX IF NOT EXISTS idx_1688_products_supplier ON "1688_products" (supplier_id);
 CREATE INDEX IF NOT EXISTS idx_1688_product_skus_product ON "1688_product_skus" (product_id);
 CREATE INDEX IF NOT EXISTS idx_1688_product_skus_code ON "1688_product_skus" (sku_code);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_1688_product_skus_code_unique_ci
+  ON "1688_product_skus" (LOWER(TRIM(sku_code)))
+  WHERE COALESCE(TRIM(sku_code), '') <> '';
 CREATE INDEX IF NOT EXISTS idx_1688_product_images_product ON "1688_product_images" (product_id);
 CREATE INDEX IF NOT EXISTS idx_1688_product_images_sku ON "1688_product_images" (sku_id);
 CREATE INDEX IF NOT EXISTS idx_1688_product_images_type ON "1688_product_images" (image_type);

@@ -45,6 +45,12 @@ function createSkuInputRow(): SkuInputRow {
   };
 }
 
+const duplicateSkuMessage = 'SKU 编码已存在，请更换后再保存';
+
+function normalizeSkuForDuplicateCheck(value: string) {
+  return value.trim().toLowerCase();
+}
+
 function getAlibaba1688ProductPermissions(currentUser: CurrentUser) {
   const role = String(currentUser?.role ?? '').toLowerCase();
   const isManager = role === 'admin' || role === 'leader';
@@ -103,6 +109,22 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
     }))),
     [skuGroups],
   );
+  const duplicateSkuRowIds = useMemo(() => {
+    const firstRowBySku = new Map<string, string>();
+    const duplicateRows = new Set<string>();
+    for (const item of skuPreview) {
+      const normalizedSku = normalizeSkuForDuplicateCheck(item.skuCode);
+      if (!normalizedSku) continue;
+      const firstRowId = firstRowBySku.get(normalizedSku);
+      if (firstRowId) {
+        duplicateRows.add(firstRowId);
+        duplicateRows.add(item.row.id);
+      } else {
+        firstRowBySku.set(normalizedSku, item.row.id);
+      }
+    }
+    return duplicateRows;
+  }, [skuPreview]);
 
   useEffect(() => {
     if (!message) return;
@@ -218,6 +240,10 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
       setError(`请先补充：${missing.join('、')}`);
       return;
     }
+    if (duplicateSkuRowIds.size > 0) {
+      setError(duplicateSkuMessage);
+      return;
+    }
 
     setSaving(true);
     setMessage('');
@@ -279,7 +305,8 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
       });
       setUploadedImageName('');
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : '产品提交失败');
+      const nextMessage = saveError instanceof Error ? saveError.message : '产品提交失败';
+      setError(nextMessage.includes('DUPLICATE_SKU') ? duplicateSkuMessage : nextMessage);
     } finally {
       setSaving(false);
     }
@@ -387,11 +414,14 @@ export function Alibaba1688ProductCreatePage({ currentUser }: Alibaba1688Product
                         <label>
                           <span>{group.color} SKU {index + 1}</span>
                           <input
-                            className="alibaba-sku-code-input"
+                            className={`alibaba-sku-code-input${duplicateSkuRowIds.has(row.id) ? ' is-error' : ''}`}
                             value={row.skuCode}
                             placeholder={`请输入${group.color} SKU 编号`}
                             onChange={(event) => updateSkuCode(group.color, row.id, event.target.value)}
                           />
+                          {duplicateSkuRowIds.has(row.id) && (
+                            <small className="alibaba-sku-duplicate-hint">{duplicateSkuMessage}</small>
+                          )}
                         </label>
                         {group.rows.length > 1 && (
                           <button type="button" onClick={() => removeSkuRow(group.color, row.id)} disabled={saving}>

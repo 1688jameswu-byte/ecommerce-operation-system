@@ -57,6 +57,12 @@ interface ProductToast {
   type: ProductToastType;
 }
 
+const duplicateSkuMessage = 'SKU 编码已存在，请更换后再保存';
+
+function normalizeSkuForDuplicateCheck(value: string) {
+  return value.trim().toLowerCase();
+}
+
 const UNBOUND_SUPPLIER_FILTER = '__unbound__';
 
 const productStatuses = [
@@ -341,6 +347,22 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   const [detailSupplierId, setDetailSupplierId] = useState('');
   const [detailRemark, setDetailRemark] = useState('');
   const [detailImageEdit, setDetailImageEdit] = useState<ProductImageEditState>({ file: null, previewUrl: '', fileName: '' });
+  const duplicatePricingSkuIds = useMemo(() => {
+    const firstRowBySku = new Map<string, string>();
+    const duplicateRows = new Set<string>();
+    for (const row of pricingRows) {
+      const normalizedSku = normalizeSkuForDuplicateCheck(row.skuCode);
+      if (!normalizedSku) continue;
+      const firstRowId = firstRowBySku.get(normalizedSku);
+      if (firstRowId) {
+        duplicateRows.add(firstRowId);
+        duplicateRows.add(row.id);
+      } else {
+        firstRowBySku.set(normalizedSku, row.id);
+      }
+    }
+    return duplicateRows;
+  }, [pricingRows]);
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -733,6 +755,10 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
 
   async function saveSkuPricing(row: PricingRow) {
     if (!permissions.canEditProductContent) return;
+    if (duplicatePricingSkuIds.has(row.id)) {
+      setError(duplicateSkuMessage);
+      return;
+    }
     const purchasePrice = toNumber(row.purchasePrice);
     const wholesalePrice = toNumber(row.wholesalePrice);
     if (permissions.canEditPricing && isLossPrice(purchasePrice, wholesalePrice)) {
@@ -758,7 +784,8 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       showToast('保存成功');
       setMessage(`SKU ${row.skuCode || row.color || row.id.slice(0, 8)} 定价已保存。`);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'SKU 定价保存失败');
+      const nextMessage = saveError instanceof Error ? saveError.message : 'SKU 定价保存失败';
+      setError(nextMessage.includes('DUPLICATE_SKU') ? duplicateSkuMessage : nextMessage);
     } finally {
       setSaving(false);
     }
@@ -1187,7 +1214,20 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                     {pricingRows.map((row) => (
                       <tr key={row.id}>
                         <td>{permissions.canEditProductContent ? <input value={row.color} onChange={(event) => updatePricingRow(row.id, { color: event.target.value })} /> : row.color || '-'}</td>
-                        <td>{permissions.canEditProductContent ? <input value={row.skuCode} onChange={(event) => updatePricingRow(row.id, { skuCode: event.target.value })} /> : row.skuCode || '-'}</td>
+                        <td>
+                          {permissions.canEditProductContent ? (
+                            <label className="alibaba-products-v1-sku-code-field">
+                              <input
+                                className={duplicatePricingSkuIds.has(row.id) ? 'is-error' : undefined}
+                                value={row.skuCode}
+                                onChange={(event) => updatePricingRow(row.id, { skuCode: event.target.value })}
+                              />
+                              {duplicatePricingSkuIds.has(row.id) && (
+                                <small className="alibaba-sku-duplicate-hint">{duplicateSkuMessage}</small>
+                              )}
+                            </label>
+                          ) : row.skuCode || '-'}
+                        </td>
                         {permissions.canViewCost && <td><input value={row.purchasePrice} onChange={(event) => updatePricingRow(row.id, { purchasePrice: event.target.value })} disabled={!permissions.canEditPricing} /></td>}
                         {permissions.canViewSalesPrice && <td><input value={row.wholesalePrice} onChange={(event) => updatePricingRow(row.id, { wholesalePrice: event.target.value })} disabled={!permissions.canEditPricing} /></td>}
                         {permissions.canViewCost && <td>{calculateMargin(toNumber(row.purchasePrice), toNumber(row.wholesalePrice))}</td>}

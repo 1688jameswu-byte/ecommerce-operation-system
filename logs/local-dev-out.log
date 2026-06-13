@@ -27,3 +27,13 @@
 {"scope":"alibaba-1688-upload","message":"upload file saved","uploadDir":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688\\2026\\06","fileName":"304-sdged-GD-mqa8n15e-92c3pg.webp","fileUrl":"/uploads/alibaba-1688/2026/06/304-sdged-GD-mqa8n15e-92c3pg.webp","decodedSize":19340}
 {"scope":"product-update","message":"replace main image called","productId":"37be66c5-2e35-42a1-a816-563a5aab4a97","bodyFields":["fileName","filePath","fileUrl"],"containsImageFields":true}
 {"scope":"product-update","message":"replace main image saved","productId":"37be66c5-2e35-42a1-a816-563a5aab4a97","imageId":"f3bf7658-19a6-4299-a008-64941a4dadb2","oldMainImageUrl":"/uploads/alibaba-1688/2026/06/304-sdged-GD-mq9e5bif-jfvie7.png","newMainImageUrl":"/uploads/alibaba-1688/2026/06/304-sdged-GD-mqa8n15e-92c3pg.webp","imageFields":["productId","imageType","imageStatus","isMain","sortOrder","fileName","filePath","fileUrl","createdBy","remark"]}
+[2m12:06:04[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m12:06:04[22m [36m[1m[vite][22m[39m server restarted.
+[2m12:06:19[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m12:06:19[22m [36m[1m[vite][22m[39m server restarted.
+[2m12:09:53[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m12:11:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m12:11:11[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m12:11:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m12:11:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m12:12:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
