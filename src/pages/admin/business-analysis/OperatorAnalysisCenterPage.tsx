@@ -1002,11 +1002,12 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     description: string,
     rows: ExpenseRatioRow[],
     amountLabel: string,
-    amountKey: 'promotionServiceFee' | 'afterSalesProtectionFee',
+    amountKey: 'promotionServiceFee' | 'afterSalesProtectionFee' | 'operationExpenseAmount',
     ratioLabel: string,
-    ratioKey: 'promotionRatio' | 'afterSalesRatio',
+    ratioKey: 'promotionRatio' | 'afterSalesRatio' | 'operationExpenseRatio',
+    options: { featured?: boolean; compact?: boolean } = {},
   ) => (
-    <section className="operator-performance-subsection operator-expense-ratio-subsection">
+    <section className={`operator-performance-subsection operator-expense-ratio-subsection${options.featured ? ' operator-expense-ratio-featured' : ''}${options.compact ? ' operator-expense-ratio-compact' : ''}`}>
       <header>
         <div>
           <h3>{title}</h3>
@@ -1018,25 +1019,28 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
           <thead>
             <tr>
               <th>排名</th>
+              <th>店铺</th>
               <th>运营</th>
-              <th>负责店铺</th>
-              <th>流入金额</th>
-              <th>{amountLabel}</th>
-              <th>{ratioLabel}</th>
+              {!options.compact && <th className="numeric-heading">流入金额</th>}
+              <th className="numeric-heading">{amountLabel}</th>
+              <th className="numeric-heading">{ratioLabel}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((item, index) => (
               <tr key={`${title}-${item.key}`}>
                 <td>{index + 1}</td>
-                <td>{item.operatorName}</td>
                 <td title={item.storeName}>{item.storeName}</td>
-                <td className="numeric-cell">¥ {formatMoney(item.inflowAmount)}</td>
-                <td className="numeric-cell">¥ {formatMoney(item[amountKey])}</td>
-                <td className="numeric-cell">{formatRatio(item[ratioKey])}</td>
+                <td>{item.operatorName}</td>
+                {!options.compact && <td className="numeric-cell">¥ {formatMoney(item.inflowAmount)}</td>}
+                <td className="numeric-cell">
+                  <strong>¥ {formatMoney(item[amountKey])}</strong>
+                  {options.compact && <small>流入 ¥ {formatMoney(item.inflowAmount)}</small>}
+                </td>
+                <td className="numeric-cell operator-expense-ratio-value">{formatRatio(item[ratioKey])}</td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={6}>当前月份暂无店铺费用占比数据</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={options.compact ? 5 : 6}>当前月份暂无店铺费用占比数据</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1268,65 +1272,45 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
         <header>
           <div>
             <h2>{formatMonthLabel(financePeriod)}店铺费用占比分析</h2>
-            <p>本模块数据来源于运营工资统计的经营费用口径，仅展示当前账号可见店铺的费用占流入金额比例。具体工资计算仍以薪资绩效模块为准。</p>
+            <p>费用占比 = 费用金额 ÷ 流入金额，用于发现推广、售后和综合运营支出偏高的店铺。具体工资计算仍以薪资绩效模块为准。</p>
           </div>
           <span>{expenseRatioRows.length} 个店铺</span>
         </header>
         {expenseRatioRows.length > 0 ? (
-          <>
+          <section className="operator-expense-ratio-layout">
             {renderExpenseRanking(
-              '推广服务费占比排行榜',
-              '按推广服务费占流入金额比例从高到低排序。',
-              promotionExpenseRanking,
-              '推广服务费',
-              'promotionServiceFee',
-              '推广服务费占比',
-              'promotionRatio',
+              '运营支出占比排行榜',
+              '运营支出 = 推广服务费 + 售后问题 + 仓储服务费 + 合规EPR + 其他支出。',
+              operationExpenseRanking,
+              '运营支出',
+              'operationExpenseAmount',
+              '运营支出占流入金额比例',
+              'operationExpenseRatio',
+              { featured: true },
             )}
-            {renderExpenseRanking(
-              '售后问题占比排行榜',
-              '按售后问题占流入金额比例从高到低排序。',
-              afterSalesExpenseRanking,
-              '售后问题',
-              'afterSalesProtectionFee',
-              '售后问题占比',
-              'afterSalesRatio',
-            )}
-            <section className="operator-performance-subsection operator-expense-ratio-subsection">
-              <header>
-                <div>
-                  <h3>运营支出占比排行榜</h3>
-                  <p>运营支出按推广服务费、售后问题、仓储服务费、合规EPR、其他支出求和，不包含基本工资、提成金额或成交工资。</p>
-                </div>
-              </header>
-              <div className="import-record-table-wrap operator-performance-table-wrap">
-                <table className="import-record-table operator-performance-table operator-expense-ratio-table operator-expense-ratio-wide-table">
-                  <thead>
-                    <tr>
-                      <th>排名</th>
-                      <th>运营</th>
-                      <th>负责店铺</th>
-                      <th>流入金额</th>
-                      <th>运营支出</th>
-                      <th>运营支出占比</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {operationExpenseRanking.map((item, index) => (
-                      <tr key={`operation-expense-${item.key}`}>
-                        <td>{index + 1}</td>
-                        <td>{item.operatorName}</td>
-                        <td title={item.storeName}>{item.storeName}</td>
-                        <td className="numeric-cell">¥ {formatMoney(item.inflowAmount)}</td>
-                        <td className="numeric-cell">¥ {formatMoney(item.operationExpenseAmount)}</td>
-                        <td className="numeric-cell">{formatRatio(item.operationExpenseRatio)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <section className="operator-expense-ratio-secondary-grid">
+              {renderExpenseRanking(
+                '推广服务费占比排行榜',
+                '按推广服务费占流入金额比例从高到低排序。',
+                promotionExpenseRanking,
+                '推广服务费',
+                'promotionServiceFee',
+                '推广服务费占流入金额比例',
+                'promotionRatio',
+                { compact: true },
+              )}
+              {renderExpenseRanking(
+                '售后问题占比排行榜',
+                '按售后问题占流入金额比例从高到低排序。',
+                afterSalesExpenseRanking,
+                '售后问题',
+                'afterSalesProtectionFee',
+                '售后问题占流入金额比例',
+                'afterSalesRatio',
+                { compact: true },
+              )}
             </section>
-          </>
+          </section>
         ) : (
           <div className="import-record-table-wrap operator-performance-table-wrap">
             <table className="import-record-table operator-performance-table">
