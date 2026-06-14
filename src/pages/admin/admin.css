@@ -2188,6 +2188,52 @@
   min-width: 1180px;
 }
 
+.operator-expense-ratio-panel {
+  gap: 18px;
+}
+
+.operator-expense-ratio-subsection {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(86, 154, 230, 0.22);
+  border-radius: 8px;
+  background: rgba(3, 13, 32, 0.28);
+}
+
+.operator-expense-ratio-subsection + .operator-expense-ratio-subsection {
+  margin-top: 2px;
+}
+
+.operator-expense-ratio-subsection header {
+  align-items: flex-start;
+}
+
+.operator-expense-ratio-subsection h3 {
+  margin: 0;
+  color: #dbeeff;
+  font-size: 17px;
+}
+
+.operator-expense-ratio-subsection p {
+  margin: 4px 0 0;
+  color: #9fb6cf;
+  font-size: 13px;
+}
+
+.operator-expense-ratio-table {
+  min-width: 760px;
+}
+
+.operator-expense-ratio-wide-table {
+  min-width: 1280px;
+}
+
+.operator-expense-ratio-table .numeric-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+
 .operator-store-names {
   display: block;
   max-width: 260px;

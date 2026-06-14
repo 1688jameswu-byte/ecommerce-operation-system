@@ -86,6 +86,24 @@ type AveragePriceStoreRow = {
   averagePrice: number | null;
 };
 
+type ExpenseRatioRow = {
+  key: string;
+  period: string;
+  storeId: string;
+  storeName: string;
+  operatorName: string;
+  inflowAmount: number;
+  promotionServiceFee: number;
+  afterSalesProtectionFee: number;
+  storageServiceFee: number;
+  eprFee: number;
+  otherExpense: number;
+  operationExpenseAmount: number;
+  promotionRatio: number | null;
+  afterSalesRatio: number | null;
+  operationExpenseRatio: number | null;
+};
+
 type StoreAveragePriceSummaryRecord = {
   storeName: string;
   salesAmount: number;
@@ -261,6 +279,32 @@ function formatOptionalMoney(value: number | null) {
 
 function formatOptionalNumber(value: number | null) {
   return value === null ? '暂无数据' : formatNumber(value);
+}
+
+function formatRatio(value: number | null) {
+  return value === null ? '暂无数据' : formatPercent(value * 100);
+}
+
+function expenseRatioSort(
+  ratioKey: 'promotionRatio' | 'afterSalesRatio' | 'operationExpenseRatio',
+  amountKey: 'promotionServiceFee' | 'afterSalesProtectionFee' | 'operationExpenseAmount',
+) {
+  return (first: ExpenseRatioRow, second: ExpenseRatioRow) => {
+    const firstRatio = first[ratioKey];
+    const secondRatio = second[ratioKey];
+
+    if (firstRatio === null && secondRatio === null) {
+      return second[amountKey] - first[amountKey] || first.storeName.localeCompare(second.storeName);
+    }
+    if (firstRatio === null) {
+      return 1;
+    }
+    if (secondRatio === null) {
+      return -1;
+    }
+
+    return secondRatio - firstRatio || second[amountKey] - first[amountKey] || first.storeName.localeCompare(second.storeName);
+  };
 }
 
 function getOperatorKey(operatorId?: string, operatorName?: string) {
@@ -670,6 +714,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       .sort((first, second) => second.riskStores.size - first.riskStores.size || second.openTasks - first.openTasks || first.operatorName.localeCompare(second.operatorName));
   }, [items, operators, relations, tasks]);
 
+  const visibleStoreKeys = useMemo(() => new Set(rows.flatMap((row) => Array.from(row.storeNames))), [rows]);
   const financeStoreRows = useMemo(() => toStoreDetailRows(salaryRows), [salaryRows]);
   const financeSummary = useMemo(() => financeStoreRows.reduce((total, item) => ({
     salesAmount: total.salesAmount + toAmount(item.detail.netSalesAmount),
@@ -699,6 +744,59 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     netSalesAmount: 0,
     commissionAmount: 0,
   }), [financeStoreRows]);
+
+  const expenseRatioRows = useMemo<ExpenseRatioRow[]>(() => financeStoreRows
+    .filter(({ detail }) => {
+      const platform = String(getPlatformCandidate(detail) ?? '').trim();
+      if (platform) {
+        return isTemuPlatform(platform);
+      }
+      return storeKeyMatches(visibleStoreKeys, detail.storeId, detail.storeName);
+    })
+    .map(({ row, detail }) => {
+      const inflowAmount = toAmount(detail.inflowAmount);
+      const promotionServiceFee = toAmount(detail.promotionServiceFee);
+      const afterSalesProtectionFee = toAmount(detail.afterSalesProtectionFee);
+      const storageServiceFee = toAmount(detail.storageServiceFee);
+      const eprFee = toAmount(detail.eprFee);
+      const otherExpense = toAmount(detail.otherExpense);
+      const calculatedOperationExpense = promotionServiceFee +
+        afterSalesProtectionFee +
+        storageServiceFee +
+        eprFee +
+        otherExpense;
+      const operationExpenseAmount = calculatedOperationExpense;
+      const ratio = (amount: number) => inflowAmount > 0 ? amount / inflowAmount : null;
+      const storeName = detail.storeName || detail.storeId || '暂无数据';
+
+      return {
+        key: `${row.id}-${detail.storeId || storeName}`,
+        period: detail.period || row.period || financePeriod,
+        storeId: detail.storeId || '',
+        storeName,
+        operatorName: row.operatorName || '暂无数据',
+        inflowAmount,
+        promotionServiceFee,
+        afterSalesProtectionFee,
+        storageServiceFee,
+        eprFee,
+        otherExpense,
+        operationExpenseAmount,
+        promotionRatio: ratio(promotionServiceFee),
+        afterSalesRatio: ratio(afterSalesProtectionFee),
+        operationExpenseRatio: ratio(operationExpenseAmount),
+      };
+    }), [financePeriod, financeStoreRows, visibleStoreKeys]);
+
+  const promotionExpenseRanking = useMemo(() => expenseRatioRows
+    .slice()
+    .sort(expenseRatioSort('promotionRatio', 'promotionServiceFee')), [expenseRatioRows]);
+  const afterSalesExpenseRanking = useMemo(() => expenseRatioRows
+    .slice()
+    .sort(expenseRatioSort('afterSalesRatio', 'afterSalesProtectionFee')), [expenseRatioRows]);
+  const operationExpenseRanking = useMemo(() => expenseRatioRows
+    .slice()
+    .sort(expenseRatioSort('operationExpenseRatio', 'operationExpenseAmount')), [expenseRatioRows]);
 
   const orderSummary = useMemo(() => orderDailyRecords
     .filter((record) => String(record.orderDate || '').startsWith(period))
@@ -807,7 +905,6 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     overdueTaskCount: 0,
   }), [effortRows]);
   const effortTaskDoneRate = effortSummary.taskCount > 0 ? effortSummary.doneTaskCount / effortSummary.taskCount : 0;
-  const visibleStoreKeys = useMemo(() => new Set(rows.flatMap((row) => Array.from(row.storeNames))), [rows]);
   const allStoreAveragePriceRows = useMemo<AveragePriceStoreRow[]>(() => averagePriceRecords
     .map((record) => {
       const storeName = String(record.storeName || '').trim();
@@ -917,6 +1014,51 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const skuTrendSummary = useMemo(
     () => buildSkuSalesTrendSummary(skuTrendRankings, visibleStoreCount),
     [skuTrendRankings, visibleStoreCount],
+  );
+  const renderExpenseRanking = (
+    title: string,
+    description: string,
+    rows: ExpenseRatioRow[],
+    amountLabel: string,
+    amountKey: 'promotionServiceFee' | 'afterSalesProtectionFee',
+    ratioLabel: string,
+    ratioKey: 'promotionRatio' | 'afterSalesRatio',
+  ) => (
+    <section className="operator-performance-subsection operator-expense-ratio-subsection">
+      <header>
+        <div>
+          <h3>{title}</h3>
+          <p>{description}</p>
+        </div>
+      </header>
+      <div className="import-record-table-wrap operator-performance-table-wrap">
+        <table className="import-record-table operator-performance-table operator-expense-ratio-table">
+          <thead>
+            <tr>
+              <th>排名</th>
+              <th>店铺</th>
+              <th>运营</th>
+              <th>流入金额</th>
+              <th>{amountLabel}</th>
+              <th>{ratioLabel}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((item, index) => (
+              <tr key={`${title}-${item.key}`}>
+                <td>{index + 1}</td>
+                <td title={item.storeName}>{item.storeName}</td>
+                <td>{item.operatorName}</td>
+                <td className="numeric-cell">¥ {formatMoney(item.inflowAmount)}</td>
+                <td className="numeric-cell">¥ {formatMoney(item[amountKey])}</td>
+                <td className="numeric-cell">{formatRatio(item[ratioKey])}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td colSpan={6}>当前月份暂无店铺费用占比数据</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 
   return (
@@ -1138,6 +1280,90 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
             </tbody>
           </table>
         </div>
+      </article>
+
+      <article className="excel-record-panel operator-performance-panel operator-expense-ratio-panel">
+        <header>
+          <div>
+            <h2>{formatMonthLabel(financePeriod)}店铺费用占比分析</h2>
+            <p>本模块数据来源于运营工资统计中的店铺明细数据。运营支出 = 推广服务费 + 售后问题 + 仓储服务费 + 合规EPR + 其他支出，用于查看各店铺费用结构占流入金额的比例。具体工资计算仍以薪资绩效模块为准。</p>
+          </div>
+          <span>{expenseRatioRows.length} 个店铺</span>
+        </header>
+        {expenseRatioRows.length > 0 ? (
+          <>
+            {renderExpenseRanking(
+              '推广服务费占比排行榜',
+              '按推广服务费占流入金额比例从高到低排序。',
+              promotionExpenseRanking,
+              '推广服务费',
+              'promotionServiceFee',
+              '推广服务费占比',
+              'promotionRatio',
+            )}
+            {renderExpenseRanking(
+              '售后问题占比排行榜',
+              '按售后问题占流入金额比例从高到低排序。',
+              afterSalesExpenseRanking,
+              '售后问题',
+              'afterSalesProtectionFee',
+              '售后问题占比',
+              'afterSalesRatio',
+            )}
+            <section className="operator-performance-subsection operator-expense-ratio-subsection">
+              <header>
+                <div>
+                  <h3>运营支出占比排行榜</h3>
+                  <p>运营支出按推广服务费、售后问题、仓储服务费、合规EPR、其他支出求和，不包含基本工资、提成金额或成交工资。</p>
+                </div>
+              </header>
+              <div className="import-record-table-wrap operator-performance-table-wrap">
+                <table className="import-record-table operator-performance-table operator-expense-ratio-table operator-expense-ratio-wide-table">
+                  <thead>
+                    <tr>
+                      <th>排名</th>
+                      <th>店铺</th>
+                      <th>运营</th>
+                      <th>流入金额</th>
+                      <th>推广服务费</th>
+                      <th>售后问题</th>
+                      <th>仓储服务费</th>
+                      <th>合规EPR</th>
+                      <th>其他支出</th>
+                      <th>运营支出</th>
+                      <th>运营支出占比</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {operationExpenseRanking.map((item, index) => (
+                      <tr key={`operation-expense-${item.key}`}>
+                        <td>{index + 1}</td>
+                        <td title={item.storeName}>{item.storeName}</td>
+                        <td>{item.operatorName}</td>
+                        <td className="numeric-cell">¥ {formatMoney(item.inflowAmount)}</td>
+                        <td className="numeric-cell">¥ {formatMoney(item.promotionServiceFee)}</td>
+                        <td className="numeric-cell">¥ {formatMoney(item.afterSalesProtectionFee)}</td>
+                        <td className="numeric-cell">¥ {formatMoney(item.storageServiceFee)}</td>
+                        <td className="numeric-cell">¥ {formatMoney(item.eprFee)}</td>
+                        <td className="numeric-cell">¥ {formatMoney(item.otherExpense)}</td>
+                        <td className="numeric-cell">¥ {formatMoney(item.operationExpenseAmount)}</td>
+                        <td className="numeric-cell">{formatRatio(item.operationExpenseRatio)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
+        ) : (
+          <div className="import-record-table-wrap operator-performance-table-wrap">
+            <table className="import-record-table operator-performance-table">
+              <tbody>
+                <tr><td>{financeMessage || '当前月份暂无店铺费用占比数据'}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        )}
       </article>
 
       <article className="excel-record-panel operator-performance-panel">
