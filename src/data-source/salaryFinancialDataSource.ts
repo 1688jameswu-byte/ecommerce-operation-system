@@ -1,11 +1,27 @@
 import type {
-  OperatorSalaryStatisticRow,
   SalaryFinancialDetail,
   SalaryFinancialDetailPage,
   SalaryFinancialImportBatch,
   SalaryFinancialImportListResponse,
   SalaryFinancialStoreSummary,
+  OperatorSalaryStatisticRow,
 } from '../types/salary';
+
+export interface OperatorAnalysisStoreFinancialRecord {
+  period: string;
+  operatorName: string;
+  storeNames: string[];
+  inflowAmount: number;
+  promotionServiceFee: number;
+  afterSaleIssueAmount: number;
+  storageServiceFee: number;
+  eprFee: number;
+  otherExpense: number;
+  operationExpenseAmount: number;
+  promotionServiceFeeRate: number | null;
+  afterSaleIssueRate: number | null;
+  operationExpenseRate: number | null;
+}
 
 function buildQuery(params: Record<string, string | number | undefined>) {
   const query = new URLSearchParams();
@@ -79,7 +95,7 @@ export const salaryFinancialDataSource = {
   },
 
   loadOperatorAnalysisStoreFinancials(params: { period?: string; operatorId?: string; storeId?: string }) {
-    return request<{ records: Pick<OperatorSalaryStatisticRow, 'id' | 'period' | 'employeeId' | 'operatorId' | 'operatorName' | 'storeIds' | 'storeNames' | 'hasFinancialData' | 'storeDetails'>[] }>(
+    return request<{ records: OperatorAnalysisStoreFinancialRecord[] }>(
       `/api/salary/operator-analysis-store-financials${buildQuery(params)}`,
     );
   },

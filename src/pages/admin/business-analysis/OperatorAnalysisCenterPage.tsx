@@ -1,21 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { salaryFinancialDataSource } from '../../../data-source/salaryFinancialDataSource';
+import { salaryFinancialDataSource, type OperatorAnalysisStoreFinancialRecord } from '../../../data-source/salaryFinancialDataSource';
 import { referenceDataService } from '../../../services/referenceDataService';
 import type { EffectiveNewListingRecord } from '../../../types/effectiveNewListing';
 import type { CurrentUser } from '../../../types/auth';
 import type { OperatorRecord } from '../../../types/operator';
-import type { OperatorSalaryStatisticRow, OperatorSalaryStoreDetail } from '../../../types/salary';
 import type { OperationTaskRecord } from '../../../types/task';
 import type { StoreRecord } from '../../../types/store';
 import type { StoreOperatorRelation } from '../../../types/storeOperator';
 import type { TrafficAnalysisItem, TrafficAnalysisResultStore } from '../../../types/traffic';
 import { getVisibleStores } from '../../../auth/storeVisibility';
 import { filterRecordsByPermission, filterTasksByPermission } from '../../../utils/permissionScope';
-
-type OperatorAnalysisFinancialRow = Pick<
-  OperatorSalaryStatisticRow,
-  'id' | 'period' | 'employeeId' | 'operatorId' | 'operatorName' | 'storeIds' | 'storeNames' | 'hasFinancialData' | 'storeDetails'
->;
 
 type OperatorRow = {
   operatorId: string;
@@ -341,13 +335,6 @@ function createRow(operatorId: string, operatorName: string, groupName = '-') {
   } satisfies OperatorRow;
 }
 
-function toStoreDetailRows(rows: OperatorAnalysisFinancialRow[]) {
-  return rows.flatMap((row) => row.storeDetails.map((detail) => ({
-    row,
-    detail,
-  })));
-}
-
 function isTaskOpen(task: OperationTaskRecord) {
   return task.status === 'todo' || task.status === 'doing';
 }
@@ -587,7 +574,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const [firstOrderProductSummary, setFirstOrderProductSummary] = useState<FirstOrderProductSummaryResponse>({ records: [] });
   const [trafficRecords, setTrafficRecords] = useState<StoreBusinessTrafficRecord[]>([]);
   const [effectiveNewListings, setEffectiveNewListings] = useState<EffectiveNewListingRecord[]>([]);
-  const [salaryRows, setSalaryRows] = useState<OperatorAnalysisFinancialRow[]>([]);
+  const [salaryRows, setSalaryRows] = useState<OperatorAnalysisStoreFinancialRecord[]>([]);
   const [period] = useState(currentMonth());
   const [financePeriod, setFinancePeriod] = useState(previousMonth());
   const [financeMessage, setFinanceMessage] = useState('');
@@ -720,22 +707,21 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   }, [items, operators, relations, tasks]);
 
   const visibleStoreKeys = useMemo(() => new Set(rows.flatMap((row) => Array.from(row.storeNames))), [rows]);
-  const financeStoreRows = useMemo(() => toStoreDetailRows(salaryRows), [salaryRows]);
+  const financeStoreRows = useMemo(() => salaryRows, [salaryRows]);
   const financeSummary = useMemo(() => financeStoreRows.reduce((total, item) => ({
-    salesAmount: total.salesAmount + toAmount(item.detail.netSalesAmount),
-    inflowAmount: total.inflowAmount + toAmount(item.detail.inflowAmount),
-    expenseAmount: total.expenseAmount + toAmount(item.detail.expenseAmount),
+    salesAmount: total.salesAmount,
+    inflowAmount: total.inflowAmount + toAmount(item.inflowAmount),
+    expenseAmount: total.expenseAmount + toAmount(item.operationExpenseAmount),
     platformFee: total.platformFee +
-      toAmount(item.detail.promotionServiceFee) +
-      toAmount(item.detail.storageServiceFee) +
-      toAmount(item.detail.eprFee),
-    refundAmount: total.refundAmount + toAmount(item.detail.afterSalesProtectionFee),
-    otherExpense: total.otherExpense + toAmount(item.detail.otherExpense),
-    netInflowAmount: total.netInflowAmount + toAmount(item.detail.inflowAmount) - toAmount(item.detail.expenseAmount),
-    deductibleAmount: total.deductibleAmount + toAmount(item.detail.netSalesAmount),
-    operationExpenseAmount: total.operationExpenseAmount + toAmount(item.detail.operationExpenseAmount),
-    netSalesAmount: total.netSalesAmount + toAmount(item.detail.netSalesAmount),
-    commissionAmount: total.commissionAmount + toAmount(item.detail.commissionAmount),
+      toAmount(item.promotionServiceFee) +
+      toAmount(item.storageServiceFee) +
+      toAmount(item.eprFee),
+    refundAmount: total.refundAmount + toAmount(item.afterSaleIssueAmount),
+    otherExpense: total.otherExpense + toAmount(item.otherExpense),
+    netInflowAmount: total.netInflowAmount + toAmount(item.inflowAmount) - toAmount(item.operationExpenseAmount),
+    deductibleAmount: total.deductibleAmount,
+    operationExpenseAmount: total.operationExpenseAmount + toAmount(item.operationExpenseAmount),
+    netSalesAmount: total.netSalesAmount,
   }), {
     salesAmount: 0,
     inflowAmount: 0,
@@ -747,39 +733,31 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     deductibleAmount: 0,
     operationExpenseAmount: 0,
     netSalesAmount: 0,
-    commissionAmount: 0,
   }), [financeStoreRows]);
 
   const expenseRatioRows = useMemo<ExpenseRatioRow[]>(() => financeStoreRows
-    .filter(({ detail }) => {
-      const platform = String(getPlatformCandidate(detail) ?? '').trim();
-      if (platform) {
-        return isTemuPlatform(platform);
-      }
-      return storeKeyMatches(visibleStoreKeys, detail.storeId, detail.storeName);
-    })
-    .map(({ row, detail }) => {
-      const inflowAmount = toAmount(detail.inflowAmount);
-      const promotionServiceFee = toAmount(detail.promotionServiceFee);
-      const afterSalesProtectionFee = toAmount(detail.afterSalesProtectionFee);
-      const storageServiceFee = toAmount(detail.storageServiceFee);
-      const eprFee = toAmount(detail.eprFee);
-      const otherExpense = toAmount(detail.otherExpense);
-      const calculatedOperationExpense = promotionServiceFee +
+    .filter((record) => storeKeyMatches(visibleStoreKeys, undefined, record.storeNames?.[0]))
+    .map((record) => {
+      const storeName = record.storeNames?.[0] || '暂无数据';
+      const inflowAmount = toAmount(record.inflowAmount);
+      const promotionServiceFee = toAmount(record.promotionServiceFee);
+      const afterSalesProtectionFee = toAmount(record.afterSaleIssueAmount);
+      const storageServiceFee = toAmount(record.storageServiceFee);
+      const eprFee = toAmount(record.eprFee);
+      const otherExpense = toAmount(record.otherExpense);
+      const operationExpenseAmount = promotionServiceFee +
         afterSalesProtectionFee +
         storageServiceFee +
         eprFee +
         otherExpense;
-      const operationExpenseAmount = calculatedOperationExpense;
       const ratio = (amount: number) => inflowAmount > 0 ? amount / inflowAmount : null;
-      const storeName = detail.storeName || detail.storeId || '暂无数据';
 
       return {
-        key: `${row.id}-${detail.storeId || storeName}`,
-        period: detail.period || row.period || financePeriod,
-        storeId: detail.storeId || '',
+        key: `${record.operatorName || 'operator'}-${storeName}-${record.period || financePeriod}`,
+        period: record.period || financePeriod,
+        storeId: '',
         storeName,
-        operatorName: row.operatorName || '暂无数据',
+        operatorName: record.operatorName || '暂无数据',
         inflowAmount,
         promotionServiceFee,
         afterSalesProtectionFee,
@@ -792,7 +770,6 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
         operationExpenseRatio: ratio(operationExpenseAmount),
       };
     }), [financePeriod, financeStoreRows, visibleStoreKeys]);
-
   const promotionExpenseRanking = useMemo(() => expenseRatioRows
     .slice()
     .sort(expenseRatioSort('promotionRatio', 'promotionServiceFee')), [expenseRatioRows]);
@@ -1041,8 +1018,8 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
           <thead>
             <tr>
               <th>排名</th>
-              <th>店铺</th>
               <th>运营</th>
+              <th>负责店铺</th>
               <th>流入金额</th>
               <th>{amountLabel}</th>
               <th>{ratioLabel}</th>
@@ -1052,8 +1029,8 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
             {rows.map((item, index) => (
               <tr key={`${title}-${item.key}`}>
                 <td>{index + 1}</td>
-                <td title={item.storeName}>{item.storeName}</td>
                 <td>{item.operatorName}</td>
+                <td title={item.storeName}>{item.storeName}</td>
                 <td className="numeric-cell">¥ {formatMoney(item.inflowAmount)}</td>
                 <td className="numeric-cell">¥ {formatMoney(item[amountKey])}</td>
                 <td className="numeric-cell">{formatRatio(item[ratioKey])}</td>
@@ -1291,7 +1268,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
         <header>
           <div>
             <h2>{formatMonthLabel(financePeriod)}店铺费用占比分析</h2>
-            <p>本模块数据来源于运营工资统计中的店铺明细数据。运营支出 = 推广服务费 + 售后问题 + 仓储服务费 + 合规EPR + 其他支出，用于查看各店铺费用结构占流入金额的比例。具体工资计算仍以薪资绩效模块为准。</p>
+            <p>本模块数据来源于运营工资统计的经营费用口径，仅展示当前账号可见店铺的费用占流入金额比例。具体工资计算仍以薪资绩效模块为准。</p>
           </div>
           <span>{expenseRatioRows.length} 个店铺</span>
         </header>
@@ -1327,14 +1304,9 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
                   <thead>
                     <tr>
                       <th>排名</th>
-                      <th>店铺</th>
                       <th>运营</th>
+                      <th>负责店铺</th>
                       <th>流入金额</th>
-                      <th>推广服务费</th>
-                      <th>售后问题</th>
-                      <th>仓储服务费</th>
-                      <th>合规EPR</th>
-                      <th>其他支出</th>
                       <th>运营支出</th>
                       <th>运营支出占比</th>
                     </tr>
@@ -1343,14 +1315,9 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
                     {operationExpenseRanking.map((item, index) => (
                       <tr key={`operation-expense-${item.key}`}>
                         <td>{index + 1}</td>
-                        <td title={item.storeName}>{item.storeName}</td>
                         <td>{item.operatorName}</td>
+                        <td title={item.storeName}>{item.storeName}</td>
                         <td className="numeric-cell">¥ {formatMoney(item.inflowAmount)}</td>
-                        <td className="numeric-cell">¥ {formatMoney(item.promotionServiceFee)}</td>
-                        <td className="numeric-cell">¥ {formatMoney(item.afterSalesProtectionFee)}</td>
-                        <td className="numeric-cell">¥ {formatMoney(item.storageServiceFee)}</td>
-                        <td className="numeric-cell">¥ {formatMoney(item.eprFee)}</td>
-                        <td className="numeric-cell">¥ {formatMoney(item.otherExpense)}</td>
                         <td className="numeric-cell">¥ {formatMoney(item.operationExpenseAmount)}</td>
                         <td className="numeric-cell">{formatRatio(item.operationExpenseRatio)}</td>
                       </tr>
@@ -1545,22 +1512,24 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
               </tr>
             </thead>
             <tbody>
-              {financeStoreRows.map(({ row, detail }: { row: OperatorAnalysisFinancialRow; detail: OperatorSalaryStoreDetail }) => {
-                const platformFee = toAmount(detail.promotionServiceFee) + toAmount(detail.storageServiceFee) + toAmount(detail.eprFee);
-                const netInflowAmount = toAmount(detail.inflowAmount) - toAmount(detail.expenseAmount);
+              {financeStoreRows.map((item) => {
+                const storeName = item.storeNames?.[0] || '暂无数据';
+                const operationExpenseAmount = toAmount(item.operationExpenseAmount);
+                const platformFee = toAmount(item.promotionServiceFee) + toAmount(item.storageServiceFee) + toAmount(item.eprFee);
+                const netInflowAmount = toAmount(item.inflowAmount) - operationExpenseAmount;
                 return (
-                  <tr key={`${row.id}-${detail.storeId}`}>
-                    <td>{formatMonthLabel(detail.period || row.period || financePeriod)}</td>
-                    <td>{row.operatorName || '暂无数据'}</td>
-                    <td title={detail.storeName || detail.storeId || '暂无数据'}>{detail.storeName || detail.storeId || '暂无数据'}</td>
-                    <td>¥ {formatMoney(detail.netSalesAmount)}</td>
-                    <td>¥ {formatMoney(detail.inflowAmount)}</td>
-                    <td>¥ {formatMoney(detail.expenseAmount)}</td>
+                  <tr key={`${item.operatorName || 'operator'}-${storeName}-${item.period || financePeriod}`}>
+                    <td>{formatMonthLabel(item.period || financePeriod)}</td>
+                    <td>{item.operatorName || '暂无数据'}</td>
+                    <td title={storeName}>{storeName}</td>
+                    <td>暂无数据</td>
+                    <td>¥ {formatMoney(item.inflowAmount)}</td>
+                    <td>¥ {formatMoney(operationExpenseAmount)}</td>
                     <td>¥ {formatMoney(platformFee)}</td>
-                    <td>¥ {formatMoney(detail.afterSalesProtectionFee)}</td>
-                    <td>¥ {formatMoney(detail.otherExpense)}</td>
+                    <td>¥ {formatMoney(item.afterSaleIssueAmount)}</td>
+                    <td>¥ {formatMoney(item.otherExpense)}</td>
                     <td>¥ {formatMoney(netInflowAmount)}</td>
-                    <td>¥ {formatMoney(detail.netSalesAmount)}</td>
+                    <td>暂无数据</td>
                   </tr>
                 );
               })}

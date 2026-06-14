@@ -4467,6 +4467,68 @@ function handleOperatorSalaryStatisticsApi(req, res) {
   res.end(JSON.stringify({ records: sanitizeSensitiveFields(buildOperatorSalaryStatistics(requestUrl.searchParams, currentUser), currentUser) }));
 }
 
+function buildOperatorAnalysisStoreFinancialRecords(searchParams, currentUser) {
+  const requestedPeriod = String(searchParams.get('period') ?? '').trim();
+  const requestedStoreId = String(searchParams.get('storeId') ?? '').trim();
+  const stores = getTemuVisibleStores(currentUser)
+    .filter((store) => !requestedStoreId || String(store?.id ?? '') === requestedStoreId || String(store?.storeName ?? '') === requestedStoreId);
+  const relations = readCollection('storeOperatorRelations')
+    .filter((relation) => relation?.status !== 'inactive');
+  const operatorById = new Map(readCollection('operators').map((operator) => [String(operator?.id ?? '').trim(), operator]));
+  const storeById = new Map(getStores().map((store) => [String(store.id), store]));
+  const summaries = buildFinancialStoreSummaries(
+    readCollection('salaryFinancialDetails'),
+    readCollection('salaryFinancialImportBatches'),
+    new URLSearchParams(requestedPeriod ? { period: requestedPeriod } : {}),
+    currentUser,
+  );
+  const summaryByStore = new Map(summaries.map((summary) => [String(summary.storeId), summary]));
+
+  return stores
+    .map((store) => {
+      const storeId = String(store?.id ?? '').trim();
+      const relation = relations.find((item) => String(item?.storeId ?? '').trim() === storeId);
+      const detail = buildStoreSalaryDetail(storeId, requestedPeriod, relation, storeById, summaryByStore);
+      const relationOperatorId = String(relation?.operatorId ?? '').trim();
+      const operatorName = relation?.operatorName || operatorById.get(relationOperatorId)?.operatorName || '';
+      const inflowAmount = toFiniteNumber(detail?.inflowAmount);
+      const promotionServiceFee = toFiniteNumber(detail?.promotionServiceFee);
+      const afterSaleIssueAmount = toFiniteNumber(detail?.afterSalesProtectionFee);
+      const storageServiceFee = toFiniteNumber(detail?.storageServiceFee);
+      const eprFee = toFiniteNumber(detail?.eprFee);
+      const otherExpense = toFiniteNumber(detail?.otherExpense);
+      const operationExpenseAmount = promotionServiceFee +
+        afterSaleIssueAmount +
+        storageServiceFee +
+        eprFee +
+        otherExpense;
+      const rate = (amount) => inflowAmount > 0 ? amount / inflowAmount : null;
+      const storeName = String(detail?.storeName || store?.storeName || storeId).trim();
+
+      return {
+        period: detail?.period || requestedPeriod,
+        operatorName,
+        storeName,
+        storeNames: storeName ? [storeName] : [],
+        inflowAmount,
+        promotionServiceFee,
+        afterSaleIssueAmount,
+        storageServiceFee,
+        eprFee,
+        otherExpense,
+        operationExpenseAmount,
+        promotionServiceFeeRate: rate(promotionServiceFee),
+        afterSaleIssueRate: rate(afterSaleIssueAmount),
+        operationExpenseRate: rate(operationExpenseAmount),
+        hasFinancialData: Boolean(detail?.hasData),
+        platform: detail?.platform || store?.platform,
+      };
+    })
+    .filter((record) => itemMatchesTemuImportStore(record))
+    .filter((record) => record.hasFinancialData || record.inflowAmount > 0 || record.operationExpenseAmount > 0)
+    .map(({ hasFinancialData, platform, storeName, ...record }) => record);
+}
+
 function handleOperatorAnalysisStoreFinancialsApi(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
@@ -4481,18 +4543,7 @@ function handleOperatorAnalysisStoreFinancialsApi(req, res) {
 
   const requestUrl = new URL(req.url ?? '/', 'http://local');
   const currentUser = toCurrentUser(findCurrentUser(req));
-  const records = buildOperatorSalaryStatistics(requestUrl.searchParams, currentUser)
-    .map((row) => ({
-      id: row.id,
-      period: row.period,
-      employeeId: row.employeeId,
-      operatorId: row.operatorId,
-      operatorName: row.operatorName,
-      storeIds: row.storeIds,
-      storeNames: row.storeNames,
-      hasFinancialData: row.hasFinancialData,
-      storeDetails: row.storeDetails,
-    }));
+  const records = buildOperatorAnalysisStoreFinancialRecords(requestUrl.searchParams, currentUser);
 
   res.end(JSON.stringify({ records: sanitizeSensitiveFields(records, currentUser) }));
 }
