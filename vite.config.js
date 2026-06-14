@@ -4467,6 +4467,36 @@ function handleOperatorSalaryStatisticsApi(req, res) {
   res.end(JSON.stringify({ records: sanitizeSensitiveFields(buildOperatorSalaryStatistics(requestUrl.searchParams, currentUser), currentUser) }));
 }
 
+function handleOperatorAnalysisStoreFinancialsApi(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+
+  if (req.method !== 'GET') {
+    res.statusCode = 405;
+    res.end('Method not allowed');
+    return;
+  }
+
+  if (!requireMenu(req, res, menuKeys.operatorAnalysisCenter)) return;
+
+  const requestUrl = new URL(req.url ?? '/', 'http://local');
+  const currentUser = toCurrentUser(findCurrentUser(req));
+  const records = buildOperatorSalaryStatistics(requestUrl.searchParams, currentUser)
+    .map((row) => ({
+      id: row.id,
+      period: row.period,
+      employeeId: row.employeeId,
+      operatorId: row.operatorId,
+      operatorName: row.operatorName,
+      storeIds: row.storeIds,
+      storeNames: row.storeNames,
+      hasFinancialData: row.hasFinancialData,
+      storeDetails: row.storeDetails,
+    }));
+
+  res.end(JSON.stringify({ records: sanitizeSensitiveFields(records, currentUser) }));
+}
+
 function getCollectionMenuKey(name) {
   if (name === 'stores') {
     return menuKeys.storeManagement;
@@ -4870,6 +4900,7 @@ function localDataPlugin() {
       server.middlewares.use('/api/effective-new-listings', handleEffectiveNewListingsApi);
       server.middlewares.use('/api/salary/financial-imports', handleSalaryFinancialImportsApi);
       server.middlewares.use('/api/salary/financial-summaries', handleSalaryFinancialSummariesApi);
+      server.middlewares.use('/api/salary/operator-analysis-store-financials', handleOperatorAnalysisStoreFinancialsApi);
       server.middlewares.use('/api/salary/operator-salary-statistics', handleOperatorSalaryStatisticsApi);
       server.middlewares.use('/api/salary/employees', (req, res) => (
         handleCollectionApi(req, res, 'salaryEmployees', 'employee')

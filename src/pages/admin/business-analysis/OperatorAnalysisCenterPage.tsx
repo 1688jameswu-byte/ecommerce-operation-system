@@ -12,6 +12,11 @@ import type { TrafficAnalysisItem, TrafficAnalysisResultStore } from '../../../t
 import { getVisibleStores } from '../../../auth/storeVisibility';
 import { filterRecordsByPermission, filterTasksByPermission } from '../../../utils/permissionScope';
 
+type OperatorAnalysisFinancialRow = Pick<
+  OperatorSalaryStatisticRow,
+  'id' | 'period' | 'employeeId' | 'operatorId' | 'operatorName' | 'storeIds' | 'storeNames' | 'hasFinancialData' | 'storeDetails'
+>;
+
 type OperatorRow = {
   operatorId: string;
   operatorName: string;
@@ -336,7 +341,7 @@ function createRow(operatorId: string, operatorName: string, groupName = '-') {
   } satisfies OperatorRow;
 }
 
-function toStoreDetailRows(rows: OperatorSalaryStatisticRow[]) {
+function toStoreDetailRows(rows: OperatorAnalysisFinancialRow[]) {
   return rows.flatMap((row) => row.storeDetails.map((detail) => ({
     row,
     detail,
@@ -582,7 +587,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const [firstOrderProductSummary, setFirstOrderProductSummary] = useState<FirstOrderProductSummaryResponse>({ records: [] });
   const [trafficRecords, setTrafficRecords] = useState<StoreBusinessTrafficRecord[]>([]);
   const [effectiveNewListings, setEffectiveNewListings] = useState<EffectiveNewListingRecord[]>([]);
-  const [salaryRows, setSalaryRows] = useState<OperatorSalaryStatisticRow[]>([]);
+  const [salaryRows, setSalaryRows] = useState<OperatorAnalysisFinancialRow[]>([]);
   const [period] = useState(currentMonth());
   const [financePeriod, setFinancePeriod] = useState(previousMonth());
   const [financeMessage, setFinanceMessage] = useState('');
@@ -641,7 +646,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
 
   useEffect(() => {
     let cancelled = false;
-    salaryFinancialDataSource.loadOperatorSalaryStatistics({ period: financePeriod })
+    salaryFinancialDataSource.loadOperatorAnalysisStoreFinancials({ period: financePeriod })
       .then((data) => {
         if (!cancelled) {
           setSalaryRows(data.records ?? []);
@@ -1540,7 +1545,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
               </tr>
             </thead>
             <tbody>
-              {financeStoreRows.map(({ row, detail }: { row: OperatorSalaryStatisticRow; detail: OperatorSalaryStoreDetail }) => {
+              {financeStoreRows.map(({ row, detail }: { row: OperatorAnalysisFinancialRow; detail: OperatorSalaryStoreDetail }) => {
                 const platformFee = toAmount(detail.promotionServiceFee) + toAmount(detail.storageServiceFee) + toAmount(detail.eprFee);
                 const netInflowAmount = toAmount(detail.inflowAmount) - toAmount(detail.expenseAmount);
                 return (

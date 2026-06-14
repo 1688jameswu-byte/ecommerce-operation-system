@@ -77,4 +77,10 @@ export const salaryFinancialDataSource = {
   loadOperatorSalaryStatistics(params: { period?: string; operatorId?: string; storeId?: string }) {
     return request<{ records: OperatorSalaryStatisticRow[] }>(`/api/salary/operator-salary-statistics${buildQuery(params)}`);
   },
+
+  loadOperatorAnalysisStoreFinancials(params: { period?: string; operatorId?: string; storeId?: string }) {
+    return request<{ records: Pick<OperatorSalaryStatisticRow, 'id' | 'period' | 'employeeId' | 'operatorId' | 'operatorName' | 'storeIds' | 'storeNames' | 'hasFinancialData' | 'storeDetails'>[] }>(
+      `/api/salary/operator-analysis-store-financials${buildQuery(params)}`,
+    );
+  },
 };
