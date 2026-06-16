@@ -224,7 +224,6 @@ function isActive(employee: EmployeeRecord) {
 }
 
 function attendanceAmount(record: AttendanceRecord, employee: EmployeeRecord) {
-  if (record.status !== 'normal') return 0;
   return toNumber(record.overtimeHours) * toNumber(record.hourlyRate ?? employee.hourlyRate);
 }
 
