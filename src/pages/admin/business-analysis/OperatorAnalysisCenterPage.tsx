@@ -569,6 +569,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const [relations, setRelations] = useState<StoreOperatorRelation[]>([]);
   const [tasks, setTasks] = useState<OperationTaskRecord[]>([]);
   const [averagePriceRecords, setAveragePriceRecords] = useState<StoreAveragePriceSummaryRecord[]>([]);
+  const [visibleTemuStores, setVisibleTemuStores] = useState<StoreRecord[]>([]);
   const [orderDailyRecords, setOrderDailyRecords] = useState<StoreBusinessOrderDailyRecord[]>([]);
   const [skuTrend, setSkuTrend] = useState<SkuSalesTrendResponse>({ storeSkuRankings: [] });
   const [firstOrderProductSummary, setFirstOrderProductSummary] = useState<FirstOrderProductSummaryResponse>({ records: [] });
@@ -601,7 +602,8 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       const temuRelations = nextRelations
         .filter((relation) => relation.status !== 'inactive')
         .filter((relation) => relationMatchesTemuStore(relation, temuStoreKeys));
-      const visibleTemuStoreKeys = buildStoreKeySet(getVisibleStores(currentUser, temuStores, nextOperators, temuRelations));
+      const nextVisibleTemuStores = getVisibleStores(currentUser, temuStores, nextOperators, temuRelations);
+      const visibleTemuStoreKeys = buildStoreKeySet(nextVisibleTemuStores);
       const visibleTemuRelations = temuRelations.filter((relation) => recordMatchesTemuStore(relation, visibleTemuStoreKeys));
       const visibleOperatorKeys = getRelationOperatorKeys(visibleTemuRelations);
       const visibleTemuTasks = filterTasksByPermission(nextTasks, currentUser)
@@ -615,6 +617,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       ));
       setRelations(visibleTemuRelations);
       setTasks(visibleTemuTasks);
+      setVisibleTemuStores(nextVisibleTemuStores);
       setAveragePriceRecords((averagePriceStore.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
       setOrderDailyRecords((orderStore.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
       setSkuTrend({
@@ -887,20 +890,46 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     overdueTaskCount: 0,
   }), [effortRows]);
   const effortTaskDoneRate = effortSummary.taskCount > 0 ? effortSummary.doneTaskCount / effortSummary.taskCount : 0;
-  const allStoreAveragePriceRows = useMemo<AveragePriceStoreRow[]>(() => averagePriceRecords
-    .map((record) => {
-      const storeName = String(record.storeName || '').trim();
-      const operatorRow = rows.find((row) => storeMatches(row, undefined, storeName));
-      const salesAmount = toAmount(record.salesAmount);
-      const stockQuantity = toAmount(record.stockQuantity);
+  const allStoreAveragePriceRows = useMemo<AveragePriceStoreRow[]>(() => {
+    const recordsByStore = new Map(averagePriceRecords.map((record) => [
+      normalizeStoreKey(record.storeName),
+      record,
+    ]));
+    const usedStoreKeys = new Set<string>();
+    const rowsFromStores = visibleTemuStores.map((store) => {
+      const storeName = String(store.storeName || store.id || '').trim();
+      const storeKey = normalizeStoreKey(storeName);
+      const record = recordsByStore.get(storeKey);
+      usedStoreKeys.add(storeKey);
+      const operatorRow = rows.find((row) => storeMatches(row, store.id, storeName));
+      const salesAmount = toAmount(record?.salesAmount);
+      const stockQuantity = toAmount(record?.stockQuantity);
       return {
         storeName,
         operatorName: operatorRow?.operatorName || '暂无数据',
         salesAmount,
         stockQuantity,
-        averagePrice: stockQuantity > 0 ? toAmount(record.averagePrice ?? salesAmount / stockQuantity) : null,
+        averagePrice: stockQuantity > 0 ? toAmount(record?.averagePrice ?? salesAmount / stockQuantity) : null,
       };
-    })
+    });
+    const extraRows = averagePriceRecords
+      .filter((record) => !usedStoreKeys.has(normalizeStoreKey(record.storeName)))
+      .map((record) => {
+        const storeName = String(record.storeName || '').trim();
+        const operatorRow = rows.find((row) => storeMatches(row, undefined, storeName));
+        const salesAmount = toAmount(record.salesAmount);
+        const stockQuantity = toAmount(record.stockQuantity);
+        return {
+          storeName,
+          operatorName: operatorRow?.operatorName || '暂无数据',
+          salesAmount,
+          stockQuantity,
+          averagePrice: stockQuantity > 0 ? toAmount(record.averagePrice ?? salesAmount / stockQuantity) : null,
+        };
+      });
+
+    return [...rowsFromStores, ...extraRows];
+  }, [averagePriceRecords, rows, visibleTemuStores])
     .filter((row) => row.storeName)
     .sort((first, second) => {
       if (first.averagePrice === null && second.averagePrice === null) {
@@ -913,7 +942,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
         return -1;
       }
       return second.averagePrice - first.averagePrice || first.storeName.localeCompare(second.storeName);
-    }), [averagePriceRecords, rows]);
+    });
   const visibleAveragePriceRows = useMemo(() => allStoreAveragePriceRows
     .filter((row) => storeKeyMatches(visibleStoreKeys, undefined, row.storeName)), [allStoreAveragePriceRows, visibleStoreKeys]);
   const averagePriceSummary = useMemo(() => {
@@ -1252,7 +1281,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
               </tr>
             </thead>
             <tbody>
-              {hasAveragePriceStockData && allStoreAveragePriceRows.slice(0, 10).map((row, index) => (
+              {hasAveragePriceStockData && allStoreAveragePriceRows.map((row, index) => (
                 <tr key={row.storeName}>
                   <td>{index + 1}</td>
                   <td title={row.storeName}><span className="operator-store-names">{row.storeName}</span></td>
