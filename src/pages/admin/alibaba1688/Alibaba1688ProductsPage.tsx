@@ -24,6 +24,7 @@ interface PricingRow {
   wholesalePrice: string;
   supplierSkuCode: string;
   remark: string;
+  isNew?: boolean;
 }
 
 interface ProductPriceDraft {
@@ -351,7 +352,24 @@ function buildPricingRows(skus: Alibaba1688SkuRecord[]): PricingRow[] {
     wholesalePrice: String(sku.wholesalePrice ?? 0),
     supplierSkuCode: sku.supplierSkuCode || '',
     remark: sku.remark || '',
+    isNew: false,
   }));
+}
+
+function createDraftPricingRow(): PricingRow {
+  const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return {
+    id: `draft-${id}`,
+    color: '',
+    skuCode: '',
+    purchasePrice: '0',
+    wholesalePrice: '0',
+    supplierSkuCode: '',
+    remark: '',
+    isNew: true,
+  };
 }
 
 export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPageProps) {
@@ -703,6 +721,13 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     }));
   }
 
+  function addPricingRow() {
+    if (!permissions.canEditProductContent || !detail) return;
+    setError('');
+    setMessage('');
+    setPricingRows((current) => [...current, createDraftPricingRow()]);
+  }
+
   function updateProductPriceDraft(productId: string, patch: Partial<ProductPriceDraft>) {
     setPriceDrafts((current) => ({
       ...current,
@@ -856,8 +881,18 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
 
   async function saveSkuPricing(row: PricingRow) {
     if (!permissions.canEditProductContent) return;
+    if (!detail) {
+      setError('请先打开产品详情后再新增 SKU');
+      return;
+    }
     if (duplicatePricingSkuIds.has(row.id)) {
       setError(duplicateSkuMessage);
+      return;
+    }
+    const color = row.color.trim();
+    const skuCode = row.skuCode.trim();
+    if (!color || !skuCode) {
+      setError('请填写 SKU 颜色和 SKU 编号后再保存');
       return;
     }
     const purchasePrice = toNumber(row.purchasePrice);
@@ -870,8 +905,9 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     setError('');
     try {
       const payload: Partial<Alibaba1688SkuRecord> = {
-        color: row.color.trim(),
-        skuCode: row.skuCode.trim(),
+        color,
+        skuCode,
+        specification: color,
       };
       if (permissions.canEditPricing) {
         payload.purchasePrice = purchasePrice;
@@ -879,11 +915,24 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
         payload.supplierSkuCode = row.supplierSkuCode.trim();
         payload.remark = row.remark.trim();
       }
-      await alibaba1688DataSource.skus.update(row.id, payload);
+      if (row.isNew) {
+        await alibaba1688DataSource.skus.create({
+          productId: detail.id,
+          purchasePrice: 0,
+          wholesalePrice: 0,
+          suggestedPrice: 0,
+          minOrderQuantity: 0,
+          stockQuantity: 0,
+          isActive: true,
+          ...payload,
+        });
+      } else {
+        await alibaba1688DataSource.skus.update(row.id, payload);
+      }
       if (detail) await loadDetail(detail.id);
       await loadProducts();
       showToast('保存成功');
-      setMessage(`SKU ${row.skuCode || row.color || row.id.slice(0, 8)} 定价已保存。`);
+      setMessage(`SKU ${skuCode || color || row.id.slice(0, 8)} ${row.isNew ? '已新增' : '定价已保存'}。`);
     } catch (saveError) {
       const nextMessage = saveError instanceof Error ? saveError.message : 'SKU 定价保存失败';
       setError(nextMessage.includes('DUPLICATE_SKU') ? duplicateSkuMessage : nextMessage);
@@ -1342,7 +1391,14 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
             </section>
 
             <section className="alibaba-products-v1-sku-panel">
-              <h4>{permissions.canEditPricing ? '颜色 SKU 定价' : '颜色 SKU 信息'}</h4>
+              <div className="alibaba-products-v1-sku-panel-header">
+                <h4>{permissions.canEditPricing ? '颜色 SKU 定价' : '颜色 SKU 信息'}</h4>
+                {permissions.canEditProductContent && (
+                  <button type="button" onClick={addPricingRow} disabled={saving || !detail}>
+                    新增 SKU
+                  </button>
+                )}
+              </div>
               <div className="alibaba-products-v1-sku-table-wrap">
                 <table className="alibaba-products-v1-sku-table">
                   <thead>
@@ -1380,10 +1436,16 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                         {permissions.canViewCost && <td>{calculateMargin(toNumber(row.purchasePrice), toNumber(row.wholesalePrice))}</td>}
                         {permissions.canViewSupplier && <td><input value={row.supplierSkuCode} onChange={(event) => updatePricingRow(row.id, { supplierSkuCode: event.target.value })} disabled={!permissions.canEditPricing} /></td>}
                         {permissions.canViewSupplier && <td><input value={row.remark} onChange={(event) => updatePricingRow(row.id, { remark: event.target.value })} disabled={!permissions.canEditPricing} /></td>}
-                        {permissions.canEditProductContent && <td><button type="button" onClick={() => void saveSkuPricing(row)} disabled={saving}>保存</button></td>}
+                        {permissions.canEditProductContent && <td><button type="button" onClick={() => void saveSkuPricing(row)} disabled={saving}>{row.isNew ? '新增' : '保存'}</button></td>}
                       </tr>
                     ))}
-                    {pricingRows.length === 0 && <tr><td colSpan={skuTableColumnCount}>暂无颜色 SKU。</td></tr>}
+                    {pricingRows.length === 0 && (
+                      <tr>
+                        <td colSpan={skuTableColumnCount}>
+                          {permissions.canEditProductContent ? '暂无颜色 SKU，点击上方“新增 SKU”添加。' : '暂无颜色 SKU。'}
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
