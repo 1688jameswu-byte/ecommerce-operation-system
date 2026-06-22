@@ -1,6 +1,8 @@
 ﻿import { queryAlibaba1688Database } from '../postgresDatabase.js';
+import ExcelJS from 'exceljs';
 import fs from 'fs/promises';
 import path from 'path';
+import sharp from 'sharp';
 import { alibaba1688ImageRecordRepository } from '../repositories/alibaba1688ImageRecordRepository.js';
 import { alibaba1688ListingTaskRepository } from '../repositories/alibaba1688ListingTaskRepository.js';
 import { alibaba1688ProductRepository } from '../repositories/alibaba1688ProductRepository.js';
@@ -32,6 +34,9 @@ const businessTables = [
 ];
 
 const imageUploadMaxBytes = 8 * 1024 * 1024;
+const productExportImageSize = 80;
+const productExportImageColumnWidth = 14;
+const productExportRowHeight = 70;
 const duplicateSkuMessage = 'SKU 编码已存在，请更换后再保存';
 const allowedImageMimeTypes = new Map([
   ['image/jpeg', 'jpg'],
@@ -545,6 +550,10 @@ function buildProductWhere(params = {}, currentUser) {
     clauses.push(`p.created_by = ${addParam(params.createdBy)}`);
   }
 
+  if (Array.isArray(params.selectedIds) && params.selectedIds.length > 0) {
+    clauses.push(`p.id::text = ANY(${addParam(params.selectedIds.map((id) => String(id)))}::text[])`);
+  }
+
   if (params.storeId) {
     clauses.push(`p.store_id::text = ${addParam(params.storeId)}`);
   }
@@ -562,6 +571,345 @@ function buildProductWhere(params = {}, currentUser) {
   return {
     sql: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '',
     values,
+  };
+}
+
+function formatDateForFileName(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}`;
+}
+
+function formatExcelDateTime(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  const pad = (next) => String(next).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function productStatusLabel(status) {
+  const labels = {
+    missing_cost: '待补充成本',
+    pending_price: '待定销售价',
+    priced: '已定价',
+    ready: '可上架',
+    discarded: '已淘汰',
+    draft: '待补充成本',
+    disabled: '已淘汰',
+    manual_listing: '人工上架中',
+    listed: '已上架',
+    failed: '上架失败',
+  };
+  return labels[status] || status || '-';
+}
+
+function normalizeExportValue(value) {
+  if (value === null || value === undefined || value === '') return '-';
+  return value;
+}
+
+function formatMoneyRangeValue(min, max) {
+  const minValue = Number(min);
+  const maxValue = Number(max);
+  const hasMin = Number.isFinite(minValue) && minValue > 0;
+  const hasMax = Number.isFinite(maxValue) && maxValue > 0;
+  if (!hasMin && !hasMax) return '-';
+  if (hasMin && hasMax && minValue !== maxValue) return `${minValue.toFixed(2)} - ${maxValue.toFixed(2)}`;
+  return hasMin ? minValue : maxValue;
+}
+
+function calculateExportMargin(purchase, sale) {
+  const purchaseValue = Number(purchase);
+  const saleValue = Number(sale);
+  if (!Number.isFinite(purchaseValue) || !Number.isFinite(saleValue) || purchaseValue <= 0 || saleValue <= 0) {
+    return '-';
+  }
+  return `${Math.round(((saleValue - purchaseValue) / saleValue) * 100)}%`;
+}
+
+function buildSkuSummary(row) {
+  const colors = String(row.sku_colors ?? '').split('、').map((item) => item.trim()).filter(Boolean);
+  const skuCount = Number(row.sku_count ?? 0);
+  if (colors.length > 0) {
+    const preview = colors.slice(0, 5).join('、');
+    return `${preview}${colors.length > 5 ? '等' : ''}，共 ${skuCount || colors.length} 个 SKU`;
+  }
+  return skuCount > 0 ? `共 ${skuCount} 个 SKU` : '-';
+}
+
+function getProductExportColumnDefinitions(canExportSensitive) {
+  return [
+    { header: '主图', key: 'image', width: productExportImageColumnWidth },
+    { header: '产品名称', key: 'productName', width: 28 },
+    { header: '产品编码 / 主 SKU', key: 'productCode', width: 24 },
+    { header: 'SKU数量', key: 'skuCount', width: 10 },
+    { header: '颜色/SKU摘要', key: 'skuSummary', width: 28 },
+    { header: '销售价', key: 'salePrice', width: 14 },
+    ...(canExportSensitive ? [
+      { header: '进货价', key: 'purchasePrice', width: 14 },
+      { header: '毛利率', key: 'margin', width: 10 },
+      { header: '供应商', key: 'supplierName', width: 22 },
+    ] : []),
+    { header: '状态', key: 'status', width: 14 },
+    { header: '创建人', key: 'createdBy', width: 16 },
+    { header: '最近更新时间', key: 'updatedAt', width: 18 },
+    { header: '主图地址', key: 'imageUrl', width: 42 },
+    { header: '备注', key: 'remark', width: 28 },
+  ];
+}
+
+function normalizeImageCandidates(row) {
+  return [
+    row.main_image_file_path,
+    row.main_image_file_url,
+    row.main_image_url,
+    row.image_url,
+    row.image,
+    row.main_image,
+    row.image_path,
+    row.product_image,
+    row.local_path,
+  ].map((value) => String(value ?? '').trim()).filter(Boolean);
+}
+
+function resolveLocalImagePath(source) {
+  const value = String(source ?? '').trim();
+  if (!value || /^https?:\/\//i.test(value) || value.startsWith('data:')) {
+    return '';
+  }
+
+  const normalized = value.replace(/\\/g, '/');
+  const withoutQuery = normalized.split('?')[0];
+  const uploadRoot = path.resolve(process.env.UPLOADS_1688_DIR || path.join(process.cwd(), 'public', 'uploads', 'alibaba-1688'));
+  const candidates = [];
+
+  if (path.isAbsolute(value)) {
+    candidates.push(path.resolve(value));
+  }
+  if (withoutQuery.startsWith('/uploads/alibaba-1688/')) {
+    candidates.push(path.join(uploadRoot, withoutQuery.replace(/^\/uploads\/alibaba-1688\//, '')));
+  }
+  if (withoutQuery.startsWith('/uploads/')) {
+    candidates.push(path.join(process.cwd(), 'public', withoutQuery));
+  }
+  if (!withoutQuery.startsWith('/')) {
+    candidates.push(path.resolve(process.cwd(), withoutQuery));
+    candidates.push(path.join(uploadRoot, withoutQuery));
+  }
+
+  return candidates[0] || '';
+}
+
+async function readImageBuffer(source) {
+  if (/^https?:\/\//i.test(source)) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+    try {
+      const response = await fetch(source, { signal: controller.signal });
+      if (!response.ok) return null;
+      return Buffer.from(await response.arrayBuffer());
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  const localPath = resolveLocalImagePath(source);
+  if (!localPath) return null;
+  try {
+    return await fs.readFile(localPath);
+  } catch {
+    return null;
+  }
+}
+
+async function buildProductImageThumbnail(row) {
+  const candidates = normalizeImageCandidates(row);
+  for (const source of candidates) {
+    const imageBuffer = await readImageBuffer(source);
+    if (!imageBuffer) continue;
+    try {
+      return await sharp(imageBuffer)
+        .rotate()
+        .resize(productExportImageSize, productExportImageSize, {
+          fit: 'inside',
+          withoutEnlargement: true,
+          background: { r: 255, g: 255, b: 255, alpha: 1 },
+        })
+        .flatten({ background: '#ffffff' })
+        .jpeg({ quality: 78, mozjpeg: true })
+        .toBuffer();
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+async function loadProductsForExport(params, currentUser) {
+  const where = buildProductWhere(params, currentUser);
+  const result = await queryAlibaba1688Database(
+    `SELECT
+       p.id::text,
+       p.product_code,
+       p.product_name,
+       p.category_id,
+       p.status,
+       p.supplier_id::text,
+       p.created_by,
+       p.remark,
+       p.updated_at,
+       category.setting_value AS category_name,
+       supplier.supplier_name,
+       sku_summary.sku_count,
+       sku_summary.first_sku_code,
+       sku_summary.sku_colors,
+       sku_summary.min_purchase_price,
+       sku_summary.max_purchase_price,
+       sku_summary.min_wholesale_price,
+       sku_summary.max_wholesale_price,
+       image_summary.main_image_file_url,
+       image_summary.main_image_file_path,
+       GREATEST(
+         p.updated_at,
+         COALESCE(sku_summary.latest_sku_updated_at, p.updated_at),
+         COALESCE(image_summary.latest_image_updated_at, p.updated_at)
+       ) AS latest_updated_at
+     FROM "1688_products" p
+     LEFT JOIN "1688_settings" category
+       ON category.setting_group = 'product_category'
+      AND category.setting_key = p.category_id
+     LEFT JOIN "1688_suppliers" supplier ON supplier.id = p.supplier_id
+     LEFT JOIN LATERAL (
+       SELECT
+         COUNT(*) FILTER (WHERE is_active)::int AS sku_count,
+         (ARRAY_AGG(sku_code ORDER BY created_at) FILTER (WHERE is_active AND COALESCE(sku_code, '') <> ''))[1] AS first_sku_code,
+         STRING_AGG(DISTINCT NULLIF(color, ''), '、') FILTER (WHERE is_active) AS sku_colors,
+         MIN(purchase_price) FILTER (WHERE is_active AND purchase_price > 0) AS min_purchase_price,
+         MAX(purchase_price) FILTER (WHERE is_active AND purchase_price > 0) AS max_purchase_price,
+         MIN(wholesale_price) FILTER (WHERE is_active AND wholesale_price > 0) AS min_wholesale_price,
+         MAX(wholesale_price) FILTER (WHERE is_active AND wholesale_price > 0) AS max_wholesale_price,
+         MAX(updated_at) AS latest_sku_updated_at
+       FROM "1688_product_skus"
+       WHERE product_id = p.id
+     ) sku_summary ON TRUE
+     LEFT JOIN LATERAL (
+       SELECT
+         (ARRAY_AGG(file_url ORDER BY CASE WHEN is_main THEN 0 WHEN image_type = 'main_image' THEN 1 ELSE 2 END, sort_order, updated_at DESC, created_at DESC)
+           FILTER (WHERE COALESCE(NULLIF(file_url, ''), NULLIF(file_path, '')) IS NOT NULL))[1] AS main_image_file_url,
+         (ARRAY_AGG(file_path ORDER BY CASE WHEN is_main THEN 0 WHEN image_type = 'main_image' THEN 1 ELSE 2 END, sort_order, updated_at DESC, created_at DESC)
+           FILTER (WHERE COALESCE(NULLIF(file_url, ''), NULLIF(file_path, '')) IS NOT NULL))[1] AS main_image_file_path,
+         MAX(updated_at) AS latest_image_updated_at
+       FROM "1688_product_images"
+       WHERE product_id = p.id
+     ) image_summary ON TRUE
+     ${where.sql}
+     ORDER BY p.updated_at DESC, p.created_at DESC`,
+    where.values,
+  );
+  return result.rows;
+}
+
+async function exportProductsToExcel(body, currentUser) {
+  const selectedIds = Array.isArray(body?.selectedIds)
+    ? body.selectedIds.map((id) => String(id ?? '').trim()).filter(Boolean)
+    : [];
+  const isSelectionExport = selectedIds.length > 0;
+  const params = {
+    keyword: isSelectionExport ? '' : String(body?.keyword ?? '').trim(),
+    status: isSelectionExport ? '' : String(body?.status ?? '').trim(),
+    categoryId: isSelectionExport ? '' : String(body?.categoryId ?? '').trim(),
+    supplierId: !isSelectionExport && canManageAlibaba1688Data(currentUser) ? String(body?.supplierId ?? '').trim() : '',
+    createdBy: !isSelectionExport && canManageAlibaba1688Data(currentUser) ? String(body?.createdBy ?? '').trim() : '',
+    selectedIds,
+  };
+  const rows = await loadProductsForExport(params, currentUser);
+  const canExportSensitive = canManageAlibaba1688Data(currentUser);
+  const availableColumns = getProductExportColumnDefinitions(canExportSensitive);
+  const requestedFields = Array.isArray(body?.fields)
+    ? body.fields.map((field) => String(field ?? '').trim()).filter(Boolean)
+    : [];
+  const requestedFieldSet = new Set(requestedFields);
+  const columns = requestedFields.length > 0
+    ? availableColumns.filter((column) => requestedFieldSet.has(column.key))
+    : availableColumns;
+  if (columns.length === 0) {
+    throw createBadRequestError('请选择至少一个可导出的字段');
+  }
+  const selectedFieldSet = new Set(columns.map((column) => column.key));
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'TEMU运营数据大屏';
+  workbook.created = new Date();
+  const worksheet = workbook.addWorksheet('1688产品库', {
+    views: [{ state: 'frozen', ySplit: 1 }],
+  });
+
+  worksheet.columns = columns;
+  worksheet.getRow(1).font = { bold: true };
+  worksheet.getRow(1).height = 24;
+  worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+  for (const row of rows) {
+    const imageUrl = row.main_image_file_url || row.main_image_file_path || '';
+    const productCode = [row.product_code, row.first_sku_code].filter(Boolean).join(' / ');
+    const values = {
+      image: '图片缺失',
+      productName: normalizeExportValue(row.product_name),
+      productCode: normalizeExportValue(productCode),
+      skuCount: Number(row.sku_count ?? 0),
+      skuSummary: buildSkuSummary(row),
+      salePrice: formatMoneyRangeValue(row.min_wholesale_price, row.max_wholesale_price),
+      status: productStatusLabel(row.status),
+      createdBy: normalizeExportValue(row.created_by),
+      updatedAt: formatExcelDateTime(row.latest_updated_at || row.updated_at),
+      imageUrl: normalizeExportValue(imageUrl),
+      remark: normalizeExportValue(row.remark),
+    };
+    if (canExportSensitive) {
+      values.purchasePrice = formatMoneyRangeValue(row.min_purchase_price, row.max_purchase_price);
+      values.margin = calculateExportMargin(row.min_purchase_price, row.min_wholesale_price);
+      values.supplierName = normalizeExportValue(row.supplier_name);
+    }
+
+    const excelRow = worksheet.addRow(values);
+    excelRow.height = selectedFieldSet.has('image') ? productExportRowHeight : undefined;
+    excelRow.alignment = { vertical: 'middle', wrapText: true };
+    if (selectedFieldSet.has('image')) {
+      excelRow.getCell('image').alignment = { vertical: 'middle', horizontal: 'center' };
+    }
+    if (selectedFieldSet.has('salePrice')) {
+      excelRow.getCell('salePrice').numFmt = '#,##0.00';
+    }
+    if (canExportSensitive && selectedFieldSet.has('purchasePrice')) {
+      excelRow.getCell('purchasePrice').numFmt = '#,##0.00';
+    }
+
+    const thumbnail = selectedFieldSet.has('image') ? await buildProductImageThumbnail(row) : null;
+    if (thumbnail && selectedFieldSet.has('image')) {
+      excelRow.getCell('image').value = '';
+      const imageId = workbook.addImage({ buffer: thumbnail, extension: 'jpeg' });
+      const rowIndex = excelRow.number;
+      worksheet.addImage(imageId, {
+        tl: { col: 0.18, row: rowIndex - 0.88 },
+        ext: { width: productExportImageSize, height: productExportImageSize },
+        editAs: 'oneCell',
+      });
+    }
+  }
+
+  worksheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        right: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+      };
+    });
+  });
+
+  return {
+    fileName: `1688产品库_${formatDateForFileName()}.xlsx`,
+    buffer: await workbook.xlsx.writeBuffer(),
   };
 }
 
@@ -1183,6 +1531,17 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
 
       const upload = await saveAlibaba1688ProductImageUpload(await readJsonBody(req, options));
       sendJson(res, 200, { ok: true, ...upload });
+      return;
+    }
+
+    if (req.method === 'POST' && resource === 'products' && id === 'export') {
+      const { fileName, buffer } = await exportProductsToExcel(await readJsonBody(req, options), currentUser);
+      const fileBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`);
+      res.setHeader('Content-Length', String(fileBuffer.length));
+      res.end(fileBuffer);
       return;
     }
 

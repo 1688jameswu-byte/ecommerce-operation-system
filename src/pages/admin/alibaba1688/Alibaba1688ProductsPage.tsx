@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { alibaba1688DataSource, type Alibaba1688MainImageUpdateResult, type Alibaba1688ProductStats } from '../../../data-source/alibaba1688DataSource';
+import { alibaba1688DataSource, type Alibaba1688MainImageUpdateResult, type Alibaba1688ProductExportParams, type Alibaba1688ProductStats } from '../../../data-source/alibaba1688DataSource';
 import type {
   Alibaba1688ImageRecord,
   Alibaba1688ProductDetail,
@@ -62,6 +62,29 @@ const duplicateSkuMessage = 'SKU 编码已存在，请更换后再保存';
 function normalizeSkuForDuplicateCheck(value: string) {
   return value.trim().toLowerCase();
 }
+
+interface ExportFieldOption {
+  key: string;
+  label: string;
+  sensitive?: boolean;
+}
+
+const exportFieldOptions: ExportFieldOption[] = [
+  { key: 'image', label: '主图' },
+  { key: 'productName', label: '产品名称' },
+  { key: 'productCode', label: '产品编码 / 主 SKU' },
+  { key: 'skuCount', label: 'SKU数量' },
+  { key: 'skuSummary', label: '颜色/SKU摘要' },
+  { key: 'salePrice', label: '销售价' },
+  { key: 'purchasePrice', label: '进货价', sensitive: true },
+  { key: 'margin', label: '毛利率', sensitive: true },
+  { key: 'supplierName', label: '供应商', sensitive: true },
+  { key: 'status', label: '状态' },
+  { key: 'createdBy', label: '创建人' },
+  { key: 'updatedAt', label: '最近更新时间' },
+  { key: 'imageUrl', label: '主图地址' },
+  { key: 'remark', label: '备注' },
+];
 
 const UNBOUND_SUPPLIER_FILTER = '__unbound__';
 
@@ -372,6 +395,9 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   const [bulkSupplierId, setBulkSupplierId] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [selectedExportFields, setSelectedExportFields] = useState<string[]>(() => exportFieldOptions.map((field) => field.key));
   const [priceDrafts, setPriceDrafts] = useState<Record<string, ProductPriceDraft>>({});
   const [creatorNameByKey, setCreatorNameByKey] = useState<Map<string, string>>(() => new Map());
   const [message, setMessage] = useState('');
@@ -400,6 +426,14 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   const pricedProducts = products.filter((product) => product.status === 'priced' || product.status === 'ready').length;
   const visibleProductIds = useMemo(() => products.map((product) => product.id), [products]);
   const allVisibleProductsSelected = visibleProductIds.length > 0 && visibleProductIds.every((id) => selectedProductIds.includes(id));
+  const availableExportFields = useMemo(
+    () => exportFieldOptions.filter((field) => !field.sensitive || permissions.canViewCost),
+    [permissions.canViewCost],
+  );
+  const selectedAvailableExportFields = useMemo(() => {
+    const availableKeys = new Set(availableExportFields.map((field) => field.key));
+    return selectedExportFields.filter((field) => availableKeys.has(field));
+  }, [availableExportFields, selectedExportFields]);
   const creatorFilterOptions = useMemo(() => {
     const optionByValue = new Map<string, CreatorFilterOption>();
     for (const product of products) {
@@ -589,6 +623,73 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       }
       return Array.from(new Set([...current, ...visibleProductIds]));
     });
+  }
+
+  function openExportDialog() {
+    if (selectedAvailableExportFields.length === 0) {
+      setSelectedExportFields(availableExportFields.map((field) => field.key));
+    }
+    setExportDialogOpen(true);
+  }
+
+  function toggleExportField(fieldKey: string, checked: boolean) {
+    setSelectedExportFields((current) => {
+      if (checked) {
+        return current.includes(fieldKey) ? current : [...current, fieldKey];
+      }
+      return current.filter((key) => key !== fieldKey);
+    });
+  }
+
+  function selectAllExportFields() {
+    setSelectedExportFields(availableExportFields.map((field) => field.key));
+  }
+
+  function clearExportFields() {
+    setSelectedExportFields([]);
+  }
+
+  function downloadBlob(blob: Blob, fileName: string) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportProducts() {
+    if (exporting) return;
+    if (selectedAvailableExportFields.length === 0) {
+      setError('请选择至少一个导出字段。');
+      return;
+    }
+
+    const params: Alibaba1688ProductExportParams = {
+      keyword: keyword.trim(),
+      status: statusFilter,
+      categoryId: categoryFilter,
+      supplierId: permissions.canViewSupplier ? supplierFilter : '',
+      createdBy: permissions.canEditPricing ? creatorFilter : '',
+      selectedIds: selectedProductIds,
+      fields: selectedAvailableExportFields,
+    };
+
+    setExporting(true);
+    setMessage('');
+    setError('');
+    try {
+      const result = await alibaba1688DataSource.products.exportExcel(params);
+      downloadBlob(result.blob, result.fileName);
+      setExportDialogOpen(false);
+      showToast(selectedProductIds.length > 0 ? `已导出选中的 ${selectedProductIds.length} 个产品` : '已导出当前筛选结果');
+    } catch (exportError) {
+      setError(exportError instanceof Error ? exportError.message : '1688 产品库导出失败，请稍后重试');
+    } finally {
+      setExporting(false);
+    }
   }
 
   function updatePricingRow(id: string, patch: Partial<PricingRow>) {
@@ -968,7 +1069,45 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
           )}
           <button type="button" onClick={() => void loadProducts()} disabled={loading}>筛选</button>
           <button type="button" onClick={resetFilters} disabled={loading}>重置</button>
+          <button type="button" onClick={openExportDialog} disabled={exporting}>
+            {exporting ? '导出中...' : '导出当前筛选结果'}
+          </button>
         </div>
+
+        {exportDialogOpen && (
+          <div className="alibaba-products-v1-modal-backdrop" role="dialog" aria-modal="true" aria-label="选择导出字段">
+            <section className="alibaba-products-v1-edit-modal">
+              <header>
+                <h3>选择导出字段</h3>
+                <button type="button" onClick={() => setExportDialogOpen(false)} disabled={exporting}>关闭</button>
+              </header>
+              <div className="alibaba-products-v1-bulk-toolbar">
+                <span>已选 {selectedAvailableExportFields.length} 个字段</span>
+                <button type="button" onClick={selectAllExportFields} disabled={exporting}>全选</button>
+                <button type="button" onClick={clearExportFields} disabled={exporting}>清空</button>
+              </div>
+              <div className="alibaba-products-v1-admin-form">
+                {availableExportFields.map((field) => (
+                  <label key={field.key}>
+                    <input
+                      type="checkbox"
+                      checked={selectedAvailableExportFields.includes(field.key)}
+                      onChange={(event) => toggleExportField(field.key, event.target.checked)}
+                      disabled={exporting}
+                    />
+                    {field.label}
+                  </label>
+                ))}
+              </div>
+              <footer className="alibaba-products-v1-image-actions">
+                <button type="button" onClick={() => setExportDialogOpen(false)} disabled={exporting}>取消</button>
+                <button type="button" className="store-primary-button" onClick={() => void exportProducts()} disabled={exporting || selectedAvailableExportFields.length === 0}>
+                  {exporting ? '导出中...' : '开始导出'}
+                </button>
+              </footer>
+            </section>
+          </div>
+        )}
 
         {canBulkBindSupplier && (
           <div className="alibaba-products-v1-bulk-toolbar">

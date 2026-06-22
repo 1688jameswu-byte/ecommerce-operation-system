@@ -67,6 +67,16 @@ export interface Alibaba1688MainImageUpdateResult {
   product: Pick<Alibaba1688ProductRecord, 'id' | 'mainImageUrl' | 'latestUpdatedAt' | 'updatedAt'>;
 }
 
+export interface Alibaba1688ProductExportParams {
+  keyword?: string;
+  status?: string;
+  categoryId?: string;
+  supplierId?: string;
+  createdBy?: string;
+  selectedIds?: string[];
+  fields?: string[];
+}
+
 function buildQuery(params: Record<string, string | number | boolean | undefined> = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -282,6 +292,29 @@ export const alibaba1688DataSource = {
         `/${encodeURIComponent(id)}/main-image`,
         payload,
       );
+    },
+    async exportExcel(params: Alibaba1688ProductExportParams) {
+      const response = await fetch(`${apiBase}/products/export`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        credentials: 'include',
+        cache: 'no-store',
+        body: JSON.stringify(params),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null) as { message?: string; error?: string } | null;
+        throw new Error(data?.message || data?.error || '1688 产品库导出失败');
+      }
+
+      const blob = await response.blob();
+      const disposition = response.headers.get('Content-Disposition') || '';
+      const encodedFileName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+      const fallbackFileName = disposition.match(/filename="?([^"]+)"?/i)?.[1];
+      const fileName = encodedFileName
+        ? decodeURIComponent(encodedFileName)
+        : fallbackFileName || '1688产品库.xlsx';
+      return { blob, fileName };
     },
   },
   skus: createResourceDataSource<Alibaba1688SkuRecord, Partial<Omit<Alibaba1688SkuRecord, 'id' | 'createdAt' | 'updatedAt'>>>('skus'),

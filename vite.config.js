@@ -4939,6 +4939,12 @@ function localDataPlugin() {
         requireOperation,
         syncStore: syncCommonStoreFromAlibabaStore,
       }));
+      server.middlewares.use('/api/1688', (req, res) => handleAlibaba1688Api(req, res, {
+        getCurrentUser: () => toCurrentUser(findCurrentUser(req)),
+        readBody,
+        requireOperation,
+        syncStore: syncCommonStoreFromAlibabaStore,
+      }));
       server.middlewares.use('/api/stores', (req, res) => handleCollectionApi(req, res, 'stores', 'store'));
       server.middlewares.use('/api/operators', (req, res) => handleCollectionApi(req, res, 'operators', 'operator'));
       server.middlewares.use('/api/tasks', (req, res) => handleCollectionApi(req, res, 'tasks', 'task'));

@@ -18,9 +18,11 @@
   "dependencies": {
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",
+    "exceljs": "^4.4.0",
     "pg": "^8.21.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "sharp": "^0.35.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
