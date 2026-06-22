@@ -1076,30 +1076,38 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
 
         {exportDialogOpen && (
           <div className="alibaba-products-v1-modal-backdrop" role="dialog" aria-modal="true" aria-label="选择导出字段">
-            <section className="alibaba-products-v1-edit-modal">
-              <header>
-                <h3>选择导出字段</h3>
+            <section className="alibaba-products-v1-export-modal">
+              <header className="alibaba-products-v1-export-header">
+                <div>
+                  <h3>选择导出字段</h3>
+                  <p>{selectedProductIds.length > 0 ? `将导出选中的 ${selectedProductIds.length} 个产品` : '将导出当前筛选条件下的全部产品'}</p>
+                </div>
                 <button type="button" onClick={() => setExportDialogOpen(false)} disabled={exporting}>关闭</button>
               </header>
-              <div className="alibaba-products-v1-bulk-toolbar">
-                <span>已选 {selectedAvailableExportFields.length} 个字段</span>
-                <button type="button" onClick={selectAllExportFields} disabled={exporting}>全选</button>
-                <button type="button" onClick={clearExportFields} disabled={exporting}>清空</button>
+              <div className="alibaba-products-v1-export-toolbar">
+                <strong>已选 {selectedAvailableExportFields.length} / {availableExportFields.length} 个字段</strong>
+                <div>
+                  <button type="button" onClick={selectAllExportFields} disabled={exporting}>全选</button>
+                  <button type="button" onClick={clearExportFields} disabled={exporting}>清空</button>
+                </div>
               </div>
-              <div className="alibaba-products-v1-admin-form">
+              <div className="alibaba-products-v1-export-grid">
                 {availableExportFields.map((field) => (
-                  <label key={field.key}>
+                  <label
+                    key={field.key}
+                    className={`alibaba-products-v1-export-field ${selectedAvailableExportFields.includes(field.key) ? 'is-selected' : ''}`}
+                  >
                     <input
                       type="checkbox"
                       checked={selectedAvailableExportFields.includes(field.key)}
                       onChange={(event) => toggleExportField(field.key, event.target.checked)}
                       disabled={exporting}
                     />
-                    {field.label}
+                    <span>{field.label}</span>
                   </label>
                 ))}
               </div>
-              <footer className="alibaba-products-v1-image-actions">
+              <footer className="alibaba-products-v1-export-actions">
                 <button type="button" onClick={() => setExportDialogOpen(false)} disabled={exporting}>取消</button>
                 <button type="button" className="store-primary-button" onClick={() => void exportProducts()} disabled={exporting || selectedAvailableExportFields.length === 0}>
                   {exporting ? '导出中...' : '开始导出'}
