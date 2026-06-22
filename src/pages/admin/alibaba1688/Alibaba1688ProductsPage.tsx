@@ -725,7 +725,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     if (!permissions.canEditProductContent || !detail) return;
     setError('');
     setMessage('');
-    setPricingRows((current) => [...current, createDraftPricingRow()]);
+    setPricingRows((current) => [createDraftPricingRow(), ...current]);
   }
 
   function updateProductPriceDraft(productId: string, patch: Partial<ProductPriceDraft>) {
@@ -1394,8 +1394,13 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
               <div className="alibaba-products-v1-sku-panel-header">
                 <h4>{permissions.canEditPricing ? '颜色 SKU 定价' : '颜色 SKU 信息'}</h4>
                 {permissions.canEditProductContent && (
-                  <button type="button" onClick={addPricingRow} disabled={saving || !detail}>
-                    新增 SKU
+                  <button
+                    type="button"
+                    className="alibaba-products-v1-add-sku-button"
+                    onClick={addPricingRow}
+                    disabled={saving || !detail}
+                  >
+                    增加 SKU
                   </button>
                 )}
               </div>
@@ -1442,7 +1447,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                     {pricingRows.length === 0 && (
                       <tr>
                         <td colSpan={skuTableColumnCount}>
-                          {permissions.canEditProductContent ? '暂无颜色 SKU，点击上方“新增 SKU”添加。' : '暂无颜色 SKU。'}
+                          {permissions.canEditProductContent ? '暂无颜色 SKU，点击上方“增加 SKU”添加。' : '暂无颜色 SKU。'}
                         </td>
                       </tr>
                     )}
