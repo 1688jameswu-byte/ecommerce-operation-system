@@ -77,6 +77,25 @@ export interface Alibaba1688ProductExportParams {
   fields?: string[];
 }
 
+export interface Alibaba1688PriceImportDetail {
+  rowNumber: number;
+  skuCode: string;
+  status: 'updated' | 'skipped' | 'failed';
+  reason: string;
+  purchasePrice?: number;
+  wholesalePrice?: number;
+}
+
+export interface Alibaba1688PriceImportResult {
+  ok: boolean;
+  totalRows: number;
+  recognizedRows: number;
+  updatedRows: number;
+  skippedRows: number;
+  failedRows: number;
+  details: Alibaba1688PriceImportDetail[];
+}
+
 function buildQuery(params: Record<string, string | number | boolean | undefined> = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -315,6 +334,28 @@ export const alibaba1688DataSource = {
         ? decodeURIComponent(encodedFileName)
         : fallbackFileName || '1688产品库.xlsx';
       return { blob, fileName };
+    },
+    async importPrices(file: File) {
+      const dataUrl = await readFileAsDataUrl(file);
+      const response = await fetch(`${apiBase}/products/import-prices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        credentials: 'include',
+        cache: 'no-store',
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type,
+          size: file.size,
+          dataUrl,
+        }),
+      });
+      const data = await response.json().catch(() => null) as (Alibaba1688PriceImportResult & { message?: string; error?: string }) | null;
+
+      if (!response.ok) {
+        throw new Error(data?.message || data?.error || '1688 价格导入失败');
+      }
+
+      return data as Alibaba1688PriceImportResult;
     },
   },
   skus: createResourceDataSource<Alibaba1688SkuRecord, Partial<Omit<Alibaba1688SkuRecord, 'id' | 'createdAt' | 'updatedAt'>>>('skus'),

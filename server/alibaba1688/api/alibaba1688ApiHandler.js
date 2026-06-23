@@ -34,6 +34,7 @@ const businessTables = [
 ];
 
 const imageUploadMaxBytes = 8 * 1024 * 1024;
+const priceImportMaxBytes = 8 * 1024 * 1024;
 const productExportImageSize = 80;
 const productExportImageColumnWidth = 14;
 const productExportRowHeight = 70;
@@ -1067,6 +1068,198 @@ async function exportProductsToExcel(body, currentUser) {
   };
 }
 
+function normalizeImportHeader(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[／]/g, '/');
+}
+
+function findImportColumn(headerMap, candidates) {
+  for (const candidate of candidates) {
+    const column = headerMap.get(normalizeImportHeader(candidate));
+    if (column) return column;
+  }
+  return 0;
+}
+
+function normalizeImportedSkuCode(value) {
+  const text = String(value ?? '').trim();
+  if (!text || text === '-') return '';
+  const slashParts = text.split('/').map((part) => part.trim()).filter(Boolean);
+  if (slashParts.length > 1) {
+    return slashParts[slashParts.length - 1];
+  }
+  return text;
+}
+
+function normalizeImportedMoney(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const text = String(value).replace(/[,，￥¥\s]/g, '').trim();
+  if (!text || text === '-') return null;
+  const number = Number(text);
+  return Number.isFinite(number) && number > 0 ? Number(number.toFixed(2)) : null;
+}
+
+function dataUrlToBuffer(dataUrl, options = {}) {
+  const value = String(dataUrl ?? '');
+  const match = value.match(/^data:([^;,]+)?;base64,(.+)$/);
+  if (!match) {
+    throw createBadRequestError('导入文件格式错误，请重新选择 Excel 文件');
+  }
+  const buffer = Buffer.from(match[2], 'base64');
+  if (options.maxBytes && buffer.length > options.maxBytes) {
+    throw createBadRequestError('导入文件过大，请控制在 8MB 以内');
+  }
+  return buffer;
+}
+
+async function importProductPricesFromExcel(body, currentUser) {
+  if (!canManageAlibaba1688Data(currentUser)) {
+    throw createForbiddenError('当前账号无权导入 1688 价格');
+  }
+
+  const fileName = String(body?.fileName ?? '').trim();
+  if (!/\.(xlsx|xls)$/i.test(fileName)) {
+    throw createBadRequestError('请上传 .xlsx 或 .xls 格式的 Excel 文件');
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(dataUrlToBuffer(body?.dataUrl, { maxBytes: priceImportMaxBytes }));
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
+    throw createBadRequestError('Excel 文件中没有可读取的工作表');
+  }
+
+  const headerMap = new Map();
+  worksheet.getRow(1).eachCell((cell, columnNumber) => {
+    const header = normalizeImportHeader(cell.text || cell.value);
+    if (header) headerMap.set(header, columnNumber);
+  });
+
+  const skuColumn = findImportColumn(headerMap, ['SKU 编号', 'SKU编码', 'SKU', '产品编码 / 主 SKU', '产品编码/主SKU']);
+  const productSkuColumn = findImportColumn(headerMap, ['产品编码 / 主 SKU', '产品编码/主SKU']);
+  const purchaseColumn = findImportColumn(headerMap, ['进货价', '采购价', '成本价']);
+  const wholesaleColumn = findImportColumn(headerMap, ['销售价', '批发价']);
+  if (!skuColumn && !productSkuColumn) {
+    throw createBadRequestError('Excel 缺少 SKU 编号或产品编码 / 主 SKU 列');
+  }
+  if (!purchaseColumn && !wholesaleColumn) {
+    throw createBadRequestError('Excel 缺少进货价或销售价列');
+  }
+
+  const rows = [];
+  const skuCounts = new Map();
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const skuCode = normalizeImportedSkuCode(row.getCell(skuColumn || productSkuColumn).text || row.getCell(skuColumn || productSkuColumn).value);
+    const purchasePrice = purchaseColumn ? normalizeImportedMoney(row.getCell(purchaseColumn).value ?? row.getCell(purchaseColumn).text) : null;
+    const wholesalePrice = wholesaleColumn ? normalizeImportedMoney(row.getCell(wholesaleColumn).value ?? row.getCell(wholesaleColumn).text) : null;
+    if (!skuCode && purchasePrice === null && wholesalePrice === null) return;
+    rows.push({ rowNumber, skuCode, purchasePrice, wholesalePrice });
+    if (skuCode) {
+      const key = skuCode.toLowerCase();
+      skuCounts.set(key, (skuCounts.get(key) ?? 0) + 1);
+    }
+  });
+
+  const recognizedRows = rows.length;
+  const details = [];
+  const validSkuCodes = Array.from(new Set(rows.map((row) => row.skuCode.trim().toLowerCase()).filter(Boolean)));
+  const skuResult = validSkuCodes.length > 0
+    ? await queryAlibaba1688Database(
+        `SELECT id::text, sku_code, purchase_price, wholesale_price
+         FROM "1688_product_skus"
+         WHERE LOWER(TRIM(sku_code)) = ANY($1::text[])`,
+        [validSkuCodes],
+      )
+    : { rows: [] };
+  const skuRowsByCode = new Map();
+  for (const sku of skuResult.rows) {
+    const key = String(sku.sku_code ?? '').trim().toLowerCase();
+    if (!key) continue;
+    const current = skuRowsByCode.get(key) ?? [];
+    current.push(sku);
+    skuRowsByCode.set(key, current);
+  }
+
+  let updatedRows = 0;
+  for (const row of rows) {
+    if (!row.skuCode) {
+      details.push({ rowNumber: row.rowNumber, skuCode: '', status: 'failed', reason: 'SKU 编号为空' });
+      continue;
+    }
+    const skuKey = row.skuCode.toLowerCase();
+    if ((skuCounts.get(skuKey) ?? 0) > 1) {
+      details.push({ rowNumber: row.rowNumber, skuCode: row.skuCode, status: 'skipped', reason: 'Excel 中 SKU 编号重复' });
+      continue;
+    }
+    if (row.purchasePrice === null && row.wholesalePrice === null) {
+      details.push({ rowNumber: row.rowNumber, skuCode: row.skuCode, status: 'skipped', reason: '进货价和销售价均为空或非法' });
+      continue;
+    }
+
+    const matchedSkus = skuRowsByCode.get(skuKey) ?? [];
+    if (matchedSkus.length === 0) {
+      details.push({ rowNumber: row.rowNumber, skuCode: row.skuCode, status: 'skipped', reason: '系统中未找到该 SKU' });
+      continue;
+    }
+    if (matchedSkus.length > 1) {
+      details.push({ rowNumber: row.rowNumber, skuCode: row.skuCode, status: 'skipped', reason: '系统中该 SKU 不唯一' });
+      continue;
+    }
+
+    const sku = matchedSkus[0];
+    const currentPurchase = Number(sku.purchase_price ?? 0);
+    const currentWholesale = Number(sku.wholesale_price ?? 0);
+    const fields = [];
+    const values = [];
+    if (row.purchasePrice !== null && (!Number.isFinite(currentPurchase) || currentPurchase <= 0)) {
+      values.push(row.purchasePrice);
+      fields.push(`purchase_price = $${values.length}`);
+    }
+    if (row.wholesalePrice !== null && (!Number.isFinite(currentWholesale) || currentWholesale <= 0)) {
+      values.push(row.wholesalePrice);
+      fields.push(`wholesale_price = $${values.length}`);
+    }
+
+    if (fields.length === 0) {
+      details.push({ rowNumber: row.rowNumber, skuCode: row.skuCode, status: 'skipped', reason: '系统已有进货价/销售价，未覆盖' });
+      continue;
+    }
+
+    values.push(sku.id);
+    await queryAlibaba1688Database(
+      `UPDATE "1688_product_skus"
+       SET ${fields.join(', ')}, updated_at = NOW()
+       WHERE id = $${values.length}`,
+      values,
+    );
+    updatedRows += 1;
+    details.push({
+      rowNumber: row.rowNumber,
+      skuCode: row.skuCode,
+      status: 'updated',
+      reason: fields.map((field) => field.startsWith('purchase_price') ? '进货价' : '销售价').join('、'),
+      purchasePrice: row.purchasePrice ?? undefined,
+      wholesalePrice: row.wholesalePrice ?? undefined,
+    });
+  }
+
+  const skippedRows = details.filter((detail) => detail.status === 'skipped').length;
+  const failedRows = details.filter((detail) => detail.status === 'failed').length;
+  return {
+    ok: true,
+    totalRows: Math.max(worksheet.rowCount - 1, 0),
+    recognizedRows,
+    updatedRows,
+    skippedRows,
+    failedRows,
+    details,
+  };
+}
+
 async function getProductPageStats(params, currentUser) {
   const where = buildProductWhere(params, currentUser);
   const result = await queryAlibaba1688Database(
@@ -1712,6 +1905,12 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
       res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`);
       res.setHeader('Content-Length', String(fileBuffer.length));
       res.end(fileBuffer);
+      return;
+    }
+
+    if (req.method === 'POST' && resource === 'products' && id === 'import-prices') {
+      const result = await importProductPricesFromExcel(await readJsonBody(req, options), currentUser);
+      sendJson(res, 200, result);
       return;
     }
 

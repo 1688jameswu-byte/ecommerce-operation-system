@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { alibaba1688DataSource, type Alibaba1688MainImageUpdateResult, type Alibaba1688ProductExportParams, type Alibaba1688ProductStats } from '../../../data-source/alibaba1688DataSource';
+import { alibaba1688DataSource, type Alibaba1688MainImageUpdateResult, type Alibaba1688PriceImportResult, type Alibaba1688ProductExportParams, type Alibaba1688ProductStats } from '../../../data-source/alibaba1688DataSource';
 import type {
   Alibaba1688ImageRecord,
   Alibaba1688ProductDetail,
@@ -442,6 +442,8 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [importingPrices, setImportingPrices] = useState(false);
+  const [priceImportResult, setPriceImportResult] = useState<Alibaba1688PriceImportResult | null>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [selectedExportFields, setSelectedExportFields] = useState<string[]>(() => exportFieldOptions.map((field) => field.key));
   const [priceDrafts, setPriceDrafts] = useState<Record<string, ProductPriceDraft>>({});
@@ -744,6 +746,51 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       setError(exportError instanceof Error ? exportError.message : '1688 产品库导出失败，请稍后重试');
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function importPricesFromExcel(file: File | undefined) {
+    if (!file) return;
+    if (!permissions.canEditPricing) {
+      setError('当前账号无权导入进货价和销售价。');
+      return;
+    }
+    if (!/\.(xlsx|xls)$/i.test(file.name)) {
+      setError('请上传 .xlsx 或 .xls 格式的 Excel 文件。');
+      return;
+    }
+
+    setImportingPrices(true);
+    setPriceImportResult(null);
+    setMessage('');
+    setError('');
+    try {
+      const result = await alibaba1688DataSource.products.importPrices(file);
+      setPriceImportResult(result);
+      await loadProducts();
+      showToast('导入完成');
+      setMessage(`价格导入完成：识别 ${result.recognizedRows} 行，更新 ${result.updatedRows} 行，跳过 ${result.skippedRows} 行，失败 ${result.failedRows} 行。`);
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : '1688 价格导入失败，请检查 Excel 文件');
+    } finally {
+      setImportingPrices(false);
+    }
+  }
+
+  function buildPriceImportDetailText(result: Alibaba1688PriceImportResult) {
+    const rows = result.details.filter((detail) => detail.status !== 'updated');
+    if (rows.length === 0) return '本次导入没有跳过或失败明细。';
+    return rows.map((detail) => `第${detail.rowNumber}行\t${detail.skuCode || '-'}\t${detail.status === 'failed' ? '失败' : '跳过'}\t${detail.reason}`).join('\n');
+  }
+
+  async function copyPriceImportDetails() {
+    if (!priceImportResult) return;
+    const text = buildPriceImportDetailText(priceImportResult);
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('明细已复制');
+    } catch {
+      setError(text);
     }
   }
 
@@ -1205,10 +1252,49 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
           )}
           <button type="button" onClick={() => void loadProducts()} disabled={loading}>筛选</button>
           <button type="button" onClick={resetFilters} disabled={loading}>重置</button>
-          <button type="button" onClick={openExportDialog} disabled={exporting}>
-            {exporting ? '导出中...' : '导出当前筛选结果'}
-          </button>
+          <div className="alibaba-products-v1-product-info-actions" aria-label="产品信息导入导出">
+            {permissions.canEditPricing && (
+              <label className={`alibaba-products-v1-product-info-button is-import ${importingPrices ? 'is-disabled' : ''}`}>
+                {importingPrices ? '导入中...' : '导入产品信息'}
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  disabled={importingPrices}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                    void importPricesFromExcel(event.target.files?.[0]);
+                    event.currentTarget.value = '';
+                  }}
+                />
+              </label>
+            )}
+            <button type="button" className="alibaba-products-v1-product-info-button is-export" onClick={openExportDialog} disabled={exporting}>
+              {exporting ? '导出中...' : '导出产品信息'}
+            </button>
+          </div>
         </div>
+
+        {priceImportResult && (
+          <section className="alibaba-products-v1-import-result">
+            <div>
+              <strong>价格导入结果</strong>
+              <span>
+                识别 {priceImportResult.recognizedRows} 行，更新 {priceImportResult.updatedRows} 行，跳过 {priceImportResult.skippedRows} 行，失败 {priceImportResult.failedRows} 行
+              </span>
+            </div>
+            <button type="button" onClick={() => void copyPriceImportDetails()}>
+              复制跳过/失败明细
+            </button>
+            {priceImportResult.details.some((detail) => detail.status !== 'updated') && (
+              <ul>
+                {priceImportResult.details.filter((detail) => detail.status !== 'updated').slice(0, 8).map((detail) => (
+                  <li key={`${detail.rowNumber}-${detail.skuCode}-${detail.reason}`}>
+                    第 {detail.rowNumber} 行：{detail.skuCode || '-'}，{detail.status === 'failed' ? '失败' : '跳过'}，{detail.reason}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         {exportDialogOpen && (
           <div className="alibaba-products-v1-modal-backdrop" role="dialog" aria-modal="true" aria-label="选择导出字段">

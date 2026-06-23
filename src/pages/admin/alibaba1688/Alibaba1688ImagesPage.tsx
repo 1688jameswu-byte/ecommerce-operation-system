@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { alibaba1688DataSource } from '../../../data-source/alibaba1688DataSource';
 import type { CurrentUser } from '../../../types/auth';
 import type {
@@ -66,6 +67,62 @@ function toInteger(value: string) {
 
 function formatOption(options: { value: string; label: string }[], value?: string) {
   return options.find((item) => item.value === value)?.label ?? value ?? '-';
+}
+
+function isRenderableImageSource(value?: string) {
+  const src = String(value ?? '').trim();
+  return Boolean(src && (
+    /^https?:\/\//i.test(src) ||
+    src.startsWith('/') ||
+    src.startsWith('data:image/') ||
+    src.startsWith('blob:')
+  ));
+}
+
+function getImagePreviewSource(image: Alibaba1688ImageRecord) {
+  const fileUrl = String(image.fileUrl ?? '').trim();
+  const filePath = String(image.filePath ?? '').trim();
+  if (isRenderableImageSource(fileUrl)) return fileUrl;
+  if (isRenderableImageSource(filePath)) return filePath;
+  return '';
+}
+
+function ImageMaterialPreview({ image }: { image: Alibaba1688ImageRecord }) {
+  const [previewPosition, setPreviewPosition] = useState<{ left: number; top: number } | null>(null);
+  const src = getImagePreviewSource(image);
+  const canPreview = isRenderableImageSource(src);
+  const name = image.fileName || image.id.slice(0, 8);
+
+  function showPreview(event: MouseEvent<HTMLSpanElement>) {
+    if (!canPreview) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const previewSize = 520;
+    const gap = 12;
+    const hasRoomOnRight = rect.right + gap + previewSize <= window.innerWidth - gap;
+    const preferredLeft = hasRoomOnRight ? rect.right + gap : rect.left - previewSize - gap;
+    const left = Math.max(gap, Math.min(preferredLeft, window.innerWidth - previewSize - gap));
+    const top = Math.max(gap, Math.min(rect.top, window.innerHeight - previewSize - gap));
+    setPreviewPosition({ left, top });
+  }
+
+  return (
+    <span className="alibaba-image-material-preview" onMouseEnter={showPreview} onMouseLeave={() => setPreviewPosition(null)}>
+      {canPreview ? (
+        <img className="alibaba-product-image" src={src} alt={name} loading="lazy" />
+      ) : (
+        <span className="alibaba-product-image alibaba-product-image-placeholder">图</span>
+      )}
+      {canPreview && previewPosition && createPortal(
+        <img
+          className="alibaba-image-material-popover"
+          src={src}
+          alt={`${name} preview`}
+          style={{ left: previewPosition.left, top: previewPosition.top }}
+        />,
+        document.body,
+      )}
+    </span>
+  );
 }
 
 function Alibaba1688ImagesPage({ currentUser }: Alibaba1688ImagesPageProps) {
@@ -289,6 +346,7 @@ function Alibaba1688ImagesPage({ currentUser }: Alibaba1688ImagesPageProps) {
           <table className="alibaba-product-table alibaba-image-table">
             <thead>
               <tr>
+                <th>预览</th>
                 <th>ID</th>
                 <th>文件/路径</th>
                 <th>类型</th>
@@ -303,10 +361,13 @@ function Alibaba1688ImagesPage({ currentUser }: Alibaba1688ImagesPageProps) {
             <tbody>
               {images.map((image) => (
                 <tr key={image.id}>
+                  <td><ImageMaterialPreview image={image} /></td>
                   <td>{image.id.slice(0, 8)}</td>
                   <td>
-                    <strong>{image.fileName || '-'}</strong>
-                    <span>{image.filePath || image.fileUrl || '-'}</span>
+                    <div className="alibaba-image-material-path">
+                      <strong>{image.fileName || '-'}</strong>
+                      <span title={image.filePath || image.fileUrl || '-'}>{image.filePath || image.fileUrl || '-'}</span>
+                    </div>
                   </td>
                   <td>{formatOption(imageTypeOptions, image.imageType)}</td>
                   <td>
@@ -333,7 +394,7 @@ function Alibaba1688ImagesPage({ currentUser }: Alibaba1688ImagesPageProps) {
               ))}
               {!loading && images.length === 0 && (
                 <tr>
-                  <td colSpan={9}>
+                  <td colSpan={10}>
                     <div className="admin-home-empty">暂无图片素材，可由管理员或主管新增路径记录。</div>
                   </td>
                 </tr>
