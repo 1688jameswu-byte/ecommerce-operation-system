@@ -1522,6 +1522,18 @@ async function readJsonBody(req, options) {
   return JSON.parse((await options.readBody(req)) || '{}');
 }
 
+async function readProductExportBody(req, options) {
+  const rawBody = (await options.readBody(req)) || '';
+  const contentType = String(req.headers?.['content-type'] || '').toLowerCase();
+
+  if (contentType.includes('application/x-www-form-urlencoded')) {
+    const payload = new URLSearchParams(rawBody).get('payload') || '{}';
+    return JSON.parse(payload);
+  }
+
+  return JSON.parse(rawBody || '{}');
+}
+
 async function getProductDetail(productId) {
   const product = await alibaba1688ProductRepository.getById(productId);
   if (!product) {
@@ -1906,11 +1918,13 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
     }
 
     if (req.method === 'POST' && resource === 'products' && id === 'export') {
-      const { fileName, buffer } = await exportProductsToExcel(await readJsonBody(req, options), currentUser);
+      const { fileName, buffer } = await exportProductsToExcel(await readProductExportBody(req, options), currentUser);
       const fileBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Content-Length', String(fileBuffer.length));
       res.end(fileBuffer);
       return;

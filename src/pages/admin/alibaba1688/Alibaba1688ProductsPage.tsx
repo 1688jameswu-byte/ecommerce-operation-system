@@ -706,15 +706,32 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     setSelectedExportFields([]);
   }
 
-  function downloadBlob(blob: Blob, fileName: string) {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+  function submitProductExportDownload(params: Alibaba1688ProductExportParams) {
+    const frameName = 'alibaba-1688-product-export-frame';
+    let frame = document.querySelector<HTMLIFrameElement>(`iframe[name="${frameName}"]`);
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.name = frameName;
+      frame.style.display = 'none';
+      document.body.appendChild(frame);
+    }
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/api/alibaba-1688/products/export';
+    form.target = frameName;
+    form.acceptCharset = 'UTF-8';
+    form.style.display = 'none';
+
+    const payload = document.createElement('input');
+    payload.type = 'hidden';
+    payload.name = 'payload';
+    payload.value = JSON.stringify(params);
+    form.appendChild(payload);
+
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
   }
 
   async function exportProducts() {
@@ -738,14 +755,13 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     setMessage('');
     setError('');
     try {
-      const result = await alibaba1688DataSource.products.exportExcel(params);
-      downloadBlob(result.blob, result.fileName);
+      submitProductExportDownload(params);
       setExportDialogOpen(false);
       showToast(selectedProductIds.length > 0 ? `已导出选中的 ${selectedProductIds.length} 个产品` : '已导出当前筛选结果');
     } catch (exportError) {
       setError(exportError instanceof Error ? exportError.message : '1688 产品库导出失败，请稍后重试');
     } finally {
-      setExporting(false);
+      window.setTimeout(() => setExporting(false), 1200);
     }
   }
 
