@@ -36,8 +36,12 @@ const businessTables = [
 const imageUploadMaxBytes = 8 * 1024 * 1024;
 const priceImportMaxBytes = 8 * 1024 * 1024;
 const productExportImageSize = 80;
+const productExportSkuImageSize = 120;
+const productExportSkuImageSourceSize = 300;
 const productExportImageColumnWidth = 14;
+const productExportSkuImageColumnWidth = 20;
 const productExportRowHeight = 70;
+const productExportSkuImageRowHeight = 100;
 const duplicateSkuMessage = 'SKU 编码已存在，请更换后再保存';
 const allowedImageMimeTypes = new Map([
   ['image/jpeg', 'jpg'],
@@ -687,7 +691,7 @@ function getProductExportColumnDefinitions(canExportSensitive) {
     { header: '产品编码 / 主 SKU', key: 'productCode', width: 24 },
     { header: 'SKU数量', key: 'skuCount', width: 10 },
     { header: '颜色/SKU摘要', key: 'skuSummary', width: 28 },
-    { header: 'SKU图', key: 'skuImage', width: productExportImageColumnWidth },
+    { header: 'SKU图', key: 'skuImage', width: productExportSkuImageColumnWidth },
     { header: '销售价', key: 'salePrice', width: 14 },
     ...(canExportSensitive ? [
       { header: '进货价', key: 'purchasePrice', width: 14 },
@@ -806,13 +810,13 @@ async function buildSkuImageThumbnail(row) {
     try {
       return await sharp(imageBuffer)
         .rotate()
-        .resize(productExportImageSize, productExportImageSize, {
+        .resize(productExportSkuImageSourceSize, productExportSkuImageSourceSize, {
           fit: 'inside',
           withoutEnlargement: true,
           background: { r: 255, g: 255, b: 255, alpha: 1 },
         })
         .flatten({ background: '#ffffff' })
-        .jpeg({ quality: 78, mozjpeg: true })
+        .jpeg({ quality: 92, mozjpeg: true })
         .toBuffer();
     } catch {
       continue;
@@ -1003,7 +1007,11 @@ async function exportProductsToExcel(body, currentUser) {
     if (includeSkuRows) {
       recordProductExportSpan(mergedProductSpans, row.id, excelRow.number);
     }
-    excelRow.height = selectedFieldSet.has('image') || selectedFieldSet.has('skuImage') ? productExportRowHeight : undefined;
+    excelRow.height = selectedFieldSet.has('skuImage')
+      ? productExportSkuImageRowHeight
+      : selectedFieldSet.has('image')
+        ? productExportRowHeight
+        : undefined;
     excelRow.alignment = { vertical: 'middle', wrapText: true };
     if (selectedFieldSet.has('image')) {
       excelRow.getCell('image').alignment = { vertical: 'middle', horizontal: 'center' };
@@ -1040,7 +1048,7 @@ async function exportProductsToExcel(body, currentUser) {
       const rowIndex = excelRow.number;
       worksheet.addImage(imageId, {
         tl: { col: skuImageColumnIndex + 0.18, row: rowIndex - 0.88 },
-        ext: { width: productExportImageSize, height: productExportImageSize },
+        ext: { width: productExportSkuImageSize, height: productExportSkuImageSize },
         editAs: 'oneCell',
       });
     }
