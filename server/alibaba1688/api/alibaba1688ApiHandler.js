@@ -628,6 +628,10 @@ function calculateExportMargin(purchase, sale) {
 }
 
 function buildSkuSummary(row) {
+  if (row.sku_id) {
+    const summary = [row.sku_color, row.sku_code].map((item) => String(item ?? '').trim()).filter(Boolean).join(' / ');
+    return summary || '-';
+  }
   const colors = String(row.sku_colors ?? '').split('、').map((item) => item.trim()).filter(Boolean);
   const skuCount = Number(row.sku_count ?? 0);
   if (colors.length > 0) {
@@ -637,6 +641,44 @@ function buildSkuSummary(row) {
   return skuCount > 0 ? `共 ${skuCount} 个 SKU` : '-';
 }
 
+function getExportSalePrice(row) {
+  return row.sku_id
+    ? formatMoneyRangeValue(row.sku_wholesale_price, row.sku_wholesale_price)
+    : formatMoneyRangeValue(row.min_wholesale_price, row.max_wholesale_price);
+}
+
+function getExportPurchasePrice(row) {
+  return row.sku_id
+    ? formatMoneyRangeValue(row.sku_purchase_price, row.sku_purchase_price)
+    : formatMoneyRangeValue(row.min_purchase_price, row.max_purchase_price);
+}
+
+function getExportMargin(row) {
+  return row.sku_id
+    ? calculateExportMargin(row.sku_purchase_price, row.sku_wholesale_price)
+    : calculateExportMargin(row.min_purchase_price, row.min_wholesale_price);
+}
+
+function recordProductExportSpan(spans, productId, rowNumber) {
+  const key = String(productId || '');
+  if (!key) return;
+  const span = spans.get(key);
+  if (span) {
+    span.end = rowNumber;
+    return;
+  }
+  spans.set(key, { start: rowNumber, end: rowNumber });
+}
+
+function mergeProductExportColumn(worksheet, spans, columnIndex, alignment = { vertical: 'middle', horizontal: 'center' }) {
+  if (columnIndex < 0) return;
+  for (const span of spans.values()) {
+    if (span.end <= span.start) continue;
+    worksheet.mergeCells(span.start, columnIndex + 1, span.end, columnIndex + 1);
+    worksheet.getCell(span.start, columnIndex + 1).alignment = alignment;
+  }
+}
+
 function getProductExportColumnDefinitions(canExportSensitive) {
   return [
     { header: '主图', key: 'image', width: productExportImageColumnWidth },
@@ -644,6 +686,7 @@ function getProductExportColumnDefinitions(canExportSensitive) {
     { header: '产品编码 / 主 SKU', key: 'productCode', width: 24 },
     { header: 'SKU数量', key: 'skuCount', width: 10 },
     { header: '颜色/SKU摘要', key: 'skuSummary', width: 28 },
+    { header: 'SKU图', key: 'skuImage', width: productExportImageColumnWidth },
     { header: '销售价', key: 'salePrice', width: 14 },
     ...(canExportSensitive ? [
       { header: '进货价', key: 'purchasePrice', width: 14 },
@@ -669,6 +712,15 @@ function normalizeImageCandidates(row) {
     row.image_path,
     row.product_image,
     row.local_path,
+  ].map((value) => String(value ?? '').trim()).filter(Boolean);
+}
+
+function normalizeSkuImageCandidates(row) {
+  return [
+    row.sku_image_file_path,
+    row.sku_image_file_url,
+    row.sku_image_url,
+    row.sku_image,
   ].map((value) => String(value ?? '').trim()).filter(Boolean);
 }
 
@@ -745,8 +797,73 @@ async function buildProductImageThumbnail(row) {
   return null;
 }
 
-async function loadProductsForExport(params, currentUser) {
+async function buildSkuImageThumbnail(row) {
+  const candidates = normalizeSkuImageCandidates(row);
+  for (const source of candidates) {
+    const imageBuffer = await readImageBuffer(source);
+    if (!imageBuffer) continue;
+    try {
+      return await sharp(imageBuffer)
+        .rotate()
+        .resize(productExportImageSize, productExportImageSize, {
+          fit: 'inside',
+          withoutEnlargement: true,
+          background: { r: 255, g: 255, b: 255, alpha: 1 },
+        })
+        .flatten({ background: '#ffffff' })
+        .jpeg({ quality: 78, mozjpeg: true })
+        .toBuffer();
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+async function loadProductsForExport(params, currentUser, options = {}) {
   const where = buildProductWhere(params, currentUser);
+  const includeSkuRows = Boolean(options.includeSkuRows);
+  const skuExportSelect = includeSkuRows
+    ? `,
+       sku_export.sku_id::text AS sku_id,
+       sku_export.sku_code,
+       sku_export.sku_color,
+       sku_export.sku_purchase_price,
+       sku_export.sku_wholesale_price,
+       sku_export.sku_image_file_url,
+       sku_export.sku_image_file_path`
+    : '';
+  const skuExportJoin = includeSkuRows
+    ? `LEFT JOIN LATERAL (
+       SELECT
+         skus.id AS sku_id,
+         skus.sku_code,
+         skus.color AS sku_color,
+         skus.purchase_price AS sku_purchase_price,
+         skus.wholesale_price AS sku_wholesale_price,
+         sku_image.file_url AS sku_image_file_url,
+         sku_image.file_path AS sku_image_file_path,
+         skus.created_at AS sku_created_at
+       FROM "1688_product_skus" skus
+       LEFT JOIN LATERAL (
+         SELECT file_url, file_path
+         FROM "1688_product_images"
+         WHERE id = skus.sku_image_id
+            OR (sku_id = skus.id AND image_type = 'sku_image')
+         ORDER BY
+           CASE WHEN id = skus.sku_image_id THEN 0 ELSE 1 END,
+           updated_at DESC,
+           created_at DESC
+         LIMIT 1
+       ) sku_image ON TRUE
+       WHERE skus.product_id = p.id
+         AND skus.is_active
+       ORDER BY skus.created_at
+     ) sku_export ON TRUE`
+    : '';
+  const orderBy = includeSkuRows
+    ? 'ORDER BY p.updated_at DESC, p.created_at DESC, sku_export.sku_created_at NULLS LAST'
+    : 'ORDER BY p.updated_at DESC, p.created_at DESC';
   const result = await queryAlibaba1688Database(
     `SELECT
        p.id::text,
@@ -768,7 +885,8 @@ async function loadProductsForExport(params, currentUser) {
        sku_summary.min_wholesale_price,
        sku_summary.max_wholesale_price,
        image_summary.main_image_file_url,
-       image_summary.main_image_file_path,
+       image_summary.main_image_file_path
+       ${skuExportSelect},
        GREATEST(
          p.updated_at,
          COALESCE(sku_summary.latest_sku_updated_at, p.updated_at),
@@ -781,16 +899,16 @@ async function loadProductsForExport(params, currentUser) {
      LEFT JOIN "1688_suppliers" supplier ON supplier.id = p.supplier_id
      LEFT JOIN LATERAL (
        SELECT
-         COUNT(*) FILTER (WHERE is_active)::int AS sku_count,
-         (ARRAY_AGG(sku_code ORDER BY created_at) FILTER (WHERE is_active AND COALESCE(sku_code, '') <> ''))[1] AS first_sku_code,
-         STRING_AGG(DISTINCT NULLIF(color, ''), '、') FILTER (WHERE is_active) AS sku_colors,
-         MIN(purchase_price) FILTER (WHERE is_active AND purchase_price > 0) AS min_purchase_price,
-         MAX(purchase_price) FILTER (WHERE is_active AND purchase_price > 0) AS max_purchase_price,
-         MIN(wholesale_price) FILTER (WHERE is_active AND wholesale_price > 0) AS min_wholesale_price,
-         MAX(wholesale_price) FILTER (WHERE is_active AND wholesale_price > 0) AS max_wholesale_price,
-         MAX(updated_at) AS latest_sku_updated_at
-       FROM "1688_product_skus"
-       WHERE product_id = p.id
+         COUNT(*) FILTER (WHERE skus.is_active)::int AS sku_count,
+         (ARRAY_AGG(skus.sku_code ORDER BY skus.created_at) FILTER (WHERE skus.is_active AND COALESCE(skus.sku_code, '') <> ''))[1] AS first_sku_code,
+         STRING_AGG(DISTINCT NULLIF(skus.color, ''), '、') FILTER (WHERE skus.is_active) AS sku_colors,
+         MIN(skus.purchase_price) FILTER (WHERE skus.is_active AND skus.purchase_price > 0) AS min_purchase_price,
+         MAX(skus.purchase_price) FILTER (WHERE skus.is_active AND skus.purchase_price > 0) AS max_purchase_price,
+         MIN(skus.wholesale_price) FILTER (WHERE skus.is_active AND skus.wholesale_price > 0) AS min_wholesale_price,
+         MAX(skus.wholesale_price) FILTER (WHERE skus.is_active AND skus.wholesale_price > 0) AS max_wholesale_price,
+         MAX(skus.updated_at) AS latest_sku_updated_at
+       FROM "1688_product_skus" skus
+       WHERE skus.product_id = p.id
      ) sku_summary ON TRUE
      LEFT JOIN LATERAL (
        SELECT
@@ -802,8 +920,9 @@ async function loadProductsForExport(params, currentUser) {
        FROM "1688_product_images"
        WHERE product_id = p.id
      ) image_summary ON TRUE
+     ${skuExportJoin}
      ${where.sql}
-     ORDER BY p.updated_at DESC, p.created_at DESC`,
+     ${orderBy}`,
     where.values,
   );
   return result.rows;
@@ -822,7 +941,6 @@ async function exportProductsToExcel(body, currentUser) {
     createdBy: !isSelectionExport && canManageAlibaba1688Data(currentUser) ? String(body?.createdBy ?? '').trim() : '',
     selectedIds,
   };
-  const rows = await loadProductsForExport(params, currentUser);
   const canExportSensitive = canManageAlibaba1688Data(currentUser);
   const availableColumns = getProductExportColumnDefinitions(canExportSensitive);
   const requestedFields = Array.isArray(body?.fields)
@@ -836,6 +954,8 @@ async function exportProductsToExcel(body, currentUser) {
     throw createBadRequestError('请选择至少一个可导出的字段');
   }
   const selectedFieldSet = new Set(columns.map((column) => column.key));
+  const includeSkuRows = selectedFieldSet.has('skuImage');
+  const rows = await loadProductsForExport(params, currentUser, { includeSkuRows });
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'TEMU运营数据大屏';
   workbook.created = new Date();
@@ -847,17 +967,25 @@ async function exportProductsToExcel(body, currentUser) {
   worksheet.getRow(1).font = { bold: true };
   worksheet.getRow(1).height = 24;
   worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+  const imageColumnIndex = columns.findIndex((column) => column.key === 'image');
+  const skuImageColumnIndex = columns.findIndex((column) => column.key === 'skuImage');
+  const supplierColumnIndex = columns.findIndex((column) => column.key === 'supplierName');
+  const mergedProductSpans = new Map();
+  const productIdsWithMainImage = new Set();
 
   for (const row of rows) {
     const imageUrl = row.main_image_file_url || row.main_image_file_path || '';
-    const productCode = [row.product_code, row.first_sku_code].filter(Boolean).join(' / ');
+    const skuImageUrl = row.sku_image_file_url || row.sku_image_file_path || '';
+    const productCode = [row.product_code, includeSkuRows ? row.sku_code : row.first_sku_code].filter(Boolean).join(' / ');
+    const isFirstProductRow = !includeSkuRows || !productIdsWithMainImage.has(row.id);
     const values = {
-      image: '图片缺失',
+      image: isFirstProductRow ? '图片缺失' : '',
       productName: normalizeExportValue(row.product_name),
       productCode: normalizeExportValue(productCode),
       skuCount: Number(row.sku_count ?? 0),
       skuSummary: buildSkuSummary(row),
-      salePrice: formatMoneyRangeValue(row.min_wholesale_price, row.max_wholesale_price),
+      skuImage: '图片缺失',
+      salePrice: getExportSalePrice(row),
       status: productStatusLabel(row.status),
       createdBy: normalizeExportValue(row.created_by),
       updatedAt: formatExcelDateTime(row.latest_updated_at || row.updated_at),
@@ -865,16 +993,22 @@ async function exportProductsToExcel(body, currentUser) {
       remark: normalizeExportValue(row.remark),
     };
     if (canExportSensitive) {
-      values.purchasePrice = formatMoneyRangeValue(row.min_purchase_price, row.max_purchase_price);
-      values.margin = calculateExportMargin(row.min_purchase_price, row.min_wholesale_price);
-      values.supplierName = normalizeExportValue(row.supplier_name);
+      values.purchasePrice = getExportPurchasePrice(row);
+      values.margin = getExportMargin(row);
+      values.supplierName = isFirstProductRow ? normalizeExportValue(row.supplier_name) : '';
     }
 
     const excelRow = worksheet.addRow(values);
-    excelRow.height = selectedFieldSet.has('image') ? productExportRowHeight : undefined;
+    if (includeSkuRows) {
+      recordProductExportSpan(mergedProductSpans, row.id, excelRow.number);
+    }
+    excelRow.height = selectedFieldSet.has('image') || selectedFieldSet.has('skuImage') ? productExportRowHeight : undefined;
     excelRow.alignment = { vertical: 'middle', wrapText: true };
     if (selectedFieldSet.has('image')) {
       excelRow.getCell('image').alignment = { vertical: 'middle', horizontal: 'center' };
+    }
+    if (selectedFieldSet.has('skuImage')) {
+      excelRow.getCell('skuImage').alignment = { vertical: 'middle', horizontal: 'center' };
     }
     if (selectedFieldSet.has('salePrice')) {
       excelRow.getCell('salePrice').numFmt = '#,##0.00';
@@ -883,17 +1017,37 @@ async function exportProductsToExcel(body, currentUser) {
       excelRow.getCell('purchasePrice').numFmt = '#,##0.00';
     }
 
-    const thumbnail = selectedFieldSet.has('image') ? await buildProductImageThumbnail(row) : null;
-    if (thumbnail && selectedFieldSet.has('image')) {
+    const thumbnail = selectedFieldSet.has('image') && isFirstProductRow ? await buildProductImageThumbnail(row) : null;
+    if (thumbnail && imageColumnIndex >= 0) {
       excelRow.getCell('image').value = '';
       const imageId = workbook.addImage({ buffer: thumbnail, extension: 'jpeg' });
       const rowIndex = excelRow.number;
       worksheet.addImage(imageId, {
-        tl: { col: 0.18, row: rowIndex - 0.88 },
+        tl: { col: imageColumnIndex + 0.18, row: rowIndex - 0.88 },
         ext: { width: productExportImageSize, height: productExportImageSize },
         editAs: 'oneCell',
       });
     }
+    if (includeSkuRows) {
+      productIdsWithMainImage.add(row.id);
+    }
+
+    const skuThumbnail = selectedFieldSet.has('skuImage') ? await buildSkuImageThumbnail(row) : null;
+    if (skuThumbnail && skuImageColumnIndex >= 0) {
+      excelRow.getCell('skuImage').value = '';
+      const imageId = workbook.addImage({ buffer: skuThumbnail, extension: 'jpeg' });
+      const rowIndex = excelRow.number;
+      worksheet.addImage(imageId, {
+        tl: { col: skuImageColumnIndex + 0.18, row: rowIndex - 0.88 },
+        ext: { width: productExportImageSize, height: productExportImageSize },
+        editAs: 'oneCell',
+      });
+    }
+  }
+
+  if (includeSkuRows) {
+    mergeProductExportColumn(worksheet, mergedProductSpans, imageColumnIndex);
+    mergeProductExportColumn(worksheet, mergedProductSpans, supplierColumnIndex, { vertical: 'middle', horizontal: 'left', wrapText: true });
   }
 
   worksheet.eachRow((row) => {
@@ -1178,10 +1332,26 @@ async function getProductDetail(productId) {
     alibaba1688ImageRecordRepository.list({ productId, page: 1, pageSize: 100 }),
     alibaba1688ListingTaskRepository.list({ productId, page: 1, pageSize: 100 }),
   ]);
+  const imagesById = new Map(images.records.map((image) => [image.id, image]));
+  const skuImagesBySkuId = new Map();
+  for (const image of images.records) {
+    if (image.skuId && image.imageType === 'sku_image' && !skuImagesBySkuId.has(image.skuId)) {
+      skuImagesBySkuId.set(image.skuId, image);
+    }
+  }
+  const skusWithImages = skus.records.map((sku) => {
+    const skuImage = (sku.skuImageId && imagesById.get(sku.skuImageId)) || skuImagesBySkuId.get(sku.id) || null;
+    return {
+      ...sku,
+      skuImageId: sku.skuImageId || skuImage?.id || undefined,
+      skuImageUrl: skuImage?.fileUrl || skuImage?.filePath || '',
+      skuImage: skuImage || undefined,
+    };
+  });
 
   return {
     ...product,
-    skus: skus.records,
+    skus: skusWithImages,
     images: images.records,
     listingTasks: tasks.records,
   };

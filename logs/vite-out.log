@@ -1310,3 +1310,59 @@
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
 [2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m16:03:19[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:03:19[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:03:27[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:03:27[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:03:35[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:03:35[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:03:43[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:03:43[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:03:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:04:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:04:12[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:04:17[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:04:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:04:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:04:53[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:05:11[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:05:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:05:32[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:05:32[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:05:45[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:05:45[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:06:38[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:06:39[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"product-update","message":"product update called","productId":"91db7931-5609-45ed-80c6-3582e74851f3","bodyFields":["productName","productCode","remark","status","supplierId"],"safeBodyFields":["productName","productCode","remark","status","supplierId"],"containsImageFields":false}
+{"scope":"product-update","message":"product update saved","productId":"91db7931-5609-45ed-80c6-3582e74851f3","updatedAt":"2026-06-23T08:08:39.633Z"}
+{"scope":"alibaba-1688-upload","message":"upload endpoint called","cwd":"F:\\项目\\TEMU运营数据大屏","mode":"json-data-url","expectedField":"dataUrl","hasDataUrl":true,"hasReqFile":false,"bodyFileName":"ge1111.webp","bodyContentType":"image/webp","bodySize":42570}
+{"scope":"alibaba-1688-upload","message":"resolved upload target","cwd":"F:\\项目\\TEMU运营数据大屏","uploadRoot":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688","uploadDir":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688\\2026\\06","uploadDirExistsBefore":true,"fileName":"ge1111-mqqd4knq-i7kkgq.webp","contentType":"image/webp","decodedSize":42570}
+{"scope":"alibaba-1688-upload","message":"upload file saved","uploadDir":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688\\2026\\06","fileName":"ge1111-mqqd4knq-i7kkgq.webp","fileUrl":"/uploads/alibaba-1688/2026/06/ge1111-mqqd4knq-i7kkgq.webp","decodedSize":42570}
+{"scope":"product-update","message":"product update called","productId":"91db7931-5609-45ed-80c6-3582e74851f3","bodyFields":["productName","productCode","remark","status","supplierId"],"safeBodyFields":["productName","productCode","remark","status","supplierId"],"containsImageFields":false}
+{"scope":"product-update","message":"product update saved","productId":"91db7931-5609-45ed-80c6-3582e74851f3","updatedAt":"2026-06-23T08:08:51.029Z"}
+{"scope":"alibaba-1688-upload","message":"upload endpoint called","cwd":"F:\\项目\\TEMU运营数据大屏","mode":"json-data-url","expectedField":"dataUrl","hasDataUrl":true,"hasReqFile":false,"bodyFileName":"dsf.webp","bodyContentType":"image/webp","bodySize":17800}
+{"scope":"alibaba-1688-upload","message":"resolved upload target","cwd":"F:\\项目\\TEMU运营数据大屏","uploadRoot":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688","uploadDir":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688\\2026\\06","uploadDirExistsBefore":true,"fileName":"dsf-mqqd4tdg-afcr0m.webp","contentType":"image/webp","decodedSize":17800}
+{"scope":"alibaba-1688-upload","message":"upload file saved","uploadDir":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688\\2026\\06","fileName":"dsf-mqqd4tdg-afcr0m.webp","fileUrl":"/uploads/alibaba-1688/2026/06/dsf-mqqd4tdg-afcr0m.webp","decodedSize":17800}
+{"scope":"product-update","message":"product update called","productId":"f4dcb1ef-cf0c-4039-b2a7-58f32ca4e7d3","bodyFields":["productName","productCode","remark","status","supplierId"],"safeBodyFields":["productName","productCode","remark","status","supplierId"],"containsImageFields":false}
+{"scope":"product-update","message":"product update saved","productId":"f4dcb1ef-cf0c-4039-b2a7-58f32ca4e7d3","updatedAt":"2026-06-23T08:09:23.749Z"}
+{"scope":"product-update","message":"product update called","productId":"f4dcb1ef-cf0c-4039-b2a7-58f32ca4e7d3","bodyFields":["productName","productCode","remark","status","supplierId"],"safeBodyFields":["productName","productCode","remark","status","supplierId"],"containsImageFields":false}
+{"scope":"product-update","message":"product update saved","productId":"f4dcb1ef-cf0c-4039-b2a7-58f32ca4e7d3","updatedAt":"2026-06-23T08:09:40.652Z"}
+{"scope":"alibaba-1688-upload","message":"upload endpoint called","cwd":"F:\\项目\\TEMU运营数据大屏","mode":"json-data-url","expectedField":"dataUrl","hasDataUrl":true,"hasReqFile":false,"bodyFileName":"dsfsfsd.png","bodyContentType":"image/png","bodySize":82535}
+{"scope":"alibaba-1688-upload","message":"resolved upload target","cwd":"F:\\项目\\TEMU运营数据大屏","uploadRoot":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688","uploadDir":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688\\2026\\06","uploadDirExistsBefore":true,"fileName":"dsfsfsd-mqqd5vpp-ov92pm.png","contentType":"image/png","decodedSize":82535}
+{"scope":"alibaba-1688-upload","message":"upload file saved","uploadDir":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688\\2026\\06","fileName":"dsfsfsd-mqqd5vpp-ov92pm.png","fileUrl":"/uploads/alibaba-1688/2026/06/dsfsfsd-mqqd5vpp-ov92pm.png","decodedSize":82535}
+{"scope":"alibaba-1688-upload","message":"upload endpoint called","cwd":"F:\\项目\\TEMU运营数据大屏","mode":"json-data-url","expectedField":"dataUrl","hasDataUrl":true,"hasReqFile":false,"bodyFileName":"sdf.webp","bodyContentType":"image/webp","bodySize":17762}
+{"scope":"alibaba-1688-upload","message":"resolved upload target","cwd":"F:\\项目\\TEMU运营数据大屏","uploadRoot":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688","uploadDir":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688\\2026\\06","uploadDirExistsBefore":true,"fileName":"sdf-mqqd5vqs-axa50i.webp","contentType":"image/webp","decodedSize":17762}
+{"scope":"alibaba-1688-upload","message":"upload file saved","uploadDir":"F:\\项目\\TEMU运营数据大屏\\public\\uploads\\alibaba-1688\\2026\\06","fileName":"sdf-mqqd5vqs-axa50i.webp","fileUrl":"/uploads/alibaba-1688/2026/06/sdf-mqqd5vqs-axa50i.webp","decodedSize":17762}
+[2m16:12:25[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:12:26[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:12:45[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:12:46[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:13:03[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:13:03[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:13:21[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:13:21[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:13:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/alibaba1688/Alibaba1688ProductsPage.tsx[22m
+[2m16:16:54[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:16:54[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:17:06[22m [36m[1m[vite][22m[39m [32mserver/alibaba1688/api/alibaba1688ApiHandler.js changed, restarting server...[39m
+[2m16:17:06[22m [36m[1m[vite][22m[39m server restarted.

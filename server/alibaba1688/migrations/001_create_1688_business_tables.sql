@@ -92,6 +92,9 @@ CREATE TABLE IF NOT EXISTS "1688_product_images" (
   remark TEXT
 );
 
+ALTER TABLE "1688_product_skus"
+  ADD COLUMN IF NOT EXISTS sku_image_id UUID;
+
 CREATE TABLE IF NOT EXISTS "1688_listing_tasks" (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id UUID NOT NULL REFERENCES "1688_products"(id) ON DELETE CASCADE,

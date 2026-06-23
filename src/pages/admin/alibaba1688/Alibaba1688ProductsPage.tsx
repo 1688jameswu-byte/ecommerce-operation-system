@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { alibaba1688DataSource, type Alibaba1688MainImageUpdateResult, type Alibaba1688ProductExportParams, type Alibaba1688ProductStats } from '../../../data-source/alibaba1688DataSource';
 import type {
@@ -24,6 +24,11 @@ interface PricingRow {
   wholesalePrice: string;
   supplierSkuCode: string;
   remark: string;
+  skuImageId: string;
+  skuImageUrl: string;
+  skuImageFile: File | null;
+  skuImagePreviewUrl: string;
+  skuImageFileName: string;
   isNew?: boolean;
 }
 
@@ -84,6 +89,7 @@ const exportFieldOptions: ExportFieldOption[] = [
   { key: 'createdBy', label: '创建人' },
   { key: 'updatedAt', label: '最近更新时间' },
   { key: 'imageUrl', label: '主图地址' },
+  { key: 'skuImage', label: 'SKU图' },
   { key: 'remark', label: '备注' },
 ];
 
@@ -352,6 +358,11 @@ function buildPricingRows(skus: Alibaba1688SkuRecord[]): PricingRow[] {
     wholesalePrice: String(sku.wholesalePrice ?? 0),
     supplierSkuCode: sku.supplierSkuCode || '',
     remark: sku.remark || '',
+    skuImageId: sku.skuImageId || sku.skuImage?.id || '',
+    skuImageUrl: sku.skuImageUrl || sku.skuImage?.fileUrl || sku.skuImage?.filePath || '',
+    skuImageFile: null,
+    skuImagePreviewUrl: '',
+    skuImageFileName: '',
     isNew: false,
   }));
 }
@@ -368,8 +379,25 @@ function createDraftPricingRow(): PricingRow {
     wholesalePrice: '0',
     supplierSkuCode: '',
     remark: '',
+    skuImageId: '',
+    skuImageUrl: '',
+    skuImageFile: null,
+    skuImagePreviewUrl: '',
+    skuImageFileName: '',
     isNew: true,
   };
+}
+
+function revokePricingRowPreviews(rows: PricingRow[]) {
+  rows.forEach((row) => {
+    if (row.skuImagePreviewUrl) {
+      URL.revokeObjectURL(row.skuImagePreviewUrl);
+    }
+  });
+}
+
+function getSkuImageSource(row: PricingRow) {
+  return row.skuImagePreviewUrl || versionedImageUrl(row.skuImageUrl, row.skuImageId);
 }
 
 export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPageProps) {
@@ -436,7 +464,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     + (permissions.canViewSupplier ? 1 : 0)
     + (hasProductActions ? 1 : 0)
     + (canBulkBindSupplier ? 1 : 0);
-  const skuTableColumnCount = 3
+  const skuTableColumnCount = 4
     + (permissions.canViewCost ? 2 : 0)
     + (permissions.canViewSupplier ? 2 : 0);
   const missingCostProducts = products.filter((product) => (product.missingCostCount ?? 0) > 0 || product.status === 'missing_cost' || product.status === 'draft').length;
@@ -544,6 +572,10 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       if (selectedProductId && !page.records.some((product) => product.id === selectedProductId)) {
         setSelectedProductId('');
         setDetail(null);
+        setPricingRows((current) => {
+          revokePricingRowPreviews(current);
+          return [];
+        });
       }
       setSelectedProductIds((current) => current.filter((id) => page.records.some((product) => product.id === id)));
     } catch (loadError) {
@@ -566,7 +598,10 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
         listingTasks: Array.isArray(nextDetail.listingTasks) ? nextDetail.listingTasks : [],
       };
       setDetail(safeDetail);
-      setPricingRows(buildPricingRows(safeDetail.skus));
+      setPricingRows((current) => {
+        revokePricingRowPreviews(current);
+        return buildPricingRows(safeDetail.skus);
+      });
       setDetailProductName(nextDetail.productName || '');
       setDetailProductCode(nextDetail.productCode || '');
       setDetailStatus(nextDetail.status || 'missing_cost');
@@ -586,7 +621,10 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   function closeDetailModal() {
     setSelectedProductId('');
     setDetail(null);
-    setPricingRows([]);
+    setPricingRows((current) => {
+      revokePricingRowPreviews(current);
+      return [];
+    });
     setDetailProductName('');
     setDetailProductCode('');
     setDetailStatus('missing_cost');
@@ -733,8 +771,31 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       !row.skuCode.trim() &&
       !row.supplierSkuCode.trim() &&
       !row.remark.trim() &&
+      !row.skuImageFile &&
       toNumber(row.purchasePrice) === 0 &&
       toNumber(row.wholesalePrice) === 0;
+  }
+
+  async function saveSkuImageForRow(productId: string, skuId: string, row: PricingRow) {
+    if (!row.skuImageFile) {
+      return row.skuImageId || '';
+    }
+
+    const imageNameBase = row.skuCode.trim() || detailProductCode.trim() || productId.slice(0, 8);
+    const upload = await alibaba1688DataSource.uploadImage(row.skuImageFile, imageNameBase);
+    const image = await alibaba1688DataSource.images.create({
+      productId,
+      skuId,
+      imageType: 'sku_image',
+      imageStatus: 'ready',
+      fileName: upload.fileName,
+      filePath: upload.filePath,
+      fileUrl: upload.fileUrl,
+      sortOrder: 0,
+      isMain: false,
+      remark: row.skuImageFileName || '编辑产品页上传SKU图',
+    });
+    return image.id;
   }
 
   async function savePricingRowsForProduct(productId: string) {
@@ -753,7 +814,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       }
     }
 
-    await Promise.all(rowsToSave.map((row) => {
+    await Promise.all(rowsToSave.map(async (row) => {
       const color = row.color.trim();
       const purchasePrice = toNumber(row.purchasePrice);
       const wholesalePrice = toNumber(row.wholesalePrice);
@@ -770,7 +831,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
         payload.remark = row.remark.trim();
       }
 
-      return row.isNew
+      const savedSku = row.isNew
         ? alibaba1688DataSource.skus.create({
             productId,
             purchasePrice: 0,
@@ -782,6 +843,12 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
             ...payload,
           })
         : alibaba1688DataSource.skus.update(row.id, payload);
+
+      const nextSku = await savedSku;
+      const skuImageId = await saveSkuImageForRow(productId, nextSku.id, row);
+      if (skuImageId && skuImageId !== nextSku.skuImageId) {
+        await alibaba1688DataSource.skus.update(nextSku.id, { skuImageId });
+      }
     }));
 
     return rowsToSave.length;
@@ -817,6 +884,27 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       if (current.previewUrl) URL.revokeObjectURL(current.previewUrl);
       return { file, previewUrl, fileName: `${file.name}（保存时自动裁剪为 800×800）` };
     });
+    setError('');
+  }
+
+  function handleSkuImageFileChange(rowId: string, file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('请选择图片文件');
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setPricingRows((current) => current.map((row) => {
+      if (row.id !== rowId) return row;
+      if (row.skuImagePreviewUrl) URL.revokeObjectURL(row.skuImagePreviewUrl);
+      return {
+        ...row,
+        skuImageFile: file,
+        skuImagePreviewUrl: previewUrl,
+        skuImageFileName: `${file.name}（保存产品信息后生效）`,
+      };
+    }));
     setError('');
   }
 
@@ -860,8 +948,9 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       return;
     }
     const hasNewMainImage = Boolean(detailImageEdit.file);
+    const hasNewSkuImage = pricingRows.some((row) => Boolean(row.skuImageFile));
     setSaving(true);
-    setMessage(hasNewMainImage ? '正在保存产品信息、SKU和主图...' : '正在保存产品信息和SKU...');
+    setMessage(hasNewMainImage || hasNewSkuImage ? '正在保存产品信息、SKU和图片...' : '正在保存产品信息和SKU...');
     setError('');
     try {
       const productPayload: Partial<Alibaba1688ProductRecord> = {
@@ -924,7 +1013,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
         imageUrl: mainImageUpdate ? (mainImageUpdate.product.mainImageUrl || mainImageUpdate.image.fileUrl || '') : getProductMainImage(detail),
       });
       showToast('保存成功');
-      setMessage(hasNewMainImage ? `产品信息、SKU和主图已保存，共同步 ${savedSkuCount} 条 SKU。` : `产品信息和SKU已保存，共同步 ${savedSkuCount} 条 SKU。`);
+      setMessage(hasNewMainImage || hasNewSkuImage ? `产品信息、SKU和图片已保存，共同步 ${savedSkuCount} 条 SKU。` : `产品信息和SKU已保存，共同步 ${savedSkuCount} 条 SKU。`);
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : '产品信息保存失败';
       console.error('[product-edit] save failed', {
@@ -1407,6 +1496,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                   <thead>
                     <tr>
                       <th>颜色</th>
+                      <th>SKU图</th>
                       <th>SKU 编号</th>
                       {permissions.canViewCost && <th>进货价</th>}
                       {permissions.canViewSalesPrice && <th>销售价</th>}
@@ -1419,6 +1509,25 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                     {pricingRows.map((row) => (
                       <tr key={row.id}>
                         <td>{permissions.canEditProductContent ? <input value={row.color} onChange={(event) => updatePricingRow(row.id, { color: event.target.value })} /> : row.color || '-'}</td>
+                        <td>
+                          <div className="alibaba-products-v1-sku-image-cell">
+                            <ProductImage src={getSkuImageSource(row)} name={`${row.color || row.skuCode || 'SKU'}图`} />
+                            {permissions.canEditProductContent ? (
+                              <label className="alibaba-products-v1-sku-image-upload">
+                                选择
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                                    handleSkuImageFileChange(row.id, event.target.files?.[0]);
+                                    event.currentTarget.value = '';
+                                  }}
+                                />
+                              </label>
+                            ) : null}
+                            {row.skuImageFileName && <small title={row.skuImageFileName}>{row.skuImageFileName}</small>}
+                          </div>
+                        </td>
                         <td>
                           {permissions.canEditProductContent ? (
                             <label className="alibaba-products-v1-sku-code-field">

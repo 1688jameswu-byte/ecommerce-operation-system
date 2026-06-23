@@ -6858,17 +6858,17 @@
 
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th:nth-child(1),
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table td:nth-child(1) {
-  width: 12%;
+  width: 11%;
 }
 
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th:nth-child(2),
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table td:nth-child(2) {
-  width: 34%;
+  width: 96px;
 }
 
-.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th:last-child,
-.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table td:last-child {
-  width: 76px;
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th:nth-child(3),
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table td:nth-child(3) {
+  width: 28%;
 }
 
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th,
@@ -6881,6 +6881,49 @@
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th {
   background: #102846;
   color: #a8c7ea;
+}
+
+.alibaba-products-v1-sku-image-cell {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.alibaba-products-v1-sku-image-cell .alibaba-product-image {
+  width: 54px;
+  height: 54px;
+}
+
+.alibaba-products-v1-sku-image-upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  min-width: 54px;
+  border: 1px solid #2f65a5;
+  border-radius: 6px;
+  background: #0d2c50;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.alibaba-products-v1-sku-image-upload input {
+  display: none;
+}
+
+.alibaba-products-v1-sku-image-cell small {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  color: #9db7d6;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .alibaba-products-v1-detail {

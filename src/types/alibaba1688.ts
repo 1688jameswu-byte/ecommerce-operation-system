@@ -93,6 +93,8 @@ export interface Alibaba1688SkuRecord extends Alibaba1688TimestampedRecord {
   minOrderQuantity: number;
   stockQuantity: number;
   skuImageId?: string;
+  skuImageUrl?: string;
+  skuImage?: Alibaba1688ImageRecord;
   isActive: boolean;
   remark?: string;
 }
