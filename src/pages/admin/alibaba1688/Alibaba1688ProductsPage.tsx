@@ -1797,7 +1797,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                         <td>{permissions.canEditProductContent ? <input value={row.color} onChange={(event) => updatePricingRow(row.id, { color: event.target.value })} /> : row.color || '-'}</td>
                         <td>
                           <div className="alibaba-products-v1-sku-image-cell">
-                            <ProductImage src={getSkuImageSource(row)} name={`${row.color || row.skuCode || 'SKU'}图`} />
+                            <ProductImagePreview src={getSkuImageSource(row)} name={`${row.color || row.skuCode || 'SKU'}图`} />
                             {permissions.canEditProductContent ? (
                               <label className="alibaba-products-v1-sku-image-upload">
                                 选择
