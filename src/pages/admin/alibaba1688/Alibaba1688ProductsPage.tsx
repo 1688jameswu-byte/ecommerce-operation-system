@@ -408,6 +408,19 @@ function getSkuImageSource(row: PricingRow) {
   return row.skuImagePreviewUrl || versionedImageUrl(row.skuImageUrl, row.skuImageId);
 }
 
+function getSkuRecordImageSource(sku: Alibaba1688SkuRecord) {
+  return versionedImageUrl(sku.skuImageUrl || sku.skuImage?.fileUrl || sku.skuImage?.filePath || '', sku.skuImageId || sku.skuImage?.id);
+}
+
+function normalizeProductDetail(detail: Alibaba1688ProductDetail): Alibaba1688ProductDetail {
+  return {
+    ...detail,
+    skus: Array.isArray(detail.skus) ? detail.skus : [],
+    images: Array.isArray(detail.images) ? detail.images : [],
+    listingTasks: Array.isArray(detail.listingTasks) ? detail.listingTasks : [],
+  };
+}
+
 export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPageProps) {
   const permissions = useMemo(() => getAlibaba1688ProductPermissions(currentUser), [currentUser]);
   const [products, setProducts] = useState<Alibaba1688ProductRecord[]>([]);
@@ -416,8 +429,11 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   const [suppliers, setSuppliers] = useState<Alibaba1688SupplierRecord[]>([]);
   const [categories, setCategories] = useState<Alibaba1688SettingRecord[]>([]);
   const [detail, setDetail] = useState<Alibaba1688ProductDetail | null>(null);
+  const [skuPreviewDetail, setSkuPreviewDetail] = useState<Alibaba1688ProductDetail | null>(null);
+  const [skuPreviewLoadingId, setSkuPreviewLoadingId] = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
   const [pricingRows, setPricingRows] = useState<PricingRow[]>([]);
+  const [removedSkuIds, setRemovedSkuIds] = useState<string[]>([]);
   const [detailProductName, setDetailProductName] = useState('');
   const [detailProductCode, setDetailProductCode] = useState('');
   const [detailStatus, setDetailStatus] = useState('missing_cost');
@@ -467,6 +483,9 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   const previewImageUrl = detail
     ? (detailImageEdit.previewUrl || versionedImageUrl(getProductMainImage(detail), latestImageUpdatedAt(detail.images) || detail.updatedAt))
     : '';
+  const skuPreviewImageUrl = skuPreviewDetail
+    ? versionedImageUrl(getProductMainImage(skuPreviewDetail), latestImageUpdatedAt(skuPreviewDetail.images) || skuPreviewDetail.updatedAt)
+    : '';
   const hasProductActions = permissions.canEditProductContent || permissions.canDeleteProduct;
   const canBulkBindSupplier = permissions.canEditPricing && permissions.canViewSupplier;
   const productTableColumnCount = 6
@@ -476,6 +495,11 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     + (canBulkBindSupplier ? 1 : 0);
   const skuTableColumnCount = 4
     + (permissions.canViewCost ? 2 : 0)
+    + (permissions.canViewSupplier ? 2 : 0)
+    + (permissions.canEditProductContent ? 1 : 0);
+  const skuPreviewTableColumnCount = 3
+    + (permissions.canViewCost ? 2 : 0)
+    + (permissions.canViewSalesPrice ? 1 : 0)
     + (permissions.canViewSupplier ? 2 : 0);
   const missingCostProducts = products.filter((product) => (product.missingCostCount ?? 0) > 0 || product.status === 'missing_cost' || product.status === 'draft').length;
   const pricedProducts = products.filter((product) => product.status === 'priced' || product.status === 'ready').length;
@@ -587,6 +611,9 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
           return [];
         });
       }
+      if (skuPreviewDetail && !page.records.some((product) => product.id === skuPreviewDetail.id)) {
+        setSkuPreviewDetail(null);
+      }
       setSelectedProductIds((current) => current.filter((id) => page.records.some((product) => product.id === id)));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : '产品库加载失败');
@@ -601,13 +628,9 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     setError('');
     try {
       const nextDetail = await alibaba1688DataSource.products.loadDetail(productId);
-      const safeDetail = {
-        ...nextDetail,
-        skus: Array.isArray(nextDetail.skus) ? nextDetail.skus : [],
-        images: Array.isArray(nextDetail.images) ? nextDetail.images : [],
-        listingTasks: Array.isArray(nextDetail.listingTasks) ? nextDetail.listingTasks : [],
-      };
+      const safeDetail = normalizeProductDetail(nextDetail);
       setDetail(safeDetail);
+      setRemovedSkuIds([]);
       setPricingRows((current) => {
         revokePricingRowPreviews(current);
         return buildPricingRows(safeDetail.skus);
@@ -628,9 +651,32 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     }
   }
 
+  async function openSkuPreview(productId: string) {
+    if (skuPreviewLoadingId || loading) return;
+    setSkuPreviewLoadingId(productId);
+    setError('');
+    try {
+      const nextDetail = await alibaba1688DataSource.products.loadDetail(productId);
+      setSkuPreviewDetail(normalizeProductDetail(nextDetail));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'SKU 信息加载失败');
+    } finally {
+      setSkuPreviewLoadingId('');
+    }
+  }
+
+  function closeSkuPreviewModal() {
+    setSkuPreviewDetail(null);
+  }
+
+  function stopProductRowClick(event: MouseEvent<HTMLElement>) {
+    event.stopPropagation();
+  }
+
   function closeDetailModal() {
     setSelectedProductId('');
     setDetail(null);
+    setRemovedSkuIds([]);
     setPricingRows((current) => {
       revokePricingRowPreviews(current);
       return [];
@@ -836,6 +882,25 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     setPricingRows((current) => [createDraftPricingRow(), ...current]);
   }
 
+  function removePricingRow(rowId: string) {
+    if (!permissions.canEditProductContent || saving) return;
+    const row = pricingRows.find((item) => item.id === rowId);
+    if (!row) return;
+    const label = row.skuCode.trim() || row.color.trim() || '该 SKU';
+    if (!window.confirm(`确认删除 ${label} 吗？点击“保存产品信息”后生效。`)) {
+      return;
+    }
+    if (row.skuImagePreviewUrl) {
+      URL.revokeObjectURL(row.skuImagePreviewUrl);
+    }
+    if (!row.isNew) {
+      setRemovedSkuIds((current) => current.includes(row.id) ? current : [...current, row.id]);
+    }
+    setPricingRows((current) => current.filter((item) => item.id !== rowId));
+    setError('');
+    setMessage('SKU 已从列表移除，点击“保存产品信息”后生效。');
+  }
+
   function isBlankDraftPricingRow(row: PricingRow) {
     return row.isNew &&
       !row.color.trim() &&
@@ -885,6 +950,8 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       }
     }
 
+    await Promise.all(removedSkuIds.map((skuId) => alibaba1688DataSource.skus.remove(skuId)));
+
     await Promise.all(rowsToSave.map(async (row) => {
       const color = row.color.trim();
       const purchasePrice = toNumber(row.purchasePrice);
@@ -922,7 +989,9 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
       }
     }));
 
-    return rowsToSave.length;
+    const removedCount = removedSkuIds.length;
+    setRemovedSkuIds([]);
+    return rowsToSave.length + removedCount;
   }
 
   function updateProductPriceDraft(productId: string, patch: Partial<ProductPriceDraft>) {
@@ -1421,12 +1490,26 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                 const saleMax = product.maxWholesalePrice;
                 const draft = priceDrafts[product.id] ?? { purchasePrice: '', supplierId: product.supplierId || '', wholesalePrice: '' };
                 return (
-                  <tr key={product.id}>
+                  <tr
+                    key={product.id}
+                    className={`alibaba-products-v1-clickable-row ${skuPreviewDetail?.id === product.id ? 'is-previewing' : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => void openSkuPreview(product.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        void openSkuPreview(product.id);
+                      }
+                    }}
+                    aria-label={`查看 ${product.productName || product.productCode || product.id} 的 SKU 信息`}
+                  >
                     {canBulkBindSupplier && (
                       <td className="alibaba-products-v1-select-col">
                         <input
                           type="checkbox"
                           checked={selectedProductIds.includes(product.id)}
+                          onClick={stopProductRowClick}
                           onChange={(event) => toggleProductSelection(product.id, event.target.checked)}
                           aria-label={`选择 ${product.productName || product.productCode || product.id}`}
                         />
@@ -1449,6 +1532,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                           className="alibaba-products-v1-price-input"
                           value={draft.wholesalePrice}
                           placeholder={formatMoneyRange(saleMin, saleMax)}
+                          onClick={stopProductRowClick}
                           onChange={(event) => updateProductPriceDraft(product.id, { wholesalePrice: event.target.value })}
                         />
                       ) : formatMoneyRange(saleMin, saleMax)}
@@ -1459,6 +1543,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                           className="alibaba-products-v1-price-input"
                           value={draft.purchasePrice}
                           placeholder={formatMoneyRange(purchaseMin, purchaseMax)}
+                          onClick={stopProductRowClick}
                           onChange={(event) => updateProductPriceDraft(product.id, { purchasePrice: event.target.value })}
                         />
                       </td>
@@ -1469,6 +1554,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                         <select
                           className="alibaba-products-v1-supplier-select"
                           value={draft.supplierId}
+                          onClick={stopProductRowClick}
                           onChange={(event) => updateProductPriceDraft(product.id, { supplierId: event.target.value })}
                         >
                           <option value="">未绑定</option>
@@ -1487,7 +1573,10 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                           <button
                             type="button"
                             className="alibaba-products-v1-save-price"
-                            onClick={() => void saveProductPrices(product)}
+                            onClick={(event) => {
+                              stopProductRowClick(event);
+                              void saveProductPrices(product);
+                            }}
                             disabled={saving}
                           >
                             保存
@@ -1497,7 +1586,10 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                           <button
                             type="button"
                             className="alibaba-products-v1-edit"
-                            onClick={() => void loadDetail(product.id)}
+                            onClick={(event) => {
+                              stopProductRowClick(event);
+                              void loadDetail(product.id);
+                            }}
                             disabled={loading}
                           >
                             编辑
@@ -1507,7 +1599,10 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                           <button
                             type="button"
                             className="alibaba-products-v1-delete"
-                            onClick={() => void removeProduct(product)}
+                            onClick={(event) => {
+                              stopProductRowClick(event);
+                              void removeProduct(product);
+                            }}
                             disabled={saving}
                           >
                             删除
@@ -1525,6 +1620,86 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
           </table>
         </div>
       </section>
+
+      {skuPreviewDetail && createPortal((
+        <div className="alibaba-products-v1-modal-backdrop" role="dialog" aria-modal="true" aria-label="SKU 信息" onClick={closeSkuPreviewModal}>
+          <section className="alibaba-products-v1-sku-preview-modal" onClick={stopProductRowClick}>
+            <header>
+              <div>
+                <h3>SKU 信息</h3>
+                <p>{skuPreviewDetail.productCode || skuPreviewDetail.id.slice(0, 8)}</p>
+              </div>
+              <button type="button" onClick={closeSkuPreviewModal}>关闭</button>
+            </header>
+
+            <section className="alibaba-products-v1-sku-preview-summary">
+              <ProductImagePreview src={skuPreviewImageUrl} name={skuPreviewDetail.productName || skuPreviewDetail.productCode || '产品主图'} />
+              <div>
+                <strong>{skuPreviewDetail.productName || '-'}</strong>
+                <dl>
+                  <div>
+                    <dt>状态</dt>
+                    <dd><span className={`alibaba-status-badge status-${skuPreviewDetail.status || 'missing_cost'}`}>{statusLabel(skuPreviewDetail.status)}</span></dd>
+                  </div>
+                  <div>
+                    <dt>分类</dt>
+                    <dd>{skuPreviewDetail.categoryId ? (categoryNameByKey.get(skuPreviewDetail.categoryId) ?? skuPreviewDetail.categoryId) : '-'}</dd>
+                  </div>
+                  {permissions.canViewSupplier && (
+                    <div>
+                      <dt>供应商</dt>
+                      <dd>{suppliers.find((supplier) => supplier.id === skuPreviewDetail.supplierId)?.supplierName || '-'}</dd>
+                    </div>
+                  )}
+                  <div>
+                    <dt>最近更新</dt>
+                    <dd>{formatDateTime(skuPreviewDetail.latestUpdatedAt || skuPreviewDetail.updatedAt)}</dd>
+                  </div>
+                </dl>
+                {skuPreviewDetail.remark && <p className="alibaba-products-v1-sku-preview-remark">{skuPreviewDetail.remark}</p>}
+              </div>
+            </section>
+
+            <div className="alibaba-products-v1-sku-preview-table-wrap">
+              <table className="alibaba-products-v1-sku-preview-table">
+                <thead>
+                  <tr>
+                    <th>颜色</th>
+                    <th>SKU 图</th>
+                    <th>SKU 编号</th>
+                    {permissions.canViewCost && <th>进货价</th>}
+                    {permissions.canViewSalesPrice && <th>销售价</th>}
+                    {permissions.canViewCost && <th>毛利率</th>}
+                    {permissions.canViewSupplier && <th>供应商货号</th>}
+                    {permissions.canViewSupplier && <th>管理备注</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {skuPreviewDetail.skus.map((sku) => (
+                    <tr key={sku.id}>
+                      <td>{sku.color || '-'}</td>
+                      <td>
+                        <ProductImagePreview src={getSkuRecordImageSource(sku)} name={`${sku.color || sku.skuCode || 'SKU'}图`} />
+                      </td>
+                      <td>{sku.skuCode || '-'}</td>
+                      {permissions.canViewCost && <td>{formatMoney(sku.purchasePrice)}</td>}
+                      {permissions.canViewSalesPrice && <td>{formatMoney(sku.wholesalePrice)}</td>}
+                      {permissions.canViewCost && <td>{calculateMargin(Number(sku.purchasePrice), Number(sku.wholesalePrice))}</td>}
+                      {permissions.canViewSupplier && <td>{sku.supplierSkuCode || '-'}</td>}
+                      {permissions.canViewSupplier && <td>{sku.remark || '-'}</td>}
+                    </tr>
+                  ))}
+                  {skuPreviewDetail.skus.length === 0 && (
+                    <tr>
+                      <td colSpan={skuPreviewTableColumnCount}>暂无 SKU 信息。</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      ), document.body)}
 
       {detail && createPortal((
         <div className="alibaba-products-v1-modal-backdrop" role="dialog" aria-modal="true" aria-label="编辑产品">
@@ -1613,6 +1788,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                       {permissions.canViewCost && <th>毛利率</th>}
                       {permissions.canViewSupplier && <th>供应商货号</th>}
                       {permissions.canViewSupplier && <th>管理备注</th>}
+                      {permissions.canEditProductContent && <th className="alibaba-products-v1-sku-action-column">操作</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -1657,6 +1833,18 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                         {permissions.canViewCost && <td>{calculateMargin(toNumber(row.purchasePrice), toNumber(row.wholesalePrice))}</td>}
                         {permissions.canViewSupplier && <td><input value={row.supplierSkuCode} onChange={(event) => updatePricingRow(row.id, { supplierSkuCode: event.target.value })} disabled={!permissions.canEditPricing} /></td>}
                         {permissions.canViewSupplier && <td><input value={row.remark} onChange={(event) => updatePricingRow(row.id, { remark: event.target.value })} disabled={!permissions.canEditPricing} /></td>}
+                        {permissions.canEditProductContent && (
+                          <td className="alibaba-products-v1-sku-action-column">
+                            <button
+                              type="button"
+                              className="alibaba-products-v1-sku-delete-button"
+                              onClick={() => removePricingRow(row.id)}
+                              disabled={saving}
+                            >
+                              删除
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                     {pricingRows.length === 0 && (

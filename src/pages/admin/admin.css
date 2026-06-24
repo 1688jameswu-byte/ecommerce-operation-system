@@ -6398,8 +6398,19 @@
   cursor: default;
 }
 
+.alibaba-products-v1-table tbody tr.alibaba-products-v1-clickable-row {
+  cursor: pointer;
+  outline: none;
+}
+
 .alibaba-products-v1-table tbody tr:hover {
   background: #eef5ff;
+}
+
+.alibaba-products-v1-table tbody tr.alibaba-products-v1-clickable-row:focus-visible,
+.alibaba-products-v1-table tbody tr.alibaba-products-v1-clickable-row.is-previewing {
+  background: #e6f0ff;
+  box-shadow: inset 3px 0 0 #2563eb;
 }
 
 .alibaba-products-v1-product-cell {
@@ -6596,6 +6607,12 @@
   background: #102846;
 }
 
+.alibaba-products-v1-table tbody tr.alibaba-products-v1-clickable-row:focus-visible,
+.alibaba-products-v1-table tbody tr.alibaba-products-v1-clickable-row.is-previewing {
+  background: #14375f;
+  box-shadow: inset 3px 0 0 #60a5fa;
+}
+
 .alibaba-products-v1-product-cell strong {
   color: #ffffff;
 }
@@ -6736,6 +6753,145 @@
   color: #ffffff;
   cursor: pointer;
   font-weight: 700;
+}
+
+.alibaba-products-v1-sku-preview-modal {
+  display: grid;
+  gap: 16px;
+  box-sizing: border-box;
+  width: min(1080px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  border: 1px solid #2b517d;
+  border-radius: 10px;
+  background: #071427;
+  padding: 18px;
+  color: #ffffff;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+.alibaba-products-v1-sku-preview-modal > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #1e3a5f;
+  padding-bottom: 12px;
+}
+
+.alibaba-products-v1-sku-preview-modal h3 {
+  margin: 0;
+  color: #ffffff;
+}
+
+.alibaba-products-v1-sku-preview-modal > header p {
+  margin: 4px 0 0;
+  color: #9db7d6;
+}
+
+.alibaba-products-v1-sku-preview-modal > header button {
+  min-height: 34px;
+  border: 1px solid #2f65a5;
+  border-radius: 6px;
+  background: #0d2c50;
+  padding: 0 12px;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.alibaba-products-v1-sku-preview-summary {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  background: #0a1f38;
+  padding: 12px;
+}
+
+.alibaba-products-v1-sku-preview-summary .alibaba-products-v1-image-preview,
+.alibaba-products-v1-sku-preview-summary .alibaba-product-image {
+  width: 96px;
+  height: 96px;
+}
+
+.alibaba-products-v1-sku-preview-summary strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.alibaba-products-v1-sku-preview-summary dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.alibaba-products-v1-sku-preview-summary dl div {
+  display: grid;
+  gap: 4px;
+}
+
+.alibaba-products-v1-sku-preview-summary dt {
+  color: #8fb2d8;
+  font-size: 12px;
+}
+
+.alibaba-products-v1-sku-preview-summary dd {
+  margin: 0;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.alibaba-products-v1-sku-preview-remark {
+  margin: 10px 0 0;
+  color: #b8cbe2;
+  line-height: 1.6;
+}
+
+.alibaba-products-v1-sku-preview-table-wrap {
+  overflow: auto;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+}
+
+.alibaba-products-v1-sku-preview-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
+}
+
+.alibaba-products-v1-sku-preview-table th,
+.alibaba-products-v1-sku-preview-table td {
+  border-bottom: 1px solid #1e3a5f;
+  padding: 10px;
+  color: #ffffff;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.alibaba-products-v1-sku-preview-table th {
+  background: #102846;
+  color: #a8c7ea;
+  font-size: 12px;
+}
+
+.alibaba-products-v1-sku-preview-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.alibaba-products-v1-sku-preview-table .alibaba-products-v1-image-preview {
+  width: 54px;
+  height: 54px;
+}
+
+.alibaba-products-v1-sku-preview-table .alibaba-product-image {
+  width: 54px;
+  height: 54px;
 }
 
 .alibaba-products-v1-export-modal {
@@ -7027,6 +7183,11 @@
   width: 28%;
 }
 
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-action-column {
+  width: 70px;
+  text-align: center;
+}
+
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table th,
 .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table td {
   border-bottom-color: #1e3a5f;
@@ -7068,6 +7229,28 @@
 
 .alibaba-products-v1-sku-image-upload input {
   display: none;
+}
+
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-delete-button {
+  min-height: 30px;
+  border-color: rgba(248, 113, 113, 0.45) !important;
+  border-radius: 6px;
+  background: rgba(127, 29, 29, 0.56) !important;
+  color: #fecaca !important;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0 10px;
+}
+
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-delete-button:hover:not(:disabled) {
+  border-color: rgba(252, 165, 165, 0.75) !important;
+  background: rgba(185, 28, 28, 0.72) !important;
+  color: #ffffff !important;
+}
+
+.alibaba-products-v1-edit-modal .alibaba-products-v1-sku-delete-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .alibaba-products-v1-sku-image-cell small {
@@ -8461,5 +8644,97 @@
   .store-single-detail,
   .store-detail-daily-list {
     grid-template-columns: 1fr;
+  }
+}
+
+.admin-shell :where(
+  button:not(:disabled),
+  a[href],
+  [role="button"],
+  .store-primary-button,
+  .excel-clear-button,
+  .primary-action,
+  .danger-action-button,
+  .batch-view-button,
+  .batch-delete-button,
+  .delete-cancel-button,
+  .delete-confirm-button
+) {
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease,
+    filter 0.18s ease,
+    transform 0.18s ease;
+}
+
+.admin-shell :where(
+  button:not(:disabled),
+  a[href],
+  [role="button"],
+  .store-primary-button,
+  .excel-clear-button,
+  .primary-action,
+  .danger-action-button,
+  .batch-view-button,
+  .batch-delete-button,
+  .delete-cancel-button,
+  .delete-confirm-button
+):hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.admin-shell :where(
+  button:not(:disabled),
+  .store-primary-button,
+  .excel-clear-button,
+  .primary-action,
+  .batch-view-button,
+  .delete-cancel-button
+):hover {
+  box-shadow: 0 8px 18px rgba(59, 130, 246, 0.18);
+}
+
+.admin-shell :where(
+  .danger-action-button,
+  .batch-delete-button,
+  .delete-confirm-button,
+  .alibaba-products-v1-delete,
+  .alibaba-products-v1-sku-delete-button
+):hover {
+  box-shadow: 0 8px 18px rgba(248, 113, 113, 0.18);
+}
+
+.admin-shell :where(
+  .admin-nav a,
+  .admin-nav-group-title,
+  .admin-home-quick-links a,
+  [role="button"]
+):hover {
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.16);
+}
+
+.admin-shell :where(button:disabled, [aria-disabled="true"], .is-disabled, .disabled) {
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.admin-shell :where(button:not(:disabled), a[href], [role="button"]):focus-visible {
+  outline: 2px solid rgba(139, 215, 255, 0.86);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell :where(button, a[href], [role="button"]) {
+    transition: none;
+  }
+
+  .admin-shell :where(button:not(:disabled), a[href], [role="button"]):hover {
+    transform: none;
   }
 }
