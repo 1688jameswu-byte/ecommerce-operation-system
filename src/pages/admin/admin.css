@@ -6641,15 +6641,7 @@
 
 .alibaba-products-v1-price-cell {
   display: grid;
-  gap: 4px;
   align-items: start;
-}
-
-.alibaba-products-v1-price-cell small {
-  max-width: 160px;
-  color: #ffca66;
-  font-size: 11px;
-  line-height: 1.35;
 }
 
 .alibaba-products-v1-supplier-select {

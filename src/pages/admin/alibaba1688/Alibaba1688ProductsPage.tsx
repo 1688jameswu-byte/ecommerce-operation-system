@@ -1184,20 +1184,14 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     if (!permissions.canEditPricing) return;
 
     const draft = priceDrafts[product.id] ?? { purchasePrice: '', supplierId: product.supplierId || '', wholesalePrice: '' };
+    const shouldUpdatePurchasePrice = draft.purchasePrice.trim() !== '';
+    const shouldUpdateWholesalePrice = draft.wholesalePrice.trim() !== '';
     const purchasePrice = toNumber(draft.purchasePrice);
     const wholesalePrice = toNumber(draft.wholesalePrice);
-    const hasMixedPrice = isMixedPriceRange(product.minPurchasePrice, product.maxPurchasePrice) ||
-      isMixedPriceRange(product.minWholesalePrice, product.maxWholesalePrice);
 
-    if (purchasePrice <= 0 || wholesalePrice <= 0) {
-      setError(hasMixedPrice
-        ? '该产品 SKU 价格不一致，请填写要批量保存的进货价和销售价，或点击编辑逐个 SKU 修改。'
-        : '请填写大于 0 的进货价和销售价。');
+    if ((shouldUpdatePurchasePrice && purchasePrice <= 0) || (shouldUpdateWholesalePrice && wholesalePrice <= 0)) {
+      setError('请填写大于 0 的进货价和销售价。');
       return;
-    }
-
-    if (isLossPrice(purchasePrice, wholesalePrice)) {
-      showToast('亏本，亏本！', 'warning');
     }
 
     setSaving(true);
@@ -1211,10 +1205,31 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
         return;
       }
 
-      await Promise.all(activeSkus.map((sku) => alibaba1688DataSource.skus.update(sku.id, {
-        purchasePrice,
-        wholesalePrice,
-      })));
+      const invalidSku = activeSkus.find((sku) => {
+        const nextPurchasePrice = shouldUpdatePurchasePrice ? purchasePrice : Number(sku.purchasePrice);
+        const nextWholesalePrice = shouldUpdateWholesalePrice ? wholesalePrice : Number(sku.wholesalePrice);
+        return nextPurchasePrice <= 0 || nextWholesalePrice <= 0;
+      });
+      if (invalidSku) {
+        setError('该产品还有 SKU 缺少进货价或销售价，请先点击编辑补齐 SKU 价格。');
+        return;
+      }
+
+      const hasLossPrice = activeSkus.some((sku) => {
+        const nextPurchasePrice = shouldUpdatePurchasePrice ? purchasePrice : Number(sku.purchasePrice);
+        const nextWholesalePrice = shouldUpdateWholesalePrice ? wholesalePrice : Number(sku.wholesalePrice);
+        return isLossPrice(nextPurchasePrice, nextWholesalePrice);
+      });
+      if (hasLossPrice) {
+        showToast('亏本，亏本！', 'warning');
+      }
+
+      if (shouldUpdatePurchasePrice || shouldUpdateWholesalePrice) {
+        await Promise.all(activeSkus.map((sku) => alibaba1688DataSource.skus.update(sku.id, {
+          ...(shouldUpdatePurchasePrice ? { purchasePrice } : {}),
+          ...(shouldUpdateWholesalePrice ? { wholesalePrice } : {}),
+        })));
+      }
       await alibaba1688DataSource.products.update(product.id, {
         status: 'priced',
         supplierId: draft.supplierId || null,
@@ -1505,9 +1520,6 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                 const saleMin = product.minWholesalePrice;
                 const saleMax = product.maxWholesalePrice;
                 const draft = priceDrafts[product.id] ?? { purchasePrice: '', supplierId: product.supplierId || '', wholesalePrice: '' };
-                const hasMixedPurchasePrice = isMixedPriceRange(purchaseMin, purchaseMax);
-                const hasMixedSalePrice = isMixedPriceRange(saleMin, saleMax);
-                const hasMixedSkuPrice = hasMixedPurchasePrice || hasMixedSalePrice;
                 return (
                   <tr
                     key={product.id}
@@ -1552,11 +1564,9 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                             className="alibaba-products-v1-price-input"
                             value={draft.wholesalePrice}
                             placeholder={formatMoneyRange(saleMin, saleMax)}
-                            title={hasMixedSalePrice ? '销售价不一致，填写后将批量覆盖所有 SKU。' : undefined}
                             onClick={stopProductRowClick}
                             onChange={(event) => updateProductPriceDraft(product.id, { wholesalePrice: event.target.value })}
                           />
-                          {hasMixedSkuPrice && <small>多 SKU 价格不同，填写后将批量覆盖所有 SKU。</small>}
                         </div>
                       ) : formatMoneyRange(saleMin, saleMax)}
                     </td>
@@ -1567,7 +1577,6 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                             className="alibaba-products-v1-price-input"
                             value={draft.purchasePrice}
                             placeholder={formatMoneyRange(purchaseMin, purchaseMax)}
-                            title={hasMixedPurchasePrice ? '进货价不一致，填写后将批量覆盖所有 SKU。' : undefined}
                             onClick={stopProductRowClick}
                             onChange={(event) => updateProductPriceDraft(product.id, { purchasePrice: event.target.value })}
                           />
@@ -1604,7 +1613,6 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                               void saveProductPrices(product);
                             }}
                             disabled={saving}
-                            title={hasMixedSkuPrice ? '保存会把当前产品下所有 SKU 改成相同价格。' : '保存当前产品价格'}
                           >
                             保存
                           </button>
