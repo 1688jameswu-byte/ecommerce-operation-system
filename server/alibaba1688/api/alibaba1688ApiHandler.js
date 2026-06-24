@@ -711,6 +711,8 @@ function normalizeImageCandidates(row) {
     row.main_image_file_path,
     row.main_image_file_url,
     row.main_image_url,
+    row.fallback_image_file_path,
+    row.fallback_image_file_url,
     row.image_url,
     row.image,
     row.main_image,
@@ -748,32 +750,42 @@ function pickProductMainImageUrl(images = []) {
     .find(Boolean) || '';
 }
 
-function resolveLocalImagePath(source) {
+function resolveLocalImagePathCandidates(source) {
   const value = String(source ?? '').trim();
   if (!value || /^https?:\/\//i.test(value) || value.startsWith('data:')) {
-    return '';
+    return [];
   }
 
   const normalized = value.replace(/\\/g, '/');
   const withoutQuery = normalized.split('?')[0];
-  const uploadRoot = path.resolve(process.env.UPLOADS_1688_DIR || path.join(process.cwd(), 'public', 'uploads', 'alibaba-1688'));
+  const genericUploadRoot = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads'));
+  const alibabaUploadRoot = path.resolve(process.env.UPLOADS_1688_DIR || path.join(genericUploadRoot, 'alibaba-1688'));
+  const legacyAlibabaUploadRoot = path.resolve(path.join(process.cwd(), 'public', 'uploads', 'alibaba-1688'));
+  const legacyGenericUploadRoot = path.resolve(path.join(process.cwd(), 'public', 'uploads'));
   const candidates = [];
 
   if (path.isAbsolute(value)) {
     candidates.push(path.resolve(value));
   }
   if (withoutQuery.startsWith('/uploads/alibaba-1688/')) {
-    candidates.push(path.join(uploadRoot, withoutQuery.replace(/^\/uploads\/alibaba-1688\//, '')));
+    const relativeUploadPath = withoutQuery.replace(/^\/uploads\/alibaba-1688\//, '');
+    candidates.push(path.join(alibabaUploadRoot, relativeUploadPath));
+    candidates.push(path.join(genericUploadRoot, 'alibaba-1688', relativeUploadPath));
+    candidates.push(path.join(legacyAlibabaUploadRoot, relativeUploadPath));
   }
   if (withoutQuery.startsWith('/uploads/')) {
-    candidates.push(path.join(process.cwd(), 'public', withoutQuery));
+    const relativeUploadPath = withoutQuery.replace(/^\/uploads\//, '');
+    candidates.push(path.join(genericUploadRoot, relativeUploadPath));
+    candidates.push(path.join(legacyGenericUploadRoot, relativeUploadPath));
   }
   if (!withoutQuery.startsWith('/')) {
     candidates.push(path.resolve(process.cwd(), withoutQuery));
-    candidates.push(path.join(uploadRoot, withoutQuery));
+    candidates.push(path.join(alibabaUploadRoot, withoutQuery));
+    candidates.push(path.join(genericUploadRoot, withoutQuery));
+    candidates.push(path.join(legacyAlibabaUploadRoot, withoutQuery));
   }
 
-  return candidates[0] || '';
+  return Array.from(new Set(candidates.map((candidate) => path.resolve(candidate))));
 }
 
 async function readImageBuffer(source) {
@@ -789,13 +801,14 @@ async function readImageBuffer(source) {
     }
   }
 
-  const localPath = resolveLocalImagePath(source);
-  if (!localPath) return null;
-  try {
-    return await fs.readFile(localPath);
-  } catch {
-    return null;
+  for (const localPath of resolveLocalImagePathCandidates(source)) {
+    try {
+      return await fs.readFile(localPath);
+    } catch {
+      continue;
+    }
   }
+  return null;
 }
 
 async function buildProductImageThumbnail(row) {
@@ -909,7 +922,9 @@ async function loadProductsForExport(params, currentUser, options = {}) {
        sku_summary.min_wholesale_price,
        sku_summary.max_wholesale_price,
        image_summary.main_image_file_url,
-       image_summary.main_image_file_path
+       image_summary.main_image_file_path,
+       image_summary.fallback_image_file_url,
+       image_summary.fallback_image_file_path
        ${skuExportSelect},
        GREATEST(
          p.updated_at,
@@ -940,10 +955,13 @@ async function loadProductsForExport(params, currentUser, options = {}) {
            FILTER (WHERE COALESCE(NULLIF(file_url, ''), NULLIF(file_path, '')) IS NOT NULL))[1] AS main_image_file_url,
          (ARRAY_AGG(file_path ORDER BY CASE WHEN image_type = 'main_image' AND is_main THEN 0 WHEN image_type = 'main_image' THEN 1 ELSE 2 END, sort_order, updated_at DESC, created_at DESC)
            FILTER (WHERE COALESCE(NULLIF(file_url, ''), NULLIF(file_path, '')) IS NOT NULL))[1] AS main_image_file_path,
+         (ARRAY_AGG(file_url ORDER BY CASE WHEN COALESCE(image_type, '') = 'main_image' THEN 0 WHEN is_main THEN 1 ELSE 2 END, sort_order, updated_at DESC, created_at DESC)
+           FILTER (WHERE COALESCE(image_type, '') <> 'sku_image' AND COALESCE(NULLIF(file_url, ''), NULLIF(file_path, '')) IS NOT NULL))[1] AS fallback_image_file_url,
+         (ARRAY_AGG(file_path ORDER BY CASE WHEN COALESCE(image_type, '') = 'main_image' THEN 0 WHEN is_main THEN 1 ELSE 2 END, sort_order, updated_at DESC, created_at DESC)
+           FILTER (WHERE COALESCE(image_type, '') <> 'sku_image' AND COALESCE(NULLIF(file_url, ''), NULLIF(file_path, '')) IS NOT NULL))[1] AS fallback_image_file_path,
          MAX(updated_at) AS latest_image_updated_at
        FROM "1688_product_images"
        WHERE product_id = p.id
-         AND (image_type = 'main_image' OR (is_main = true AND COALESCE(image_type, '') <> 'sku_image'))
      ) image_summary ON TRUE
      ${skuExportJoin}
      ${where.sql}
@@ -999,7 +1017,7 @@ async function exportProductsToExcel(body, currentUser) {
   const productIdsWithMainImage = new Set();
 
   for (const row of rows) {
-    const imageUrl = row.main_image_file_url || row.main_image_file_path || '';
+    const imageUrl = row.main_image_file_url || row.main_image_file_path || row.fallback_image_file_url || row.fallback_image_file_path || '';
     const skuImageUrl = row.sku_image_file_url || row.sku_image_file_path || '';
     const productCode = [row.product_code, includeSkuRows ? row.sku_code : row.first_sku_code].filter(Boolean).join(' / ');
     const isFirstProductRow = !includeSkuRows || !productIdsWithMainImage.has(row.id);
