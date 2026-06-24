@@ -729,6 +729,25 @@ function normalizeSkuImageCandidates(row) {
   ].map((value) => String(value ?? '').trim()).filter(Boolean);
 }
 
+function isProductMainImageCandidate(image) {
+  return image?.imageType === 'main_image' || (Boolean(image?.isMain) && image?.imageType !== 'sku_image');
+}
+
+function pickProductMainImageUrl(images = []) {
+  return [...images]
+    .filter(isProductMainImageCandidate)
+    .sort((left, right) => {
+      const leftRank = left.imageType === 'main_image' && left.isMain ? 0 : left.imageType === 'main_image' ? 1 : 2;
+      const rightRank = right.imageType === 'main_image' && right.isMain ? 0 : right.imageType === 'main_image' ? 1 : 2;
+      return leftRank - rightRank ||
+        (left.sortOrder ?? 0) - (right.sortOrder ?? 0) ||
+        String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')) ||
+        String(right.createdAt ?? '').localeCompare(String(left.createdAt ?? ''));
+    })
+    .map((image) => image.fileUrl || image.filePath || '')
+    .find(Boolean) || '';
+}
+
 function resolveLocalImagePath(source) {
   const value = String(source ?? '').trim();
   if (!value || /^https?:\/\//i.test(value) || value.startsWith('data:')) {
@@ -917,13 +936,14 @@ async function loadProductsForExport(params, currentUser, options = {}) {
      ) sku_summary ON TRUE
      LEFT JOIN LATERAL (
        SELECT
-         (ARRAY_AGG(file_url ORDER BY CASE WHEN is_main THEN 0 WHEN image_type = 'main_image' THEN 1 ELSE 2 END, sort_order, updated_at DESC, created_at DESC)
+         (ARRAY_AGG(file_url ORDER BY CASE WHEN image_type = 'main_image' AND is_main THEN 0 WHEN image_type = 'main_image' THEN 1 ELSE 2 END, sort_order, updated_at DESC, created_at DESC)
            FILTER (WHERE COALESCE(NULLIF(file_url, ''), NULLIF(file_path, '')) IS NOT NULL))[1] AS main_image_file_url,
-         (ARRAY_AGG(file_path ORDER BY CASE WHEN is_main THEN 0 WHEN image_type = 'main_image' THEN 1 ELSE 2 END, sort_order, updated_at DESC, created_at DESC)
+         (ARRAY_AGG(file_path ORDER BY CASE WHEN image_type = 'main_image' AND is_main THEN 0 WHEN image_type = 'main_image' THEN 1 ELSE 2 END, sort_order, updated_at DESC, created_at DESC)
            FILTER (WHERE COALESCE(NULLIF(file_url, ''), NULLIF(file_path, '')) IS NOT NULL))[1] AS main_image_file_path,
          MAX(updated_at) AS latest_image_updated_at
        FROM "1688_product_images"
        WHERE product_id = p.id
+         AND (image_type = 'main_image' OR (is_main = true AND COALESCE(image_type, '') <> 'sku_image'))
      ) image_summary ON TRUE
      ${skuExportJoin}
      ${where.sql}
@@ -1337,7 +1357,7 @@ async function addProductListAggregates(records) {
            COALESCE(NULLIF(file_url, ''), NULLIF(file_path, ''))
            ORDER BY
              CASE
-               WHEN is_main THEN 0
+               WHEN image_type = 'main_image' AND is_main THEN 0
                WHEN image_type = 'main_image' THEN 1
                ELSE 2
              END,
@@ -1348,6 +1368,7 @@ async function addProductListAggregates(records) {
          MAX(updated_at) AS latest_image_updated_at
        FROM "1688_product_images"
        WHERE product_id = p.id
+         AND (image_type = 'main_image' OR (is_main = true AND COALESCE(image_type, '') <> 'sku_image'))
      ) image_summary ON TRUE
      ORDER BY selected_products.position`,
     [ids],
@@ -1564,6 +1585,7 @@ async function getProductDetail(productId) {
 
   return {
     ...product,
+    mainImageUrl: pickProductMainImageUrl(images.records),
     skus: skusWithImages,
     images: images.records,
     listingTasks: tasks.records,
@@ -1608,9 +1630,9 @@ async function replaceProductMainImage(productId, body, currentUser) {
     `SELECT id::text, file_url, file_path
      FROM "1688_product_images"
      WHERE product_id = $1
-       AND (is_main = true OR image_type = 'main_image')
+       AND (image_type = 'main_image' OR (is_main = true AND COALESCE(image_type, '') <> 'sku_image'))
      ORDER BY
-       CASE WHEN is_main = true THEN 0 ELSE 1 END,
+       CASE WHEN image_type = 'main_image' AND is_main = true THEN 0 WHEN image_type = 'main_image' THEN 1 ELSE 2 END,
        sort_order,
        updated_at DESC,
        created_at DESC

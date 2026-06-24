@@ -201,11 +201,16 @@ function isRenderableImageSource(value?: string) {
   );
 }
 
+function isProductMainImageCandidate(image: Alibaba1688ImageRecord) {
+  return image.imageType === 'main_image' || (image.isMain && image.imageType !== 'sku_image');
+}
+
 function pickImageUrl(images: Alibaba1688ImageRecord[] = []) {
   return [...images]
+    .filter(isProductMainImageCandidate)
     .sort((left, right) => {
-      const leftRank = left.isMain ? 0 : left.imageType === 'main_image' ? 1 : 2;
-      const rightRank = right.isMain ? 0 : right.imageType === 'main_image' ? 1 : 2;
+      const leftRank = left.imageType === 'main_image' && left.isMain ? 0 : left.imageType === 'main_image' ? 1 : 2;
+      const rightRank = right.imageType === 'main_image' && right.isMain ? 0 : right.imageType === 'main_image' ? 1 : 2;
       return leftRank - rightRank ||
         (left.sortOrder ?? 0) - (right.sortOrder ?? 0) ||
         String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')) ||
@@ -246,6 +251,9 @@ function getProductMainImage(product?: (Partial<Alibaba1688ProductRecord> & { im
       if (typeof image === 'string') return image;
       if (!image || typeof image !== 'object') return '';
       const record = image as Record<string, unknown>;
+      const imageType = String(record.imageType || record.image_type || '');
+      const isMain = Boolean(record.isMain ?? record.is_main);
+      if (imageType === 'sku_image' || (imageType !== 'main_image' && !isMain)) return '';
       return String(record.fileUrl || record.url || record.imageUrl || record.filePath || record.path || '');
     })
     .find((value) => value.trim());
