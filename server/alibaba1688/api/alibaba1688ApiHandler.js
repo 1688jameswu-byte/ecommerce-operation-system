@@ -582,6 +582,57 @@ function buildProductWhere(params = {}, currentUser) {
   };
 }
 
+function normalizeProductPage(value) {
+  const page = Number(value);
+  return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+}
+
+function normalizeProductPageSize(value) {
+  const pageSize = Number(value);
+  if (!Number.isFinite(pageSize) || pageSize <= 0) {
+    return 20;
+  }
+  return Math.min(Math.floor(pageSize), 100);
+}
+
+function camelizeDatabaseRow(row) {
+  return Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [
+      key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase()),
+      value,
+    ]),
+  );
+}
+
+async function listProductPage(params = {}, currentUser) {
+  const page = normalizeProductPage(params.page);
+  const pageSize = normalizeProductPageSize(params.pageSize);
+  const offset = (page - 1) * pageSize;
+  const where = buildProductWhere(params, currentUser);
+  const totalResult = await queryAlibaba1688Database(
+    `SELECT COUNT(*)::int AS total
+     FROM "1688_products" p
+     ${where.sql}`,
+    where.values,
+  );
+  const dataValues = [...where.values, pageSize, offset];
+  const recordsResult = await queryAlibaba1688Database(
+    `SELECT p.*
+     FROM "1688_products" p
+     ${where.sql}
+     ORDER BY p.created_at DESC
+     LIMIT $${dataValues.length - 1} OFFSET $${dataValues.length}`,
+    dataValues,
+  );
+
+  return {
+    records: recordsResult.rows.map(camelizeDatabaseRow),
+    total: totalResult.rows[0]?.total ?? 0,
+    page,
+    pageSize,
+  };
+}
+
 function formatDateForFileName(date = new Date()) {
   const pad = (value) => String(value).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}`;
@@ -2058,7 +2109,9 @@ export async function handleAlibaba1688Api(req, res, options = {}) {
       }
 
       const params = searchParamsToObject(searchParams);
-      const page = await repository.list(params);
+      const page = resource === 'products'
+        ? await listProductPage(params, currentUser)
+        : await repository.list(params);
       const scopedPage = resource === 'stores'
         ? filterStorePageForUser(page, currentUser)
         : resource === 'products'
