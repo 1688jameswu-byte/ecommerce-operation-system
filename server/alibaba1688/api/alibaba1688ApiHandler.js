@@ -74,6 +74,10 @@ function canManageAlibaba1688Data(currentUser) {
   return ['admin', 'leader'].includes(String(currentUser?.role ?? '').toLowerCase());
 }
 
+function isAlibaba1688Admin(currentUser) {
+  return String(currentUser?.role ?? '').toLowerCase() === 'admin';
+}
+
 function canWriteAlibaba1688Resource(currentUser, resource) {
   if (canManageAlibaba1688Data(currentUser)) {
     return true;
@@ -972,6 +976,10 @@ async function loadProductsForExport(params, currentUser, options = {}) {
 }
 
 async function exportProductsToExcel(body, currentUser) {
+  if (!isAlibaba1688Admin(currentUser)) {
+    throw createForbiddenError('只有管理员可以导出 1688 产品信息');
+  }
+
   const selectedIds = Array.isArray(body?.selectedIds)
     ? body.selectedIds.map((id) => String(id ?? '').trim()).filter(Boolean)
     : [];
@@ -1162,8 +1170,8 @@ function dataUrlToBuffer(dataUrl, options = {}) {
 }
 
 async function importProductPricesFromExcel(body, currentUser) {
-  if (!canManageAlibaba1688Data(currentUser)) {
-    throw createForbiddenError('当前账号无权导入 1688 价格');
+  if (!isAlibaba1688Admin(currentUser)) {
+    throw createForbiddenError('只有管理员可以导入 1688 产品信息');
   }
 
   const fileName = String(body?.fileName ?? '').trim();

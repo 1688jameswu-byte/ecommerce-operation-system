@@ -129,6 +129,7 @@ function getAlibaba1688ProductPermissions(currentUser: CurrentUser) {
     canViewSalesPrice: true,
     canEditPricing: isManager,
     canDeleteProduct: isAdmin,
+    canImportExportProductInfo: isAdmin,
   };
 }
 
@@ -520,8 +521,10 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   const visibleProductIds = useMemo(() => products.map((product) => product.id), [products]);
   const allVisibleProductsSelected = visibleProductIds.length > 0 && visibleProductIds.every((id) => selectedProductIds.includes(id));
   const availableExportFields = useMemo(
-    () => exportFieldOptions.filter((field) => !field.sensitive || permissions.canViewCost),
-    [permissions.canViewCost],
+    () => permissions.canImportExportProductInfo
+      ? exportFieldOptions.filter((field) => !field.sensitive || permissions.canViewCost)
+      : [],
+    [permissions.canImportExportProductInfo, permissions.canViewCost],
   );
   const selectedAvailableExportFields = useMemo(() => {
     const availableKeys = new Set(availableExportFields.map((field) => field.key));
@@ -749,6 +752,10 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   }
 
   function openExportDialog() {
+    if (!permissions.canImportExportProductInfo) {
+      setError('当前账号无权导出产品信息。');
+      return;
+    }
     if (selectedAvailableExportFields.length === 0) {
       setSelectedExportFields(availableExportFields.map((field) => field.key));
     }
@@ -802,6 +809,10 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
 
   async function exportProducts() {
     if (exporting) return;
+    if (!permissions.canImportExportProductInfo) {
+      setError('当前账号无权导出产品信息。');
+      return;
+    }
     if (selectedAvailableExportFields.length === 0) {
       setError('请选择至少一个导出字段。');
       return;
@@ -833,8 +844,8 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
 
   async function importPricesFromExcel(file: File | undefined) {
     if (!file) return;
-    if (!permissions.canEditPricing) {
-      setError('当前账号无权导入进货价和销售价。');
+    if (!permissions.canImportExportProductInfo) {
+      setError('当前账号无权导入产品信息。');
       return;
     }
     if (!/\.(xlsx|xls)$/i.test(file.name)) {
@@ -1376,28 +1387,28 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
           )}
           <button type="button" onClick={() => void loadProducts()} disabled={loading}>筛选</button>
           <button type="button" onClick={resetFilters} disabled={loading}>重置</button>
+          {permissions.canImportExportProductInfo && (
           <div className="alibaba-products-v1-product-info-actions" aria-label="产品信息导入导出">
-            {permissions.canEditPricing && (
-              <label className={`alibaba-products-v1-product-info-button is-import ${importingPrices ? 'is-disabled' : ''}`}>
-                {importingPrices ? '导入中...' : '导入产品信息'}
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  disabled={importingPrices}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                    void importPricesFromExcel(event.target.files?.[0]);
-                    event.currentTarget.value = '';
-                  }}
-                />
-              </label>
-            )}
+            <label className={`alibaba-products-v1-product-info-button is-import ${importingPrices ? 'is-disabled' : ''}`}>
+              {importingPrices ? '导入中...' : '导入产品信息'}
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                disabled={importingPrices}
+                onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                  void importPricesFromExcel(event.target.files?.[0]);
+                  event.currentTarget.value = '';
+                }}
+              />
+            </label>
             <button type="button" className="alibaba-products-v1-product-info-button is-export" onClick={openExportDialog} disabled={exporting}>
               {exporting ? '导出中...' : '导出产品信息'}
             </button>
           </div>
+          )}
         </div>
 
-        {priceImportResult && (
+        {permissions.canImportExportProductInfo && priceImportResult && (
           <section className="alibaba-products-v1-import-result">
             <div>
               <strong>价格导入结果</strong>
@@ -1420,7 +1431,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
           </section>
         )}
 
-        {exportDialogOpen && (
+        {permissions.canImportExportProductInfo && exportDialogOpen && (
           <div className="alibaba-products-v1-modal-backdrop" role="dialog" aria-modal="true" aria-label="选择导出字段">
             <section className="alibaba-products-v1-export-modal">
               <header className="alibaba-products-v1-export-header">
