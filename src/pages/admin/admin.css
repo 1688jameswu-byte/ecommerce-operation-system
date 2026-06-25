@@ -6603,6 +6603,59 @@
   color: #a8c7ea;
 }
 
+.alibaba-products-v1-table {
+  min-width: 1540px;
+  table-layout: fixed;
+}
+
+.alibaba-products-v1-table .alibaba-products-v1-product-col {
+  width: 190px;
+}
+
+.alibaba-products-v1-table .alibaba-products-v1-sku-summary-col {
+  width: 330px;
+}
+
+.alibaba-products-v1-table .alibaba-products-v1-price-col {
+  width: 150px;
+}
+
+.alibaba-products-v1-table .alibaba-products-v1-margin-col {
+  width: 84px;
+  white-space: nowrap;
+}
+
+.alibaba-products-v1-table .alibaba-products-v1-supplier-col {
+  width: 150px;
+}
+
+.alibaba-products-v1-table .alibaba-products-v1-status-col {
+  width: 96px;
+  white-space: nowrap;
+}
+
+.alibaba-products-v1-table .alibaba-products-v1-creator-col {
+  width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alibaba-products-v1-table .alibaba-products-v1-updated-col {
+  width: 126px;
+  white-space: nowrap;
+}
+
+.alibaba-products-v1-table .alibaba-products-v1-action-col {
+  width: 168px;
+  white-space: nowrap;
+}
+
+.alibaba-products-v1-sku-summary-col {
+  line-height: 1.45;
+  word-break: break-word;
+}
+
 .alibaba-products-v1-table tbody tr:hover {
   background: #102846;
 }
@@ -6615,6 +6668,10 @@
 
 .alibaba-products-v1-product-cell strong {
   color: #ffffff;
+  overflow: hidden;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .alibaba-products-v1-product-cell span,
@@ -6624,7 +6681,7 @@
 
 .alibaba-products-v1-price-input {
   box-sizing: border-box;
-  width: 96px;
+  width: 116px;
   height: 32px;
   border: 1px solid #3b74b3;
   border-radius: 6px;
@@ -6641,11 +6698,31 @@
 
 .alibaba-products-v1-price-cell {
   display: grid;
+  width: 132px;
+  gap: 4px;
   align-items: start;
 }
 
+.alibaba-products-v1-price-range,
+.alibaba-products-v1-price-readonly {
+  display: block;
+  width: 132px;
+  overflow: hidden;
+  color: #8bd7ff;
+  font-size: 12px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alibaba-products-v1-price-readonly {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .alibaba-products-v1-supplier-select {
-  width: 128px;
+  width: 140px;
   height: 32px;
   border-radius: 6px;
   padding: 0 8px;

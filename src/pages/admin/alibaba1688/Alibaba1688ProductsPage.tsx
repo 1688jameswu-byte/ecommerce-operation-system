@@ -1512,16 +1512,16 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                     />
                   </th>
                 )}
-                <th>产品</th>
-                <th>颜色 SKU</th>
-                <th>销售价</th>
-                {permissions.canViewCost && <th>进货价</th>}
-                {permissions.canViewCost && <th>毛利率</th>}
-                {permissions.canViewSupplier && <th>供应商</th>}
-                <th>状态</th>
-                <th>创建人</th>
-                <th>最近更新</th>
-                {hasProductActions && <th>操作</th>}
+                <th className="alibaba-products-v1-product-col">产品</th>
+                <th className="alibaba-products-v1-sku-summary-col">颜色 SKU</th>
+                <th className="alibaba-products-v1-price-col">销售价</th>
+                {permissions.canViewCost && <th className="alibaba-products-v1-price-col">进货价</th>}
+                {permissions.canViewCost && <th className="alibaba-products-v1-margin-col">毛利率</th>}
+                {permissions.canViewSupplier && <th className="alibaba-products-v1-supplier-col">供应商</th>}
+                <th className="alibaba-products-v1-status-col">状态</th>
+                <th className="alibaba-products-v1-creator-col">创建人</th>
+                <th className="alibaba-products-v1-updated-col">最近更新</th>
+                {hasProductActions && <th className="alibaba-products-v1-action-col">操作</th>}
               </tr>
             </thead>
             <tbody>
@@ -1557,7 +1557,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                         />
                       </td>
                     )}
-                    <td>
+                    <td className="alibaba-products-v1-product-col">
                       <div className="alibaba-products-v1-product-cell">
                         <ProductImagePreview src={versionedImageUrl(getProductMainImage(product), product.latestUpdatedAt || product.updatedAt)} name={product.productName} />
                         <div>
@@ -1567,36 +1567,42 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                         </div>
                       </div>
                     </td>
-                    <td>{skuColorSummary(product)}</td>
-                    <td>
+                    <td className="alibaba-products-v1-sku-summary-col">{skuColorSummary(product)}</td>
+                    <td className="alibaba-products-v1-price-col">
                       {permissions.canEditPricing ? (
                         <div className="alibaba-products-v1-price-cell">
                           <input
                             className="alibaba-products-v1-price-input"
                             value={draft.wholesalePrice}
-                            placeholder={formatMoneyRange(saleMin, saleMax)}
+                            placeholder="批量价"
                             onClick={stopProductRowClick}
                             onChange={(event) => updateProductPriceDraft(product.id, { wholesalePrice: event.target.value })}
                           />
+                          <span className="alibaba-products-v1-price-range" title={formatMoneyRange(saleMin, saleMax)}>
+                            {formatMoneyRange(saleMin, saleMax)}
+                          </span>
                         </div>
-                      ) : formatMoneyRange(saleMin, saleMax)}
+                      ) : <span className="alibaba-products-v1-price-readonly">{formatMoneyRange(saleMin, saleMax)}</span>}
                     </td>
                     {permissions.canViewCost && (
-                      <td>
+                      <td className="alibaba-products-v1-price-col">
                         <div className="alibaba-products-v1-price-cell">
                           <input
                             className="alibaba-products-v1-price-input"
                             value={draft.purchasePrice}
-                            placeholder={formatMoneyRange(purchaseMin, purchaseMax)}
+                            placeholder="批量价"
                             onClick={stopProductRowClick}
                             onChange={(event) => updateProductPriceDraft(product.id, { purchasePrice: event.target.value })}
                           />
+                          <span className="alibaba-products-v1-price-range" title={formatMoneyRange(purchaseMin, purchaseMax)}>
+                            {formatMoneyRange(purchaseMin, purchaseMax)}
+                          </span>
                         </div>
                       </td>
                     )}
-                    {permissions.canViewCost && <td>{calculateMargin(Number(purchaseMin), Number(saleMin))}{(product.missingCostCount ?? 0) > 0 && <span className="alibaba-products-v1-warning">缺成本 {product.missingCostCount}</span>}</td>}
+                    {permissions.canViewCost && <td className="alibaba-products-v1-margin-col">{calculateMargin(Number(purchaseMin), Number(saleMin))}{(product.missingCostCount ?? 0) > 0 && <span className="alibaba-products-v1-warning">缺成本 {product.missingCostCount}</span>}</td>}
                     {permissions.canViewSupplier && (
-                      <td>
+                      <td className="alibaba-products-v1-supplier-col">
                         <select
                           className="alibaba-products-v1-supplier-select"
                           value={draft.supplierId}
@@ -1610,11 +1616,11 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                         </select>
                       </td>
                     )}
-                    <td><span className={`alibaba-status-badge status-${product.status || 'missing_cost'}`}>{statusLabel(product.status)}</span></td>
-                    <td>{formatCreatorName(product.createdBy, currentUser, creatorNameByKey)}</td>
-                    <td>{formatDateTime(product.latestUpdatedAt || product.updatedAt)}</td>
+                    <td className="alibaba-products-v1-status-col"><span className={`alibaba-status-badge status-${product.status || 'missing_cost'}`}>{statusLabel(product.status)}</span></td>
+                    <td className="alibaba-products-v1-creator-col" title={formatCreatorName(product.createdBy, currentUser, creatorNameByKey)}>{formatCreatorName(product.createdBy, currentUser, creatorNameByKey)}</td>
+                    <td className="alibaba-products-v1-updated-col">{formatDateTime(product.latestUpdatedAt || product.updatedAt)}</td>
                     {hasProductActions && (
-                      <td>
+                      <td className="alibaba-products-v1-action-col">
                         {permissions.canEditPricing && (
                           <button
                             type="button"
