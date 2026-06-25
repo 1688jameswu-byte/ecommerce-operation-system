@@ -6581,6 +6581,49 @@
   opacity: 0.55;
 }
 
+.alibaba-products-v1-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  border: 1px solid #234b78;
+  border-radius: 8px;
+  background: #0a1f38;
+  padding: 10px 12px;
+  color: #9db7d6;
+  font-size: 13px;
+}
+
+.alibaba-products-v1-pagination > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.alibaba-products-v1-pagination strong {
+  min-width: 72px;
+  color: #ffffff;
+  text-align: center;
+}
+
+.alibaba-products-v1-pagination button {
+  min-height: 32px;
+  border: 1px solid #2f65a5;
+  border-radius: 6px;
+  background: #0d2c50;
+  padding: 0 12px;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.alibaba-products-v1-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
 .alibaba-products-v1-select-col {
   width: 42px;
   text-align: center;
@@ -6692,12 +6735,12 @@
 }
 
 .alibaba-products-v1-price-input.is-range-placeholder {
-  font-size: 12px;
   letter-spacing: 0;
 }
 
 .alibaba-products-v1-price-input.is-range-placeholder::placeholder {
-  font-size: 12px;
+  color: #ffffff;
+  opacity: 1;
 }
 
 .alibaba-products-v1-price-input:focus {

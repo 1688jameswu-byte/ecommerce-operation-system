@@ -515,7 +515,6 @@ function filterProductPageForUser(page, currentUser) {
   return {
     ...page,
     records,
-    total: records.length,
   };
 }
 

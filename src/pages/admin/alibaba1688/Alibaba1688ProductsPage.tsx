@@ -64,6 +64,7 @@ interface ProductToast {
 }
 
 const duplicateSkuMessage = 'SKU 编码已存在，请更换后再保存';
+const PRODUCT_LIST_PAGE_SIZE = 10;
 
 function normalizeSkuForDuplicateCheck(value: string) {
   return value.trim().toLowerCase();
@@ -146,6 +147,20 @@ function formatMoneyRange(min?: number, max?: number) {
   if (!min && !max) return '-';
   if (min && max && min !== max) return `${formatMoney(min)} - ${formatMoney(max)}`;
   return formatMoney(min ?? max);
+}
+
+function formatProductListPrice(value?: number) {
+  const next = Number(value);
+  if (!Number.isFinite(next) || next <= 0) return '';
+  return Number.isInteger(next) ? String(next) : String(next).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+}
+
+function formatProductListPriceRange(min?: number, max?: number) {
+  const minText = formatProductListPrice(min);
+  const maxText = formatProductListPrice(max);
+  if (!minText && !maxText) return '-';
+  if (minText && maxText && Number(min) !== Number(max)) return `${minText} - ${maxText}`;
+  return minText || maxText;
 }
 
 function isPositivePrice(value?: number) {
@@ -439,6 +454,8 @@ function normalizeProductDetail(detail: Alibaba1688ProductDetail): Alibaba1688Pr
 export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPageProps) {
   const permissions = useMemo(() => getAlibaba1688ProductPermissions(currentUser), [currentUser]);
   const [products, setProducts] = useState<Alibaba1688ProductRecord[]>([]);
+  const [productPage, setProductPage] = useState(1);
+  const [productTotal, setProductTotal] = useState(0);
   const [productStats, setProductStats] = useState<Alibaba1688ProductStats>({ totalProducts: 0, listedProducts: 0 });
   const [stores, setStores] = useState<Alibaba1688StoreRecord[]>([]);
   const [suppliers, setSuppliers] = useState<Alibaba1688SupplierRecord[]>([]);
@@ -518,6 +535,9 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     + (permissions.canViewSupplier ? 2 : 0);
   const missingCostProducts = products.filter((product) => (product.missingCostCount ?? 0) > 0 || product.status === 'missing_cost' || product.status === 'draft').length;
   const pricedProducts = products.filter((product) => product.status === 'priced' || product.status === 'ready').length;
+  const productTotalPages = Math.max(1, Math.ceil(productTotal / PRODUCT_LIST_PAGE_SIZE));
+  const productPageStart = productTotal === 0 ? 0 : (productPage - 1) * PRODUCT_LIST_PAGE_SIZE + 1;
+  const productPageEnd = productTotal === 0 ? 0 : Math.min(productTotal, productPage * PRODUCT_LIST_PAGE_SIZE);
   const visibleProductIds = useMemo(() => products.map((product) => product.id), [products]);
   const allVisibleProductsSelected = visibleProductIds.length > 0 && visibleProductIds.every((id) => selectedProductIds.includes(id));
   const availableExportFields = useMemo(
@@ -587,25 +607,32 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     }
   }
 
-  async function loadProducts(overrides: Partial<{ keyword: string; status: string; categoryId: string; supplierId: string; createdBy: string }> = {}) {
+  async function loadProducts(overrides: Partial<{ keyword: string; status: string; categoryId: string; supplierId: string; createdBy: string; page: number }> = {}) {
     const nextKeyword = overrides.keyword ?? keyword;
     const nextStatus = overrides.status ?? statusFilter;
     const nextCategory = overrides.categoryId ?? categoryFilter;
     const nextSupplier = permissions.canViewSupplier ? (overrides.supplierId ?? supplierFilter) : '';
     const nextCreator = permissions.canEditPricing ? (overrides.createdBy ?? creatorFilter) : '';
+    const nextPage = Math.max(1, Math.floor(overrides.page ?? productPage));
     setLoading(true);
     setError('');
     try {
       const page = await alibaba1688DataSource.products.loadPage({
-        page: 1,
-        pageSize: 50,
+        page: nextPage,
+        pageSize: PRODUCT_LIST_PAGE_SIZE,
         keyword: nextKeyword.trim(),
         status: nextStatus,
         categoryId: nextCategory,
         supplierId: nextSupplier,
         createdBy: nextCreator,
       });
+      if (page.records.length === 0 && page.total > 0 && nextPage > 1) {
+        await loadProducts({ ...overrides, page: nextPage - 1 });
+        return;
+      }
       setProducts(page.records);
+      setProductPage(page.page);
+      setProductTotal(page.total);
       setPriceDrafts(() => {
         const next: Record<string, ProductPriceDraft> = {};
         for (const product of page.records) {
@@ -710,7 +737,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
   useEffect(() => {
     void loadReferenceData();
     void loadCreatorNames();
-    void loadProducts({ keyword: '', status: '', categoryId: '', supplierId: '', createdBy: '' });
+    void loadProducts({ keyword: '', status: '', categoryId: '', supplierId: '', createdBy: '', page: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -730,7 +757,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     setCategoryFilter('');
     setSupplierFilter('');
     setCreatorFilter('');
-    void loadProducts({ keyword: '', status: '', categoryId: '', supplierId: '', createdBy: '' });
+    void loadProducts({ keyword: '', status: '', categoryId: '', supplierId: '', createdBy: '', page: 1 });
   }
 
   function toggleProductSelection(productId: string, checked: boolean) {
@@ -1385,7 +1412,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
               ))}
             </select>
           )}
-          <button type="button" onClick={() => void loadProducts()} disabled={loading}>筛选</button>
+          <button type="button" onClick={() => void loadProducts({ page: 1 })} disabled={loading}>筛选</button>
           <button type="button" onClick={resetFilters} disabled={loading}>重置</button>
           {permissions.canImportExportProductInfo && (
           <div className="alibaba-products-v1-product-info-actions" aria-label="产品信息导入导出">
@@ -1574,12 +1601,12 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                           <input
                             className={`alibaba-products-v1-price-input ${!draft.wholesalePrice.trim() && isMixedPriceRange(saleMin, saleMax) ? 'is-range-placeholder' : ''}`}
                             value={draft.wholesalePrice}
-                            placeholder={formatMoneyRange(saleMin, saleMax)}
+                            placeholder={formatProductListPriceRange(saleMin, saleMax)}
                             onClick={stopProductRowClick}
                             onChange={(event) => updateProductPriceDraft(product.id, { wholesalePrice: event.target.value })}
                           />
                         </div>
-                      ) : <span className="alibaba-products-v1-price-readonly">{formatMoneyRange(saleMin, saleMax)}</span>}
+                      ) : <span className="alibaba-products-v1-price-readonly">{formatProductListPriceRange(saleMin, saleMax)}</span>}
                     </td>
                     {permissions.canViewCost && (
                       <td className="alibaba-products-v1-price-col">
@@ -1587,7 +1614,7 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                           <input
                             className={`alibaba-products-v1-price-input ${!draft.purchasePrice.trim() && isMixedPriceRange(purchaseMin, purchaseMax) ? 'is-range-placeholder' : ''}`}
                             value={draft.purchasePrice}
-                            placeholder={formatMoneyRange(purchaseMin, purchaseMax)}
+                            placeholder={formatProductListPriceRange(purchaseMin, purchaseMax)}
                             onClick={stopProductRowClick}
                             onChange={(event) => updateProductPriceDraft(product.id, { purchasePrice: event.target.value })}
                           />
@@ -1664,6 +1691,28 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
               )}
             </tbody>
           </table>
+        </div>
+        <div className="alibaba-products-v1-pagination">
+          <span>
+            {loading ? '加载中...' : `第 ${productPageStart}-${productPageEnd} 条 / 共 ${productTotal.toLocaleString()} 条`}
+          </span>
+          <div>
+            <button
+              type="button"
+              onClick={() => void loadProducts({ page: productPage - 1 })}
+              disabled={loading || productPage <= 1}
+            >
+              上一页
+            </button>
+            <strong>{productPage} / {productTotalPages}</strong>
+            <button
+              type="button"
+              onClick={() => void loadProducts({ page: productPage + 1 })}
+              disabled={loading || productPage >= productTotalPages}
+            >
+              下一页
+            </button>
+          </div>
         </div>
       </section>
 
