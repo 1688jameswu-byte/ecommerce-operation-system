@@ -1572,15 +1572,12 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                       {permissions.canEditPricing ? (
                         <div className="alibaba-products-v1-price-cell">
                           <input
-                            className="alibaba-products-v1-price-input"
+                            className={`alibaba-products-v1-price-input ${!draft.wholesalePrice.trim() && isMixedPriceRange(saleMin, saleMax) ? 'is-range-placeholder' : ''}`}
                             value={draft.wholesalePrice}
-                            placeholder="批量价"
+                            placeholder={formatMoneyRange(saleMin, saleMax)}
                             onClick={stopProductRowClick}
                             onChange={(event) => updateProductPriceDraft(product.id, { wholesalePrice: event.target.value })}
                           />
-                          <span className="alibaba-products-v1-price-range" title={formatMoneyRange(saleMin, saleMax)}>
-                            {formatMoneyRange(saleMin, saleMax)}
-                          </span>
                         </div>
                       ) : <span className="alibaba-products-v1-price-readonly">{formatMoneyRange(saleMin, saleMax)}</span>}
                     </td>
@@ -1588,15 +1585,12 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
                       <td className="alibaba-products-v1-price-col">
                         <div className="alibaba-products-v1-price-cell">
                           <input
-                            className="alibaba-products-v1-price-input"
+                            className={`alibaba-products-v1-price-input ${!draft.purchasePrice.trim() && isMixedPriceRange(purchaseMin, purchaseMax) ? 'is-range-placeholder' : ''}`}
                             value={draft.purchasePrice}
-                            placeholder="批量价"
+                            placeholder={formatMoneyRange(purchaseMin, purchaseMax)}
                             onClick={stopProductRowClick}
                             onChange={(event) => updateProductPriceDraft(product.id, { purchasePrice: event.target.value })}
                           />
-                          <span className="alibaba-products-v1-price-range" title={formatMoneyRange(purchaseMin, purchaseMax)}>
-                            {formatMoneyRange(purchaseMin, purchaseMax)}
-                          </span>
                         </div>
                       </td>
                     )}

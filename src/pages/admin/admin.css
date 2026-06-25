@@ -6691,6 +6691,15 @@
   box-shadow: inset 0 0 0 1px rgba(139, 215, 255, 0.1);
 }
 
+.alibaba-products-v1-price-input.is-range-placeholder {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.alibaba-products-v1-price-input.is-range-placeholder::placeholder {
+  font-size: 12px;
+}
+
 .alibaba-products-v1-price-input:focus {
   border-color: #8bd7ff;
   box-shadow: 0 0 0 2px rgba(139, 215, 255, 0.18);
@@ -6698,15 +6707,13 @@
 
 .alibaba-products-v1-price-cell {
   display: grid;
-  width: 132px;
-  gap: 4px;
+  width: 116px;
   align-items: start;
 }
 
-.alibaba-products-v1-price-range,
 .alibaba-products-v1-price-readonly {
   display: block;
-  width: 132px;
+  width: 116px;
   overflow: hidden;
   color: #8bd7ff;
   font-size: 12px;
