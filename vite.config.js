@@ -2722,7 +2722,7 @@ function filterCollectionForUser(name, data, currentUser) {
 }
 
 function filterPersistentDataForUser(name, data, currentUser) {
-  if (!currentUser && name === 'orderImportStore') {
+  if (!currentUser && ['orderImportStore', 'trafficConversionStore'].includes(name)) {
     return data;
   }
 
