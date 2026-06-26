@@ -15,6 +15,19 @@ import {
   syncTrafficStoreToPostgres,
   syncWarningRulesToPostgres,
 } from './server/temu/temuPostgresRepository.js';
+import {
+  buildImportPreview,
+  getBossDashboard,
+  getOperatorDashboard,
+  getProductDetail,
+  getProducts,
+  getRecommendations,
+  handleRecommendation,
+  importAdRows,
+  importProductRows,
+  parseExcelDataUrl,
+  rebuildNewProductSnapshots,
+} from './server/temu/newProductCenterRepository.js';
 
 const resolveProjectPath = (value, fallback) => path.resolve(process.cwd(), value || fallback);
 
@@ -234,6 +247,13 @@ const menuKeys = {
   storeManagement: 'store-management',
   operatorManagement: 'operator-management',
   accountManagement: 'account-management',
+  newProductCenter: 'new-product-center',
+  newProductBossDashboard: 'new-product-boss-dashboard',
+  newProductOperatorDashboard: 'new-product-operator-dashboard',
+  newProductProducts: 'new-product-products',
+  newProductAdRecommendations: 'new-product-ad-recommendations',
+  temuProductInfoImport: 'temu-product-info-import',
+  temuAdReportImport: 'temu-ad-report-import',
   businessAnalysis: 'business-analysis',
   businessAnalysisCenter: 'business-analysis-center',
   business1688Center: '1688-business-center',
@@ -326,6 +346,13 @@ const roleDefinitions = {
       menuKeys.orderSalesImport,
       menuKeys.effectiveNewListings,
       menuKeys.trafficConversionImport,
+      menuKeys.temuProductInfoImport,
+      menuKeys.temuAdReportImport,
+      menuKeys.newProductCenter,
+      menuKeys.newProductBossDashboard,
+      menuKeys.newProductOperatorDashboard,
+      menuKeys.newProductProducts,
+      menuKeys.newProductAdRecommendations,
       menuKeys.storeBusinessCenter,
       menuKeys.operatorAnalysisCenter,
       menuKeys.businessAnalysisCenter,
@@ -346,6 +373,10 @@ const roleDefinitions = {
       menuKeys.dashboard,
       menuKeys.orderSalesImport,
       menuKeys.trafficConversionImport,
+      menuKeys.newProductCenter,
+      menuKeys.newProductOperatorDashboard,
+      menuKeys.newProductProducts,
+      menuKeys.newProductAdRecommendations,
       menuKeys.storeBusinessCenter,
       menuKeys.operatorAnalysisCenter,
       menuKeys.businessAnalysisCenter,
@@ -1820,6 +1851,7 @@ async function mirrorPersistentTemuDataToPostgres(name, data) {
   try {
     if (name === 'orderImportStore') {
       await syncOrderStoreToPostgres(data);
+      await rebuildNewProductSnapshots({});
     } else if (name === 'trafficConversionStore') {
       await syncTrafficStoreToPostgres(data);
     } else if (name === 'trafficWarningRules') {
@@ -2949,6 +2981,159 @@ async function handleEffectiveNewListingsApi(req, res) {
     const message = error instanceof Error ? error.message : String(error);
     res.statusCode = message.includes('必填') || message.includes('至少') || message.includes('重复') ? 400 : 500;
     res.end(JSON.stringify({ ok: false, success: false, message, error: message }));
+  }
+}
+
+function getNewProductCenterScope(currentUser) {
+  if (String(currentUser?.role ?? '').toLowerCase() === 'admin') {
+    return {};
+  }
+
+  return {
+    storeIds: getTemuVisibleStores(currentUser).map((store) => store.id).filter(Boolean),
+  };
+}
+
+function appendSearchParams(requestUrl, extra) {
+  return {
+    ...Object.fromEntries(requestUrl.searchParams.entries()),
+    ...extra,
+  };
+}
+
+async function handleTemuProductInfoImportApi(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const currentUser = toCurrentUser(findCurrentUser(req));
+    if (!currentUser) {
+      res.statusCode = 403;
+      res.end(JSON.stringify({ ok: false, message: '请先登录' }));
+      return;
+    }
+    if (req.method !== 'POST') {
+      res.statusCode = 405;
+      res.end('Method not allowed');
+      return;
+    }
+    const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
+    const body = JSON.parse((await readBody(req)) || '{}');
+    if (action === 'upload' || action === 'preview') {
+      const parsed = body.rows ? { rows: body.rows, headers: body.headers || Object.keys(body.rows[0] || {}) } : parseExcelDataUrl(body.dataUrl);
+      res.end(JSON.stringify({ ok: true, fileName: body.fileName || '', rows: parsed.rows, ...buildImportPreview({ ...parsed, type: 'product' }) }));
+      return;
+    }
+    if (action === 'confirm') {
+      const result = await importProductRows({
+        rows: body.rows || [],
+        mapping: body.mapping || {},
+        fileName: body.fileName || '',
+        currentUser,
+      });
+      res.end(JSON.stringify(result));
+      return;
+    }
+    res.statusCode = 404;
+    res.end(JSON.stringify({ ok: false, message: 'Not found' }));
+  } catch (error) {
+    res.statusCode = 500;
+    res.end(JSON.stringify({ ok: false, message: error instanceof Error ? error.message : String(error) }));
+  }
+}
+
+async function handleTemuAdReportImportApi(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const currentUser = toCurrentUser(findCurrentUser(req));
+    if (!currentUser) {
+      res.statusCode = 403;
+      res.end(JSON.stringify({ ok: false, message: '请先登录' }));
+      return;
+    }
+    if (req.method !== 'POST') {
+      res.statusCode = 405;
+      res.end('Method not allowed');
+      return;
+    }
+    const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
+    const body = JSON.parse((await readBody(req)) || '{}');
+    if (action === 'upload' || action === 'preview') {
+      const parsed = body.rows ? { rows: body.rows, headers: body.headers || Object.keys(body.rows[0] || {}) } : parseExcelDataUrl(body.dataUrl);
+      res.end(JSON.stringify({ ok: true, fileName: body.fileName || '', rows: parsed.rows, ...buildImportPreview({ ...parsed, type: 'ad' }) }));
+      return;
+    }
+    if (action === 'confirm') {
+      const result = await importAdRows({
+        rows: body.rows || [],
+        mapping: body.mapping || {},
+        fileName: body.fileName || '',
+        reportDate: body.reportDate,
+        storeName: body.storeName || '',
+        currentUser,
+      });
+      res.end(JSON.stringify(result));
+      return;
+    }
+    res.statusCode = 404;
+    res.end(JSON.stringify({ ok: false, message: 'Not found' }));
+  } catch (error) {
+    res.statusCode = 500;
+    res.end(JSON.stringify({ ok: false, message: error instanceof Error ? error.message : String(error) }));
+  }
+}
+
+async function handleNewProductCenterApi(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const currentUser = toCurrentUser(findCurrentUser(req));
+    if (!currentUser) {
+      res.statusCode = 403;
+      res.end(JSON.stringify({ ok: false, message: '请先登录' }));
+      return;
+    }
+    const requestUrl = new URL(req.url ?? '/', 'http://local');
+    const pathname = requestUrl.pathname.replace(/^\/+/, '');
+    const scope = getNewProductCenterScope(currentUser);
+    const params = appendSearchParams(requestUrl, scope);
+
+    if (req.method === 'GET' && pathname === 'boss-dashboard') {
+      res.end(JSON.stringify(await getBossDashboard(params)));
+      return;
+    }
+    if (req.method === 'GET' && pathname === 'operator-dashboard') {
+      res.end(JSON.stringify(await getOperatorDashboard(params)));
+      return;
+    }
+    if (req.method === 'GET' && pathname === 'products') {
+      res.end(JSON.stringify(await getProducts(params)));
+      return;
+    }
+    if (req.method === 'GET' && pathname.startsWith('products/')) {
+      res.end(JSON.stringify(await getProductDetail(decodeURIComponent(pathname.replace(/^products\//, '')))));
+      return;
+    }
+    if (req.method === 'GET' && pathname === 'ad-recommendations') {
+      res.end(JSON.stringify(await getRecommendations(params)));
+      return;
+    }
+    if (req.method === 'POST' && pathname.startsWith('ad-recommendations/') && pathname.endsWith('/handle')) {
+      const id = decodeURIComponent(pathname.replace(/^ad-recommendations\//, '').replace(/\/handle$/, ''));
+      const body = JSON.parse((await readBody(req)) || '{}');
+      res.end(JSON.stringify(await handleRecommendation(id, body, currentUser)));
+      return;
+    }
+    if (req.method === 'POST' && pathname === 'rebuild-snapshot') {
+      const body = JSON.parse((await readBody(req)) || '{}');
+      res.end(JSON.stringify(await rebuildNewProductSnapshots({ snapshotDate: body.snapshotDate })));
+      return;
+    }
+    res.statusCode = 404;
+    res.end(JSON.stringify({ ok: false, message: 'Not found' }));
+  } catch (error) {
+    res.statusCode = 500;
+    res.end(JSON.stringify({ ok: false, message: error instanceof Error ? error.message : String(error) }));
   }
 }
 
@@ -5113,6 +5298,9 @@ function localDataPlugin() {
         handleCollectionApi(req, res, 'storeOperatorRelations', 'relation')
       ));
       server.middlewares.use('/api/effective-new-listings', handleEffectiveNewListingsApi);
+      server.middlewares.use('/api/data-import/temu-product-info', handleTemuProductInfoImportApi);
+      server.middlewares.use('/api/data-import/temu-ad-report', handleTemuAdReportImportApi);
+      server.middlewares.use('/api/new-product-center', handleNewProductCenterApi);
       server.middlewares.use('/api/salary/financial-imports', handleSalaryFinancialImportsApi);
       server.middlewares.use('/api/salary/financial-summaries', handleSalaryFinancialSummariesApi);
       server.middlewares.use('/api/salary/operator-analysis-store-financials', handleOperatorAnalysisStoreFinancialsApi);

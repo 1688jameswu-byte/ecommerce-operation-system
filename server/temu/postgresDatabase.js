@@ -11,9 +11,14 @@ export function isTemuPostgresConfigured() {
 export async function runTemuMigrations() {
   if (!migrationPromise) {
     migrationPromise = (async () => {
-      const migrationPath = path.join(process.cwd(), 'server', 'temu', 'migrations', '001_create_temu_core_tables.sql');
-      const sql = fs.readFileSync(migrationPath, 'utf-8');
-      await getAlibaba1688Pool().query(sql);
+      const migrationsDir = path.join(process.cwd(), 'server', 'temu', 'migrations');
+      const migrationFiles = fs.readdirSync(migrationsDir)
+        .filter((file) => file.endsWith('.sql'))
+        .sort();
+      for (const file of migrationFiles) {
+        const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
+        await getAlibaba1688Pool().query(sql);
+      }
     })().catch((error) => {
       migrationPromise = null;
       throw error;

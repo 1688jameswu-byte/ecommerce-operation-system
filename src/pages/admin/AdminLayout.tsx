@@ -19,6 +19,9 @@ const DataBackupPage = lazy(() => import('./data-backup/DataBackupPage'));
 const StoreManagementPage = lazy(() => import('./store-management/StoreManagementPage'));
 const OperatorManagementPage = lazy(() => import('./operator-management/OperatorManagementPage'));
 const TrafficImportPage = lazy(() => import('./traffic-import/TrafficImportPage'));
+const TemuProductInfoImportPage = lazy(() => import('./new-product-center/TemuProductInfoImportPage'));
+const TemuAdReportImportPage = lazy(() => import('./new-product-center/TemuAdReportImportPage'));
+const NewProductCenterPage = lazy(() => import('./new-product-center/NewProductCenterPage'));
 const WarningResultsPage = lazy(() => import('./warning-results/WarningResultsPage'));
 const StoreBusinessCenterPage = lazy(() => import('./business-analysis/StoreBusinessCenterPage'));
 const OperatorAnalysisCenterPage = lazy(() => import('./business-analysis/OperatorAnalysisCenterPage'));
@@ -55,6 +58,10 @@ function getActiveRoute() {
 
   if (pathname === '/admin/1688-business') {
     return adminRoutes.find((route) => route.path === '/admin/1688-business/settings') ?? adminRoutes[0];
+  }
+
+  if (pathname.startsWith('/new-product-center/products/')) {
+    return adminRoutes.find((route) => route.path === '/new-product-center/products/detail') ?? adminRoutes[0];
   }
 
   return adminRoutes.find((route) => route.path === pathname) ?? adminRoutes[0];
@@ -444,7 +451,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
       ? `可见店铺：${visibleStoreNames.join('、')}`
       : `可见店铺 ${visibleStoreNames.length} 个`;
   const dashboardRoute = menuAdminRoutes.find((route) => route.menuKey === 'dashboard');
-  const groupOrder = ['数据', '基础资料', '经营分析', '运营闭环', '1688业务', '运营工具', '规则中心', '数据源', '薪资绩效'];
+  const groupOrder = ['数据', '新品中心', '基础资料', '经营分析', '运营闭环', '1688业务', '运营工具', '规则中心', '数据源', '薪资绩效'];
   const groupLabels: Record<string, string> = { 数据: '数据中心' };
   const groups = groupOrder.filter((group) => menuAdminRoutes.some((route) => route.group === group));
   const activeRouteGroup = groups.includes(activeRoute.group) ? activeRoute.group : null;
@@ -455,6 +462,9 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const isOperatorManagementPage = activeRoute.path === '/admin/operators';
   const isAccountManagementPage = activeRoute.path === '/admin/accounts';
   const isTrafficImportPage = activeRoute.path === '/admin/traffic-import';
+  const isTemuProductInfoImportPage = activeRoute.path === '/admin/temu-product-info-import';
+  const isTemuAdReportImportPage = activeRoute.path === '/admin/temu-ad-report-import';
+  const isNewProductCenterPage = activeRoute.path.startsWith('/new-product-center/');
   const isDataBackupPage = activeRoute.path === '/admin/data-backup';
   const isWarningRulesPage = activeRoute.path === '/admin/config/warnings';
   const isWarningResultsPage = activeRoute.path === '/admin/warning-results';
@@ -604,6 +614,12 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
             <DataBackupPage currentUser={currentUser} />
           ) : isTrafficImportPage ? (
             <TrafficImportPage currentUser={currentUser} visibleStoreNames={visibleStoreNames} />
+          ) : isTemuProductInfoImportPage ? (
+            <TemuProductInfoImportPage />
+          ) : isTemuAdReportImportPage ? (
+            <TemuAdReportImportPage />
+          ) : isNewProductCenterPage ? (
+            <NewProductCenterPage currentUser={currentUser} />
           ) : isWarningRulesPage ? (
             <WarningRulesPage />
           ) : isWarningResultsPage ? (

@@ -8870,3 +8870,156 @@
     transform: none;
   }
 }
+
+.npc-page {
+  display: grid;
+  gap: 16px;
+}
+
+.npc-panel {
+  overflow: hidden;
+}
+
+.npc-panel-header,
+.npc-toolbar,
+.npc-import-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.npc-toolbar label,
+.npc-import-controls label,
+.npc-mapping-grid label {
+  display: grid;
+  gap: 6px;
+  color: #bfdbfe;
+  font-size: 13px;
+}
+
+.npc-toolbar input,
+.npc-toolbar select,
+.npc-import-controls input,
+.npc-import-controls select,
+.npc-mapping-grid select {
+  min-height: 36px;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  background: rgba(15, 23, 42, 0.85);
+  color: #f8fafc;
+  border-radius: 6px;
+  padding: 0 10px;
+}
+
+.npc-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.npc-metric-grid article {
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  background: rgba(15, 23, 42, 0.72);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.npc-metric-grid span,
+.npc-product-cell small,
+.npc-table-wrap small {
+  color: #93c5fd;
+}
+
+.npc-metric-grid strong {
+  display: block;
+  margin-top: 8px;
+  color: #f8fafc;
+  font-size: 22px;
+}
+
+.npc-two-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.npc-mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.npc-table-wrap {
+  width: 100%;
+  overflow: auto;
+  max-height: 620px;
+}
+
+.npc-table-wrap table {
+  min-width: 980px;
+}
+
+.npc-product-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.npc-product-cell img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.npc-product-cell span {
+  display: grid;
+  gap: 4px;
+}
+
+.npc-tag,
+.npc-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid rgba(250, 204, 21, 0.55);
+  color: #fde68a;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: rgba(113, 63, 18, 0.24);
+}
+
+.npc-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.npc-actions button,
+.npc-panel-header button,
+.npc-toolbar button {
+  border: 1px solid rgba(59, 130, 246, 0.55);
+  color: #dbeafe;
+  background: rgba(37, 99, 235, 0.18);
+  border-radius: 6px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.npc-recommendation-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.npc-recommendation-strip span {
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 6px;
+  color: #dbeafe;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.6);
+}

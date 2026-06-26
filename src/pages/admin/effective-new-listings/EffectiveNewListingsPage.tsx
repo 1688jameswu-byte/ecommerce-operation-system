@@ -41,7 +41,7 @@ function EffectiveNewListingsPage({ currentUser }: { currentUser: CurrentUser })
   const [editingId, setEditingId] = useState('');
   const [error, setError] = useState('');
   const [deleteRecord, setDeleteRecord] = useState<EffectiveNewListingRecord | null>(null);
-  const [monthFilter, setMonthFilter] = useState(getMonthKey(toDateKey(new Date())));
+  const [monthFilter, setMonthFilter] = useState('');
   const [storeFilter, setStoreFilter] = useState('');
   const [skcSearch, setSkcSearch] = useState('');
 

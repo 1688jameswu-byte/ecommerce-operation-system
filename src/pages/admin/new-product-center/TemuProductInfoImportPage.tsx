@@ -1,0 +1,131 @@
+import { useState } from 'react';
+import { type ImportPreview, type ImportResult, newProductCenterDataSource } from '../../../data-source/newProductCenterDataSource';
+
+const fieldLabels: Record<string, string> = {
+  storeName: '店铺',
+  temuProductId: '商品ID',
+  temuSpuId: 'SPU ID',
+  productName: '商品名称',
+  productImageUrl: '商品图片',
+  categoryName: '类目',
+  skuId: 'SKU ID',
+  skuCode: 'SKU货号',
+  skuName: 'SKU名称',
+  firstOnlineAt: '首次上架时间',
+  productStatus: '商品状态',
+  currentPrice: '当前售价',
+  currentInventory: '当前库存',
+};
+
+function ImportMapping({ preview, mapping, setMapping }: { preview: ImportPreview; mapping: Record<string, string>; setMapping: (mapping: Record<string, string>) => void }) {
+  return (
+    <div className="npc-mapping-grid">
+      {Object.entries(fieldLabels).map(([field, label]) => (
+        <label key={field}>
+          <span>{label}</span>
+          <select value={mapping[field] || ''} onChange={(event) => setMapping({ ...mapping, [field]: event.target.value })}>
+            <option value="">不导入</option>
+            {preview.headers.map((header) => <option key={header} value={header}>{header}</option>)}
+          </select>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+export default function TemuProductInfoImportPage() {
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [mapping, setMapping] = useState<Record<string, string>>({});
+  const [result, setResult] = useState<ImportResult | null>(null);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const onFile = async (file?: File) => {
+    if (!file) return;
+    setLoading(true);
+    setMessage('');
+    setResult(null);
+    try {
+      const next = await newProductCenterDataSource.previewProductFile(file);
+      setPreview(next);
+      setMapping(next.mapping);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirm = async () => {
+    if (!preview) return;
+    setLoading(true);
+    setMessage('');
+    try {
+      const next = await newProductCenterDataSource.confirmProductImport({
+        fileName: preview.fileName,
+        rows: preview.rows,
+        mapping,
+      });
+      setResult(next);
+      setMessage(`导入完成：成功 ${next.successRows} 行，失败 ${next.errorRows} 行。`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section className="npc-page">
+      <article className="excel-upload-panel">
+        <div>
+          <span className="npc-pill">商品信息导入</span>
+          <h2>上传 TEMU 商品信息 Excel</h2>
+          <p>写入 PostgreSQL 的 temu_products 和 temu_product_skus，不写 JSON。导入完成后自动重算新品快照。</p>
+        </div>
+        <label className="excel-upload-box">
+          <input type="file" accept=".xlsx,.xls,.csv" disabled={loading} onChange={(event) => void onFile(event.target.files?.[0])} />
+          <strong>{loading ? '处理中...' : '选择或拖入 Excel 文件'}</strong>
+          <span>支持商品、SKU、首次上架时间、价格和库存字段映射</span>
+        </label>
+      </article>
+
+      {message && <div className="excel-import-error">{message}</div>}
+
+      {preview && (
+        <article className="excel-record-panel npc-panel">
+          <header className="npc-panel-header">
+            <div>
+              <h2>字段映射</h2>
+              <p>{preview.fileName}，共 {preview.totalRows} 行，预览前 20 行。</p>
+            </div>
+            <button type="button" disabled={loading} onClick={confirm}>确认导入 PostgreSQL</button>
+          </header>
+          <ImportMapping preview={preview} mapping={mapping} setMapping={setMapping} />
+          <div className="npc-table-wrap">
+            <table>
+              <thead><tr>{preview.headers.map((header) => <th key={header}>{header}</th>)}</tr></thead>
+              <tbody>
+                {preview.previewRows.map((row, index) => (
+                  <tr key={index}>{preview.headers.map((header) => <td key={header}>{String(row[header] ?? '')}</td>)}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      )}
+
+      {result && result.errors.length > 0 && (
+        <article className="excel-record-panel npc-panel">
+          <h2>失败行</h2>
+          <div className="npc-table-wrap">
+            <table>
+              <thead><tr><th>行号</th><th>原因</th></tr></thead>
+              <tbody>{result.errors.map((error) => <tr key={error.rowNumber}><td>{error.rowNumber}</td><td>{error.errorReason}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </article>
+      )}
+    </section>
+  );
+}

@@ -46,6 +46,10 @@ const operatorMenus = [
   menuKeys.dashboard,
   menuKeys.orderSalesImport,
   menuKeys.trafficConversionImport,
+  menuKeys.newProductCenter,
+  menuKeys.newProductOperatorDashboard,
+  menuKeys.newProductProducts,
+  menuKeys.newProductAdRecommendations,
   menuKeys.storeBusinessCenter,
   menuKeys.operatorAnalysisCenter,
   menuKeys.businessAnalysisCenter,
@@ -57,6 +61,9 @@ const operatorMenus = [
 const leadMenus = [
   ...operatorMenus,
   menuKeys.effectiveNewListings,
+  menuKeys.temuProductInfoImport,
+  menuKeys.temuAdReportImport,
+  menuKeys.newProductBossDashboard,
   menuKeys.operatorManagement,
   menuKeys.taskSuggestions,
 ];
