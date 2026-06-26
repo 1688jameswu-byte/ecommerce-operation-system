@@ -113,15 +113,17 @@ export const newProductCenterDataSource = {
 
 export interface ImportPreview {
   ok: boolean;
+  previewId?: string;
   fileName: string;
   headers: string[];
   mapping: Record<string, string>;
   previewRows: Record<string, unknown>[];
-  rows: Record<string, unknown>[];
+  rows?: Record<string, unknown>[];
   totalRows: number;
 }
 
 export interface ConfirmImportPayload {
+  previewId?: string;
   fileName: string;
   rows: Record<string, unknown>[];
   mapping: Record<string, string>;

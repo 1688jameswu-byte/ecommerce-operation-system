@@ -3004,6 +3004,38 @@ function appendSearchParams(requestUrl, extra) {
   };
 }
 
+const temuImportPreviewCache = new Map();
+const temuImportPreviewTtlMs = 30 * 60 * 1000;
+
+function cleanupTemuImportPreviewCache() {
+  const now = Date.now();
+  for (const [previewId, preview] of temuImportPreviewCache.entries()) {
+    if (!preview?.createdAt || now - preview.createdAt > temuImportPreviewTtlMs) {
+      temuImportPreviewCache.delete(previewId);
+    }
+  }
+}
+
+function saveTemuImportPreview(type, payload) {
+  cleanupTemuImportPreviewCache();
+  const previewId = crypto.randomUUID();
+  temuImportPreviewCache.set(previewId, {
+    ...payload,
+    type,
+    createdAt: Date.now(),
+  });
+  return previewId;
+}
+
+function getTemuImportPreview(previewId, type) {
+  cleanupTemuImportPreviewCache();
+  const preview = temuImportPreviewCache.get(String(previewId || ''));
+  if (!preview || preview.type !== type) {
+    return null;
+  }
+  return preview;
+}
+
 async function handleTemuProductInfoImportApi(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
@@ -3033,29 +3065,42 @@ async function handleTemuProductInfoImportApi(req, res) {
     const body = JSON.parse(bodyText || '{}');
     if (action === 'upload' || action === 'preview') {
       const parsed = body.rows ? { rows: body.rows, headers: body.headers || Object.keys(body.rows[0] || {}) } : parseExcelDataUrl(body.dataUrl);
+      const previewId = saveTemuImportPreview('product', {
+        fileName: body.fileName || '',
+        rows: parsed.rows,
+        headers: parsed.headers,
+      });
       console.info('[temu-product-info-preview]', {
         fileName: body.fileName || '',
+        previewId,
         rows: parsed.rows.length,
         headers: parsed.headers.length,
       });
-      res.end(JSON.stringify({ ok: true, fileName: body.fileName || '', rows: parsed.rows, ...buildImportPreview({ ...parsed, type: 'product' }) }));
+      res.end(JSON.stringify({ ok: true, previewId, fileName: body.fileName || '', rows: [], ...buildImportPreview({ ...parsed, type: 'product' }) }));
       return;
     }
     if (action === 'confirm') {
+      const cachedPreview = getTemuImportPreview(body.previewId, 'product');
+      const rows = cachedPreview?.rows || body.rows || [];
+      const fileName = body.fileName || cachedPreview?.fileName || '';
       console.info('[temu-product-info-confirm-start]', {
-        fileName: body.fileName || '',
+        fileName,
+        previewId: body.previewId || '',
         storeName: body.storeName || '',
-        rows: Array.isArray(body.rows) ? body.rows.length : 0,
+        rows: Array.isArray(rows) ? rows.length : 0,
       });
       const result = await importProductRows({
-        rows: body.rows || [],
+        rows,
         mapping: body.mapping || {},
-        fileName: body.fileName || '',
+        fileName,
         storeName: body.storeName || '',
         currentUser,
       });
+      if (body.previewId) {
+        temuImportPreviewCache.delete(String(body.previewId));
+      }
       console.info('[temu-product-info-confirm-done]', {
-        fileName: body.fileName || '',
+        fileName,
         totalRows: result.totalRows,
         successRows: result.successRows,
         errorRows: result.errorRows,
@@ -3104,31 +3149,44 @@ async function handleTemuAdReportImportApi(req, res) {
     const body = JSON.parse(bodyText || '{}');
     if (action === 'upload' || action === 'preview') {
       const parsed = body.rows ? { rows: body.rows, headers: body.headers || Object.keys(body.rows[0] || {}) } : parseExcelDataUrl(body.dataUrl);
+      const previewId = saveTemuImportPreview('ad', {
+        fileName: body.fileName || '',
+        rows: parsed.rows,
+        headers: parsed.headers,
+      });
       console.info('[temu-ad-report-preview]', {
         fileName: body.fileName || '',
+        previewId,
         rows: parsed.rows.length,
         headers: parsed.headers.length,
       });
-      res.end(JSON.stringify({ ok: true, fileName: body.fileName || '', rows: parsed.rows, ...buildImportPreview({ ...parsed, type: 'ad' }) }));
+      res.end(JSON.stringify({ ok: true, previewId, fileName: body.fileName || '', rows: [], ...buildImportPreview({ ...parsed, type: 'ad' }) }));
       return;
     }
     if (action === 'confirm') {
+      const cachedPreview = getTemuImportPreview(body.previewId, 'ad');
+      const rows = cachedPreview?.rows || body.rows || [];
+      const fileName = body.fileName || cachedPreview?.fileName || '';
       console.info('[temu-ad-report-confirm-start]', {
-        fileName: body.fileName || '',
+        fileName,
+        previewId: body.previewId || '',
         reportDate: body.reportDate || '',
         storeName: body.storeName || '',
-        rows: Array.isArray(body.rows) ? body.rows.length : 0,
+        rows: Array.isArray(rows) ? rows.length : 0,
       });
       const result = await importAdRows({
-        rows: body.rows || [],
+        rows,
         mapping: body.mapping || {},
-        fileName: body.fileName || '',
+        fileName,
         reportDate: body.reportDate,
         storeName: body.storeName || '',
         currentUser,
       });
+      if (body.previewId) {
+        temuImportPreviewCache.delete(String(body.previewId));
+      }
       console.info('[temu-ad-report-confirm-done]', {
-        fileName: body.fileName || '',
+        fileName,
         totalRows: result.totalRows,
         successRows: result.successRows,
         errorRows: result.errorRows,

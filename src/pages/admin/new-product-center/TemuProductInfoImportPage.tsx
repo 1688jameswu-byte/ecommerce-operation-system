@@ -46,7 +46,8 @@ export default function TemuProductInfoImportPage() {
   const [storeName, setStoreName] = useState('');
   const [storageStatus, setStorageStatus] = useState<TemuStorageStatus | null>(null);
   const [storageError, setStorageError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   const refreshOverview = async () => {
     try {
@@ -70,7 +71,7 @@ export default function TemuProductInfoImportPage() {
 
   const onFile = async (file?: File) => {
     if (!file) return;
-    setLoading(true);
+    setPreviewLoading(true);
     setMessage('');
     setResult(null);
     try {
@@ -78,10 +79,11 @@ export default function TemuProductInfoImportPage() {
       setPreview(next);
       setMapping(next.mapping);
       setStoreName((current) => current || inferStoreNameFromFileName(file.name));
+      setMessage('预览完成，尚未入库；请点击“确认导入 PostgreSQL”。');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setLoading(false);
+      setPreviewLoading(false);
     }
   };
 
@@ -91,12 +93,13 @@ export default function TemuProductInfoImportPage() {
       setMessage('当前文件不像商品信息表：必须映射商品ID/SKC ID和首次上架时间/创建时间。广告报表请使用“TEMU广告数据导入”。');
       return;
     }
-    setLoading(true);
+    setConfirmLoading(true);
     setMessage('');
     try {
       const next = await newProductCenterDataSource.confirmProductImport({
+        previewId: preview.previewId,
         fileName: preview.fileName,
-        rows: preview.rows,
+        rows: preview.rows || [],
         mapping,
         storeName,
       });
@@ -106,7 +109,7 @@ export default function TemuProductInfoImportPage() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setLoading(false);
+      setConfirmLoading(false);
     }
   };
 
@@ -119,8 +122,8 @@ export default function TemuProductInfoImportPage() {
           <p>写入 PostgreSQL 的 temu_products 和 temu_product_skus，不写 JSON。导入完成后自动重算新品快照。</p>
         </div>
         <label className="excel-upload-box">
-          <input type="file" accept=".xlsx,.xls,.csv" disabled={loading} onChange={(event) => void onFile(event.target.files?.[0])} />
-          <strong>{loading ? '处理中...' : '选择或拖入 Excel 文件'}</strong>
+          <input type="file" accept=".xlsx,.xls,.csv" disabled={previewLoading || confirmLoading} onChange={(event) => void onFile(event.target.files?.[0])} />
+          <strong>{previewLoading ? '处理中...' : confirmLoading ? '导入中...' : '选择或拖入 Excel 文件'}</strong>
           <span>支持商品、SKU、首次上架时间、价格和库存字段映射</span>
         </label>
         <div className="npc-import-controls">
@@ -144,7 +147,7 @@ export default function TemuProductInfoImportPage() {
               <h2>字段映射</h2>
               <p>{preview.fileName}，共 {preview.totalRows} 行，预览前 20 行。</p>
             </div>
-            <button type="button" disabled={loading} onClick={confirm}>确认导入 PostgreSQL</button>
+            <button type="button" disabled={confirmLoading} onClick={confirm}>{confirmLoading ? '导入中...' : '确认导入 PostgreSQL'}</button>
           </header>
           <ImportMapping preview={preview} mapping={mapping} setMapping={setMapping} />
           <div className="npc-table-wrap">

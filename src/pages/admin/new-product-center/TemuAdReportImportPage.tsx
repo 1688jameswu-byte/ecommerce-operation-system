@@ -40,7 +40,8 @@ export default function TemuAdReportImportPage() {
   const [message, setMessage] = useState('');
   const [storageStatus, setStorageStatus] = useState<TemuStorageStatus | null>(null);
   const [storageError, setStorageError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   const refreshOverview = async () => {
     try {
@@ -64,7 +65,7 @@ export default function TemuAdReportImportPage() {
 
   const onFile = async (file?: File) => {
     if (!file) return;
-    setLoading(true);
+    setPreviewLoading(true);
     setMessage('');
     setResult(null);
     try {
@@ -72,10 +73,11 @@ export default function TemuAdReportImportPage() {
       setPreview(next);
       setMapping(next.mapping);
       setStoreName((current) => current || inferStoreNameFromFileName(file.name));
+      setMessage('预览完成，尚未入库；请点击“确认导入 PostgreSQL”。');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setLoading(false);
+      setPreviewLoading(false);
     }
   };
 
@@ -89,12 +91,13 @@ export default function TemuAdReportImportPage() {
       setMessage('广告报表没有店铺列时，请先填写默认店铺，例如 A店。');
       return;
     }
-    setLoading(true);
+    setConfirmLoading(true);
     setMessage('');
     try {
       const next = await newProductCenterDataSource.confirmAdImport({
+        previewId: preview.previewId,
         fileName: preview.fileName,
-        rows: preview.rows,
+        rows: preview.rows || [],
         mapping,
         reportDate,
         storeName,
@@ -105,7 +108,7 @@ export default function TemuAdReportImportPage() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setLoading(false);
+      setConfirmLoading(false);
     }
   };
 
@@ -124,8 +127,8 @@ export default function TemuAdReportImportPage() {
           </label>
         </div>
         <label className="excel-upload-box">
-          <input type="file" accept=".xlsx,.xls,.csv" disabled={loading || !reportDate} onChange={(event) => void onFile(event.target.files?.[0])} />
-          <strong>{loading ? '处理中...' : '选择或拖入 Excel 文件'}</strong>
+          <input type="file" accept=".xlsx,.xls,.csv" disabled={previewLoading || confirmLoading || !reportDate} onChange={(event) => void onFile(event.target.files?.[0])} />
+          <strong>{previewLoading ? '处理中...' : confirmLoading ? '导入中...' : '选择或拖入 Excel 文件'}</strong>
           <span>支持推广、全域、净推广字段映射</span>
         </label>
       </article>
@@ -144,7 +147,7 @@ export default function TemuAdReportImportPage() {
               <h2>字段映射</h2>
               <p>{preview.fileName}，共 {preview.totalRows} 行，预览前 20 行。</p>
             </div>
-            <button type="button" disabled={loading || !reportDate} onClick={confirm}>确认导入 PostgreSQL</button>
+            <button type="button" disabled={confirmLoading || !reportDate} onClick={confirm}>{confirmLoading ? '导入中...' : '确认导入 PostgreSQL'}</button>
           </header>
           <div className="npc-mapping-grid">
             {Object.entries(fieldLabels).map(([field, label]) => (
