@@ -1787,7 +1787,13 @@ async function mirrorTemuReferenceJsonToPostgres() {
 async function readPersistentDataForApi(name, filePath) {
   if (name === 'orderImportStore') {
     try {
-      return await readOrderImportStoreFromPostgres();
+      const postgresData = await readOrderImportStoreFromPostgres();
+      if ((postgresData?.batches ?? []).length > 0) {
+        return postgresData;
+      }
+
+      const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      return (jsonData?.batches ?? []).length > 0 ? jsonData : postgresData;
     } catch (error) {
       console.warn('[TEMU PostgreSQL] orderImportStore read fallback to JSON:', error instanceof Error ? error.message : error);
     }
@@ -1795,7 +1801,13 @@ async function readPersistentDataForApi(name, filePath) {
 
   if (name === 'trafficConversionStore') {
     try {
-      return await readTrafficConversionStoreFromPostgres();
+      const postgresData = await readTrafficConversionStoreFromPostgres();
+      if ((postgresData?.records ?? []).length > 0 || (postgresData?.batches ?? []).length > 0) {
+        return postgresData;
+      }
+
+      const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      return (jsonData?.records ?? []).length > 0 || (jsonData?.batches ?? []).length > 0 ? jsonData : postgresData;
     } catch (error) {
       console.warn('[TEMU PostgreSQL] trafficConversionStore read fallback to JSON:', error instanceof Error ? error.message : error);
     }
