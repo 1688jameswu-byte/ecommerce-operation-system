@@ -433,12 +433,29 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const requestedRoute = getActiveRoute();
   const visibleStores = useVisibleStores(currentUser);
   const allowedMenuKeys = new Set(currentUser.allowedMenuKeys ?? []);
-  const canAccessRoute = (route: AdminRoute) => (
-    currentUser.role === 'admin' ||
-    allowedMenuKeys.has(route.menuKey) ||
-    Boolean(route.parentMenuKey && allowedMenuKeys.has(route.parentMenuKey)) ||
-    (route.menuKey === menuKeys.aiImagePromptCenter && allowedMenuKeys.has(menuKeys.operationLoop))
-  );
+  const hasNewProductCenterAccess = [
+    menuKeys.newProductCenter,
+    menuKeys.newProductOperatorDashboard,
+    menuKeys.newProductProducts,
+    menuKeys.newProductAdRecommendations,
+  ].some((key) => allowedMenuKeys.has(key));
+  const canAccessRoute = (route: AdminRoute) => {
+    if (currentUser.role === 'admin' || allowedMenuKeys.has(route.menuKey)) {
+      return true;
+    }
+
+    if (route.parentMenuKey === menuKeys.newProductCenter) {
+      if (route.menuKey === menuKeys.newProductBossDashboard) {
+        return false;
+      }
+      return hasNewProductCenterAccess;
+    }
+
+    return (
+      Boolean(route.parentMenuKey && allowedMenuKeys.has(route.parentMenuKey)) ||
+      (route.menuKey === menuKeys.aiImagePromptCenter && allowedMenuKeys.has(menuKeys.operationLoop))
+    );
+  };
   const visibleAdminRoutes = adminRoutes.filter(canAccessRoute);
   const menuAdminRoutes = visibleAdminRoutes.filter((route) => route.path !== '/admin/operator-performance' && !route.hideInMenu);
   const hasAnyMenuPermission = currentUser.role === 'admin' || visibleAdminRoutes.length > 0;
