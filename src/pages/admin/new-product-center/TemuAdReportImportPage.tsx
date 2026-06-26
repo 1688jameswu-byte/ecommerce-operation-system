@@ -116,7 +116,7 @@ export default function TemuAdReportImportPage() {
     <section className="npc-page">
       <article className="excel-upload-panel">
         <div>
-          <span className="npc-pill">TEMU广告数据导入</span>
+          <span className="npc-pill">广告数据导入</span>
           <h2>上传商品推广报表 Excel</h2>
           <p>写入 PostgreSQL 的 temu_ad_product_daily，不写 JSON。导入完成后自动重算新品快照和广告建议。</p>
         </div>

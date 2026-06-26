@@ -69,7 +69,7 @@ export const menuGroups: { key: MenuKey; label: string; children: { key: MenuKey
       { key: menuKeys.effectiveNewListings, label: '有效上新录入' },
       { key: menuKeys.trafficConversionImport, label: '流量转化导入' },
       { key: menuKeys.temuProductInfoImport, label: '商品信息导入' },
-      { key: menuKeys.temuAdReportImport, label: 'TEMU广告数据导入' },
+      { key: menuKeys.temuAdReportImport, label: '广告数据导入' },
       { key: menuKeys.dataManagement, label: '数据管理' },
       { key: menuKeys.dataBackup, label: '数据备份' },
     ],

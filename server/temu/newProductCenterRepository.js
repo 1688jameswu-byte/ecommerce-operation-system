@@ -4,17 +4,27 @@ import { getAlibaba1688Pool } from '../alibaba1688/postgresDatabase.js';
 
 const PRODUCT_FIELDS = {
   storeName: ['店铺', '店铺名称', 'store', 'storeName'],
-  temuProductId: ['商品ID', '商品 ID', '商品id', 'product id', 'temu_product_id'],
+  productTitle: ['商品标题'],
+  spuId: ['SPU ID'],
+  skcId: ['SKC ID'],
+  skuId: ['SKU ID'],
+  skcCode: ['SKC货号'],
+  skuCode: ['SKU货号'],
+  leafCategoryName: ['叶子类目名称'],
+  productStatus: ['商品状态'],
+  spec1Name: ['规格1名称'],
+  spec2Name: ['规格2名称'],
+  declaredPriceCny: ['申报价格(CNY)', '申报价格（CNY）'],
+  declaredPriceStatus: ['申报价格状态'],
+  createdTime: ['创建时间'],
+  temuProductId: ['商品ID', '商品 ID', '商品id', 'product id', 'temu_product_id', 'SKC ID'],
   temuSpuId: ['SPU ID', 'SPU', 'spu id', 'temu_spu_id'],
-  productName: ['商品名称', '品名', 'product name'],
+  productName: ['商品名称', '商品标题', '品名', 'product name'],
   productImageUrl: ['商品图片', '图片', '主图', 'image', 'image url'],
-  categoryName: ['类目', '分类', 'category'],
-  skuId: ['SKU ID', 'sku id', 'SKUID'],
-  skuCode: ['SKU货号', 'SKU 货号', '货号', 'sku_code', 'SKU编码'],
-  skuName: ['SKU名称', 'SKU 名称', '规格', 'sku name'],
-  firstOnlineAt: ['首次上架时间', '上架时间', 'first_online_at', '首次上架日期'],
-  productStatus: ['商品状态', '状态', 'product status'],
-  currentPrice: ['当前售价', '售价', '价格', 'current_price'],
+  categoryName: ['类目', '分类', 'category', '叶子类目名称'],
+  skuName: ['SKU名称', 'SKU 名称', '规格', 'sku name', '规格1名称', '规格2名称'],
+  firstOnlineAt: ['首次上架时间', '上架时间', 'first_online_at', '首次上架日期', '创建时间'],
+  currentPrice: ['当前售价', '售价', '价格', 'current_price', '申报价格(CNY)', '申报价格（CNY）', '申报价格'],
   currentInventory: ['当前库存', '库存', 'current_inventory'],
 };
 
@@ -70,6 +80,16 @@ PRODUCT_FIELDS.firstOnlineAt.push('首次上架时间', '上架时间', '创建�
 PRODUCT_FIELDS.productStatus.push('商品状态', '状态', '申报价格状态');
 PRODUCT_FIELDS.currentPrice.push('当前售价', '售价', '价格', '申报价格(CNY)', '申报价格');
 PRODUCT_FIELDS.currentInventory.push('当前库存', '库存', '可售库存');
+PRODUCT_FIELDS.productTitle.push('商品标题');
+PRODUCT_FIELDS.spuId.push('SPU ID', 'SPUID');
+PRODUCT_FIELDS.skcId.push('SKC ID', 'SKCID', 'SKC');
+PRODUCT_FIELDS.skcCode.push('SKC货号', 'SKC 货号');
+PRODUCT_FIELDS.leafCategoryName.push('叶子类目名称');
+PRODUCT_FIELDS.spec1Name.push('规格1名称');
+PRODUCT_FIELDS.spec2Name.push('规格2名称');
+PRODUCT_FIELDS.declaredPriceCny.push('申报价格(CNY)', '申报价格（CNY）', '申报价格');
+PRODUCT_FIELDS.declaredPriceStatus.push('申报价格状态');
+PRODUCT_FIELDS.createdTime.push('创建时间');
 
 AD_FIELDS.storeName.push('店铺', '店铺名称');
 AD_FIELDS.productName.push('商品名称', '商品标题', '品名');
@@ -311,23 +331,34 @@ async function addTimeline(client, event) {
 async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName = '') {
   const data = mapRow(row, row.__mapping);
   if (!text(data.storeName) && text(fallbackStoreName)) data.storeName = fallbackStoreName;
-  const firstOnlineAt = dateText(data.firstOnlineAt);
+  const productTitle = text(data.productTitle || data.productName);
+  const spuId = nullableText(data.spuId || data.temuSpuId);
+  const skcId = text(data.skcId || data.temuProductId);
+  const skcCode = nullableText(data.skcCode);
+  const leafCategoryName = nullableText(data.leafCategoryName || data.categoryName);
+  const declaredPriceCny = nullableNumber(data.declaredPriceCny || data.currentPrice);
+  const declaredPriceStatus = nullableText(data.declaredPriceStatus);
+  const createdTime = dateText(data.createdTime || data.firstOnlineAt);
+  const firstOnlineAt = dateText(data.createdTime || data.firstOnlineAt);
   if (!text(data.storeName)) throw new Error('缺少店铺');
-  if (!text(data.temuProductId)) throw new Error('缺少商品ID');
+  if (!skcId) throw new Error('缺少 SKC ID');
   if (!firstOnlineAt) throw new Error('缺少或无法识别首次上架时间');
   const owner = await resolveStoreAndOperator(client, data.storeName, firstOnlineAt);
   if (!owner.storeId) throw new Error(`未匹配到 TEMU 店铺：${text(data.storeName)}`);
   const before = await client.query(
     `SELECT id, current_price, current_inventory FROM temu_products WHERE store_id = $1 AND temu_product_id = $2 LIMIT 1`,
-    [owner.storeId, text(data.temuProductId)],
+    [owner.storeId, skcId],
   );
   const result = await client.query(
     `INSERT INTO temu_products (
        legacy_id, source_id, store_id, store_name, operator_id, operator_name,
        temu_product_id, temu_spu_id, product_name, product_image_url, category_name,
-       first_online_at, product_status, current_price, current_inventory, raw_data, updated_at
+       first_online_at, product_status, current_price, current_inventory,
+       product_title, spu_id, skc_id, skc_code, leaf_category_name, declared_price_cny,
+       declared_price_status, created_time, raw_data, updated_at
      )
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::timestamptz,$13,$14,$15,$16::jsonb,NOW())
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::timestamptz,$13,$14,$15,
+             $16,$17,$18,$19,$20,$21,$22,$23::timestamptz,$24::jsonb,NOW())
      ON CONFLICT (store_id, temu_product_id) WHERE store_id IS NOT NULL AND temu_product_id IS NOT NULL
      DO UPDATE SET
        store_name = EXCLUDED.store_name,
@@ -340,26 +371,42 @@ async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName 
        first_online_at = EXCLUDED.first_online_at,
        product_status = EXCLUDED.product_status,
        current_price = EXCLUDED.current_price,
-       current_inventory = EXCLUDED.current_inventory,
+       current_inventory = COALESCE(EXCLUDED.current_inventory, temu_products.current_inventory),
+       product_title = EXCLUDED.product_title,
+       spu_id = EXCLUDED.spu_id,
+       skc_id = EXCLUDED.skc_id,
+       skc_code = EXCLUDED.skc_code,
+       leaf_category_name = EXCLUDED.leaf_category_name,
+       declared_price_cny = EXCLUDED.declared_price_cny,
+       declared_price_status = EXCLUDED.declared_price_status,
+       created_time = EXCLUDED.created_time,
        raw_data = EXCLUDED.raw_data,
        updated_at = NOW()
      RETURNING id`,
     [
-      `${owner.storeId}-${text(data.temuProductId)}`,
+      `${owner.storeId}-${skcId}`,
       `${batchId}-${rowNumber}`,
       owner.storeId,
       owner.storeName,
       owner.operatorId,
       owner.operatorName,
-      text(data.temuProductId),
-      nullableText(data.temuSpuId),
-      text(data.productName),
+      skcId,
+      spuId,
+      productTitle,
       nullableText(data.productImageUrl),
-      nullableText(data.categoryName),
+      leafCategoryName,
       firstOnlineAt,
       nullableText(data.productStatus),
-      nullableNumber(data.currentPrice),
-      Math.trunc(numberValue(data.currentInventory)),
+      declaredPriceCny,
+      nullableNumber(data.currentInventory) === null ? null : Math.trunc(numberValue(data.currentInventory)),
+      productTitle,
+      spuId,
+      skcId,
+      skcCode,
+      leafCategoryName,
+      declaredPriceCny,
+      declaredPriceStatus,
+      createdTime,
       json(row),
     ],
   );
@@ -373,7 +420,7 @@ async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName 
       eventDate: firstOnlineAt,
       eventTime: firstOnlineAt,
       title: '商品首次上架',
-      description: text(data.productName),
+      description: productTitle,
       sourceType: 'product_import',
       sourceId: String(batchId),
       rawData: row,
@@ -415,6 +462,7 @@ async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName 
 
   const skuId = nullableText(data.skuId);
   const skuCode = normalizeSkuCode(data.skuCode);
+  const skuName = text([data.spec1Name, data.spec2Name].map(text).filter(Boolean).join(' / ') || data.skuName);
   if (skuId || skuCode) {
     const existingSku = await client.query(
       `SELECT id FROM temu_product_skus
@@ -426,18 +474,36 @@ async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName 
       await client.query(
         `UPDATE temu_product_skus
          SET product_id=$1, store_name=$2, temu_product_id=$3, temu_spu_id=$4, sku_name=$5,
-             sku_price=$6, sku_inventory=$7, raw_data=$8::jsonb, updated_at=NOW()
-         WHERE id=$9`,
-        [productId, owner.storeName, text(data.temuProductId), nullableText(data.temuSpuId), nullableText(data.skuName), nullableNumber(data.currentPrice), Math.trunc(numberValue(data.currentInventory)), json(row), existingSku.rows[0].id],
+             sku_price=$6, sku_inventory=COALESCE($7, sku_inventory),
+             product_title=$8, spu_id=$9, skc_id=$10, skc_code=$11, leaf_category_name=$12,
+             product_status=$13, spec1_name=$14, spec2_name=$15, declared_price_cny=$16,
+             declared_price_status=$17, created_time=$18::timestamptz, raw_data=$19::jsonb, updated_at=NOW()
+         WHERE id=$20`,
+        [
+          productId, owner.storeName, skcId, spuId, nullableText(skuName), declaredPriceCny,
+          nullableNumber(data.currentInventory) === null ? null : Math.trunc(numberValue(data.currentInventory)),
+          productTitle, spuId, skcId, skcCode, leafCategoryName, nullableText(data.productStatus),
+          nullableText(data.spec1Name), nullableText(data.spec2Name), declaredPriceCny, declaredPriceStatus,
+          createdTime, json(row), existingSku.rows[0].id,
+        ],
       );
     } else {
       await client.query(
         `INSERT INTO temu_product_skus (
            product_id, store_id, store_name, temu_product_id, temu_spu_id,
-           sku_id, sku_code, sku_name, sku_price, sku_inventory, raw_data
+           sku_id, sku_code, sku_name, sku_price, sku_inventory,
+           product_title, spu_id, skc_id, skc_code, leaf_category_name, product_status,
+           spec1_name, spec2_name, declared_price_cny, declared_price_status, created_time, raw_data
          )
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,
-        [productId, owner.storeId, owner.storeName, text(data.temuProductId), nullableText(data.temuSpuId), skuId, skuCode || null, nullableText(data.skuName), nullableNumber(data.currentPrice), Math.trunc(numberValue(data.currentInventory)), json(row)],
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::timestamptz,$22::jsonb)`,
+        [
+          productId, owner.storeId, owner.storeName, skcId, spuId, skuId, skuCode || null,
+          nullableText(skuName), declaredPriceCny,
+          nullableNumber(data.currentInventory) === null ? null : Math.trunc(numberValue(data.currentInventory)),
+          productTitle, spuId, skcId, skcCode, leafCategoryName, nullableText(data.productStatus),
+          nullableText(data.spec1Name), nullableText(data.spec2Name), declaredPriceCny,
+          declaredPriceStatus, createdTime, json(row),
+        ],
       );
     }
   }
@@ -1178,13 +1244,25 @@ export async function getProductImportOverview({ limit = 50 } = {}) {
     [size],
   );
   const products = await queryTemuDatabase(
-    `SELECT p.id, p.store_name, p.operator_name, p.temu_product_id, p.temu_spu_id, p.product_name,
-            p.category_name, p.first_online_at, p.product_status, p.current_price, p.current_inventory,
-            p.updated_at, COUNT(s.id)::int AS sku_count
-     FROM temu_products p
-     LEFT JOIN temu_product_skus s ON s.product_id = p.id
-     GROUP BY p.id
-     ORDER BY p.updated_at DESC, p.id DESC
+    `SELECT s.id,
+            COALESCE(s.product_title, p.product_title, p.product_name) AS product_title,
+            COALESCE(s.spu_id, p.spu_id, p.temu_spu_id) AS spu_id,
+            COALESCE(s.skc_id, p.skc_id, p.temu_product_id) AS skc_id,
+            s.sku_id,
+            COALESCE(s.skc_code, p.skc_code) AS skc_code,
+            s.sku_code,
+            COALESCE(s.leaf_category_name, p.leaf_category_name, p.category_name) AS leaf_category_name,
+            COALESCE(s.product_status, p.product_status) AS product_status,
+            s.spec1_name,
+            s.spec2_name,
+            COALESCE(s.declared_price_cny, p.declared_price_cny, p.current_price) AS declared_price_cny,
+            COALESCE(s.declared_price_status, p.declared_price_status) AS declared_price_status,
+            COALESCE(s.created_time, p.created_time, p.first_online_at) AS created_time,
+            s.store_name,
+            s.updated_at
+     FROM temu_product_skus s
+     LEFT JOIN temu_products p ON p.id = s.product_id
+     ORDER BY s.updated_at DESC, s.id DESC
      LIMIT $1`,
     [size],
   );

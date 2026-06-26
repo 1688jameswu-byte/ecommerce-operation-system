@@ -51,7 +51,7 @@ export const adminRoutes: AdminRoute[] = [
     path: '/admin/temu-ad-report-import',
     menuKey: menuKeys.temuAdReportImport,
     parentMenuKey: menuKeys.dataCenter,
-    label: 'TEMU广告数据导入',
+    label: '广告数据导入',
     group: '数据',
     menuSection: '数据导入',
     description: '导入 TEMU 商品推广报表，写入 PostgreSQL 广告日报表。',

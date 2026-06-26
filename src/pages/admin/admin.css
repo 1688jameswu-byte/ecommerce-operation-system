@@ -9032,3 +9032,187 @@
   padding: 8px 10px;
   background: rgba(15, 23, 42, 0.6);
 }
+
+.temu-product-import-page {
+  gap: 18px;
+}
+
+.temu-import-hero {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(520px, 0.95fr);
+  gap: 18px;
+  align-items: stretch;
+  border: 1px solid rgba(86, 154, 230, 0.3);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(8, 25, 55, 0.86), rgba(12, 42, 86, 0.74));
+  padding: 20px;
+}
+
+.temu-import-hero h2 {
+  margin: 12px 0 8px;
+  color: #ffffff;
+  font-size: 26px;
+  line-height: 1.18;
+}
+
+.temu-import-hero p {
+  margin: 0;
+  max-width: 760px;
+  color: #bfdbfe;
+  line-height: 1.7;
+}
+
+.temu-import-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.temu-import-metrics article {
+  min-width: 0;
+  border: 1px solid rgba(59, 130, 246, 0.42);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.68);
+  padding: 13px;
+}
+
+.temu-import-metrics article.is-ok {
+  border-color: rgba(34, 197, 94, 0.48);
+  background: rgba(20, 83, 45, 0.2);
+}
+
+.temu-import-metrics article.is-warning {
+  border-color: rgba(251, 191, 36, 0.42);
+  background: rgba(113, 63, 18, 0.18);
+}
+
+.temu-import-metrics span,
+.temu-import-metrics small,
+.temu-import-card header span,
+.temu-import-step-label {
+  color: #93c5fd;
+  font-size: 12px;
+}
+
+.temu-import-metrics strong {
+  display: block;
+  margin: 7px 0 5px;
+  color: #ffffff;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.temu-import-metrics small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.temu-import-workspace {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.05fr) minmax(300px, 0.95fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.temu-import-card {
+  display: grid;
+  gap: 14px;
+  min-height: 100%;
+}
+
+.temu-import-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.temu-import-card header h2 {
+  margin: 4px 0 0;
+  color: #ffffff;
+  font-size: 20px;
+}
+
+.temu-import-card header button {
+  border: 1px solid rgba(59, 130, 246, 0.55);
+  color: #dbeafe;
+  background: rgba(37, 99, 235, 0.18);
+  border-radius: 6px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.temu-import-upload-box {
+  min-height: 126px;
+  text-align: center;
+}
+
+.temu-import-store-control {
+  justify-content: flex-start;
+}
+
+.temu-import-store-control label {
+  width: min(100%, 360px);
+}
+
+.temu-import-rule-card p {
+  margin: 0;
+  color: #bfdbfe;
+  line-height: 1.65;
+}
+
+.temu-import-rule-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.temu-import-rule-list span {
+  border: 1px solid rgba(59, 130, 246, 0.32);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.62);
+  color: #dbeafe;
+  padding: 9px 10px;
+  min-height: 38px;
+}
+
+.temu-import-preview-panel .npc-panel-header h2 {
+  margin-top: 4px;
+}
+
+.temu-import-result-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.65fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.temu-import-result-grid .npc-table-wrap {
+  max-height: 520px;
+}
+
+@media (max-width: 1200px) {
+  .temu-import-hero,
+  .temu-import-workspace,
+  .temu-import-result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .temu-import-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .temu-import-hero,
+  .temu-import-card {
+    padding: 14px;
+  }
+
+  .temu-import-metrics,
+  .temu-import-rule-list {
+    grid-template-columns: 1fr;
+  }
+}
