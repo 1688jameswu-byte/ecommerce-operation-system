@@ -3024,13 +3024,29 @@ async function handleTemuProductInfoImportApi(req, res) {
       res.end('Method not allowed');
       return;
     }
-    const body = JSON.parse((await readBody(req)) || '{}');
+    const bodyText = await readBody(req);
+    console.info('[temu-product-info-api]', {
+      method: req.method,
+      action,
+      bodySize: bodyText.length,
+    });
+    const body = JSON.parse(bodyText || '{}');
     if (action === 'upload' || action === 'preview') {
       const parsed = body.rows ? { rows: body.rows, headers: body.headers || Object.keys(body.rows[0] || {}) } : parseExcelDataUrl(body.dataUrl);
+      console.info('[temu-product-info-preview]', {
+        fileName: body.fileName || '',
+        rows: parsed.rows.length,
+        headers: parsed.headers.length,
+      });
       res.end(JSON.stringify({ ok: true, fileName: body.fileName || '', rows: parsed.rows, ...buildImportPreview({ ...parsed, type: 'product' }) }));
       return;
     }
     if (action === 'confirm') {
+      console.info('[temu-product-info-confirm-start]', {
+        fileName: body.fileName || '',
+        storeName: body.storeName || '',
+        rows: Array.isArray(body.rows) ? body.rows.length : 0,
+      });
       const result = await importProductRows({
         rows: body.rows || [],
         mapping: body.mapping || {},
@@ -3038,12 +3054,22 @@ async function handleTemuProductInfoImportApi(req, res) {
         storeName: body.storeName || '',
         currentUser,
       });
+      console.info('[temu-product-info-confirm-done]', {
+        fileName: body.fileName || '',
+        totalRows: result.totalRows,
+        successRows: result.successRows,
+        errorRows: result.errorRows,
+      });
       res.end(JSON.stringify(result));
       return;
     }
     res.statusCode = 404;
     res.end(JSON.stringify({ ok: false, message: 'Not found' }));
   } catch (error) {
+    console.error('[temu-product-info-api-error]', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     res.statusCode = 500;
     res.end(JSON.stringify({ ok: false, message: error instanceof Error ? error.message : String(error) }));
   }
@@ -3069,13 +3095,30 @@ async function handleTemuAdReportImportApi(req, res) {
       res.end('Method not allowed');
       return;
     }
-    const body = JSON.parse((await readBody(req)) || '{}');
+    const bodyText = await readBody(req);
+    console.info('[temu-ad-report-api]', {
+      method: req.method,
+      action,
+      bodySize: bodyText.length,
+    });
+    const body = JSON.parse(bodyText || '{}');
     if (action === 'upload' || action === 'preview') {
       const parsed = body.rows ? { rows: body.rows, headers: body.headers || Object.keys(body.rows[0] || {}) } : parseExcelDataUrl(body.dataUrl);
+      console.info('[temu-ad-report-preview]', {
+        fileName: body.fileName || '',
+        rows: parsed.rows.length,
+        headers: parsed.headers.length,
+      });
       res.end(JSON.stringify({ ok: true, fileName: body.fileName || '', rows: parsed.rows, ...buildImportPreview({ ...parsed, type: 'ad' }) }));
       return;
     }
     if (action === 'confirm') {
+      console.info('[temu-ad-report-confirm-start]', {
+        fileName: body.fileName || '',
+        reportDate: body.reportDate || '',
+        storeName: body.storeName || '',
+        rows: Array.isArray(body.rows) ? body.rows.length : 0,
+      });
       const result = await importAdRows({
         rows: body.rows || [],
         mapping: body.mapping || {},
@@ -3084,12 +3127,22 @@ async function handleTemuAdReportImportApi(req, res) {
         storeName: body.storeName || '',
         currentUser,
       });
+      console.info('[temu-ad-report-confirm-done]', {
+        fileName: body.fileName || '',
+        totalRows: result.totalRows,
+        successRows: result.successRows,
+        errorRows: result.errorRows,
+      });
       res.end(JSON.stringify(result));
       return;
     }
     res.statusCode = 404;
     res.end(JSON.stringify({ ok: false, message: 'Not found' }));
   } catch (error) {
+    console.error('[temu-ad-report-api-error]', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     res.statusCode = 500;
     res.end(JSON.stringify({ ok: false, message: error instanceof Error ? error.message : String(error) }));
   }
