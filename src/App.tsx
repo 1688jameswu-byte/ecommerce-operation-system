@@ -36,7 +36,7 @@ function App() {
     return <ChangePasswordPage onChanged={setCurrentUser} />;
   }
 
-  if (window.location.pathname.startsWith('/admin')) {
+  if (window.location.pathname.startsWith('/admin') || window.location.pathname.startsWith('/new-product-center')) {
     if (!currentUser) {
       window.location.replace('/login');
       return null;
