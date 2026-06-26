@@ -3035,6 +3035,7 @@ async function handleTemuProductInfoImportApi(req, res) {
         rows: body.rows || [],
         mapping: body.mapping || {},
         fileName: body.fileName || '',
+        storeName: body.storeName || '',
         currentUser,
       });
       res.end(JSON.stringify(result));

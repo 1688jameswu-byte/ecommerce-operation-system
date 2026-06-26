@@ -26,6 +26,10 @@ const fieldLabels: Record<string, string> = {
   globalAddToCartCount: '加入购物车数（全域）',
 };
 
+function inferStoreNameFromFileName(fileName: string) {
+  return fileName.match(/([A-Za-z0-9]+店|[\u4e00-\u9fa5]+店)/)?.[1] || '';
+}
+
 export default function TemuAdReportImportPage() {
   const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 10));
   const [storeName, setStoreName] = useState('');
@@ -67,6 +71,7 @@ export default function TemuAdReportImportPage() {
       const next = await newProductCenterDataSource.previewAdFile(file);
       setPreview(next);
       setMapping(next.mapping);
+      setStoreName((current) => current || inferStoreNameFromFileName(file.name));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -76,6 +81,14 @@ export default function TemuAdReportImportPage() {
 
   const confirm = async () => {
     if (!preview) return;
+    if (!mapping.temuProductId) {
+      setMessage('当前文件不像 TEMU 广告报表：必须映射商品ID。商品基础信息请使用“商品信息导入”。');
+      return;
+    }
+    if (!mapping.storeName && !storeName.trim()) {
+      setMessage('广告报表没有店铺列时，请先填写默认店铺，例如 A店。');
+      return;
+    }
     setLoading(true);
     setMessage('');
     try {

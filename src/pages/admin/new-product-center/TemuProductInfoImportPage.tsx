@@ -33,12 +33,17 @@ function ImportMapping({ preview, mapping, setMapping }: { preview: ImportPrevie
   );
 }
 
+function inferStoreNameFromFileName(fileName: string) {
+  return fileName.match(/([A-Za-z0-9]+店|[\u4e00-\u9fa5]+店)/)?.[1] || '';
+}
+
 export default function TemuProductInfoImportPage() {
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [overview, setOverview] = useState<ImportOverview>({ batches: [], records: [] });
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [result, setResult] = useState<ImportResult | null>(null);
   const [message, setMessage] = useState('');
+  const [storeName, setStoreName] = useState('');
   const [storageStatus, setStorageStatus] = useState<TemuStorageStatus | null>(null);
   const [storageError, setStorageError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,6 +77,7 @@ export default function TemuProductInfoImportPage() {
       const next = await newProductCenterDataSource.previewProductFile(file);
       setPreview(next);
       setMapping(next.mapping);
+      setStoreName((current) => current || inferStoreNameFromFileName(file.name));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -81,6 +87,10 @@ export default function TemuProductInfoImportPage() {
 
   const confirm = async () => {
     if (!preview) return;
+    if (!mapping.temuProductId || !mapping.firstOnlineAt) {
+      setMessage('当前文件不像商品信息表：必须映射商品ID/SKC ID和首次上架时间/创建时间。广告报表请使用“TEMU广告数据导入”。');
+      return;
+    }
     setLoading(true);
     setMessage('');
     try {
@@ -88,6 +98,7 @@ export default function TemuProductInfoImportPage() {
         fileName: preview.fileName,
         rows: preview.rows,
         mapping,
+        storeName,
       });
       setResult(next);
       await refreshOverview();
@@ -112,6 +123,11 @@ export default function TemuProductInfoImportPage() {
           <strong>{loading ? '处理中...' : '选择或拖入 Excel 文件'}</strong>
           <span>支持商品、SKU、首次上架时间、价格和库存字段映射</span>
         </label>
+        <div className="npc-import-controls">
+          <label>默认店铺
+            <input value={storeName} onChange={(event) => setStoreName(event.target.value)} placeholder="文件无店铺列时填写，如 A店" />
+          </label>
+        </div>
       </article>
 
       {message && <div className="excel-import-error">{message}</div>}

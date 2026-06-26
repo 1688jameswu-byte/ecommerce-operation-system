@@ -125,6 +125,7 @@ export interface ConfirmImportPayload {
   fileName: string;
   rows: Record<string, unknown>[];
   mapping: Record<string, string>;
+  storeName?: string;
 }
 
 export interface ImportResult {

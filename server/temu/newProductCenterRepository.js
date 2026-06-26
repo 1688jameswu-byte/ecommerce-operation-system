@@ -57,6 +57,61 @@ const AD_FIELDS = {
   netPromoUnitCount: ['净件数（推广）', '净件数(推广)'],
 };
 
+PRODUCT_FIELDS.storeName.push('店铺', '店铺名称');
+PRODUCT_FIELDS.temuProductId.push('商品ID', '商品 ID', 'SKC ID', 'SKCID', 'SKC');
+PRODUCT_FIELDS.temuSpuId.push('SPU ID', 'SPUID');
+PRODUCT_FIELDS.productName.push('商品名称', '商品标题', '品名');
+PRODUCT_FIELDS.productImageUrl.push('商品图片', '图片', '主图');
+PRODUCT_FIELDS.categoryName.push('类目', '分类', '叶子类目名称');
+PRODUCT_FIELDS.skuId.push('SKU ID', 'SKUID');
+PRODUCT_FIELDS.skuCode.push('SKU货号', 'SKU 货号', 'SKC货号', '货号');
+PRODUCT_FIELDS.skuName.push('SKU名称', 'SKU 名称', '规格', '规格1名称', '规格2名称');
+PRODUCT_FIELDS.firstOnlineAt.push('首次上架时间', '上架时间', '创建时间', '首次上架日期');
+PRODUCT_FIELDS.productStatus.push('商品状态', '状态', '申报价格状态');
+PRODUCT_FIELDS.currentPrice.push('当前售价', '售价', '价格', '申报价格(CNY)', '申报价格');
+PRODUCT_FIELDS.currentInventory.push('当前库存', '库存', '可售库存');
+
+AD_FIELDS.storeName.push('店铺', '店铺名称');
+AD_FIELDS.productName.push('商品名称', '商品标题', '品名');
+AD_FIELDS.temuProductId.push('商品ID', '商品 ID');
+AD_FIELDS.temuSpuId.push('SPU ID', 'SPUID');
+AD_FIELDS.adSpend.push('总花费', '花费');
+AD_FIELDS.netAdSpend.push('净总花费', '净花费');
+AD_FIELDS.globalSalesAmount.push('申报价销售额（全域）', '申报价销售额(全域)', '全域销售额');
+AD_FIELDS.globalRoas.push('投资回报率ROAS（全域）', '投资回报率ROAS(全域)', '全域ROAS');
+AD_FIELDS.globalRoas.push('投资回报率(ROAS)（全域）', '投资回报率(ROAS)(全域)');
+AD_FIELDS.globalAcos.push('费比（全域）', '费比(全域)', '全域费比');
+AD_FIELDS.globalCpa.push('每笔成交花费（全域）', '每笔成交花费(全域)');
+AD_FIELDS.globalSubOrderCount.push('子订单数（全域）', '子订单数(全域)');
+AD_FIELDS.globalUnitCount.push('件数（全域）', '件数(全域)');
+AD_FIELDS.globalImpressions.push('曝光（全域）', '曝光(全域)');
+AD_FIELDS.globalClicks.push('点击（全域）', '点击(全域)');
+AD_FIELDS.globalCtr.push('点击率（全域）', '点击率(全域)');
+AD_FIELDS.globalCvr.push('转化率（全域）', '转化率(全域)');
+AD_FIELDS.globalAddToCartCount.push('加入购物车数（全域）', '加入购物车数(全域)', '加购（全域）');
+AD_FIELDS.promoSalesAmount.push('申报价销售额（推广）', '申报价销售额(推广)', '推广销售额');
+AD_FIELDS.promoRoas.push('投资回报率ROAS（推广）', '投资回报率ROAS(推广)', '推广ROAS');
+AD_FIELDS.promoRoas.push('投资回报率(ROAS)（推广）', '投资回报率(ROAS)(推广)');
+AD_FIELDS.promoWeekRoas.push('自然周投资回报率ROAS（推广）', '自然周投资回报率ROAS(推广)');
+AD_FIELDS.promoWeekRoas.push('自然周投资回报率(ROAS)（推广）', '自然周投资回报率(ROAS)(推广)');
+AD_FIELDS.targetRoas.push('自然周目标ROAS（推广）', '自然周目标ROAS(推广)', '目标ROAS');
+AD_FIELDS.promoAcos.push('费比（推广）', '费比(推广)', '推广费比');
+AD_FIELDS.promoCpa.push('每笔成交花费（推广）', '每笔成交花费(推广)');
+AD_FIELDS.promoSubOrderCount.push('子订单数（推广）', '子订单数(推广)');
+AD_FIELDS.promoUnitCount.push('件数（推广）', '件数(推广)');
+AD_FIELDS.promoImpressions.push('曝光（推广）', '曝光(推广)');
+AD_FIELDS.promoClicks.push('点击（推广）', '点击(推广)');
+AD_FIELDS.promoCtr.push('点击率（推广）', '点击率(推广)');
+AD_FIELDS.promoCvr.push('转化率（推广）', '转化率(推广)');
+AD_FIELDS.promoAddToCartCount.push('加购（推广）', '加购(推广)', '加购');
+AD_FIELDS.netPromoSalesAmount.push('净申报价销售额（推广）', '净申报价销售额(推广)');
+AD_FIELDS.netPromoRoas.push('净投资回报率ROAS（推广）', '净投资回报率ROAS(推广)');
+AD_FIELDS.netPromoRoas.push('净投资回报率(ROAS)（推广）', '净投资回报率(ROAS)(推广)');
+AD_FIELDS.netPromoAcos.push('净费比（推广）', '净费比(推广)');
+AD_FIELDS.netPromoCpa.push('净每笔成交花费（推广）', '净每笔成交花费(推广)');
+AD_FIELDS.netPromoSubOrderCount.push('净子订单数（推广）', '净子订单数(推广)');
+AD_FIELDS.netPromoUnitCount.push('净件数（推广）', '净件数(推广)');
+
 function text(value) {
   return String(value ?? '').trim();
 }
@@ -70,15 +125,23 @@ function normalizeHeader(value) {
   return text(value).replace(/\s+/g, '').toLowerCase();
 }
 
+function inferStoreNameFromFileName(fileName = '') {
+  const raw = text(fileName);
+  const matched = raw.match(/([A-Za-z0-9]+店|[\u4e00-\u9fa5]+店)/);
+  return matched ? matched[1] : '';
+}
+
 function normalizeSkuCode(value) {
   return text(value).replace(/\s+/g, '').toUpperCase();
 }
 
 function numberValue(value, fallback = 0) {
-  const raw = text(value).replace(/[%￥¥,]/g, '');
+  const rawText = text(value);
+  const raw = rawText.replace(/[%,¥￥,\s]/g, '');
+  if (!raw || raw === '--') return fallback;
   const parsed = Number(raw);
   if (!Number.isFinite(parsed)) return fallback;
-  return text(value).includes('%') ? parsed / 100 : parsed;
+  return rawText.includes('%') ? parsed / 100 : parsed;
 }
 
 function nullableNumber(value) {
@@ -125,6 +188,11 @@ function inferMapping(headers, fieldMap) {
 
 function mapRow(row, mapping) {
   return Object.fromEntries(Object.entries(mapping).map(([field, header]) => [field, header ? row[header] : '']));
+}
+
+function isAdSummaryRow(row, mapping) {
+  const data = mapRow(row, mapping);
+  return !text(data.temuProductId) && /^共\d+项/.test(text(data.productName));
 }
 
 export function parseExcelDataUrl(dataUrl) {
@@ -240,8 +308,9 @@ async function addTimeline(client, event) {
   );
 }
 
-async function upsertProduct(client, row, batchId, rowNumber) {
+async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName = '') {
   const data = mapRow(row, row.__mapping);
+  if (!text(data.storeName) && text(fallbackStoreName)) data.storeName = fallbackStoreName;
   const firstOnlineAt = dateText(data.firstOnlineAt);
   if (!text(data.storeName)) throw new Error('缺少店铺');
   if (!text(data.temuProductId)) throw new Error('缺少商品ID');
@@ -386,13 +455,34 @@ async function findProductForAd(client, owner, data) {
   return result.rows[0]?.id || null;
 }
 
+async function resolveAdOwner(client, storeName, data, reportDate) {
+  if (text(storeName)) {
+    return resolveStoreAndOperator(client, storeName, reportDate);
+  }
+  const result = await client.query(
+    `SELECT p.store_id, p.store_name, p.operator_id, p.operator_name
+     FROM temu_products p
+     WHERE (p.temu_product_id = $1 OR ($2 <> '' AND p.temu_spu_id = $2))
+       AND p.store_id IS NOT NULL
+     ORDER BY CASE WHEN p.temu_product_id = $1 THEN 0 ELSE 1 END, p.updated_at DESC
+     LIMIT 1`,
+    [text(data.temuProductId), text(data.temuSpuId)],
+  );
+  const product = result.rows[0];
+  return {
+    storeId: product?.store_id || null,
+    storeName: product?.store_name || '',
+    operatorId: product?.operator_id || null,
+    operatorName: product?.operator_name || '',
+  };
+}
+
 async function upsertAdRow(client, row, batchId, rowNumber, reportDate, fallbackStoreName) {
   const data = mapRow(row, row.__mapping);
   const storeName = text(data.storeName || fallbackStoreName);
-  if (!storeName) throw new Error('缺少店铺，请在页面选择店铺或映射店铺字段');
   if (!text(data.temuProductId)) throw new Error('缺少商品ID');
-  const owner = await resolveStoreAndOperator(client, storeName, reportDate);
-  if (!owner.storeId) throw new Error(`未匹配到 TEMU 店铺：${storeName}`);
+  const owner = await resolveAdOwner(client, storeName, data, reportDate);
+  if (!owner.storeId) throw new Error(storeName ? `未匹配到 TEMU 店铺：${storeName}` : '缺少店铺，且无法通过商品ID/SPU ID反查店铺');
   const productId = await findProductForAd(client, owner, data);
   await client.query(
     `INSERT INTO temu_ad_product_daily (
@@ -485,10 +575,11 @@ async function upsertAdRow(client, row, batchId, rowNumber, reportDate, fallback
   }
 }
 
-export async function importProductRows({ rows = [], mapping = {}, fileName = '', currentUser = {} }) {
+export async function importProductRows({ rows = [], mapping = {}, fileName = '', storeName = '', currentUser = {} }) {
   await runTemuMigrations();
   const client = await getAlibaba1688Pool().connect();
   const sourceBatchId = `product-info-${Date.now().toString(36)}`;
+  const fallbackStoreName = text(storeName) || inferStoreNameFromFileName(fileName);
   let batchId = null;
   const errors = [];
   const productIds = new Set();
@@ -502,13 +593,13 @@ export async function importProductRows({ rows = [], mapping = {}, fileName = ''
       status: 'processing',
       uploadedBy: currentUser.userId || currentUser.username,
       uploadedByName: currentUser.displayName || currentUser.username,
-      rawData: { fileName },
+      rawData: { fileName, storeName: fallbackStoreName },
     });
     let rowNumber = 0;
     for (const row of rows) {
       rowNumber += 1;
       try {
-        const productId = await upsertProduct(client, { ...row, __mapping: mapping }, batchId, rowNumber);
+        const productId = await upsertProduct(client, { ...row, __mapping: mapping }, batchId, rowNumber, fallbackStoreName);
         productIds.add(productId);
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
@@ -535,29 +626,31 @@ export async function importAdRows({ rows = [], mapping = {}, fileName = '', rep
   await runTemuMigrations();
   const client = await getAlibaba1688Pool().connect();
   const sourceBatchId = `ad-report-${dateText(reportDate)}-${Date.now().toString(36)}`;
+  const fallbackStoreName = text(storeName) || inferStoreNameFromFileName(fileName);
   const errors = [];
   if (!dateText(reportDate)) throw new Error('报表日期必填');
   try {
     await client.query('BEGIN');
-    const owner = storeName ? await resolveStoreAndOperator(client, storeName, reportDate) : {};
+    const owner = fallbackStoreName ? await resolveStoreAndOperator(client, fallbackStoreName, reportDate) : {};
     const batchId = await createImportBatch(client, {
       sourceBatchId,
       importType: 'ad_product_daily',
       fileName,
       reportDate,
       storeId: owner.storeId,
-      storeName: owner.storeName || storeName,
+      storeName: owner.storeName || fallbackStoreName,
       totalRows: rows.length,
       status: 'processing',
       uploadedBy: currentUser.userId || currentUser.username,
       uploadedByName: currentUser.displayName || currentUser.username,
-      rawData: { fileName, reportDate, storeName },
+      rawData: { fileName, reportDate, storeName: fallbackStoreName },
     });
     let rowNumber = 0;
     for (const row of rows) {
       rowNumber += 1;
+      if (isAdSummaryRow(row, mapping)) continue;
       try {
-        await upsertAdRow(client, { ...row, __mapping: mapping }, batchId, rowNumber, reportDate, storeName);
+        await upsertAdRow(client, { ...row, __mapping: mapping }, batchId, rowNumber, reportDate, fallbackStoreName);
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         errors.push({ rowNumber, errorReason: reason, rawData: row });
