@@ -50,6 +50,10 @@ export const newProductCenterDataSource = {
     });
   },
 
+  getProductImportRecords() {
+    return request<ImportOverview>('/api/data-import/temu-product-info/records');
+  },
+
   async previewAdFile(file: File) {
     return request<ImportPreview>('/api/data-import/temu-ad-report/upload', {
       method: 'POST',
@@ -62,6 +66,10 @@ export const newProductCenterDataSource = {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+  },
+
+  getAdImportRecords() {
+    return request<ImportOverview>('/api/data-import/temu-ad-report/records');
   },
 
   getBossDashboard(params = '') {
@@ -121,6 +129,11 @@ export interface ImportResult {
   successRows: number;
   errorRows: number;
   errors: Array<{ rowNumber: number; errorReason: string; rawData: Record<string, unknown> }>;
+}
+
+export interface ImportOverview {
+  batches: Array<Record<string, any>>;
+  records: Array<Record<string, any>>;
 }
 
 export interface ProductSnapshot {

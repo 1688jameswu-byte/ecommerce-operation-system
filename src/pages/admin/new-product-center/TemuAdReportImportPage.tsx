@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { type ImportPreview, type ImportResult, newProductCenterDataSource } from '../../../data-source/newProductCenterDataSource';
+import { useEffect, useState } from 'react';
+import { type ImportOverview, type ImportPreview, type ImportResult, newProductCenterDataSource } from '../../../data-source/newProductCenterDataSource';
 
 const fieldLabels: Record<string, string> = {
   storeName: '店铺',
@@ -29,11 +29,24 @@ const fieldLabels: Record<string, string> = {
 export default function TemuAdReportImportPage() {
   const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 10));
   const [storeName, setStoreName] = useState('');
+  const [overview, setOverview] = useState<ImportOverview>({ batches: [], records: [] });
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [result, setResult] = useState<ImportResult | null>(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const refreshOverview = async () => {
+    try {
+      setOverview(await newProductCenterDataSource.getAdImportRecords());
+    } catch {
+      setOverview({ batches: [], records: [] });
+    }
+  };
+
+  useEffect(() => {
+    void refreshOverview();
+  }, []);
 
   const onFile = async (file?: File) => {
     if (!file) return;
@@ -64,6 +77,7 @@ export default function TemuAdReportImportPage() {
         storeName,
       });
       setResult(next);
+      await refreshOverview();
       setMessage(`导入完成：成功 ${next.successRows} 行，失败 ${next.errorRows} 行。`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
@@ -139,6 +153,63 @@ export default function TemuAdReportImportPage() {
           </div>
         </article>
       )}
+
+      <article className="excel-record-panel npc-panel">
+        <header className="npc-panel-header">
+          <div>
+            <h2>PostgreSQL 广告记录</h2>
+            <p>刷新页面后从 temu_ad_product_daily 读取，最多显示最近 50 条。</p>
+          </div>
+          <button type="button" onClick={() => void refreshOverview()}>刷新</button>
+        </header>
+        <div className="npc-table-wrap">
+          <table>
+            <thead><tr><th>日期</th><th>店铺</th><th>商品ID</th><th>SPU ID</th><th>商品名称</th><th>花费</th><th>推广销售额</th><th>广告单</th><th>曝光</th><th>点击</th><th>更新时间</th></tr></thead>
+            <tbody>
+              {overview.records.map((row) => (
+                <tr key={String(row.id)}>
+                  <td>{String(row.reportDate || '-').slice(0, 10)}</td>
+                  <td>{String(row.storeName || '-')}</td>
+                  <td>{String(row.temuProductId || '-')}</td>
+                  <td>{String(row.temuSpuId || '-')}</td>
+                  <td>{String(row.productName || '-')}</td>
+                  <td>{String(row.adSpend ?? '-')}</td>
+                  <td>{String(row.promoSalesAmount ?? '-')}</td>
+                  <td>{String(row.promoSubOrderCount ?? '-')}</td>
+                  <td>{String(row.promoImpressions ?? '-')}</td>
+                  <td>{String(row.promoClicks ?? '-')}</td>
+                  <td>{String(row.updatedAt || '-').slice(0, 19).replace('T', ' ')}</td>
+                </tr>
+              ))}
+              {overview.records.length === 0 && <tr><td colSpan={11}>暂无 PostgreSQL 广告记录</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article className="excel-record-panel npc-panel">
+        <h2>最近广告导入批次</h2>
+        <div className="npc-table-wrap">
+          <table>
+            <thead><tr><th>文件名</th><th>报表日期</th><th>店铺</th><th>总行数</th><th>成功</th><th>失败</th><th>状态</th><th>时间</th></tr></thead>
+            <tbody>
+              {overview.batches.map((row) => (
+                <tr key={String(row.id)}>
+                  <td>{String(row.fileName || '-')}</td>
+                  <td>{String(row.reportDate || '-').slice(0, 10)}</td>
+                  <td>{String(row.storeName || '-')}</td>
+                  <td>{String(row.totalRows ?? 0)}</td>
+                  <td>{String(row.successRows ?? 0)}</td>
+                  <td>{String(row.errorRows ?? 0)}</td>
+                  <td>{String(row.status || '-')}</td>
+                  <td>{String(row.createdAt || '-').slice(0, 19).replace('T', ' ')}</td>
+                </tr>
+              ))}
+              {overview.batches.length === 0 && <tr><td colSpan={8}>暂无广告导入批次</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </article>
     </section>
   );
 }

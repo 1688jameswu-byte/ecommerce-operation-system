@@ -18,8 +18,10 @@ import {
 import {
   buildImportPreview,
   getBossDashboard,
+  getAdImportOverview,
   getOperatorDashboard,
   getProductDetail,
+  getProductImportOverview,
   getProducts,
   getRecommendations,
   handleRecommendation,
@@ -3011,12 +3013,16 @@ async function handleTemuProductInfoImportApi(req, res) {
       res.end(JSON.stringify({ ok: false, message: '请先登录' }));
       return;
     }
+    const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
+    if (req.method === 'GET' && action === 'records') {
+      res.end(JSON.stringify(await getProductImportOverview({ limit: 50 })));
+      return;
+    }
     if (req.method !== 'POST') {
       res.statusCode = 405;
       res.end('Method not allowed');
       return;
     }
-    const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
     const body = JSON.parse((await readBody(req)) || '{}');
     if (action === 'upload' || action === 'preview') {
       const parsed = body.rows ? { rows: body.rows, headers: body.headers || Object.keys(body.rows[0] || {}) } : parseExcelDataUrl(body.dataUrl);
@@ -3051,12 +3057,16 @@ async function handleTemuAdReportImportApi(req, res) {
       res.end(JSON.stringify({ ok: false, message: '请先登录' }));
       return;
     }
+    const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
+    if (req.method === 'GET' && action === 'records') {
+      res.end(JSON.stringify(await getAdImportOverview({ limit: 50 })));
+      return;
+    }
     if (req.method !== 'POST') {
       res.statusCode = 405;
       res.end('Method not allowed');
       return;
     }
-    const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
     const body = JSON.parse((await readBody(req)) || '{}');
     if (action === 'upload' || action === 'preview') {
       const parsed = body.rows ? { rows: body.rows, headers: body.headers || Object.keys(body.rows[0] || {}) } : parseExcelDataUrl(body.dataUrl);

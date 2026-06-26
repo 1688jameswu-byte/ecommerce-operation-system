@@ -1028,6 +1028,55 @@ export async function getRecommendations(params = {}) {
   return { records: result.rows.map(toCamel), total: Number(result.rows[0]?.total || 0), page, pageSize };
 }
 
+export async function getProductImportOverview({ limit = 50 } = {}) {
+  await runTemuMigrations();
+  const size = Math.min(Math.max(Number(limit) || 50, 1), 100);
+  const batches = await queryTemuDatabase(
+    `SELECT id, import_type, file_name, total_rows, success_rows, error_rows, status, error_message, created_at, finished_at
+     FROM temu_import_batches
+     WHERE import_type = 'product_info'
+     ORDER BY created_at DESC, id DESC
+     LIMIT $1`,
+    [size],
+  );
+  const products = await queryTemuDatabase(
+    `SELECT p.id, p.store_name, p.operator_name, p.temu_product_id, p.temu_spu_id, p.product_name,
+            p.category_name, p.first_online_at, p.product_status, p.current_price, p.current_inventory,
+            p.updated_at, COUNT(s.id)::int AS sku_count
+     FROM temu_products p
+     LEFT JOIN temu_product_skus s ON s.product_id = p.id
+     GROUP BY p.id
+     ORDER BY p.updated_at DESC, p.id DESC
+     LIMIT $1`,
+    [size],
+  );
+  return { batches: batches.rows.map(toCamel), records: products.rows.map(toCamel) };
+}
+
+export async function getAdImportOverview({ limit = 50 } = {}) {
+  await runTemuMigrations();
+  const size = Math.min(Math.max(Number(limit) || 50, 1), 100);
+  const batches = await queryTemuDatabase(
+    `SELECT id, import_type, file_name, report_date, store_name, total_rows, success_rows, error_rows, status, error_message, created_at, finished_at
+     FROM temu_import_batches
+     WHERE import_type = 'ad_product_daily'
+     ORDER BY created_at DESC, id DESC
+     LIMIT $1`,
+    [size],
+  );
+  const ads = await queryTemuDatabase(
+    `SELECT id, report_date, store_name, operator_name, temu_product_id, temu_spu_id,
+            product_name, ad_spend, promo_sales_amount, promo_sub_order_count,
+            promo_impressions, promo_clicks, promo_add_to_cart_count, promo_roas,
+            target_roas, updated_at
+     FROM temu_ad_product_daily
+     ORDER BY report_date DESC, updated_at DESC, id DESC
+     LIMIT $1`,
+    [size],
+  );
+  return { batches: batches.rows.map(toCamel), records: ads.rows.map(toCamel) };
+}
+
 export async function handleRecommendation(id, payload = {}, currentUser = {}) {
   const status = text(payload.status || 'ACCEPTED');
   const note = text(payload.handleNote || payload.note);
