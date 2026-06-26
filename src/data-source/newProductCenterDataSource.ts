@@ -54,6 +54,10 @@ export const newProductCenterDataSource = {
     return request<ImportOverview>('/api/data-import/temu-product-info/records');
   },
 
+  getTemuStorageStatus() {
+    return request<TemuStorageStatus>('/api/data-import/temu-storage-status');
+  },
+
   async previewAdFile(file: File) {
     return request<ImportPreview>('/api/data-import/temu-ad-report/upload', {
       method: 'POST',
@@ -134,6 +138,20 @@ export interface ImportResult {
 export interface ImportOverview {
   batches: Array<Record<string, any>>;
   records: Array<Record<string, any>>;
+}
+
+export interface TemuStorageStatus {
+  ok: boolean;
+  databaseConfigured: boolean;
+  databaseConnected: boolean;
+  databaseName?: string;
+  message?: string;
+  counts?: {
+    products?: number;
+    skus?: number;
+    ads?: number;
+    importBatches?: number;
+  };
 }
 
 export interface ProductSnapshot {

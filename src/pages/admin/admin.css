@@ -8993,6 +8993,15 @@
   background: rgba(113, 63, 18, 0.24);
 }
 
+.npc-storage-status {
+  padding: 10px 12px;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 8px;
+  background: rgba(22, 163, 74, 0.12);
+  color: #bbf7d0;
+  font-size: 13px;
+}
+
 .npc-actions {
   display: flex;
   gap: 6px;

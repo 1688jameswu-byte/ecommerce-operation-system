@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { type ImportOverview, type ImportPreview, type ImportResult, newProductCenterDataSource } from '../../../data-source/newProductCenterDataSource';
+import { type ImportOverview, type ImportPreview, type ImportResult, type TemuStorageStatus, newProductCenterDataSource } from '../../../data-source/newProductCenterDataSource';
 
 const fieldLabels: Record<string, string> = {
   storeName: '店铺',
@@ -34,12 +34,22 @@ export default function TemuAdReportImportPage() {
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [result, setResult] = useState<ImportResult | null>(null);
   const [message, setMessage] = useState('');
+  const [storageStatus, setStorageStatus] = useState<TemuStorageStatus | null>(null);
+  const [storageError, setStorageError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const refreshOverview = async () => {
     try {
-      setOverview(await newProductCenterDataSource.getAdImportRecords());
-    } catch {
+      const [status, records] = await Promise.all([
+        newProductCenterDataSource.getTemuStorageStatus(),
+        newProductCenterDataSource.getAdImportRecords(),
+      ]);
+      setStorageStatus(status);
+      setStorageError(status.ok ? '' : (status.message || 'PostgreSQL 未连接'));
+      setOverview(records);
+    } catch (error) {
+      setStorageStatus(null);
+      setStorageError(error instanceof Error ? error.message : String(error));
       setOverview({ batches: [], records: [] });
     }
   };
@@ -108,6 +118,11 @@ export default function TemuAdReportImportPage() {
       </article>
 
       {message && <div className="excel-import-error">{message}</div>}
+      {(storageStatus || storageError) && (
+        <div className={storageError ? 'excel-import-error' : 'npc-storage-status'}>
+          PostgreSQL 状态：{storageError ? `异常：${storageError}` : `已连接 ${storageStatus?.databaseName || ''}，商品 ${storageStatus?.counts?.products ?? 0}，SKU ${storageStatus?.counts?.skus ?? 0}，广告 ${storageStatus?.counts?.ads ?? 0}，导入批次 ${storageStatus?.counts?.importBatches ?? 0}`}
+        </div>
+      )}
 
       {preview && (
         <article className="excel-record-panel npc-panel">

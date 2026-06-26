@@ -868,6 +868,51 @@ function toCamel(row) {
   ]));
 }
 
+export async function getTemuStorageStatus() {
+  const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
+  if (!hasDatabaseUrl) {
+    return {
+      ok: false,
+      databaseConfigured: false,
+      databaseConnected: false,
+      message: 'DATABASE_URL is not configured on this server.',
+      counts: {},
+    };
+  }
+  try {
+    await runTemuMigrations();
+    const result = await queryTemuDatabase(
+      `SELECT
+         current_database() AS database_name,
+         (SELECT count(*) FROM temu_products)::int AS product_count,
+         (SELECT count(*) FROM temu_product_skus)::int AS sku_count,
+         (SELECT count(*) FROM temu_ad_product_daily)::int AS ad_count,
+         (SELECT count(*) FROM temu_import_batches WHERE import_type IN ('product_info','ad_product_daily'))::int AS import_batch_count`,
+    );
+    const row = result.rows[0] || {};
+    return {
+      ok: true,
+      databaseConfigured: true,
+      databaseConnected: true,
+      databaseName: row.database_name,
+      counts: {
+        products: Number(row.product_count || 0),
+        skus: Number(row.sku_count || 0),
+        ads: Number(row.ad_count || 0),
+        importBatches: Number(row.import_batch_count || 0),
+      },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      databaseConfigured: true,
+      databaseConnected: false,
+      message: error instanceof Error ? error.message : String(error),
+      counts: {},
+    };
+  }
+}
+
 function buildScopeWhere(params, startIndex = 1) {
   const values = [];
   const where = [];

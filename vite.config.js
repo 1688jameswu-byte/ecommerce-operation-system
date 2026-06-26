@@ -24,6 +24,7 @@ import {
   getProductImportOverview,
   getProducts,
   getRecommendations,
+  getTemuStorageStatus,
   handleRecommendation,
   importAdRows,
   importProductRows,
@@ -5308,6 +5309,11 @@ function localDataPlugin() {
         handleCollectionApi(req, res, 'storeOperatorRelations', 'relation')
       ));
       server.middlewares.use('/api/effective-new-listings', handleEffectiveNewListingsApi);
+      server.middlewares.use('/api/data-import/temu-storage-status', async (_req, res) => {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        res.end(JSON.stringify(await getTemuStorageStatus()));
+      });
       server.middlewares.use('/api/data-import/temu-product-info', handleTemuProductInfoImportApi);
       server.middlewares.use('/api/data-import/temu-ad-report', handleTemuAdReportImportApi);
       server.middlewares.use('/api/new-product-center', handleNewProductCenterApi);
