@@ -1369,7 +1369,18 @@ async function getProductPageStats(params, currentUser) {
   const result = await queryAlibaba1688Database(
     `SELECT
        COUNT(*)::int AS total_products,
-       COUNT(*) FILTER (WHERE p.status = 'listed' OR p.listing_status = 'listed')::int AS listed_products
+       COUNT(*) FILTER (WHERE p.status = 'listed' OR p.listing_status = 'listed')::int AS listed_products,
+       COUNT(*) FILTER (
+         WHERE p.status IN ('missing_cost', 'draft')
+           OR EXISTS (
+             SELECT 1
+             FROM "1688_product_skus" skus
+             WHERE skus.product_id = p.id
+               AND skus.is_active
+               AND skus.purchase_price <= 0
+           )
+       )::int AS missing_cost_products,
+       COUNT(*) FILTER (WHERE p.status IN ('priced', 'ready'))::int AS priced_products
      FROM "1688_products" p
      ${where.sql}`,
     where.values,
@@ -1379,6 +1390,8 @@ async function getProductPageStats(params, currentUser) {
   return {
     totalProducts: row.total_products ?? 0,
     listedProducts: row.listed_products ?? 0,
+    missingCostProducts: row.missing_cost_products ?? 0,
+    pricedProducts: row.priced_products ?? 0,
   };
 }
 

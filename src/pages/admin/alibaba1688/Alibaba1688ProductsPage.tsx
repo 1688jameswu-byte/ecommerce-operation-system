@@ -533,8 +533,8 @@ export function Alibaba1688ProductsPage({ currentUser }: Alibaba1688ProductsPage
     + (permissions.canViewCost ? 2 : 0)
     + (permissions.canViewSalesPrice ? 1 : 0)
     + (permissions.canViewSupplier ? 2 : 0);
-  const missingCostProducts = products.filter((product) => (product.missingCostCount ?? 0) > 0 || product.status === 'missing_cost' || product.status === 'draft').length;
-  const pricedProducts = products.filter((product) => product.status === 'priced' || product.status === 'ready').length;
+  const missingCostProducts = productStats.missingCostProducts ?? 0;
+  const pricedProducts = productStats.pricedProducts ?? 0;
   const productTotalPages = Math.max(1, Math.ceil(productTotal / PRODUCT_LIST_PAGE_SIZE));
   const productPageStart = productTotal === 0 ? 0 : (productPage - 1) * PRODUCT_LIST_PAGE_SIZE + 1;
   const productPageEnd = productTotal === 0 ? 0 : Math.min(productTotal, productPage * PRODUCT_LIST_PAGE_SIZE);

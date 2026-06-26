@@ -4,6 +4,17 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { handleAlibaba1688Api } from './server/alibaba1688/api/alibaba1688ApiHandler.js';
+import {
+  readEffectiveListingsFromPostgres,
+  readOrderImportStoreFromPostgres,
+  readTemuCollectionFromPostgres,
+  readTrafficConversionStoreFromPostgres,
+  syncEffectiveListingsToPostgres,
+  syncOrderStoreToPostgres,
+  syncTemuReferenceJsonToPostgres,
+  syncTrafficStoreToPostgres,
+  syncWarningRulesToPostgres,
+} from './server/temu/temuPostgresRepository.js';
 
 const resolveProjectPath = (value, fallback) => path.resolve(process.cwd(), value || fallback);
 
@@ -1702,6 +1713,111 @@ function readCollection(name) {
   return next;
 }
 
+function mergeTemuPostgresCollection(name, jsonData, postgresData) {
+  if (!Array.isArray(postgresData) || postgresData.length === 0) {
+    return jsonData;
+  }
+
+  if (name === 'stores') {
+    const postgresIds = new Set(postgresData.map((item) => item.id).filter(Boolean));
+    const postgresNames = new Set(postgresData.map((item) => item.storeName).filter(Boolean));
+    return [
+      ...(Array.isArray(jsonData) ? jsonData.filter((item) => (
+        String(item?.platform ?? '').toUpperCase() !== 'TEMU' &&
+        !postgresIds.has(item?.id) &&
+        !postgresNames.has(item?.storeName)
+      )) : []),
+      ...postgresData,
+    ];
+  }
+
+  if (name === 'operators') {
+    const postgresIds = new Set(postgresData.map((item) => item.id).filter(Boolean));
+    const postgresNames = new Set(postgresData.map((item) => item.operatorName).filter(Boolean));
+    return [
+      ...(Array.isArray(jsonData) ? jsonData.filter((item) => (
+        !postgresIds.has(item?.id) &&
+        !postgresNames.has(item?.operatorName)
+      )) : []),
+      ...postgresData,
+    ];
+  }
+
+  if (name === 'storeOperatorRelations') {
+    const postgresIds = new Set(postgresData.map((item) => item.id).filter(Boolean));
+    return [
+      ...(Array.isArray(jsonData) ? jsonData.filter((item) => (
+        String(item?.platform ?? '').toUpperCase() !== 'TEMU' &&
+        !postgresIds.has(item?.id)
+      )) : []),
+      ...postgresData,
+    ];
+  }
+
+  return jsonData;
+}
+
+async function readCollectionForApi(name) {
+  const jsonData = name === 'stores' ? getStores() : name === 'operators' ? getOperators() : readCollection(name);
+  if (!['stores', 'operators', 'storeOperatorRelations'].includes(name)) {
+    return jsonData;
+  }
+
+  try {
+    const postgresData = await readTemuCollectionFromPostgres(name);
+    return mergeTemuPostgresCollection(name, jsonData, postgresData);
+  } catch (error) {
+    console.warn(`[TEMU PostgreSQL] ${name} read fallback to JSON:`, error instanceof Error ? error.message : error);
+    return jsonData;
+  }
+}
+
+async function mirrorTemuReferenceJsonToPostgres() {
+  try {
+    await syncTemuReferenceJsonToPostgres({
+      stores: getStores(),
+      operators: getOperators(),
+      relations: readCollection('storeOperatorRelations'),
+    });
+  } catch (error) {
+    console.warn('[TEMU PostgreSQL] reference sync skipped:', error instanceof Error ? error.message : error);
+  }
+}
+
+async function readPersistentDataForApi(name, filePath) {
+  if (name === 'orderImportStore') {
+    try {
+      return await readOrderImportStoreFromPostgres();
+    } catch (error) {
+      console.warn('[TEMU PostgreSQL] orderImportStore read fallback to JSON:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  if (name === 'trafficConversionStore') {
+    try {
+      return await readTrafficConversionStoreFromPostgres();
+    } catch (error) {
+      console.warn('[TEMU PostgreSQL] trafficConversionStore read fallback to JSON:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+}
+
+async function mirrorPersistentTemuDataToPostgres(name, data) {
+  try {
+    if (name === 'orderImportStore') {
+      await syncOrderStoreToPostgres(data);
+    } else if (name === 'trafficConversionStore') {
+      await syncTrafficStoreToPostgres(data);
+    } else if (name === 'trafficWarningRules') {
+      await syncWarningRulesToPostgres(data);
+    }
+  } catch (error) {
+    console.warn(`[TEMU PostgreSQL] ${name} sync skipped:`, error instanceof Error ? error.message : error);
+  }
+}
+
 function filterSalaryAttendanceRecords(data, searchParams) {
   const startDate = String(searchParams.get('startDate') ?? '').trim();
   const endDate = String(searchParams.get('endDate') ?? '').trim();
@@ -1739,14 +1855,14 @@ async function handleCollectionApi(req, res, name, prefix) {
     const currentUser = toCurrentUser(findCurrentUser(req));
 
     if (isCompanyDashboardRead(req) && ['stores', 'operators', 'storeOperatorRelations'].includes(name)) {
-      const data = name === 'stores' ? getStores() : name === 'operators' ? getOperators() : readCollection(name);
+      const data = await readCollectionForApi(name);
       res.end(JSON.stringify(data));
       return;
     }
 
     if (req.method === 'GET' && ['stores', 'operators', 'storeOperatorRelations'].includes(name) && menuKey) {
       if (currentUser?.role === 'admin' || userCanAccessMenu(findCurrentUser(req), menuKey)) {
-        const data = name === 'stores' ? getStores() : name === 'operators' ? getOperators() : readCollection(name);
+        const data = await readCollectionForApi(name);
         res.end(JSON.stringify(filterCollectionForUser(name, data, currentUser)));
         return;
       }
@@ -1771,7 +1887,7 @@ async function handleCollectionApi(req, res, name, prefix) {
 
     if (req.method === 'GET') {
       const requestUrl = new URL(req.url ?? '/', 'http://local');
-      const data = name === 'stores' ? getStores() : name === 'operators' ? getOperators() : readCollection(name);
+      const data = await readCollectionForApi(name);
       const filteredData = name === 'salaryAttendanceRecords'
         ? filterSalaryAttendanceRecords(data, requestUrl.searchParams)
         : data;
@@ -1794,6 +1910,7 @@ async function handleCollectionApi(req, res, name, prefix) {
           return;
         }
         writeJsonFile(name, [...getStores(), next]);
+        await mirrorTemuReferenceJsonToPostgres();
         res.end(JSON.stringify(next));
         return;
       }
@@ -1824,6 +1941,9 @@ async function handleCollectionApi(req, res, name, prefix) {
         assertUniquePrimaryRelation(collection, next);
       }
       writeJsonFile(name, [...collection, next]);
+      if (['operators', 'storeOperatorRelations'].includes(name)) {
+        await mirrorTemuReferenceJsonToPostgres();
+      }
       res.end(JSON.stringify(next));
       return;
     }
@@ -1849,6 +1969,7 @@ async function handleCollectionApi(req, res, name, prefix) {
           return;
         }
         writeJsonFile(name, stores.map((item) => item.id === id ? next : item));
+        await mirrorTemuReferenceJsonToPostgres();
         res.end(JSON.stringify(next));
         return;
       }
@@ -1907,6 +2028,9 @@ async function handleCollectionApi(req, res, name, prefix) {
         assertUniquePrimaryRelation(collection, next);
       }
       writeJsonFile(name, collection.map((item) => item.id === id ? next : item));
+      if (['operators', 'storeOperatorRelations'].includes(name)) {
+        await mirrorTemuReferenceJsonToPostgres();
+      }
       res.end(JSON.stringify(next));
       return;
     }
@@ -1947,6 +2071,9 @@ async function handleCollectionApi(req, res, name, prefix) {
       }
 
       writeJsonFile(name, (name === 'stores' ? getStores() : collection).filter((item) => item.id !== id));
+      if (['stores', 'operators', 'storeOperatorRelations'].includes(name)) {
+        await mirrorTemuReferenceJsonToPostgres();
+      }
       res.end(JSON.stringify({ ok: true }));
       return;
     }
@@ -2712,7 +2839,14 @@ async function handleEffectiveNewListingsApi(req, res) {
     const items = Array.isArray(readJsonFile('effectiveNewListings')) ? readJsonFile('effectiveNewListings') : [];
 
     if (req.method === 'GET') {
-      res.end(JSON.stringify(isCompanyDashboardRead(req) ? items : filterEffectiveListingsForUser(items, currentUser)));
+      let data = items;
+      try {
+        const postgresItems = await readEffectiveListingsFromPostgres();
+        data = postgresItems.length > 0 ? postgresItems : items;
+      } catch (error) {
+        console.warn('[TEMU PostgreSQL] effective new listings read fallback to JSON:', error instanceof Error ? error.message : error);
+      }
+      res.end(JSON.stringify(isCompanyDashboardRead(req) ? data : filterEffectiveListingsForUser(data, currentUser)));
       return;
     }
 
@@ -2739,7 +2873,11 @@ async function handleEffectiveNewListingsApi(req, res) {
         return;
       }
       assertUniqueEffectiveListing(items, next);
-      writeJsonFile('effectiveNewListings', [...items, next]);
+      const nextItems = [...items, next];
+      writeJsonFile('effectiveNewListings', nextItems);
+      await syncEffectiveListingsToPostgres(nextItems).catch((error) => {
+        console.warn('[TEMU PostgreSQL] effective new listings sync skipped:', error instanceof Error ? error.message : error);
+      });
       res.end(JSON.stringify(next));
       return;
     }
@@ -2770,7 +2908,11 @@ async function handleEffectiveNewListingsApi(req, res) {
         return;
       }
       assertUniqueEffectiveListing(items, next);
-      writeJsonFile('effectiveNewListings', items.map((item) => item.id === id ? next : item));
+      const nextItems = items.map((item) => item.id === id ? next : item);
+      writeJsonFile('effectiveNewListings', nextItems);
+      await syncEffectiveListingsToPostgres(nextItems).catch((error) => {
+        console.warn('[TEMU PostgreSQL] effective new listings sync skipped:', error instanceof Error ? error.message : error);
+      });
       res.end(JSON.stringify(next));
       return;
     }
@@ -2780,7 +2922,11 @@ async function handleEffectiveNewListingsApi(req, res) {
         return;
       }
 
-      writeJsonFile('effectiveNewListings', items.filter((item) => item.id !== id));
+      const nextItems = items.filter((item) => item.id !== id);
+      writeJsonFile('effectiveNewListings', nextItems);
+      await syncEffectiveListingsToPostgres(nextItems).catch((error) => {
+        console.warn('[TEMU PostgreSQL] effective new listings sync skipped:', error instanceof Error ? error.message : error);
+      });
       res.end(JSON.stringify({ ok: true }));
       return;
     }
@@ -5014,7 +5160,7 @@ function localDataPlugin() {
         if (req.method === 'GET') {
           try {
             const currentUser = toCurrentUser(findCurrentUser(req));
-            const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            const data = await readPersistentDataForApi(name, filePath);
             const scopedData = companyDashboardRead ? data : filterPersistentDataForUser(name, data, currentUser);
             res.end(JSON.stringify(name === 'orderImportStore'
               ? filterOrderImportStoreByQuery(scopedData, requestUrl.searchParams, currentUser)
@@ -5089,6 +5235,7 @@ function localDataPlugin() {
             if (deleteSummary) {
               console.log('[order-import-delete]', deleteSummary);
             }
+            await mirrorPersistentTemuDataToPostgres(name, nextData);
             res.end(JSON.stringify({ ok: true, success: true, path: filePath, deleteSummary, trafficDeleteSummary, batch: trafficAppendBatch, savedCount: Array.isArray(parsed) ? parsed.length : undefined, totalCount: Array.isArray(nextData) ? nextData.length : undefined }));
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);

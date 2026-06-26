@@ -38,6 +38,8 @@ export interface Alibaba1688DatabaseStatus {
 export interface Alibaba1688ProductStats {
   totalProducts: number;
   listedProducts: number;
+  missingCostProducts?: number;
+  pricedProducts?: number;
 }
 
 export interface Alibaba1688ProductPage extends Alibaba1688Page<Alibaba1688ProductRecord> {
