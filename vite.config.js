@@ -1826,10 +1826,6 @@ async function mirrorTemuReferenceJsonToPostgres() {
 async function readPersistentDataForApi(name, filePath) {
   if (name === 'orderImportStore') {
     const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    if ((jsonData?.batches ?? []).length > 0) {
-      return jsonData;
-    }
-
     try {
       const postgresData = await readOrderImportStoreFromPostgres();
       return postgresData;
@@ -1856,11 +1852,32 @@ async function readPersistentDataForApi(name, filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 }
 
+async function rebuildOrderImportSnapshots(orderStore) {
+  const dates = new Set();
+  for (const batch of orderStore?.batches ?? []) {
+    for (const order of batch?.orders ?? []) {
+      const date = String(order?.orderDate || order?.orderTime || '').slice(0, 10);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        dates.add(date);
+      }
+    }
+  }
+
+  if (dates.size === 0) {
+    await rebuildNewProductSnapshots({});
+    return;
+  }
+
+  for (const snapshotDate of Array.from(dates).sort()) {
+    await rebuildNewProductSnapshots({ snapshotDate });
+  }
+}
+
 async function mirrorPersistentTemuDataToPostgres(name, data) {
   try {
     if (name === 'orderImportStore') {
-      await syncOrderStoreToPostgres(data);
-      await rebuildNewProductSnapshots({});
+      await replaceOrderStoreInPostgres(data);
+      await rebuildOrderImportSnapshots(data);
     } else if (name === 'trafficConversionStore') {
       await syncTrafficStoreToPostgres(data);
     } else if (name === 'trafficWarningRules') {

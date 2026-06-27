@@ -984,6 +984,7 @@ export async function rebuildNewProductSnapshots({ snapshotDate = new Date().toI
   await runTemuMigrations();
   const client = await getAlibaba1688Pool().connect();
   const targetDate = dateText(snapshotDate);
+  snapshotReadCache.delete(targetDate);
   try {
     await client.query('BEGIN');
     const productFilter = productIds.length ? 'AND p.id = ANY($2::uuid[])' : '';
@@ -993,7 +994,7 @@ export async function rebuildNewProductSnapshots({ snapshotDate = new Date().toI
        FROM temu_products p
        WHERE p.first_online_at IS NOT NULL
          AND p.first_online_at::date <= $1::date
-         AND p.first_online_at::date >= ($1::date - INTERVAL '29 days')::date
+         AND p.first_online_at::date >= ($1::date - INTERVAL '59 days')::date
          ${productFilter}
        ORDER BY p.first_online_at DESC`,
       params,
@@ -1180,6 +1181,33 @@ function toCamel(row) {
   ]));
 }
 
+const snapshotReadCache = new Map();
+const SNAPSHOT_READ_CACHE_TTL_MS = 30000;
+
+async function ensureSnapshotForRead(snapshotDate) {
+  const key = dateText(snapshotDate);
+  if (!key) return;
+  const cached = snapshotReadCache.get(key);
+  if (cached?.promise) {
+    await cached.promise;
+    return;
+  }
+  if (cached?.rebuiltAt && Date.now() - cached.rebuiltAt < SNAPSHOT_READ_CACHE_TTL_MS) {
+    return;
+  }
+  const promise = rebuildNewProductSnapshots({ snapshotDate: key })
+    .then((result) => {
+      snapshotReadCache.set(key, { rebuiltAt: Date.now(), result });
+      return result;
+    })
+    .catch((error) => {
+      snapshotReadCache.delete(key);
+      throw error;
+    });
+  snapshotReadCache.set(key, { promise });
+  await promise;
+}
+
 export async function getNewProductDataCutoffDate() {
   await runTemuMigrations();
   const result = await queryTemuDatabase(
@@ -1196,13 +1224,10 @@ export async function getNewProductDataCutoffDate() {
   const latestAdDate = dateText(row.latest_ad_date);
   const latestSnapshotDate = dateText(row.latest_snapshot_date);
   const yesterday = dateText(row.yesterday);
-  if (latestProductDate) {
-    return latestProductDate;
-  }
-  if (latestOrderDate && latestAdDate) {
-    return latestOrderDate <= latestAdDate ? latestOrderDate : latestAdDate;
-  }
-  return latestOrderDate || latestAdDate || latestSnapshotDate || yesterday || new Date().toISOString().slice(0, 10);
+  const candidateDates = [latestProductDate, latestOrderDate, latestAdDate, latestSnapshotDate]
+    .filter(Boolean)
+    .sort();
+  return candidateDates.at(-1) || yesterday || new Date().toISOString().slice(0, 10);
 }
 
 async function resolveSnapshotDate(params = {}) {
@@ -1303,7 +1328,7 @@ function buildScopeWhere(params, startIndex = 1) {
 
 export async function getProducts(params = {}) {
   const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
-  await rebuildNewProductSnapshots({ snapshotDate });
+  await ensureSnapshotForRead(snapshotDate);
   const page = Math.max(1, Number(params.page || 1));
   const pageSize = Math.min(100, Math.max(1, Number(params.pageSize || 20)));
   const { where, values } = buildScopeWhere(params, 2);
@@ -1338,7 +1363,7 @@ export async function getProducts(params = {}) {
 
 export async function getBossDashboard(params = {}) {
   const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
-  await rebuildNewProductSnapshots({ snapshotDate });
+  await ensureSnapshotForRead(snapshotDate);
   const { where, values } = buildScopeWhere(params, 2);
   const condition = [`s.snapshot_date = $1`, ...where].join(' AND ');
   const recommendationScopeCondition = where.length ? `AND ${where.join(' AND ').replace(/\bs\./g, 'sr.')}` : '';
@@ -1418,7 +1443,7 @@ export async function getBossDashboard(params = {}) {
 
 export async function getOperatorOptions(params = {}) {
   const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
-  await rebuildNewProductSnapshots({ snapshotDate });
+  await ensureSnapshotForRead(snapshotDate);
   const { where, values } = buildScopeWhere(params, 2);
   const condition = [`s.snapshot_date = $1`, ...where, `COALESCE(NULLIF(s.operator_name, ''), '') <> ''`].join(' AND ');
   const result = await queryTemuDatabase(
@@ -1442,7 +1467,7 @@ export async function getOperatorOptions(params = {}) {
 
 export async function getStoreOptions(params = {}) {
   const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
-  await rebuildNewProductSnapshots({ snapshotDate });
+  await ensureSnapshotForRead(snapshotDate);
   const { where, values } = buildScopeWhere(params, 2);
   const condition = [`s.snapshot_date = $1`, ...where, `COALESCE(NULLIF(s.store_name, ''), '') <> ''`].join(' AND ');
   const result = await queryTemuDatabase(

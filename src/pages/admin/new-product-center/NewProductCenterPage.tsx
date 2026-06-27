@@ -259,13 +259,13 @@ function StorePerformance({ rows }: { rows: Array<Record<string, unknown>> }) {
 function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [snapshotDate, setSnapshotDate] = useState('');
-  const [storeName, setStoreName] = useState('');
+  const [storeId, setStoreId] = useState('');
   const [operatorName, setOperatorName] = useState('');
   const [tag, setTag] = useState('');
   const [isAdEnabled, setIsAdEnabled] = useState('');
   const [isOrdered, setIsOrdered] = useState('');
   const [appliedSnapshotDate, setAppliedSnapshotDate] = useState('');
-  const [appliedStoreName, setAppliedStoreName] = useState('');
+  const [appliedStoreId, setAppliedStoreId] = useState('');
   const [appliedOperatorName, setAppliedOperatorName] = useState('');
   const [appliedTag, setAppliedTag] = useState('');
   const [appliedIsAdEnabled, setAppliedIsAdEnabled] = useState('');
@@ -292,11 +292,11 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   useEffect(() => {
     const params: Record<string, string> = {};
     if (snapshotDate) params.snapshotDate = snapshotDate;
-    if (storeName) params.storeName = storeName;
+    if (storeId) params.storeId = storeId;
     newProductCenterDataSource.getOperatorOptions(buildQuery(params))
       .then((data) => setOperatorOptions(data.operators || []))
       .catch(() => setOperatorOptions([]));
-  }, [snapshotDate, storeName]);
+  }, [snapshotDate, storeId]);
 
   useEffect(() => {
     if (!operatorName) return;
@@ -326,34 +326,34 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   ), [operatorName, operatorStoreOptions, stores]);
 
   useEffect(() => {
-    if (!storeName || visibleStoreOptions.length === 0) return;
-    const exists = visibleStoreOptions.some((store) => store.storeName === storeName);
+    if (!storeId || visibleStoreOptions.length === 0) return;
+    const exists = visibleStoreOptions.some((store) => store.id === storeId);
     if (!exists) {
-      setStoreName('');
+      setStoreId('');
       setPage(1);
     }
-  }, [storeName, visibleStoreOptions]);
+  }, [storeId, visibleStoreOptions]);
 
   const baseParams = useMemo(() => {
     const params: Record<string, string> = { page: String(page), pageSize: '50' };
     if (appliedSnapshotDate) params.snapshotDate = appliedSnapshotDate;
-    if (appliedStoreName) params.storeName = appliedStoreName;
+    if (appliedStoreId) params.storeId = appliedStoreId;
     if (appliedOperatorName) params.operatorName = appliedOperatorName;
     if (appliedTag) params.productTag = appliedTag;
     if (appliedIsAdEnabled) params.isAdEnabled = appliedIsAdEnabled;
     if (appliedIsOrdered) params.isOrdered = appliedIsOrdered;
     return { ...params, ...quickParams };
-  }, [appliedIsAdEnabled, appliedIsOrdered, appliedOperatorName, appliedSnapshotDate, appliedStoreName, appliedTag, page, quickParams]);
+  }, [appliedIsAdEnabled, appliedIsOrdered, appliedOperatorName, appliedSnapshotDate, appliedStoreId, appliedTag, page, quickParams]);
 
   useEffect(() => {
     const dashboardParams: Record<string, string> = {};
     if (appliedSnapshotDate) dashboardParams.snapshotDate = appliedSnapshotDate;
-    if (appliedStoreName) dashboardParams.storeName = appliedStoreName;
+    if (appliedStoreId) dashboardParams.storeId = appliedStoreId;
     if (appliedOperatorName) dashboardParams.operatorName = appliedOperatorName;
     newProductCenterDataSource.getOperatorDashboard(buildQuery(dashboardParams))
       .then(setDashboard)
       .catch((error) => setMessage(error instanceof Error ? error.message : String(error)));
-  }, [appliedOperatorName, appliedSnapshotDate, appliedStoreName]);
+  }, [appliedOperatorName, appliedSnapshotDate, appliedStoreId]);
 
   useEffect(() => {
     newProductCenterDataSource.getProducts(buildQuery(baseParams))
@@ -364,13 +364,13 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   useEffect(() => {
     const countBase: Record<string, string> = {};
     if (appliedSnapshotDate) countBase.snapshotDate = appliedSnapshotDate;
-    if (appliedStoreName) countBase.storeName = appliedStoreName;
+    if (appliedStoreId) countBase.storeId = appliedStoreId;
     if (appliedOperatorName) countBase.operatorName = appliedOperatorName;
     Promise.all(QUICK_FILTERS.map((filter) => newProductCenterDataSource.getProducts(buildQuery({ ...countBase, ...filter.params, pageSize: '1' })).then((data) => [filter.key, data.total] as const).catch(() => [filter.key, 0] as const)))
       .then((pairs) => setCounts(Object.fromEntries(pairs)));
     Promise.all(TAGS.map((item) => newProductCenterDataSource.getProducts(buildQuery({ ...countBase, productTag: item, pageSize: '1' })).then((data) => [item, data.total] as const).catch(() => [item, 0] as const)))
       .then((pairs) => setCounts((current) => ({ ...current, ...Object.fromEntries(pairs) })));
-  }, [appliedOperatorName, appliedSnapshotDate, appliedStoreName]);
+  }, [appliedOperatorName, appliedSnapshotDate, appliedStoreId]);
 
   useEffect(() => {
     if (quickKey === 'pending' && counts.pending === 0 && counts.all > 0) {
@@ -381,7 +381,7 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   const displayedDate = appliedSnapshotDate || products.dataCutoffDate || dashboard?.dataCutoffDate || products.snapshotDate || dashboard?.snapshotDate || '';
   const totalPages = Math.max(1, Math.ceil((products.total || 0) / 50));
   const hasPendingFilterChanges = snapshotDate !== appliedSnapshotDate ||
-    storeName !== appliedStoreName ||
+    storeId !== appliedStoreId ||
     operatorName !== appliedOperatorName ||
     tag !== appliedTag ||
     isAdEnabled !== appliedIsAdEnabled ||
@@ -389,7 +389,7 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
 
   const applyWorkbenchFilters = () => {
     setAppliedSnapshotDate(snapshotDate);
-    setAppliedStoreName(storeName);
+    setAppliedStoreId(storeId);
     setAppliedOperatorName(operatorName);
     setAppliedTag(tag);
     setAppliedIsAdEnabled(isAdEnabled);
@@ -399,13 +399,13 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
 
   const resetWorkbenchFilters = () => {
     setSnapshotDate('');
-    setStoreName('');
+    setStoreId('');
     setOperatorName('');
     setTag('');
     setIsAdEnabled('');
     setIsOrdered('');
     setAppliedSnapshotDate('');
-    setAppliedStoreName('');
+    setAppliedStoreId('');
     setAppliedOperatorName('');
     setAppliedTag('');
     setAppliedIsAdEnabled('');
@@ -423,9 +423,9 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   return (
     <section className="npc-page npc-workbench-page">
       <div className="npc-toolbar npc-workbench-toolbar">
-        <label className="npc-primary-filter">店铺<select value={storeName} onChange={(event) => { setStoreName(event.target.value); setPage(1); }}><option value="">{operatorName ? '所有店铺' : '全部店铺'}</option>{visibleStoreOptions.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}</select></label>
+        <label className="npc-primary-filter">店铺<select value={storeId} onChange={(event) => { setStoreId(event.target.value); setPage(1); }}><option value="">{operatorName ? '所有店铺' : '全部店铺'}</option>{visibleStoreOptions.map((store) => <option key={store.id || store.storeName} value={store.id || ''}>{store.storeName}</option>)}</select></label>
         <label>统计日期<input type="date" value={snapshotDate || displayedDate} onChange={(event) => { setSnapshotDate(event.target.value); setPage(1); }} /></label>
-        <label>运营<select value={operatorName} onChange={(event) => { setOperatorName(event.target.value); setPage(1); }}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorId || operator.operatorName} value={operator.operatorName}>{operator.operatorName}{storeName ? '' : `（${operator.storeCount || 0}店）`}</option>)}</select></label>
+        <label>运营<select value={operatorName} onChange={(event) => { setOperatorName(event.target.value); setPage(1); }}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorId || operator.operatorName} value={operator.operatorName}>{operator.operatorName}{storeId ? '' : `（${operator.storeCount || 0}店）`}</option>)}</select></label>
         <label>商品标签<select value={tag} onChange={(event) => { setTag(event.target.value); setPage(1); }}><option value="">全部</option>{TAGS.map((item) => <option key={item}>{item}</option>)}</select></label>
         <label>广告<select value={isAdEnabled} onChange={(event) => { setIsAdEnabled(event.target.value); setPage(1); }}><option value="">全部</option><option value="true">已开广告</option><option value="false">未开广告</option></select></label>
         <label>出单<select value={isOrdered} onChange={(event) => { setIsOrdered(event.target.value); setPage(1); }}><option value="">全部</option><option value="true">已出单</option><option value="false">未出单</option></select></label>

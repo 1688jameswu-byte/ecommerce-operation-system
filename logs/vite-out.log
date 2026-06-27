@@ -30,3 +30,29 @@
 [2m21:10:07[22m [36m[1m[vite][22m[39m server restarted.
 [2m21:10:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
 [2m21:11:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[order-import-save] {
+  incomingShape: 'batches',
+  existingBatchCount: 39,
+  removedBatchCount: 0,
+  incomingBatchCount: 1,
+  finalBatchCount: 40,
+  existingDataCount: 4411,
+  removedDataCount: 0,
+  newDataCount: 96,
+  finalDataCount: 4507,
+  affectedStores: [ 'A店' ],
+  affectedDates: [ '2026-06-27' ]
+}
+[2m21:27:16[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m21:27:16[22m [36m[1m[vite][22m[39m server restarted.
+[2m21:32:08[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m21:34:57[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m21:34:58[22m [36m[1m[vite][22m[39m server restarted.
+[2m21:47:30[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m21:47:30[22m [36m[1m[vite][22m[39m server restarted.
+[2m21:51:55[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m21:51:55[22m [36m[1m[vite][22m[39m server restarted.
+[2m21:52:05[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m21:52:06[22m [36m[1m[vite][22m[39m server restarted.
+[2m21:52:19[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m21:52:20[22m [36m[1m[vite][22m[39m server restarted.
