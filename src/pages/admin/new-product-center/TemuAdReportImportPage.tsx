@@ -403,8 +403,12 @@ export default function TemuAdReportImportPage() {
           <header className="npc-panel-header">
             <div>
               <span className="temu-import-step-label">步骤 3</span>
-              <h2>字段映射与预览</h2>
-              <p>{preview.fileName}，共 {preview.totalRows} 行，预览前 20 行。</p>
+              <h2>当前上传文件预览</h2>
+              <p>
+                {preview.fileName}，共 {preview.totalRows} 行，预览前 20 行。字段映射只用于本次导入，
+                切换查看店铺或查看日期不会改变这里的内容。
+              </p>
+              <p>本次导入店铺：{importStoreName || '-'}，广告日期：{importReportDate || '-'}</p>
             </div>
             <button type="button" disabled={confirmLoading || !reportDate} onClick={confirm}>{confirmLoading ? '导入中...' : '按当前映射重新导入'}</button>
           </header>
