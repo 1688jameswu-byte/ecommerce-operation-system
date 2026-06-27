@@ -172,7 +172,7 @@ function nullableNumber(value) {
 
 function dateText(value) {
   if (value instanceof Date) {
-    return value.toISOString().slice(0, 10);
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
   }
   if (typeof value === 'number') {
     const parsed = XLSX.SSF.parse_date_code(value);
@@ -1129,16 +1129,21 @@ export async function getNewProductDataCutoffDate() {
   await runTemuMigrations();
   const result = await queryTemuDatabase(
     `SELECT
+       (SELECT MAX(first_online_at)::date FROM temu_products WHERE first_online_at IS NOT NULL) AS latest_product_date,
        (SELECT MAX(order_date)::date FROM temu_order_items WHERE is_valid_order = TRUE AND is_cancelled = FALSE) AS latest_order_date,
        (SELECT MAX(report_date)::date FROM temu_ad_product_daily) AS latest_ad_date,
        (SELECT MAX(snapshot_date)::date FROM temu_new_product_daily_snapshot) AS latest_snapshot_date,
        (CURRENT_DATE - INTERVAL '1 day')::date AS yesterday`,
   );
   const row = result.rows[0] || {};
+  const latestProductDate = dateText(row.latest_product_date);
   const latestOrderDate = dateText(row.latest_order_date);
   const latestAdDate = dateText(row.latest_ad_date);
   const latestSnapshotDate = dateText(row.latest_snapshot_date);
   const yesterday = dateText(row.yesterday);
+  if (latestProductDate) {
+    return latestProductDate;
+  }
   if (latestOrderDate && latestAdDate) {
     return latestOrderDate <= latestAdDate ? latestOrderDate : latestAdDate;
   }
