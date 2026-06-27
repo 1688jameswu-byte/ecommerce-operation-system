@@ -83,8 +83,8 @@ export default function TemuProductInfoImportPage() {
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
 
-  const refreshOverview = async (page = recordsPage) => {
-    if (!importStoreName) {
+  const refreshOverview = async (page = recordsPage, nextStoreName = storeName, nextFilters = filters) => {
+    if (!nextStoreName) {
       setOverview({ batches: [], records: [] });
       return;
     }
@@ -92,8 +92,8 @@ export default function TemuProductInfoImportPage() {
       const [status, records] = await Promise.all([
         newProductCenterDataSource.getTemuStorageStatus(),
         newProductCenterDataSource.getProductImportRecords(page, PRODUCT_RECORD_PAGE_SIZE, {
-          storeName,
-          ...filters,
+          storeName: nextStoreName,
+          ...nextFilters,
         }),
       ]);
       setStorageStatus(status);
@@ -128,7 +128,7 @@ export default function TemuProductInfoImportPage() {
   }, []);
 
   useEffect(() => {
-    void refreshOverview(1);
+    void refreshOverview(1, storeName, filters);
   }, [storeName, filters]);
 
   const onFile = async (file?: File) => {
@@ -255,7 +255,12 @@ export default function TemuProductInfoImportPage() {
         </header>
         <div className="npc-mapping-grid temu-import-filter-grid">
           <label>查看店铺
-            <select value={storeName} onChange={(event) => { setStoreName(event.target.value); setRecordsPage(1); }}>
+            <select value={storeName} onChange={(event) => {
+              const nextStoreName = event.target.value;
+              setStoreName(nextStoreName);
+              setRecordsPage(1);
+              void refreshOverview(1, nextStoreName, filters);
+            }}>
               <option value="">请选择店铺</option>
               {stores.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}
             </select>
