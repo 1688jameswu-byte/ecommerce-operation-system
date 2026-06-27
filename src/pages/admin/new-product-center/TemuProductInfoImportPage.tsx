@@ -372,27 +372,45 @@ export default function TemuProductInfoImportPage() {
         <h2>最近商品导入批次</h2>
         <div className="npc-table-wrap">
           <table>
-            <thead><tr><th>批次ID</th><th>导入类型</th><th>店铺</th><th>数据日期</th><th>文件名</th><th>总行数</th><th>成功行数</th><th>失败行数</th><th>匹配成功数</th><th>未匹配数</th><th>导入人</th><th>导入时间</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>批次</th><th>店铺 / 文件</th><th>导入结果</th><th>匹配结果</th><th>导入人 / 时间</th><th>状态</th><th>操作</th></tr></thead>
             <tbody>
               {overview.batches.map((row) => (
                 <tr key={String(row.id)}>
-                  <td>{String(row.id || '-').slice(0, 8)}</td>
-                  <td>{String(row.importType || '-')}</td>
-                  <td>{String(row.storeName || storeName || '-')}</td>
-                  <td>{String(row.reportDate || '-').slice(0, 10)}</td>
-                  <td>{String(row.fileName || '-')}</td>
-                  <td>{String(row.totalRows ?? 0)}</td>
-                  <td>{String(row.successRows ?? 0)}</td>
-                  <td>{String(row.errorRows ?? 0)}</td>
-                  <td>{String(row.successRows ?? 0)}</td>
-                  <td>{String(row.errorRows ?? 0)}</td>
-                  <td>{String(row.uploadedByName || row.uploadedBy || '-')}</td>
-                  <td>{formatShanghaiTime(row.finishedAt || row.createdAt)}</td>
-                  <td>{String(row.status || '-')}</td>
-                  <td><button type="button" onClick={() => window.alert(`批次 ${String(row.id)}\\n文件：${String(row.fileName || '-')}`)}>查看明细</button><button type="button" onClick={() => window.alert(row.errorRows ? '失败行已在上方失败行区域展示最近一次导入结果。' : '该批次无失败行。')}>查看失败行</button><button type="button" onClick={() => void newProductCenterDataSource.rebuildSnapshot(new Date().toISOString().slice(0, 10)).then(() => refreshOverview(recordsPage))}>重建快照</button></td>
+                  <td>
+                    <strong>{String(row.id || '-').slice(0, 8)}</strong>
+                    <small>{String(row.importType || 'product_info')}</small>
+                  </td>
+                  <td>
+                    <strong>{String(row.storeName || storeName || '-')}</strong>
+                    <small title={String(row.fileName || '-')}>{String(row.fileName || '-')}</small>
+                  </td>
+                  <td>
+                    <strong>{String(row.successRows ?? 0)} / {String(row.totalRows ?? 0)}</strong>
+                    <small>失败 {String(row.errorRows ?? 0)} 行</small>
+                  </td>
+                  <td>
+                    <strong>{String(row.successRows ?? 0)} 匹配</strong>
+                    <small>未匹配 {String(row.errorRows ?? 0)}</small>
+                  </td>
+                  <td>
+                    <strong>{String(row.uploadedByName || row.uploadedBy || '-')}</strong>
+                    <small>{formatShanghaiTime(row.finishedAt || row.createdAt)}</small>
+                  </td>
+                  <td>
+                    <span className={`temu-import-status-badge status-${String(row.status || '').toLowerCase()}`}>
+                      {String(row.status || '-')}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="temu-import-batch-actions">
+                      <button type="button" onClick={() => window.alert(`批次 ${String(row.id)}\\n文件：${String(row.fileName || '-')}`)}>明细</button>
+                      <button type="button" onClick={() => window.alert(row.errorRows ? '失败行已在上方失败行区域展示最近一次导入结果。' : '该批次无失败行。')}>失败行</button>
+                      <button type="button" onClick={() => void newProductCenterDataSource.rebuildSnapshot(new Date().toISOString().slice(0, 10)).then(() => refreshOverview(recordsPage))}>重建快照</button>
+                    </div>
+                  </td>
                 </tr>
               ))}
-              {overview.batches.length === 0 && <tr><td colSpan={14}>暂无商品导入批次</td></tr>}
+              {overview.batches.length === 0 && <tr><td colSpan={7}>暂无商品导入批次</td></tr>}
             </tbody>
           </table>
         </div>

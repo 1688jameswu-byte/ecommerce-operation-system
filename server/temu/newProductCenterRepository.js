@@ -780,6 +780,14 @@ export async function importAdRows({ rows = [], mapping = {}, fileName = '', rep
   try {
     await client.query('BEGIN');
     const owner = fallbackStoreName ? await resolveStoreAndOperator(client, fallbackStoreName, reportDate) : {};
+    if (!owner.storeId) {
+      throw new Error(fallbackStoreName ? `未匹配到 TEMU 店铺：${fallbackStoreName}` : '缺少店铺：广告数据必须在导入页选择店铺');
+    }
+    await client.query(
+      `DELETE FROM temu_ad_product_daily
+       WHERE store_id = $1 AND report_date = $2::date`,
+      [owner.storeId, dateText(reportDate)],
+    );
     const batchId = await createImportBatch(client, {
       sourceBatchId,
       importType: 'ad_product_daily',
@@ -1199,6 +1207,7 @@ function buildScopeWhere(params, startIndex = 1) {
     where.push(sql.replace('?', `$${startIndex + values.length - 1}`));
   };
   if (params.storeId) push('s.store_id = ?', params.storeId);
+  if (params.storeName) push('s.store_name = ?', params.storeName);
   if (Array.isArray(params.storeIds)) {
     if (params.storeIds.length === 0) {
       where.push('1 = 0');
@@ -1207,7 +1216,16 @@ function buildScopeWhere(params, startIndex = 1) {
       where.push(`s.store_id = ANY($${startIndex + values.length - 1}::uuid[])`);
     }
   }
+  if (Array.isArray(params.storeNames)) {
+    if (params.storeNames.length === 0) {
+      where.push('1 = 0');
+    } else {
+      values.push(params.storeNames);
+      where.push(`s.store_name = ANY($${startIndex + values.length - 1}::text[])`);
+    }
+  }
   if (params.operatorId) push('s.operator_id = ?', params.operatorId);
+  if (params.operatorName) push('s.operator_name = ?', params.operatorName);
   if (params.categoryName) push('s.category_name = ?', params.categoryName);
   if (params.productTag) push('s.product_tag = ?', params.productTag);
   if (params.isAdEnabled !== undefined) push('s.is_ad_enabled = ?', params.isAdEnabled === 'true' || params.isAdEnabled === true);
@@ -1234,7 +1252,16 @@ export async function getProducts(params = {}) {
     `SELECT s.*, COUNT(*) OVER() AS total
      FROM temu_new_product_daily_snapshot s
      WHERE ${condition}
-     ORDER BY s.first_online_at DESC, s.updated_at DESC
+     ORDER BY CASE s.product_tag
+       WHEN '数据未匹配' THEN 0
+       WHEN '烧钱无单' THEN 1
+       WHEN '高费比新品' THEN 2
+       WHEN '有流量无转化' THEN 3
+       WHEN '加购未成交' THEN 4
+       WHEN '低曝光新品' THEN 5
+       WHEN '高潜新品' THEN 6
+       ELSE 9
+     END, s.first_online_at DESC, s.updated_at DESC
      LIMIT $${values.length + 2} OFFSET $${values.length + 3}`,
     [snapshotDate, ...values, pageSize, (page - 1) * pageSize],
   );
@@ -1264,7 +1291,14 @@ export async function getBossDashboard(params = {}) {
        COALESCE(SUM(ad_spend),0) AS ad_spend,
        COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount,
        COUNT(*) FILTER (WHERE product_tag IN ('烧钱无单','高费比新品')) AS loss_new_count,
-       COUNT(*) FILTER (WHERE product_tag = '高潜新品') AS high_potential_count
+       COUNT(*) FILTER (WHERE product_tag = '高潜新品') AS high_potential_count,
+       COUNT(*) FILTER (WHERE product_tag = '数据未匹配') AS unmatched_count,
+       (
+         SELECT COUNT(*)
+         FROM temu_ad_recommendations r
+         WHERE r.status = 'PENDING'
+           AND r.recommendation_date = $1
+       ) AS pending_recommendation_count
      FROM temu_new_product_daily_snapshot s
      WHERE ${condition}`,
     [snapshotDate, ...values],
@@ -1305,6 +1339,8 @@ export async function getBossDashboard(params = {}) {
       roas: safeDivide(row.ad_sales_amount, row.ad_spend),
       lossNewCount: Number(row.loss_new_count || 0),
       highPotentialCount: Number(row.high_potential_count || 0),
+      unmatchedCount: Number(row.unmatched_count || 0),
+      pendingRecommendationCount: Number(row.pending_recommendation_count || 0),
     },
     operatorRanking: operatorRanking.rows.map(toCamel),
     storeRanking: storeRanking.rows.map(toCamel),
@@ -1328,6 +1364,7 @@ export async function getRecommendations(params = {}) {
   };
   if (params.recommendationDate) push('r.recommendation_date = ?', params.recommendationDate);
   if (params.storeId) push('r.store_id = ?', params.storeId);
+  if (params.storeName) push('r.store_name = ?', params.storeName);
   if (Array.isArray(params.storeIds)) {
     if (params.storeIds.length === 0) {
       where.push('1 = 0');
@@ -1336,7 +1373,16 @@ export async function getRecommendations(params = {}) {
       where.push(`r.store_id = ANY($${values.length}::uuid[])`);
     }
   }
+  if (Array.isArray(params.storeNames)) {
+    if (params.storeNames.length === 0) {
+      where.push('1 = 0');
+    } else {
+      values.push(params.storeNames);
+      where.push(`r.store_name = ANY($${values.length}::text[])`);
+    }
+  }
   if (params.operatorId) push('r.operator_id = ?', params.operatorId);
+  if (params.operatorName) push('r.operator_name = ?', params.operatorName);
   if (params.recommendationType) push('r.recommendation_type = ?', params.recommendationType);
   if (params.priority) push('r.priority = ?', params.priority);
   if (params.status) push('r.status = ?', params.status);

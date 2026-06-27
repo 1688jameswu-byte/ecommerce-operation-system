@@ -47,6 +47,7 @@ const operatorMenus = [
   menuKeys.orderSalesImport,
   menuKeys.trafficConversionImport,
   menuKeys.newProductCenter,
+  menuKeys.newProductWorkbench,
   menuKeys.newProductOperatorDashboard,
   menuKeys.newProductProducts,
   menuKeys.newProductAdRecommendations,

@@ -9188,6 +9188,205 @@
   background: rgba(15, 23, 42, 0.6);
 }
 
+.npc-workbench-page {
+  gap: 18px;
+}
+
+.npc-workbench-toolbar {
+  align-items: end;
+}
+
+.npc-health-panel {
+  border-color: rgba(34, 197, 94, 0.32);
+  background: rgba(6, 78, 59, 0.14);
+}
+
+.npc-health-panel.is-warning {
+  border-color: rgba(245, 158, 11, 0.48);
+  background: rgba(120, 53, 15, 0.18);
+}
+
+.npc-health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.npc-health-grid span {
+  display: grid;
+  gap: 4px;
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: rgba(15, 23, 42, 0.42);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.npc-health-grid strong {
+  color: #f8fafc;
+  font-size: 16px;
+}
+
+.npc-task-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.npc-task-groups section {
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  background: rgba(15, 23, 42, 0.52);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.npc-task-groups h3 {
+  margin: 0 0 10px;
+  color: #e0f2fe;
+  font-size: 15px;
+}
+
+.npc-task-groups button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  background: transparent;
+  color: #dbeafe;
+  padding: 9px 0;
+  cursor: pointer;
+}
+
+.npc-task-groups button:last-child {
+  border-bottom: 0;
+}
+
+.npc-task-groups button strong {
+  min-width: 34px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.32);
+  color: #bfdbfe;
+  padding: 3px 8px;
+}
+
+.npc-quick-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.npc-quick-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.42);
+  background: rgba(15, 23, 42, 0.72);
+  color: #dbeafe;
+  border-radius: 999px;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+
+.npc-quick-filters button.is-active {
+  border-color: rgba(250, 204, 21, 0.65);
+  color: #fde68a;
+  background: rgba(113, 63, 18, 0.26);
+}
+
+.npc-quick-filters strong {
+  color: inherit;
+}
+
+.npc-mini-list {
+  display: grid;
+  gap: 8px;
+}
+
+.npc-mini-list a,
+.npc-mini-list > span {
+  display: grid;
+  gap: 4px;
+  color: #dbeafe;
+  text-decoration: none;
+  border: 1px solid rgba(59, 130, 246, 0.24);
+  background: rgba(15, 23, 42, 0.46);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.npc-mini-list span {
+  color: #93c5fd;
+  font-size: 12px;
+}
+
+.npc-diagnosis-table {
+  table-layout: fixed;
+  min-width: 2450px;
+}
+
+.npc-diagnosis-table th,
+.npc-diagnosis-table td {
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.npc-diagnosis-table th:nth-child(1),
+.npc-diagnosis-table td:nth-child(1) {
+  width: 220px;
+}
+
+.npc-diagnosis-table th:nth-child(4),
+.npc-diagnosis-table td:nth-child(4) {
+  width: 190px;
+}
+
+.npc-diagnosis-table th:nth-child(19),
+.npc-diagnosis-table td:nth-child(19),
+.npc-diagnosis-table th:nth-child(20),
+.npc-diagnosis-table td:nth-child(20) {
+  width: 260px;
+}
+
+.npc-priority {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
+}
+
+.npc-priority.priority-高 {
+  border-color: rgba(248, 113, 113, 0.5);
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.22);
+}
+
+.npc-priority.priority-中 {
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fde68a;
+  background: rgba(120, 53, 15, 0.22);
+}
+
+.npc-priority.priority-机会 {
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #bbf7d0;
+  background: rgba(20, 83, 45, 0.24);
+}
+
+.npc-empty-hint {
+  margin: 10px 0 0;
+  color: #93c5fd;
+}
+
 .temu-product-import-page,
 .temu-ad-import-page {
   gap: 18px;
@@ -9520,7 +9719,119 @@
 }
 
 .temu-import-batch-panel table {
-  min-width: 760px;
+  min-width: 1040px;
+  table-layout: fixed;
+}
+
+.temu-import-batch-panel th,
+.temu-import-batch-panel td {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.temu-import-batch-panel th:nth-child(1),
+.temu-import-batch-panel td:nth-child(1) {
+  width: 120px;
+}
+
+.temu-import-batch-panel th:nth-child(2),
+.temu-import-batch-panel td:nth-child(2) {
+  width: 280px;
+}
+
+.temu-import-batch-panel th:nth-child(3),
+.temu-import-batch-panel td:nth-child(3),
+.temu-import-batch-panel th:nth-child(4),
+.temu-import-batch-panel td:nth-child(4) {
+  width: 130px;
+}
+
+.temu-import-batch-panel th:nth-child(5),
+.temu-import-batch-panel td:nth-child(5) {
+  width: 180px;
+}
+
+.temu-import-batch-panel th:nth-child(6),
+.temu-import-batch-panel td:nth-child(6) {
+  width: 110px;
+}
+
+.temu-import-batch-panel th:nth-child(7),
+.temu-import-batch-panel td:nth-child(7) {
+  width: 220px;
+}
+
+.temu-import-batch-panel td strong {
+  display: block;
+  color: #eff6ff;
+  font-size: 14px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.temu-import-batch-panel td small {
+  display: block;
+  margin-top: 3px;
+  color: #93c5fd;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.temu-import-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.38);
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.temu-import-status-badge.status-success {
+  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(20, 83, 45, 0.3);
+  color: #bbf7d0;
+}
+
+.temu-import-status-badge.status-partial_success {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(120, 53, 15, 0.26);
+  color: #fde68a;
+}
+
+.temu-import-status-badge.status-failed {
+  border-color: rgba(248, 113, 113, 0.5);
+  background: rgba(127, 29, 29, 0.24);
+  color: #fecaca;
+}
+
+.temu-import-batch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.temu-import-batch-panel .temu-import-batch-actions button {
+  margin: 0;
+  min-height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  background: rgba(30, 64, 175, 0.35);
+  color: #dbeafe;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.temu-import-batch-panel .temu-import-batch-actions button:hover {
+  background: rgba(37, 99, 235, 0.48);
 }
 
 .temu-ad-record-panel {

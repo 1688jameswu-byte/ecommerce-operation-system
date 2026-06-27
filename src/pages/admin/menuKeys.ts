@@ -14,6 +14,7 @@ export const menuKeys = {
   accountManagement: 'account-management',
   newProductCenter: 'new-product-center',
   newProductBossDashboard: 'new-product-boss-dashboard',
+  newProductWorkbench: 'new-product-workbench',
   newProductOperatorDashboard: 'new-product-operator-dashboard',
   newProductProducts: 'new-product-products',
   newProductAdRecommendations: 'new-product-ad-recommendations',
@@ -79,8 +80,7 @@ export const menuGroups: { key: MenuKey; label: string; children: { key: MenuKey
     label: '新品中心',
     children: [
       { key: menuKeys.newProductBossDashboard, label: '老板总览' },
-      { key: menuKeys.newProductOperatorDashboard, label: '运营首页' },
-      { key: menuKeys.newProductProducts, label: '新品列表' },
+      { key: menuKeys.newProductWorkbench, label: '新品工作台' },
       { key: menuKeys.newProductAdRecommendations, label: '广告建议中心' },
     ],
   },
