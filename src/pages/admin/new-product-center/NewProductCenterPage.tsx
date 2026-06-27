@@ -103,6 +103,8 @@ function MetricCards({ summary }: { summary: Record<string, number | null> }) {
     ['近7天出单率', formatRatio(summary.recent7OrderedRate)],
     ['近30天新品', summary.recent30NewCount],
     ['近30天出单率', formatRatio(summary.recent30OrderedRate)],
+    ['近60天出单数', summary.recent60OrderedCount ?? 0],
+    ['近60天出单率', formatRatio(summary.recent60OrderedRate)],
     ['广告花费', formatMoney(summary.adSpend)],
     ['广告销售额', formatMoney(summary.adSalesAmount)],
     ['ROAS', summary.roas === null ? '-' : Number(summary.roas).toFixed(2)],
@@ -172,6 +174,7 @@ function DashboardView() {
 
 function DataHealthPanel({ snapshotDate, dataCutoffDate, storageStatus, productTotal }: { snapshotDate: string; dataCutoffDate?: string; storageStatus: TemuStorageStatus | null; productTotal: number }) {
   const isLate = Boolean(snapshotDate && dataCutoffDate && snapshotDate > dataCutoffDate);
+  const showDataCutoffDate = Boolean(dataCutoffDate && dataCutoffDate !== snapshotDate);
   return (
     <article className={`excel-record-panel npc-panel npc-health-panel ${isLate ? 'is-warning' : ''}`}>
       <header className="npc-panel-header">
@@ -179,9 +182,9 @@ function DataHealthPanel({ snapshotDate, dataCutoffDate, storageStatus, productT
         <span>{isLate ? '统计日期晚于数据截止日' : '数据上下文正常'}</span>
       </header>
       <div className="npc-health-grid">
-        <span>当前统计日期<strong>{snapshotDate || '-'}</strong></span>
-        <span>数据截止日期<strong>{dataCutoffDate || '-'}</strong></span>
-        <span>商品基础数据<strong>{storageStatus?.counts?.products ?? 0}</strong></span>
+        <span>统计日期<strong>{snapshotDate || dataCutoffDate || '-'}</strong></span>
+        {showDataCutoffDate && <span>数据截止日期<strong>{dataCutoffDate || '-'}</strong></span>}
+        <span>商品数<strong>{storageStatus?.counts?.products ?? 0}</strong></span>
         <span>SKU 数据<strong>{storageStatus?.counts?.skus ?? 0}</strong></span>
         <span>广告日报<strong>{storageStatus?.counts?.ads ?? 0}</strong></span>
         <span>当前筛选新品<strong>{productTotal}</strong></span>
