@@ -7,13 +7,14 @@ function formatMoney(value: unknown) {
   return `¥ ${number.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}`;
 }
 
+function formatAdNumber(value: unknown) {
+  const number = Number(value || 0);
+  return number.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+}
+
 function formatRatio(value: unknown) {
   if (value === null || value === undefined || value === '') return '-';
   return `${(Number(value) * 100).toFixed(2)}%`;
-}
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function MetricCards({ summary }: { summary: Record<string, number | null> }) {
@@ -58,21 +59,25 @@ function RankingTable({ title, rows }: { title: string; rows: Array<Record<strin
 }
 
 function DashboardView({ mode }: { mode: 'boss' | 'operator' }) {
-  const [snapshotDate, setSnapshotDate] = useState(today());
+  const [snapshotDate, setSnapshotDate] = useState('');
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const query = `?snapshotDate=${snapshotDate}`;
+    const query = snapshotDate ? `?snapshotDate=${snapshotDate}` : '';
     const loader = mode === 'boss' ? newProductCenterDataSource.getBossDashboard(query) : newProductCenterDataSource.getOperatorDashboard(query);
     loader.then(setData).catch((error) => setMessage(error instanceof Error ? error.message : String(error)));
   }, [mode, snapshotDate]);
 
+  const displayedDate = snapshotDate || data?.dataCutoffDate || data?.snapshotDate || '';
+
   return (
     <section className="npc-page">
       <div className="npc-toolbar">
-        <label>统计日期<input type="date" value={snapshotDate} onChange={(event) => setSnapshotDate(event.target.value)} /></label>
-        <button type="button" onClick={() => newProductCenterDataSource.rebuildSnapshot(snapshotDate).then(() => window.location.reload())}>重算快照</button>
+        <label>统计日期<input type="date" value={displayedDate} onChange={(event) => setSnapshotDate(event.target.value)} /></label>
+        <span className="npc-date-badge">数据截止 {data?.dataCutoffDate || displayedDate || '-'}</span>
+        {snapshotDate && <button type="button" onClick={() => setSnapshotDate('')}>使用最新截止日</button>}
+        <button type="button" disabled={!displayedDate} onClick={() => newProductCenterDataSource.rebuildSnapshot(displayedDate).then(() => window.location.reload())}>重算快照</button>
       </div>
       {message && <div className="excel-import-error">{message}</div>}
       {data && <MetricCards summary={data.summary} />}
@@ -102,13 +107,14 @@ function RecommendationStrip() {
 }
 
 function ProductsView() {
-  const [snapshotDate, setSnapshotDate] = useState(today());
+  const [snapshotDate, setSnapshotDate] = useState('');
   const [tag, setTag] = useState('');
   const [isAdEnabled, setIsAdEnabled] = useState('');
   const [isOrdered, setIsOrdered] = useState('');
-  const [data, setData] = useState<{ records: ProductSnapshot[]; total: number }>({ records: [], total: 0 });
+  const [data, setData] = useState<{ records: ProductSnapshot[]; total: number; snapshotDate?: string; dataCutoffDate?: string }>({ records: [], total: 0 });
   const query = useMemo(() => {
-    const params = new URLSearchParams({ snapshotDate, pageSize: '50' });
+    const params = new URLSearchParams({ pageSize: '50' });
+    if (snapshotDate) params.set('snapshotDate', snapshotDate);
     if (tag) params.set('productTag', tag);
     if (isAdEnabled) params.set('isAdEnabled', isAdEnabled);
     if (isOrdered) params.set('isOrdered', isOrdered);
@@ -117,10 +123,13 @@ function ProductsView() {
   useEffect(() => {
     newProductCenterDataSource.getProducts(query).then(setData).catch(() => setData({ records: [], total: 0 } as any));
   }, [query]);
+  const displayedDate = snapshotDate || data.dataCutoffDate || data.snapshotDate || '';
   return (
     <section className="npc-page">
       <div className="npc-toolbar">
-        <label>统计日期<input type="date" value={snapshotDate} onChange={(event) => setSnapshotDate(event.target.value)} /></label>
+        <label>统计日期<input type="date" value={displayedDate} onChange={(event) => setSnapshotDate(event.target.value)} /></label>
+        <span className="npc-date-badge">数据截止 {data.dataCutoffDate || displayedDate || '-'}</span>
+        {snapshotDate && <button type="button" onClick={() => setSnapshotDate('')}>使用最新截止日</button>}
         <label>商品标签<select value={tag} onChange={(event) => setTag(event.target.value)}><option value="">全部</option>{['高潜新品','烧钱无单','有流量无转化','加购未成交','低曝光新品','高费比新品','自然起量','普通新品'].map((item) => <option key={item}>{item}</option>)}</select></label>
         <label>广告<select value={isAdEnabled} onChange={(event) => setIsAdEnabled(event.target.value)}><option value="">全部</option><option value="true">已开广告</option><option value="false">未开广告</option></select></label>
         <label>出单<select value={isOrdered} onChange={(event) => setIsOrdered(event.target.value)}><option value="">全部</option><option value="true">已出单</option><option value="false">未出单</option></select></label>
@@ -134,24 +143,46 @@ function ProductTable({ records, total }: { records: ProductSnapshot[]; total: n
   return (
     <article className="excel-record-panel npc-panel">
       <header className="npc-panel-header"><h2>新品列表</h2><span>{total} 条</span></header>
-      <div className="npc-table-wrap">
-        <table>
-          <thead><tr><th>商品</th><th>店铺/运营</th><th>上架</th><th>广告</th><th>订单</th><th>ROAS/ACOS</th><th>标签</th><th>建议</th><th>操作</th></tr></thead>
+      <div className="npc-table-wrap npc-product-list-table-wrap">
+        <table className="npc-product-list-table">
+          <thead>
+            <tr>
+              <th className="npc-product-compact-col">商品</th>
+              <th>店铺</th>
+              <th>运营</th>
+              <th>上架</th>
+              <th>广告花费</th>
+              <th>点击</th>
+              <th>加购</th>
+              <th>订单数</th>
+              <th>订单金额</th>
+              <th>ROAS</th>
+              <th>ACOS</th>
+              <th>标签</th>
+              <th>建议</th>
+              <th>操作</th>
+            </tr>
+          </thead>
           <tbody>
             {records.map((item) => (
               <tr key={item.id}>
-                <td><div className="npc-product-cell">{item.productImageUrl && <img src={item.productImageUrl} alt="" />}<span><strong>{item.productName || '-'}</strong><small>{item.temuProductId} / {item.temuSpuId || '-'}</small></span></div></td>
-                <td>{item.storeName}<br /><small>{item.operatorName || '-'}</small></td>
-                <td>{String(item.firstOnlineAt || '').slice(0, 10)}<br /><small>{item.daysOnline} 天</small></td>
-                <td>{formatMoney(item.adSpend)}<br /><small>{item.clicks} 点击 / {item.addToCartCount} 加购</small></td>
-                <td>{item.orderCount} 单<br /><small>{formatMoney(item.orderSalesAmount)}</small></td>
-                <td>{item.roas === null ? '-' : Number(item.roas).toFixed(2)}<br /><small>{item.acos === null ? '-' : formatRatio(item.acos)}</small></td>
+                <td className="npc-product-compact-col"><div className="npc-product-cell" title={`${item.productName || '-'} ${item.temuProductId || ''} ${item.temuSpuId || ''}`}>{item.productImageUrl && <img src={item.productImageUrl} alt="" />}<span><strong>{item.productName || '-'}</strong><small>{item.temuProductId} / {item.temuSpuId || '-'}</small></span></div></td>
+                <td title={item.storeName || '-'}>{item.storeName || '-'}</td>
+                <td title={item.operatorName || '-'}>{item.operatorName || '-'}</td>
+                <td title={`${String(item.firstOnlineAt || '').slice(0, 10) || '-'} / ${item.daysOnline} 天`}>{String(item.firstOnlineAt || '').slice(0, 10) || '-'} / {item.daysOnline} 天</td>
+                <td title={formatMoney(item.adSpend)}>{formatMoney(item.adSpend)}</td>
+                <td title={formatAdNumber(item.clicks)}>{formatAdNumber(item.clicks)}</td>
+                <td title={formatAdNumber(item.addToCartCount)}>{formatAdNumber(item.addToCartCount)}</td>
+                <td title={`${item.orderCount} 单`}>{item.orderCount} 单</td>
+                <td title={formatMoney(item.orderSalesAmount)}>{formatMoney(item.orderSalesAmount)}</td>
+                <td title={item.roas === null ? '-' : Number(item.roas).toFixed(2)}>{item.roas === null ? '-' : Number(item.roas).toFixed(2)}</td>
+                <td title={item.acos === null ? '-' : formatRatio(item.acos)}>{item.acos === null ? '-' : formatRatio(item.acos)}</td>
                 <td><span className="npc-tag">{item.productTag || '普通新品'}</span></td>
                 <td>{item.latestRecommendationText || '-'}</td>
                 <td><a href={`/new-product-center/products/${item.productId}`}>查看详情</a></td>
               </tr>
             ))}
-            {records.length === 0 && <tr><td colSpan={9}>暂无新品快照，请先导入商品信息或重算快照。</td></tr>}
+            {records.length === 0 && <tr><td colSpan={14}>暂无新品快照，请先导入商品信息或重算快照。</td></tr>}
           </tbody>
         </table>
       </div>

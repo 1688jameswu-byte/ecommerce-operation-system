@@ -9,6 +9,8 @@ import {
   readOrderImportStoreFromPostgres,
   readTemuCollectionFromPostgres,
   readTrafficConversionStoreFromPostgres,
+  replaceOrderStoreInPostgres,
+  replaceTrafficStoreInPostgres,
   syncEffectiveListingsToPostgres,
   syncOrderStoreToPostgres,
   syncTemuReferenceJsonToPostgres,
@@ -1821,16 +1823,17 @@ async function mirrorTemuReferenceJsonToPostgres() {
 
 async function readPersistentDataForApi(name, filePath) {
   if (name === 'orderImportStore') {
+    const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    if ((jsonData?.batches ?? []).length > 0) {
+      return jsonData;
+    }
+
     try {
       const postgresData = await readOrderImportStoreFromPostgres();
-      if ((postgresData?.batches ?? []).length > 0) {
-        return postgresData;
-      }
-
-      const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-      return (jsonData?.batches ?? []).length > 0 ? jsonData : postgresData;
+      return postgresData;
     } catch (error) {
       console.warn('[TEMU PostgreSQL] orderImportStore read fallback to JSON:', error instanceof Error ? error.message : error);
+      return jsonData;
     }
   }
 
@@ -1862,7 +1865,8 @@ async function mirrorPersistentTemuDataToPostgres(name, data) {
       await syncWarningRulesToPostgres(data);
     }
   } catch (error) {
-    console.warn(`[TEMU PostgreSQL] ${name} sync skipped:`, error instanceof Error ? error.message : error);
+    console.error(`[TEMU PostgreSQL] ${name} sync failed:`, error instanceof Error ? error.message : error);
+    throw error;
   }
 }
 
@@ -1900,7 +1904,7 @@ async function handleCollectionApi(req, res, name, prefix) {
 
   try {
     const menuKey = getCollectionMenuKey(name);
-    const currentUser = toCurrentUser(findCurrentUser(req));
+    const currentUser = readCurrentUser(req);
 
     if (isCompanyDashboardRead(req) && ['stores', 'operators', 'storeOperatorRelations'].includes(name)) {
       const data = await readCollectionForApi(name);
@@ -2392,8 +2396,8 @@ function getImportStoreKeys(name, data) {
   return [];
 }
 
-function mergeOrderImportAppend(incoming) {
-  const existing = readJsonFile('orderImportStore');
+function mergeOrderImportAppendWithExisting(existingData, incoming) {
+  const existing = existingData || { batches: [] };
   const incomingBatches = Array.isArray(incoming?.batches)
     ? incoming.batches
     : Array.isArray(incoming?.orders)
@@ -2454,6 +2458,10 @@ function mergeOrderImportAppend(incoming) {
   return { ...existing, batches: [...batches, ...incomingBatches] };
 }
 
+function mergeOrderImportAppend(incoming) {
+  return mergeOrderImportAppendWithExisting(readJsonFile('orderImportStore'), incoming);
+}
+
 function summarizeOrderImportStore(data) {
   const batches = Array.isArray(data?.batches) ? data.batches : [];
   return {
@@ -2478,8 +2486,8 @@ function getTrafficRecordKeys(record) {
   ].filter(Boolean).map((storeKey) => `${storeKey}|${date}`));
 }
 
-function mergeTrafficConversionImport(incoming) {
-  const existing = readJsonFile('trafficConversionStore');
+function mergeTrafficConversionImportWithExisting(existingData, incoming) {
+  const existing = existingData || { records: [], batches: [] };
   const incomingRecords = Array.isArray(incoming?.records) ? incoming.records : [];
   const incomingKeys = new Set(incomingRecords.flatMap(getTrafficRecordKeys));
   const records = [
@@ -2495,6 +2503,10 @@ function mergeTrafficConversionImport(incoming) {
   ];
 
   return { ...existing, ...incoming, records, batches };
+}
+
+function mergeTrafficConversionImport(incoming) {
+  return mergeTrafficConversionImportWithExisting(readJsonFile('trafficConversionStore'), incoming);
 }
 
 function buildTrafficImportBatch(records, coveredCount, batchId) {
@@ -2526,8 +2538,8 @@ function buildTrafficImportBatch(records, coveredCount, batchId) {
   };
 }
 
-function mergeTrafficConversionAppend(incoming, filePath) {
-  const existing = readJsonFile('trafficConversionStore');
+function mergeTrafficConversionAppendWithExisting(existingData, incoming, filePath) {
+  const existing = existingData || { records: [], batches: [] };
   const incomingRecords = Array.isArray(incoming?.records) ? incoming.records : [];
   const incomingKeys = new Set(incomingRecords.flatMap(getTrafficRecordKeys));
   const existingRecords = existing?.records ?? [];
@@ -2557,13 +2569,17 @@ function mergeTrafficConversionAppend(incoming, filePath) {
   return { data: { ...existing, records, batches }, batch };
 }
 
-function deleteTrafficConversionBatch(payload, filePath) {
+function mergeTrafficConversionAppend(incoming, filePath) {
+  return mergeTrafficConversionAppendWithExisting(readJsonFile('trafficConversionStore'), incoming, filePath);
+}
+
+function deleteTrafficConversionBatchFromStore(existingData, payload, filePath) {
   const batchId = String(payload?.batchId ?? '').trim();
   if (!batchId) {
     throw new Error('缺少要删除的流量导入批次 ID');
   }
 
-  const existing = readJsonFile('trafficConversionStore');
+  const existing = existingData || { records: [], batches: [] };
   const existingRecords = Array.isArray(existing?.records) ? existing.records : [];
   const existingBatches = Array.isArray(existing?.batches) ? existing.batches : [];
   const batchExists = existingBatches.some((batch) => String(batch?.id ?? '') === batchId);
@@ -2598,6 +2614,10 @@ function deleteTrafficConversionBatch(payload, filePath) {
   console.log('[Traffic Import Delete]', summary);
 
   return { data: { ...existing, records, batches }, summary };
+}
+
+function deleteTrafficConversionBatch(payload, filePath) {
+  return deleteTrafficConversionBatchFromStore(readJsonFile('trafficConversionStore'), payload, filePath);
 }
 
 function assertTrafficImportSearchText(searchableText, currentUser) {
@@ -2883,7 +2903,7 @@ async function handleEffectiveNewListingsApi(req, res) {
   try {
     const pathname = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
     const id = decodeURIComponent(pathname);
-    const currentUser = toCurrentUser(findCurrentUser(req));
+    const currentUser = readCurrentUser(req);
     const items = Array.isArray(readJsonFile('effectiveNewListings')) ? readJsonFile('effectiveNewListings') : [];
 
     if (req.method === 'GET') {
@@ -2994,7 +3014,7 @@ function getNewProductCenterScope(currentUser) {
   }
 
   return {
-    storeIds: getTemuVisibleStores(currentUser).map((store) => store.id).filter(Boolean),
+    storeNames: getTemuVisibleStores(currentUser).map((store) => store.storeName).filter(Boolean),
   };
 }
 
@@ -3041,7 +3061,7 @@ async function handleTemuProductInfoImportApi(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
   try {
-    const currentUser = toCurrentUser(findCurrentUser(req));
+    const currentUser = readCurrentUser(req);
     if (!currentUser) {
       res.statusCode = 403;
       res.end(JSON.stringify({ ok: false, message: '请先登录' }));
@@ -3050,9 +3070,10 @@ async function handleTemuProductInfoImportApi(req, res) {
     const requestUrl = new URL(req.url ?? '/', 'http://localhost');
     const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
     if (req.method === 'GET' && action === 'records') {
+      const scope = getNewProductCenterScope(currentUser);
       res.end(JSON.stringify(await getProductImportOverview({
-        page: requestUrl.searchParams.get('page'),
-        pageSize: requestUrl.searchParams.get('pageSize'),
+        ...Object.fromEntries(requestUrl.searchParams.entries()),
+        ...scope,
       })));
       return;
     }
@@ -3137,7 +3158,7 @@ async function handleTemuAdReportImportApi(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
   try {
-    const currentUser = toCurrentUser(findCurrentUser(req));
+    const currentUser = readCurrentUser(req);
     if (!currentUser) {
       res.statusCode = 403;
       res.end(JSON.stringify({ ok: false, message: '请先登录' }));
@@ -3146,9 +3167,10 @@ async function handleTemuAdReportImportApi(req, res) {
     const requestUrl = new URL(req.url ?? '/', 'http://localhost');
     const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
     if (req.method === 'GET' && action === 'records') {
+      const scope = getNewProductCenterScope(currentUser);
       res.end(JSON.stringify(await getAdImportOverview({
-        page: requestUrl.searchParams.get('page'),
-        pageSize: requestUrl.searchParams.get('pageSize'),
+        ...Object.fromEntries(requestUrl.searchParams.entries()),
+        ...scope,
       })));
       return;
     }
@@ -5548,6 +5570,71 @@ function localDataPlugin() {
             if (!isOrderImportDelete && !isTrafficImportDelete) {
               assertCanWriteImportData(name, parsed, currentUser, searchableText);
             }
+            if (name === 'orderImportStore') {
+              const currentData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+              const deleteBefore = isOrderImportDelete ? summarizeOrderImportStore(currentData) : null;
+              const nextData = isOrderImportDelete ? parsed : mergeOrderImportAppendWithExisting(currentData, parsed);
+              const deleteAfter = isOrderImportDelete ? summarizeOrderImportStore(nextData) : null;
+              fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
+              const deleteSummary = isOrderImportDelete && deleteBefore && deleteAfter
+                ? {
+                  user: currentUser?.username ?? currentUser?.userId ?? '',
+                  isAdmin: String(currentUser?.role ?? '').toLowerCase() === 'admin',
+                  payload: deleteAfter.batches,
+                  beforeRecordCount: deleteBefore.recordCount,
+                  beforeOrderCount: deleteBefore.orderCount,
+                  removedRecordCount: Math.max(deleteBefore.recordCount - deleteAfter.recordCount, 0),
+                  removedOrderCount: Math.max(deleteBefore.orderCount - deleteAfter.orderCount, 0),
+                  afterRecordCount: deleteAfter.recordCount,
+                  afterOrderCount: deleteAfter.orderCount,
+                  storage: 'json',
+                }
+                : null;
+              if (deleteSummary) {
+                console.log('[order-import-delete:json]', deleteSummary);
+              }
+              let mirrorWarning = null;
+              try {
+                await mirrorPersistentTemuDataToPostgres(name, nextData);
+              } catch (mirrorError) {
+                mirrorWarning = `已保存到 JSON，PostgreSQL 同步失败：${mirrorError instanceof Error ? mirrorError.message : String(mirrorError)}`;
+                console.warn('[TEMU PostgreSQL] orderImportStore mirror skipped after JSON save:', mirrorError instanceof Error ? mirrorError.message : mirrorError);
+              }
+              res.end(JSON.stringify({
+                ok: true,
+                success: true,
+                storage: 'json',
+                warning: mirrorWarning,
+                deleteSummary,
+                savedCount: Array.isArray(parsed) ? parsed.length : undefined,
+                totalCount: Array.isArray(nextData) ? nextData.length : undefined,
+              }));
+              return;
+            }
+
+            if (name === 'trafficConversionStore') {
+              const currentData = await readTrafficConversionStoreFromPostgres();
+              let trafficAppendBatch = null;
+              let trafficDeleteSummary = null;
+              const trafficAppendResult = isTrafficImportAppend ? mergeTrafficConversionAppendWithExisting(currentData, parsed, filePath) : null;
+              const trafficDeleteResult = isTrafficImportDelete ? deleteTrafficConversionBatchFromStore(currentData, parsed, filePath) : null;
+              const nextData = isTrafficImportDelete
+                ? (trafficDeleteSummary = trafficDeleteResult?.summary ?? null, trafficDeleteResult?.data)
+                : isTrafficImportAppend
+                  ? (trafficAppendBatch = trafficAppendResult?.batch ?? null, trafficAppendResult?.data)
+                  : mergeTrafficConversionImportWithExisting(currentData, parsed);
+              await replaceTrafficStoreInPostgres(nextData);
+              res.end(JSON.stringify({
+                ok: true,
+                success: true,
+                storage: 'postgres',
+                trafficDeleteSummary,
+                batch: trafficAppendBatch,
+                savedCount: Array.isArray(parsed) ? parsed.length : undefined,
+                totalCount: Array.isArray(nextData) ? nextData.length : undefined,
+              }));
+              return;
+            }
             const deleteBefore = isOrderImportDelete ? summarizeOrderImportStore(JSON.parse(fs.readFileSync(filePath, 'utf-8'))) : null;
             let trafficAppendBatch = null;
             let trafficDeleteSummary = null;
@@ -5565,6 +5652,7 @@ function localDataPlugin() {
                       ? mergeOrderImportAppend(parsed)
                       : mergeVisibleImportData(name, parsed, currentUser);
             const deleteAfter = isOrderImportDelete ? summarizeOrderImportStore(nextData) : null;
+            const previousFileText = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : null;
             fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
             const deleteSummary = isOrderImportDelete && deleteBefore && deleteAfter
               ? {
@@ -5583,8 +5671,22 @@ function localDataPlugin() {
             if (deleteSummary) {
               console.log('[order-import-delete]', deleteSummary);
             }
-            await mirrorPersistentTemuDataToPostgres(name, nextData);
-            res.end(JSON.stringify({ ok: true, success: true, path: filePath, deleteSummary, trafficDeleteSummary, batch: trafficAppendBatch, savedCount: Array.isArray(parsed) ? parsed.length : undefined, totalCount: Array.isArray(nextData) ? nextData.length : undefined }));
+            let mirrorWarning = null;
+            try {
+              await mirrorPersistentTemuDataToPostgres(name, nextData);
+            } catch (mirrorError) {
+              const mirrorMessage = mirrorError instanceof Error ? mirrorError.message : String(mirrorError);
+              if (['orderImportStore', 'trafficConversionStore'].includes(name)) {
+                mirrorWarning = `已保存到 JSON，PostgreSQL 同步失败：${mirrorMessage}`;
+                console.warn(`[TEMU PostgreSQL] ${name} mirror skipped after JSON save:`, mirrorMessage);
+              } else {
+                if (previousFileText !== null) {
+                  fs.writeFileSync(filePath, previousFileText, 'utf-8');
+                }
+                throw mirrorError;
+              }
+            }
+            res.end(JSON.stringify({ ok: true, success: true, path: filePath, warning: mirrorWarning, deleteSummary, trafficDeleteSummary, batch: trafficAppendBatch, savedCount: Array.isArray(parsed) ? parsed.length : undefined, totalCount: Array.isArray(nextData) ? nextData.length : undefined }));
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             if (name === 'trafficConversionStore') {

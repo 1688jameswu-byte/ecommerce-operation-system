@@ -18,6 +18,7 @@ const fieldLabels: Record<string, string> = {
 };
 
 const PRODUCT_RECORD_PAGE_SIZE = 50;
+type StoreOption = { id?: string; storeName?: string; platform?: string; status?: string };
 
 function formatShanghaiTime(value: unknown) {
   if (!value) return '-';
@@ -55,6 +56,17 @@ function inferStoreNameFromFileName(fileName: string) {
   return fileName.match(/([A-Za-z0-9]+店|[\u4e00-\u9fa5]+店)/)?.[1] || '';
 }
 
+function getMissingProductMappings(mapping: Record<string, string>) {
+  return [
+    ['productTitle', '商品标题'],
+    ['spuId', 'SPU ID'],
+    ['skcId', 'SKC ID'],
+    ['skuId', 'SKU ID'],
+    ['skuCode', 'SKU货号'],
+    ['createdTime', '创建时间'],
+  ].filter(([field]) => !mapping[field]).map(([, label]) => label);
+}
+
 export default function TemuProductInfoImportPage() {
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [overview, setOverview] = useState<ImportOverview>({ batches: [], records: [] });
@@ -67,12 +79,21 @@ export default function TemuProductInfoImportPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [recordsPage, setRecordsPage] = useState(1);
+  const [stores, setStores] = useState<StoreOption[]>([]);
+  const [filters, setFilters] = useState<Record<string, string>>({});
 
   const refreshOverview = async (page = recordsPage) => {
+    if (!storeName) {
+      setOverview({ batches: [], records: [] });
+      return;
+    }
     try {
       const [status, records] = await Promise.all([
         newProductCenterDataSource.getTemuStorageStatus(),
-        newProductCenterDataSource.getProductImportRecords(page, PRODUCT_RECORD_PAGE_SIZE),
+        newProductCenterDataSource.getProductImportRecords(page, PRODUCT_RECORD_PAGE_SIZE, {
+          storeName,
+          ...filters,
+        }),
       ]);
       setStorageStatus(status);
       setStorageError(status.ok ? '' : (status.message || 'PostgreSQL 未连接'));
@@ -86,20 +107,45 @@ export default function TemuProductInfoImportPage() {
   };
 
   useEffect(() => {
-    void refreshOverview(1);
+    newProductCenterDataSource.getVisibleStores().then(async (data) => {
+      const temuStores = (data.stores || []).filter((store) => store.platform === 'TEMU' && store.status !== 'inactive');
+      setStores(temuStores);
+      if (storeName) return;
+      let defaultStoreName = temuStores[0]?.storeName || '';
+      try {
+        const recent = await newProductCenterDataSource.getProductImportRecords(1, 1, {});
+        const recentStoreName = String(recent.batches?.[0]?.storeName || recent.records?.[0]?.storeName || '');
+        if (recentStoreName && temuStores.some((store) => store.storeName === recentStoreName)) {
+          defaultStoreName = recentStoreName;
+        }
+      } catch {
+        // Keep the first visible store when recent import lookup is unavailable.
+      }
+      setStoreName(defaultStoreName);
+    }).catch(() => setStores([]));
   }, []);
+
+  useEffect(() => {
+    void refreshOverview(1);
+  }, [storeName, filters]);
 
   const onFile = async (file?: File) => {
     if (!file) return;
+    if (!storeName) {
+      setMessage('请先选择导入店铺。');
+      return;
+    }
     setPreviewLoading(true);
     setMessage('');
     setResult(null);
     try {
       const next = await newProductCenterDataSource.previewProductFile(file);
+      const nextStoreName = storeName || inferStoreNameFromFileName(file.name);
       setPreview(next);
       setMapping(next.mapping);
-      setStoreName((current) => current || inferStoreNameFromFileName(file.name));
-      setMessage('预览完成，尚未入库；请点击“确认导入 PostgreSQL”。');
+      setStoreName(nextStoreName);
+      setMessage('预览完成，正在自动导入 PostgreSQL...');
+      await importProductPreview(next, next.mapping, nextStoreName);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -107,21 +153,20 @@ export default function TemuProductInfoImportPage() {
     }
   };
 
-  const confirm = async () => {
-    if (!preview) return;
-    if ((!mapping.skcId && !mapping.temuProductId) || (!mapping.createdTime && !mapping.firstOnlineAt)) {
+  const importProductPreview = async (nextPreview: ImportPreview, nextMapping: Record<string, string>, nextStoreName: string) => {
+    const missingProductMappings = getMissingProductMappings(nextMapping);
+    if (missingProductMappings.length) {
       setMessage('当前文件不像商品信息表：必须映射 SKC ID 和创建时间。广告报表请使用“广告数据导入”。');
       return;
     }
     setConfirmLoading(true);
-    setMessage('');
     try {
       const next = await newProductCenterDataSource.confirmProductImport({
-        previewId: preview.previewId,
-        fileName: preview.fileName,
-        rows: preview.rows || [],
-        mapping,
-        storeName,
+        previewId: nextPreview.previewId,
+        fileName: nextPreview.fileName,
+        rows: nextPreview.rows || [],
+        mapping: nextMapping,
+        storeName: nextStoreName,
       });
       setResult(next);
       setRecordsPage(1);
@@ -134,11 +179,17 @@ export default function TemuProductInfoImportPage() {
     }
   };
 
-  const statusCounts = storageStatus?.counts;
+  const confirm = async () => {
+    if (!preview) return;
+    setMessage('正在按当前字段映射重新导入 PostgreSQL...');
+    await importProductPreview(preview, mapping, storeName);
+  };
+
   const isStorageReady = Boolean(storageStatus?.ok && !storageError);
   const latestBatch = overview.batches[0];
   const totalRecords = overview.total ?? overview.records.length;
   const totalPages = Math.max(Math.ceil(totalRecords / PRODUCT_RECORD_PAGE_SIZE), 1);
+  const summary = overview.summary || {};
 
   return (
     <section className="npc-page temu-product-import-page">
@@ -151,8 +202,11 @@ export default function TemuProductInfoImportPage() {
               <span>支持 .xlsx / .xls / .csv</span>
             </label>
             <div className="npc-import-controls temu-import-store-control">
-              <label>默认店铺
-                <input value={storeName} onChange={(event) => setStoreName(event.target.value)} placeholder="文件无店铺列时填写，如 A店" />
+              <label>导入店铺
+                <select value={storeName} onChange={(event) => { setStoreName(event.target.value); setRecordsPage(1); }}>
+                  <option value="">请选择店铺</option>
+                  {stores.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}
+                </select>
               </label>
             </div>
           </div>
@@ -164,22 +218,39 @@ export default function TemuProductInfoImportPage() {
             <small>{storageStatus?.databaseName || storageError || 'PostgreSQL'}</small>
           </article>
           <article>
-            <span>商品</span>
-            <strong>{statusCounts?.products ?? 0}</strong>
-            <small>temu_products</small>
+            <span>当前店铺商品数</span>
+            <strong>{summary.productCount ?? 0}</strong>
+            <small>{storeName || '请选择店铺'}</small>
           </article>
           <article>
-            <span>SKU</span>
-            <strong>{statusCounts?.skus ?? 0}</strong>
-            <small>temu_product_skus</small>
+            <span>当前店铺SKU数</span>
+            <strong>{summary.skuCount ?? 0}</strong>
+            <small>最近50条按页读取</small>
           </article>
           <article>
-            <span>导入批次</span>
-            <strong>{statusCounts?.importBatches ?? 0}</strong>
-            <small>{latestBatch?.fileName ? `最近：${latestBatch.fileName}` : '暂无批次'}</small>
+            <span>失败行数</span>
+            <strong>{latestBatch?.errorRows ?? 0}</strong>
+            <small>{latestBatch?.finishedAt ? `最近导入：${formatShanghaiTime(latestBatch.finishedAt)}` : '暂无批次'}</small>
           </article>
         </div>
       </section>
+
+      <article className="excel-record-panel npc-panel temu-import-context-panel">
+        <header className="npc-panel-header">
+          <h2>当前展示：{storeName ? `${storeName} 商品信息` : '请选择店铺后查看数据'}</h2>
+          <span>{latestBatch?.fileName ? `最近批次：${latestBatch.fileName}` : '暂无导入批次'}</span>
+        </header>
+        <div className="npc-mapping-grid temu-import-filter-grid">
+          <label>创建开始<input type="date" value={filters.createdDateStart || ''} onChange={(event) => setFilters({ ...filters, createdDateStart: event.target.value })} /></label>
+          <label>创建结束<input type="date" value={filters.createdDateEnd || ''} onChange={(event) => setFilters({ ...filters, createdDateEnd: event.target.value })} /></label>
+          <label>商品状态<input value={filters.productStatus || ''} onChange={(event) => setFilters({ ...filters, productStatus: event.target.value })} placeholder="在售中" /></label>
+          <label>叶子类目<input value={filters.categoryName || ''} onChange={(event) => setFilters({ ...filters, categoryName: event.target.value })} /></label>
+          <label>SPU ID<input value={filters.spuId || ''} onChange={(event) => setFilters({ ...filters, spuId: event.target.value })} /></label>
+          <label>SKU ID<input value={filters.skuId || ''} onChange={(event) => setFilters({ ...filters, skuId: event.target.value })} /></label>
+          <label>SKU货号<input value={filters.skuCode || ''} onChange={(event) => setFilters({ ...filters, skuCode: event.target.value })} /></label>
+          <label>商品标题<input value={filters.productTitle || ''} onChange={(event) => setFilters({ ...filters, productTitle: event.target.value })} /></label>
+        </div>
+      </article>
 
       {message && <div className="excel-import-error">{message}</div>}
 
@@ -191,7 +262,7 @@ export default function TemuProductInfoImportPage() {
               <h2>字段映射与预览</h2>
               <p>{preview.fileName}，共 {preview.totalRows} 行，预览前 20 行。</p>
             </div>
-            <button type="button" disabled={confirmLoading} onClick={confirm}>{confirmLoading ? '导入中...' : '确认导入 PostgreSQL'}</button>
+            <button type="button" disabled={confirmLoading} onClick={confirm}>{confirmLoading ? '导入中...' : '按当前映射重新导入'}</button>
           </header>
           <ImportMapping preview={preview} mapping={mapping} setMapping={setMapping} />
           <div className="npc-table-wrap">
@@ -225,7 +296,7 @@ export default function TemuProductInfoImportPage() {
             <h2>PostgreSQL 商品记录</h2>
             <p>刷新页面后从 temu_products / temu_product_skus 读取，最多显示最近 50 条。</p>
           </div>
-          <button type="button" onClick={() => void refreshOverview(recordsPage)}>刷新</button>
+          <button type="button" disabled={!storeName} onClick={() => void refreshOverview(recordsPage)}>刷新</button>
         </header>
         <div className="npc-table-wrap temu-product-record-table">
           <table>
@@ -248,7 +319,7 @@ export default function TemuProductInfoImportPage() {
                   <td>{String(row.createdTime || '-').slice(0, 19).replace('T', ' ')}</td>
                 </tr>
               ))}
-              {overview.records.length === 0 && <tr><td colSpan={13}>暂无 PostgreSQL 商品记录</td></tr>}
+              {overview.records.length === 0 && <tr><td colSpan={13}>{storeName ? '暂无当前店铺商品记录' : '请选择店铺后查看数据'}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -273,19 +344,27 @@ export default function TemuProductInfoImportPage() {
         <h2>最近商品导入批次</h2>
         <div className="npc-table-wrap">
           <table>
-            <thead><tr><th>文件名</th><th>总行数</th><th>成功</th><th>失败</th><th>状态</th><th>导入时间</th></tr></thead>
+            <thead><tr><th>批次ID</th><th>导入类型</th><th>店铺</th><th>数据日期</th><th>文件名</th><th>总行数</th><th>成功行数</th><th>失败行数</th><th>匹配成功数</th><th>未匹配数</th><th>导入人</th><th>导入时间</th><th>状态</th><th>操作</th></tr></thead>
             <tbody>
               {overview.batches.map((row) => (
                 <tr key={String(row.id)}>
+                  <td>{String(row.id || '-').slice(0, 8)}</td>
+                  <td>{String(row.importType || '-')}</td>
+                  <td>{String(row.storeName || storeName || '-')}</td>
+                  <td>{String(row.reportDate || '-').slice(0, 10)}</td>
                   <td>{String(row.fileName || '-')}</td>
                   <td>{String(row.totalRows ?? 0)}</td>
                   <td>{String(row.successRows ?? 0)}</td>
                   <td>{String(row.errorRows ?? 0)}</td>
-                  <td>{String(row.status || '-')}</td>
+                  <td>{String(row.successRows ?? 0)}</td>
+                  <td>{String(row.errorRows ?? 0)}</td>
+                  <td>{String(row.uploadedByName || row.uploadedBy || '-')}</td>
                   <td>{formatShanghaiTime(row.finishedAt || row.createdAt)}</td>
+                  <td>{String(row.status || '-')}</td>
+                  <td><button type="button" onClick={() => window.alert(`批次 ${String(row.id)}\\n文件：${String(row.fileName || '-')}`)}>查看明细</button><button type="button" onClick={() => window.alert(row.errorRows ? '失败行已在上方失败行区域展示最近一次导入结果。' : '该批次无失败行。')}>查看失败行</button><button type="button" onClick={() => void newProductCenterDataSource.rebuildSnapshot(new Date().toISOString().slice(0, 10)).then(() => refreshOverview(recordsPage))}>重建快照</button></td>
                 </tr>
               ))}
-              {overview.batches.length === 0 && <tr><td colSpan={6}>暂无商品导入批次</td></tr>}
+              {overview.batches.length === 0 && <tr><td colSpan={14}>暂无商品导入批次</td></tr>}
             </tbody>
           </table>
         </div>

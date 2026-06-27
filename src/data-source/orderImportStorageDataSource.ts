@@ -8,7 +8,7 @@ import type {
 } from '../types/order';
 import type { SalesOrderRecord } from '../types/fact';
 import { buildStandardSalesOrders } from '../utils/factDataStandardization';
-import { readPersistentJson, writePersistentJson, writePersistentJsonAsync } from './fileStorageDataSource';
+import { readPersistentJson, readPersistentJsonAsync, writePersistentJson, writePersistentJsonAsync } from './fileStorageDataSource';
 
 export const TEMU_ORDER_IMPORT_STORAGE_KEY = 'temuOrderImportResult';
 export const TEMU_ORDER_IMPORT_STORAGE_EVENT = 'temu-order-import-storage-change';
@@ -193,6 +193,50 @@ export const orderImportStorageDataSource = {
       if (isLegacyImport(parsed)) {
         const store = normalizeStore({ batches: [toBatch(parsed)] }).store;
         writePersistentJson(ORDER_IMPORT_FILE_KEY, store);
+        return store;
+      }
+    } catch {
+      return emptyStore();
+    }
+
+    return fileStore;
+  },
+
+  async loadStoreAsync(): Promise<TemuOrderImportStore> {
+    if (typeof window === 'undefined') {
+      return emptyStore();
+    }
+
+    const fileStore = await readPersistentJsonAsync<TemuOrderImportStore>(ORDER_IMPORT_FILE_KEY, emptyStore());
+
+    if (fileStore.batches.length > 0) {
+      const normalized = normalizeStore(fileStore);
+
+      if (normalized.changed) {
+        await writePersistentJsonAsync(ORDER_IMPORT_FILE_KEY, normalized.store);
+      }
+
+      return normalized.store;
+    }
+
+    const raw = window.localStorage.getItem(TEMU_ORDER_IMPORT_STORAGE_KEY);
+
+    if (!raw) {
+      return fileStore;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+
+      if (isStore(parsed)) {
+        const normalized = normalizeStore(parsed);
+        await writePersistentJsonAsync(ORDER_IMPORT_FILE_KEY, normalized.store);
+        return normalized.store;
+      }
+
+      if (isLegacyImport(parsed)) {
+        const store = normalizeStore({ batches: [toBatch(parsed)] }).store;
+        await writePersistentJsonAsync(ORDER_IMPORT_FILE_KEY, store);
         return store;
       }
     } catch {
@@ -427,6 +471,32 @@ export const orderImportStorageDataSource = {
     notifyStorageChange();
   },
 
+  async deleteBatchAsync(batchId: string) {
+    const store = await this.loadStoreAsync();
+    const target = store.batches.find((batch) => batch.batchId === batchId);
+    if (!target) {
+      throw new Error('未找到对应导入批次，请刷新页面后重试。');
+    }
+
+    const batches = store.batches.filter((batch) => batch.batchId !== batchId);
+    const requestPayload = { batches } satisfies TemuOrderImportStore;
+    console.log('[order-import-delete-request]', {
+      batchId,
+      fileName: target.fileName,
+      importedAt: target.importedAt,
+      stores: Array.from(new Set(target.orders.map((order) => order.storeName))),
+      dates: Array.from(new Set(target.orders.map((order) => order.orderDate))),
+      requestPayload,
+    });
+    const responseText = await writePersistentJsonAsync(ORDER_IMPORT_FILE_KEY, requestPayload, { deleteImportData: true });
+    const response = responseText ? JSON.parse(responseText) as { deleteSummary?: { removedRecordCount?: number; removedOrderCount?: number } } : null;
+    console.log('[order-import-delete-response]', response);
+    if (response?.deleteSummary && !response.deleteSummary.removedRecordCount && !response.deleteSummary.removedOrderCount) {
+      throw new Error('未找到对应导入批次，请刷新页面后重试。');
+    }
+    notifyStorageChange();
+  },
+
   deleteByScope(scope: { date?: string; storeName?: string }) {
     if (!scope.date && !scope.storeName) {
       return;
@@ -446,6 +516,28 @@ export const orderImportStorageDataSource = {
       .filter((batch) => batch.orders.length > 0);
 
     writePersistentJson(ORDER_IMPORT_FILE_KEY, { batches }, { deleteImportData: true });
+    notifyStorageChange();
+  },
+
+  async deleteByScopeAsync(scope: { date?: string; storeName?: string }) {
+    if (!scope.date && !scope.storeName) {
+      return;
+    }
+
+    const batches = (await this.loadStoreAsync()).batches
+      .map((batch) =>
+        recalcBatch({
+          ...batch,
+          orders: batch.orders.filter((order) => {
+            const matchedDate = !scope.date || order.orderDate === scope.date;
+            const matchedStore = !scope.storeName || order.storeName === scope.storeName;
+            return !(matchedDate && matchedStore);
+          }),
+        }),
+      )
+      .filter((batch) => batch.orders.length > 0);
+
+    await writePersistentJsonAsync(ORDER_IMPORT_FILE_KEY, { batches }, { deleteImportData: true });
     notifyStorageChange();
   },
 

@@ -24,7 +24,7 @@ export const adminRoutes: AdminRoute[] = [
     path: '/admin/import',
     menuKey: menuKeys.orderSalesImport,
     parentMenuKey: menuKeys.dataCenter,
-    label: '订单销售导入',
+    label: '订单数据导入',
     group: '数据',
     menuSection: '数据导入',
     description: '上传订单销售 Excel，生成大屏销售数据。',

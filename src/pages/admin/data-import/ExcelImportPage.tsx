@@ -226,6 +226,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const [statusFilter, setStatusFilter] = useState('');
   const [deleteBatchRow, setDeleteBatchRow] = useState<ImportTableRow | null>(null);
   const [deleteScope, setDeleteScope] = useState<DeleteScopeSummary | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showAllMissingDates, setShowAllMissingDates] = useState(false);
   const [detailState, setDetailState] = useState<DetailState | null>(null);
 
@@ -319,17 +320,20 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
     await importFiles(Array.from(event.dataTransfer.files));
   };
 
-  const handleDeleteBatch = (batchId: string) => {
+  const handleDeleteBatch = async (batchId: string) => {
     console.log('[order-import-delete-click]', deleteBatchRow);
+    setIsDeleting(true);
     try {
-      orderImportStorageDataSource.deleteBatch(batchId);
+      await orderImportStorageDataSource.deleteBatchAsync(batchId);
       setDeleteBatchRow(null);
       setDetailState(null);
-      void refreshSavedData(page);
+      await refreshSavedData(page);
       setError(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : '未知错误';
       setError(`删除失败：${message}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -350,21 +354,29 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
     setDeleteScope({ ...filteredSummary, ...scope });
   };
 
-  const handleDeleteScope = () => {
+  const handleDeleteScope = async () => {
     if (!deleteScope || deleteScope.detailCount === 0 || (!deleteScope.date && !deleteScope.storeName)) {
       setError('当前范围内没有可删除的导入数据。');
       setDeleteScope(null);
       return;
     }
 
-    orderImportStorageDataSource.deleteByScope({
-      date: deleteScope.date,
-      storeName: deleteScope.storeName,
-    });
-    setDeleteScope(null);
-    setDetailState(null);
-    void refreshSavedData(1);
-    setError(null);
+    setIsDeleting(true);
+    try {
+      await orderImportStorageDataSource.deleteByScopeAsync({
+        date: deleteScope.date,
+        storeName: deleteScope.storeName,
+      });
+      setDeleteScope(null);
+      setDetailState(null);
+      await refreshSavedData(1);
+      setError(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '未知错误';
+      setError(`删除失败：${message}`);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const loadDetail = async (row: ImportTableRow, detailPage = 1) => {
@@ -442,7 +454,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
 
       <article className="excel-upload-panel" ref={uploadPanelRef}>
         <div>
-          <span className="admin-status">订单销售数据导入</span>
+          <span className="admin-status">订单数据导入</span>
           <h2>上传店铺订单 Excel</h2>
           <p>按店铺和日期沉淀经营数据，同店铺同日期重新导入时会替换原数据。</p>
         </div>
@@ -592,27 +604,28 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
                                       <thead>
                                         <tr>
                                           <th>订单号</th>
+                                          <th>是否首单</th>
+                                          <th>SKU ID</th>
+                                          <th>SKU货号</th>
+                                          <th>申报价格</th>
+                                          <th>备货数量</th>
                                           <th>下单时间</th>
-                                          <th>SKU</th>
-                                          <th>数量</th>
-                                          <th>销售额</th>
-                                          <th>首单</th>
                                           <th>状态</th>
+                                          <th>店铺</th>
                                         </tr>
                                       </thead>
                                       <tbody>
                                         {detail.orders.map((order) => (
                                           <tr key={order.uniqueKey || `${order.orderId}-${order.skuCode}`}>
                                             <td>{order.orderId}</td>
-                                            <td>{order.orderTime}</td>
-                                            <td>
-                                              <strong>{order.skuCode || order.skcCode || '-'}</strong>
-                                              <span className="import-file-name">{order.skuAttribute || order.productName}</span>
-                                            </td>
-                                            <td>{order.quantity}</td>
-                                            <td>¥ {formatMoney(order.salesAmount)}</td>
                                             <td>{order.isFirstOrder ? '是' : '否'}</td>
+                                            <td>{order.productSku || '-'}</td>
+                                            <td>{order.skuCode || '-'}</td>
+                                            <td>{order.declarePrice}</td>
+                                            <td>{order.quantity}</td>
+                                            <td>{order.orderTime}</td>
                                             <td>{order.status || '-'}</td>
+                                            <td>{order.storeName || '-'}</td>
                                           </tr>
                                         ))}
                                       </tbody>
@@ -662,8 +675,13 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
       {deleteBatchRow && deleteBatchSummary && (
         <ConfirmDeleteModal
           title="确认删除该批次数据吗？"
-          description="删除后不可恢复。"
-          onCancel={() => setDeleteBatchRow(null)}
+          description={isDeleting ? '正在删除并同步 PostgreSQL，请稍候。' : '删除后不可恢复。'}
+          isBusy={isDeleting}
+          onCancel={() => {
+            if (!isDeleting) {
+              setDeleteBatchRow(null);
+            }
+          }}
           onConfirm={() => handleDeleteBatch(deleteBatchRow.batchId)}
         >
           <span>日期：{formatUnique(deleteBatchRows.map((row) => row.date))}</span>
@@ -676,8 +694,13 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
       {deleteScope && (
         <ConfirmDeleteModal
           title={`确认${scopeDeleteLabel}吗？`}
-          description="删除后不可恢复。"
-          onCancel={() => setDeleteScope(null)}
+          description={isDeleting ? '正在删除并同步 PostgreSQL，请稍候。' : '删除后不可恢复。'}
+          isBusy={isDeleting}
+          onCancel={() => {
+            if (!isDeleting) {
+              setDeleteScope(null);
+            }
+          }}
           onConfirm={handleDeleteScope}
         >
           {deleteScope.date && <span>将删除的日期：{deleteScope.date}</span>}

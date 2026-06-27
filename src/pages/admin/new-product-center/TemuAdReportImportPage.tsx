@@ -9,7 +9,7 @@ const fieldLabels: Record<string, string> = {
   adSpend: '总花费',
   netAdSpend: '净总花费',
   promoSalesAmount: '申报价销售额（推广）',
-  promoRoas: '投资回报率ROAS（推广）',
+  promoRoas: '投资回报率(ROAS)（推广）',
   targetRoas: '自然周目标ROAS（推广）',
   promoSubOrderCount: '子订单数（推广）',
   promoUnitCount: '件数（推广）',
@@ -19,7 +19,7 @@ const fieldLabels: Record<string, string> = {
   promoCvr: '转化率（推广）',
   promoAddToCartCount: '加购（推广）',
   globalSalesAmount: '申报价销售额（全域）',
-  globalRoas: '投资回报率ROAS（全域）',
+  globalRoas: '投资回报率(ROAS)（全域）',
   globalSubOrderCount: '子订单数（全域）',
   globalImpressions: '曝光（全域）',
   globalClicks: '点击（全域）',
@@ -27,6 +27,7 @@ const fieldLabels: Record<string, string> = {
 };
 
 const AD_RECORD_PAGE_SIZE = 50;
+type StoreOption = { id?: string; storeName?: string; platform?: string; status?: string };
 
 const AD_RECORD_COLUMNS = [
   '商品名称',
@@ -35,7 +36,7 @@ const AD_RECORD_COLUMNS = [
   '总花费',
   '净总花费',
   '申报价销售额（全域）',
-  '投资回报率ROAS（全域）',
+  '投资回报率(ROAS)（全域）',
   '费比（全域）',
   '每笔成交花费（全域）',
   '子订单数（全域）',
@@ -46,8 +47,8 @@ const AD_RECORD_COLUMNS = [
   '转化率（全域）',
   '加入购物车数（全域）',
   '申报价销售额（推广）',
-  '投资回报率ROAS（推广）',
-  '自然周投资回报率ROAS（推广）',
+  '投资回报率(ROAS)（推广）',
+  '自然周投资回报率(ROAS)（推广）',
   '自然周目标ROAS（推广）',
   '费比（推广）',
   '每笔成交花费（推广）',
@@ -59,7 +60,7 @@ const AD_RECORD_COLUMNS = [
   '转化率（推广）',
   '加购（推广）',
   '净申报价销售额（推广）',
-  '净投资回报率ROAS（推广）',
+  '净投资回报率(ROAS)（推广）',
   '净费比（推广）',
   '净每笔成交花费（推广）',
   '净子订单数（推广）',
@@ -73,7 +74,7 @@ const adRecordFallbackFields: Record<string, string> = {
   总花费: 'adSpend',
   净总花费: 'netAdSpend',
   '申报价销售额（全域）': 'globalSalesAmount',
-  '投资回报率ROAS（全域）': 'globalRoas',
+  '投资回报率(ROAS)（全域）': 'globalRoas',
   '费比（全域）': 'globalAcos',
   '每笔成交花费（全域）': 'globalCpa',
   '子订单数（全域）': 'globalSubOrderCount',
@@ -84,8 +85,8 @@ const adRecordFallbackFields: Record<string, string> = {
   '转化率（全域）': 'globalCvr',
   '加入购物车数（全域）': 'globalAddToCartCount',
   '申报价销售额（推广）': 'promoSalesAmount',
-  '投资回报率ROAS（推广）': 'promoRoas',
-  '自然周投资回报率ROAS（推广）': 'promoWeekRoas',
+  '投资回报率(ROAS)（推广）': 'promoRoas',
+  '自然周投资回报率(ROAS)（推广）': 'promoWeekRoas',
   '自然周目标ROAS（推广）': 'targetRoas',
   '费比（推广）': 'promoAcos',
   '每笔成交花费（推广）': 'promoCpa',
@@ -97,7 +98,7 @@ const adRecordFallbackFields: Record<string, string> = {
   '转化率（推广）': 'promoCvr',
   '加购（推广）': 'promoAddToCartCount',
   '净申报价销售额（推广）': 'netPromoSalesAmount',
-  '净投资回报率ROAS（推广）': 'netPromoRoas',
+  '净投资回报率(ROAS)（推广）': 'netPromoRoas',
   '净费比（推广）': 'netPromoAcos',
   '净每笔成交花费（推广）': 'netPromoCpa',
   '净子订单数（推广）': 'netPromoSubOrderCount',
@@ -148,8 +149,19 @@ function inferStoreNameFromFileName(fileName: string) {
   return fileName.match(/([A-Za-z0-9]+店|[\u4e00-\u9fa5]+店)/)?.[1] || '';
 }
 
+function getMissingAdMappings(mapping: Record<string, string>) {
+  return [
+    ['productName', '商品名称'],
+    ['temuProductId', '商品ID'],
+    ['temuSpuId', 'SPU ID'],
+    ['adSpend', '总花费'],
+    ['promoSubOrderCount', '子订单数（推广）'],
+    ['promoClicks', '点击（推广）'],
+  ].filter(([field]) => !mapping[field]).map(([, label]) => label);
+}
+
 export default function TemuAdReportImportPage() {
-  const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 10));
+  const [reportDate, setReportDate] = useState('');
   const [storeName, setStoreName] = useState('');
   const [overview, setOverview] = useState<ImportOverview>({ batches: [], records: [] });
   const [preview, setPreview] = useState<ImportPreview | null>(null);
@@ -161,12 +173,22 @@ export default function TemuAdReportImportPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [recordsPage, setRecordsPage] = useState(1);
+  const [stores, setStores] = useState<StoreOption[]>([]);
+  const [filters, setFilters] = useState<Record<string, string>>({});
 
   const refreshOverview = async (page = recordsPage) => {
+    if (!storeName || !reportDate) {
+      setOverview({ batches: [], records: [] });
+      return;
+    }
     try {
       const [status, records] = await Promise.all([
         newProductCenterDataSource.getTemuStorageStatus(),
-        newProductCenterDataSource.getAdImportRecords(page, AD_RECORD_PAGE_SIZE),
+        newProductCenterDataSource.getAdImportRecords(page, AD_RECORD_PAGE_SIZE, {
+          storeName,
+          reportDate,
+          ...filters,
+        }),
       ]);
       setStorageStatus(status);
       setStorageError(status.ok ? '' : (status.message || 'PostgreSQL 未连接'));
@@ -180,20 +202,62 @@ export default function TemuAdReportImportPage() {
   };
 
   useEffect(() => {
-    void refreshOverview(1);
+    newProductCenterDataSource.getVisibleStores().then(async (data) => {
+      const temuStores = (data.stores || []).filter((store) => store.platform === 'TEMU' && store.status !== 'inactive');
+      setStores(temuStores);
+      if (storeName && reportDate) return;
+      let defaultStoreName = temuStores[0]?.storeName || '';
+      let defaultReportDate = reportDate;
+      try {
+        const recent = await newProductCenterDataSource.getAdImportRecords(1, 1, {});
+        const recentStoreName = String(recent.batches?.[0]?.storeName || recent.records?.[0]?.storeName || '');
+        if (recentStoreName && temuStores.some((store) => store.storeName === recentStoreName)) {
+          defaultStoreName = recentStoreName;
+        }
+        defaultReportDate = String(recent.reportDates?.[0] || recent.batches?.[0]?.reportDate || defaultReportDate || '').slice(0, 10);
+      } catch {
+        // Keep the first visible store; a later effect will try to load its latest report date.
+      }
+      setStoreName((current) => current || defaultStoreName);
+      if (defaultReportDate) setReportDate((current) => current || defaultReportDate);
+    }).catch(() => setStores([]));
   }, []);
+
+  useEffect(() => {
+    void refreshOverview(1);
+  }, [storeName, reportDate, filters]);
+
+  useEffect(() => {
+    const selectedStore = stores.find((store) => store.storeName === storeName);
+    if (!selectedStore || reportDate) return;
+    newProductCenterDataSource.getAdImportRecords(1, 1, { storeName })
+      .then((data) => {
+        if (data.reportDates?.[0]) setReportDate(data.reportDates[0]);
+      })
+      .catch(() => undefined);
+  }, [stores, storeName, reportDate]);
 
   const onFile = async (file?: File) => {
     if (!file) return;
+    if (!storeName) {
+      setMessage('请先选择导入店铺。');
+      return;
+    }
+    if (!reportDate) {
+      setMessage('请先选择广告日期。');
+      return;
+    }
     setPreviewLoading(true);
     setMessage('');
     setResult(null);
     try {
       const next = await newProductCenterDataSource.previewAdFile(file);
+      const nextStoreName = storeName || inferStoreNameFromFileName(file.name);
       setPreview(next);
       setMapping(next.mapping);
-      setStoreName((current) => current || inferStoreNameFromFileName(file.name));
-      setMessage('预览完成，尚未入库；请点击“确认导入 PostgreSQL”。');
+      setStoreName(nextStoreName);
+      setMessage('预览完成，正在自动导入 PostgreSQL...');
+      await importAdPreview(next, next.mapping, nextStoreName);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -201,26 +265,25 @@ export default function TemuAdReportImportPage() {
     }
   };
 
-  const confirm = async () => {
-    if (!preview) return;
-    if (!mapping.temuProductId) {
+  const importAdPreview = async (nextPreview: ImportPreview, nextMapping: Record<string, string>, nextStoreName: string) => {
+    const missingAdMappings = getMissingAdMappings(nextMapping);
+    if (missingAdMappings.length) {
       setMessage('当前文件不像 TEMU 广告报表：必须映射商品ID。商品基础信息请使用“商品信息导入”。');
       return;
     }
-    if (!mapping.storeName && !storeName.trim()) {
+    if (!nextMapping.storeName && !nextStoreName.trim()) {
       setMessage('广告报表没有店铺列时，请先填写默认店铺，例如 A店。');
       return;
     }
     setConfirmLoading(true);
-    setMessage('');
     try {
       const next = await newProductCenterDataSource.confirmAdImport({
-        previewId: preview.previewId,
-        fileName: preview.fileName,
-        rows: preview.rows || [],
-        mapping,
+        previewId: nextPreview.previewId,
+        fileName: nextPreview.fileName,
+        rows: nextPreview.rows || [],
+        mapping: nextMapping,
         reportDate,
-        storeName,
+        storeName: nextStoreName,
       });
       setResult(next);
       setRecordsPage(1);
@@ -233,11 +296,17 @@ export default function TemuAdReportImportPage() {
     }
   };
 
-  const statusCounts = storageStatus?.counts;
+  const confirm = async () => {
+    if (!preview) return;
+    setMessage('正在按当前字段映射重新导入 PostgreSQL...');
+    await importAdPreview(preview, mapping, storeName);
+  };
+
   const isStorageReady = Boolean(storageStatus?.ok && !storageError);
   const latestBatch = overview.batches[0];
   const totalRecords = overview.total ?? overview.records.length;
   const totalPages = Math.max(Math.ceil(totalRecords / AD_RECORD_PAGE_SIZE), 1);
+  const summary = overview.summary || {};
 
   return (
     <section className="npc-page temu-ad-import-page">
@@ -245,14 +314,17 @@ export default function TemuAdReportImportPage() {
         <div className="temu-import-hero-copy">
           <div className="temu-import-hero-upload temu-ad-hero-upload">
             <label className="excel-upload-box temu-import-upload-box">
-              <input type="file" accept=".xlsx,.xls,.csv" disabled={previewLoading || confirmLoading || !reportDate} onChange={(event) => void onFile(event.target.files?.[0])} />
+              <input type="file" accept=".xlsx,.xls,.csv" disabled={previewLoading || confirmLoading || !reportDate || !storeName} onChange={(event) => void onFile(event.target.files?.[0])} />
               <strong>{previewLoading ? '处理中...' : confirmLoading ? '导入中...' : '选择或拖入 Excel 文件'}</strong>
               <span>支持 .xlsx / .xls / .csv</span>
             </label>
             <div className="npc-import-controls temu-import-store-control">
               <label>报表日期<input type="date" value={reportDate} onChange={(event) => setReportDate(event.target.value)} /></label>
-              <label>默认店铺
-                <input value={storeName} onChange={(event) => setStoreName(event.target.value)} placeholder="报表内有店铺字段可留空" />
+              <label>导入店铺
+                <select value={storeName} onChange={(event) => { setStoreName(event.target.value); setRecordsPage(1); }}>
+                  <option value="">请选择店铺</option>
+                  {stores.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}
+                </select>
               </label>
             </div>
           </div>
@@ -264,22 +336,39 @@ export default function TemuAdReportImportPage() {
             <small>{storageStatus?.databaseName || storageError || 'PostgreSQL'}</small>
           </article>
           <article>
-            <span>商品</span>
-            <strong>{statusCounts?.products ?? 0}</strong>
-            <small>temu_products</small>
+            <span>广告商品数</span>
+            <strong>{summary.adProductCount ?? 0}</strong>
+            <small>{storeName || '请选择店铺'}</small>
           </article>
           <article>
-            <span>广告</span>
-            <strong>{statusCounts?.ads ?? 0}</strong>
-            <small>temu_ad_product_daily</small>
+            <span>总花费</span>
+            <strong>{String(summary.adSpend ?? 0)}</strong>
+            <small>推广销售额 {String(summary.promoSalesAmount ?? 0)}</small>
           </article>
           <article>
-            <span>导入批次</span>
-            <strong>{statusCounts?.importBatches ?? 0}</strong>
-            <small>{latestBatch?.fileName ? `最近：${latestBatch.fileName}` : '暂无批次'}</small>
+            <span>未匹配SPU</span>
+            <strong>{summary.unmatchedCount ?? 0}</strong>
+            <small>ROAS {summary.promoRoas == null ? '-' : Number(summary.promoRoas).toFixed(2)} / 订单 {String(summary.promoSubOrderCount ?? 0)}</small>
           </article>
         </div>
       </section>
+
+      <article className="excel-record-panel npc-panel temu-import-context-panel">
+        <header className="npc-panel-header">
+          <h2>当前展示：{storeName && reportDate ? `${storeName} ${reportDate} 广告数据` : '请选择店铺和广告日期后查看数据'}</h2>
+          <span>{latestBatch?.fileName ? `最近批次：${latestBatch.fileName}` : '暂无导入批次'}</span>
+        </header>
+        <div className="npc-mapping-grid temu-import-filter-grid">
+          <label>SPU ID<input value={filters.spuId || ''} onChange={(event) => setFilters({ ...filters, spuId: event.target.value })} /></label>
+          <label>商品名称<input value={filters.productName || ''} onChange={(event) => setFilters({ ...filters, productName: event.target.value })} /></label>
+          <label>是否匹配商品<select value={filters.matched || ''} onChange={(event) => setFilters({ ...filters, matched: event.target.value })}><option value="">全部</option><option value="true">已匹配</option><option value="false">未匹配</option></select></label>
+          <label>ROAS是否达标<select value={filters.roasMet || ''} onChange={(event) => setFilters({ ...filters, roasMet: event.target.value })}><option value="">全部</option><option value="true">达标</option><option value="false">未达标</option></select></label>
+          <label>总花费最小<input value={filters.adSpendMin || ''} onChange={(event) => setFilters({ ...filters, adSpendMin: event.target.value })} /></label>
+          <label>总花费最大<input value={filters.adSpendMax || ''} onChange={(event) => setFilters({ ...filters, adSpendMax: event.target.value })} /></label>
+          <label>推广订单最小<input value={filters.promoOrderMin || ''} onChange={(event) => setFilters({ ...filters, promoOrderMin: event.target.value })} /></label>
+          <label>推广订单最大<input value={filters.promoOrderMax || ''} onChange={(event) => setFilters({ ...filters, promoOrderMax: event.target.value })} /></label>
+        </div>
+      </article>
 
       {message && <div className="excel-import-error">{message}</div>}
 
@@ -291,7 +380,7 @@ export default function TemuAdReportImportPage() {
               <h2>字段映射与预览</h2>
               <p>{preview.fileName}，共 {preview.totalRows} 行，预览前 20 行。</p>
             </div>
-            <button type="button" disabled={confirmLoading || !reportDate} onClick={confirm}>{confirmLoading ? '导入中...' : '确认导入 PostgreSQL'}</button>
+            <button type="button" disabled={confirmLoading || !reportDate} onClick={confirm}>{confirmLoading ? '导入中...' : '按当前映射重新导入'}</button>
           </header>
           <div className="npc-mapping-grid">
             {Object.entries(fieldLabels).map(([field, label]) => (
@@ -335,7 +424,7 @@ export default function TemuAdReportImportPage() {
             <h2>PostgreSQL 广告记录</h2>
             <p>刷新页面后从 temu_ad_product_daily 按页读取，每页 50 条。</p>
           </div>
-          <button type="button" onClick={() => void refreshOverview(recordsPage)}>刷新</button>
+          <button type="button" disabled={!storeName || !reportDate} onClick={() => void refreshOverview(recordsPage)}>刷新</button>
         </header>
         <div className="npc-table-wrap temu-ad-record-table">
           <table>
@@ -348,7 +437,7 @@ export default function TemuAdReportImportPage() {
                   ))}
                 </tr>
               ))}
-              {overview.records.length === 0 && <tr><td colSpan={AD_RECORD_COLUMNS.length}>暂无 PostgreSQL 广告记录</td></tr>}
+              {overview.records.length === 0 && <tr><td colSpan={AD_RECORD_COLUMNS.length}>{storeName && reportDate ? '暂无当前店铺和日期的广告记录' : '请选择店铺和广告日期后查看数据'}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -369,25 +458,52 @@ export default function TemuAdReportImportPage() {
         </div>
       </article>
 
+      {overview.unmatched && overview.unmatched.length > 0 && (
+        <article className="excel-record-panel npc-panel">
+          <h2>SPU未匹配数据</h2>
+          <div className="npc-table-wrap">
+            <table>
+              <thead><tr><th>商品名称</th><th>商品ID</th><th>SPU ID</th><th>失败原因</th></tr></thead>
+              <tbody>
+                {overview.unmatched.map((row, index) => (
+                  <tr key={`${row.temuSpuId}-${index}`}>
+                    <td>{String(row.productName || '-')}</td>
+                    <td>{String(row.temuProductId || '-')}</td>
+                    <td>{String(row.temuSpuId || '-')}</td>
+                    <td>{String(row.errorReason || 'SPU未匹配商品信息')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      )}
+
       <article className="excel-record-panel npc-panel temu-import-batch-panel">
         <h2>最近广告导入批次</h2>
         <div className="npc-table-wrap">
           <table>
-            <thead><tr><th>文件名</th><th>报表日期</th><th>店铺</th><th>总行数</th><th>成功</th><th>失败</th><th>状态</th><th>导入时间</th></tr></thead>
+            <thead><tr><th>批次ID</th><th>导入类型</th><th>店铺</th><th>数据日期</th><th>文件名</th><th>总行数</th><th>成功行数</th><th>失败行数</th><th>匹配成功数</th><th>未匹配数</th><th>导入人</th><th>导入时间</th><th>状态</th><th>操作</th></tr></thead>
             <tbody>
               {overview.batches.map((row) => (
                 <tr key={String(row.id)}>
+                  <td>{String(row.id || '-').slice(0, 8)}</td>
+                  <td>{String(row.importType || '-')}</td>
+                  <td>{String(row.storeName || storeName || '-')}</td>
+                  <td>{String(row.reportDate || reportDate || '-').slice(0, 10)}</td>
                   <td>{String(row.fileName || '-')}</td>
-                  <td>{String(row.reportDate || '-').slice(0, 10)}</td>
-                  <td>{String(row.storeName || '-')}</td>
                   <td>{String(row.totalRows ?? 0)}</td>
                   <td>{String(row.successRows ?? 0)}</td>
                   <td>{String(row.errorRows ?? 0)}</td>
-                  <td>{String(row.status || '-')}</td>
+                  <td>{String(row.successRows ?? 0)}</td>
+                  <td>{String(row.errorRows ?? 0)}</td>
+                  <td>{String(row.uploadedByName || row.uploadedBy || '-')}</td>
                   <td>{formatShanghaiTime(row.finishedAt || row.createdAt)}</td>
+                  <td>{String(row.status || '-')}</td>
+                  <td><button type="button" onClick={() => window.alert(`批次 ${String(row.id)}\\n文件：${String(row.fileName || '-')}`)}>查看明细</button><button type="button" onClick={() => window.alert(row.errorRows ? '未匹配/失败数据已在上方区域展示。' : '该批次无失败行。')}>查看失败行</button><button type="button" disabled={!reportDate} onClick={() => void newProductCenterDataSource.rebuildSnapshot(reportDate).then(() => refreshOverview(recordsPage))}>重建快照</button></td>
                 </tr>
               ))}
-              {overview.batches.length === 0 && <tr><td colSpan={8}>暂无广告导入批次</td></tr>}
+              {overview.batches.length === 0 && <tr><td colSpan={14}>暂无广告导入批次</td></tr>}
             </tbody>
           </table>
         </div>

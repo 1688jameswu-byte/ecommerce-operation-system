@@ -8871,6 +8871,79 @@
   }
 }
 
+.admin-main :is(
+  .import-record-table,
+  .npc-table-wrap table,
+  .alibaba-product-table,
+  .alibaba-products-v1-table,
+  .alibaba-products-v1-sku-table,
+  .alibaba-products-v1-sku-preview-table,
+  .salary-expense-table,
+  .excel-preview-table table
+) {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-main :is(
+  .import-record-table,
+  .npc-table-wrap table,
+  .alibaba-product-table,
+  .alibaba-products-v1-table,
+  .alibaba-products-v1-sku-table,
+  .alibaba-products-v1-sku-preview-table,
+  .salary-expense-table,
+  .excel-preview-table table
+) :is(th, td) {
+  box-sizing: border-box;
+  padding-right: 12px;
+  padding-left: 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-main :is(
+  .import-record-table,
+  .npc-table-wrap table,
+  .alibaba-product-table,
+  .alibaba-products-v1-table,
+  .alibaba-products-v1-sku-table,
+  .alibaba-products-v1-sku-preview-table,
+  .salary-expense-table,
+  .excel-preview-table table
+) :is(th, td):is(.numeric-heading, .numeric-cell, .amount-cell, .price-cell) {
+  text-align: right;
+}
+
+.admin-main :is(
+  .import-record-table,
+  .npc-table-wrap table,
+  .alibaba-product-table,
+  .alibaba-products-v1-table,
+  .alibaba-products-v1-sku-table,
+  .alibaba-products-v1-sku-preview-table,
+  .salary-expense-table,
+  .excel-preview-table table
+) td:has(:is(.operator-actions, .npc-actions, .store-table-actions, .account-table-actions, .task-table-actions, .alibaba-row-actions)) {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.admin-main :is(
+  .import-record-table,
+  .npc-table-wrap table,
+  .alibaba-product-table,
+  .alibaba-products-v1-table,
+  .alibaba-products-v1-sku-table,
+  .alibaba-products-v1-sku-preview-table,
+  .salary-expense-table,
+  .excel-preview-table table
+) :is(th, td) > :is(button, a, .admin-status, .npc-tag, .npc-pill, .import-status) {
+  vertical-align: middle;
+}
+
 .npc-page {
   display: grid;
   gap: 16px;
@@ -8903,6 +8976,7 @@
 .npc-toolbar select,
 .npc-import-controls input,
 .npc-import-controls select,
+.npc-mapping-grid input,
 .npc-mapping-grid select {
   min-height: 36px;
   border: 1px solid rgba(59, 130, 246, 0.5);
@@ -8910,6 +8984,33 @@
   color: #f8fafc;
   border-radius: 6px;
   padding: 0 10px;
+}
+
+.temu-import-context-panel {
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.temu-import-filter-grid {
+  margin-bottom: 0;
+}
+
+.temu-import-batch-panel td button {
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+
+.npc-date-badge {
+  align-self: end;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(34, 197, 94, 0.42);
+  background: rgba(20, 83, 45, 0.28);
+  color: #bbf7d0;
+  border-radius: 6px;
+  padding: 0 12px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .npc-metric-grid {
@@ -8979,6 +9080,60 @@
 .npc-product-cell span {
   display: grid;
   gap: 4px;
+}
+
+.npc-product-list-table {
+  table-layout: fixed;
+  min-width: 1320px;
+}
+
+.npc-product-list-table th,
+.npc-product-list-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.npc-product-list-table tbody tr {
+  height: 42px;
+}
+
+.npc-product-list-table .npc-product-compact-col {
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+}
+
+.npc-product-list-table .npc-product-cell {
+  width: 40px;
+  min-width: 0;
+  gap: 0;
+}
+
+.npc-product-list-table .npc-product-cell img {
+  display: none;
+}
+
+.npc-product-list-table .npc-product-cell span,
+.npc-product-list-table .npc-product-cell strong,
+.npc-product-list-table .npc-product-cell small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.npc-product-list-table .npc-product-cell small {
+  display: none;
+}
+
+.npc-product-list-table .npc-tag {
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .npc-tag,
@@ -9224,6 +9379,33 @@
   margin-top: 4px;
 }
 
+.temu-import-preview-panel .npc-table-wrap {
+  max-height: 520px;
+}
+
+.temu-import-preview-panel .npc-table-wrap table {
+  width: max-content;
+  min-width: 1680px;
+  table-layout: auto;
+}
+
+.temu-import-preview-panel .npc-table-wrap th,
+.temu-import-preview-panel .npc-table-wrap td {
+  min-width: 116px;
+  max-width: 220px;
+  padding: 8px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.temu-import-preview-panel .npc-table-wrap th:first-child,
+.temu-import-preview-panel .npc-table-wrap td:first-child {
+  min-width: 360px;
+  max-width: 460px;
+}
+
 .temu-product-record-panel {
   width: 100%;
 }
@@ -9234,7 +9416,7 @@
 
 .temu-product-record-table table {
   table-layout: fixed;
-  min-width: 1220px;
+  min-width: 1740px;
 }
 
 .temu-product-record-table th,
@@ -9248,8 +9430,8 @@
 
 .temu-product-record-table th:nth-child(1),
 .temu-product-record-table td:nth-child(1) {
-  width: 76px;
-  max-width: 76px;
+  width: 340px;
+  max-width: 340px;
 }
 
 .temu-product-record-table th:nth-child(2),
@@ -9258,19 +9440,19 @@
 .temu-product-record-table td:nth-child(3),
 .temu-product-record-table th:nth-child(4),
 .temu-product-record-table td:nth-child(4) {
-  width: 102px;
+  width: 118px;
 }
 
 .temu-product-record-table th:nth-child(5),
 .temu-product-record-table td:nth-child(5),
 .temu-product-record-table th:nth-child(6),
 .temu-product-record-table td:nth-child(6) {
-  width: 96px;
+  width: 106px;
 }
 
 .temu-product-record-table th:nth-child(7),
 .temu-product-record-table td:nth-child(7) {
-  width: 104px;
+  width: 150px;
 }
 
 .temu-product-record-table th:nth-child(8),
@@ -9279,22 +9461,22 @@
 .temu-product-record-table td:nth-child(9),
 .temu-product-record-table th:nth-child(10),
 .temu-product-record-table td:nth-child(10) {
-  width: 74px;
+  width: 104px;
 }
 
 .temu-product-record-table th:nth-child(11),
 .temu-product-record-table td:nth-child(11) {
-  width: 98px;
+  width: 116px;
 }
 
 .temu-product-record-table th:nth-child(12),
 .temu-product-record-table td:nth-child(12) {
-  width: 96px;
+  width: 118px;
 }
 
 .temu-product-record-table th:nth-child(13),
 .temu-product-record-table td:nth-child(13) {
-  width: 132px;
+  width: 150px;
 }
 
 .temu-product-title-cell {

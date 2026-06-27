@@ -2,8 +2,16 @@ import * as XLSX from 'xlsx';
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
 
+function withCurrentUserParam(url: string) {
+  if (typeof window === 'undefined') return url;
+  const currentUser = window.localStorage.getItem('currentUser');
+  if (!currentUser) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}currentUser=${encodeURIComponent(currentUser)}`;
+}
+
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(url, {
+  const response = await fetch(withCurrentUserParam(url), {
     credentials: 'include',
     cache: 'no-store',
     ...options,
@@ -50,9 +58,16 @@ export const newProductCenterDataSource = {
     });
   },
 
-  getProductImportRecords(page = 1, pageSize = 50) {
+  getProductImportRecords(page = 1, pageSize = 50, filters: Record<string, string> = {}) {
     const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
     return request<ImportOverview>(`/api/data-import/temu-product-info/records?${params.toString()}`);
+  },
+
+  getVisibleStores() {
+    return request<{ success: boolean; stores: Array<{ id?: string; storeName?: string; platform?: string; status?: string }>; message?: string }>('/api/auth/visible-stores');
   },
 
   getTemuStorageStatus() {
@@ -73,8 +88,11 @@ export const newProductCenterDataSource = {
     });
   },
 
-  getAdImportRecords(page = 1, pageSize = 50) {
+  getAdImportRecords(page = 1, pageSize = 50, filters: Record<string, string> = {}) {
     const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
     return request<ImportOverview>(`/api/data-import/temu-ad-report/records?${params.toString()}`);
   },
 
@@ -146,6 +164,9 @@ export interface ImportOverview {
   total?: number;
   page?: number;
   pageSize?: number;
+  summary?: Record<string, any>;
+  unmatched?: Array<Record<string, any>>;
+  reportDates?: string[];
 }
 
 export interface TemuStorageStatus {
@@ -209,6 +230,8 @@ export interface RecommendationRecord extends ProductSnapshot {
 
 export interface DashboardResponse {
   snapshotDate: string;
+  dataCutoffDate?: string;
+  dateMode?: 'auto' | 'manual';
   summary: Record<string, number | null>;
   operatorRanking: Array<Record<string, unknown>>;
   storeRanking: Array<Record<string, unknown>>;
@@ -219,6 +242,9 @@ export interface PagedResponse<T> {
   total: number;
   page: number;
   pageSize: number;
+  snapshotDate?: string;
+  dataCutoffDate?: string;
+  dateMode?: 'auto' | 'manual';
 }
 
 export interface ProductDetailResponse {

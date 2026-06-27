@@ -17,7 +17,7 @@ const PRODUCT_FIELDS = {
   declaredPriceCny: ['申报价格(CNY)', '申报价格（CNY）'],
   declaredPriceStatus: ['申报价格状态'],
   createdTime: ['创建时间'],
-  temuProductId: ['商品ID', '商品 ID', '商品id', 'product id', 'temu_product_id', 'SKC ID'],
+  temuProductId: ['商品ID', '商品 ID', '商品id', 'product id', 'temu_product_id'],
   temuSpuId: ['SPU ID', 'SPU', 'spu id', 'temu_spu_id'],
   productName: ['商品名称', '商品标题', '品名', 'product name'],
   productImageUrl: ['商品图片', '图片', '主图', 'image', 'image url'],
@@ -68,7 +68,7 @@ const AD_FIELDS = {
 };
 
 PRODUCT_FIELDS.storeName.push('店铺', '店铺名称');
-PRODUCT_FIELDS.temuProductId.push('商品ID', '商品 ID', 'SKC ID', 'SKCID', 'SKC');
+PRODUCT_FIELDS.temuProductId.push('商品ID', '商品 ID');
 PRODUCT_FIELDS.temuSpuId.push('SPU ID', 'SPUID');
 PRODUCT_FIELDS.productName.push('商品名称', '商品标题', '品名');
 PRODUCT_FIELDS.productImageUrl.push('商品图片', '图片', '主图');
@@ -251,6 +251,7 @@ export function assertImportFileShape({ headers = [], mapping: explicitMapping =
       throw new Error('导入信息错误：当前文件像商品信息表，请使用“商品信息导入”。');
     }
     const missing = formatMissingFields(adMapping, [
+      ['temuSpuId', 'SPU ID'],
       ['temuProductId', '商品ID'],
       ['adSpend', '总花费'],
     ]);
@@ -396,7 +397,7 @@ async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName 
   if (!text(data.storeName) && text(fallbackStoreName)) data.storeName = fallbackStoreName;
   const productTitle = text(data.productTitle || data.productName);
   const spuId = nullableText(data.spuId || data.temuSpuId);
-  const skcId = text(data.skcId || data.temuProductId);
+  const skcId = nullableText(data.skcId);
   const skcCode = nullableText(data.skcCode);
   const leafCategoryName = nullableText(data.leafCategoryName || data.categoryName);
   const declaredPriceCny = nullableNumber(data.declaredPriceCny || data.currentPrice);
@@ -404,77 +405,71 @@ async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName 
   const createdTime = dateText(data.createdTime || data.firstOnlineAt);
   const firstOnlineAt = dateText(data.createdTime || data.firstOnlineAt);
   if (!text(data.storeName)) throw new Error('缺少店铺');
+  if (!spuId) throw new Error('缺少 SPU ID');
   if (!skcId) throw new Error('缺少 SKC ID');
   if (!firstOnlineAt) throw new Error('缺少或无法识别首次上架时间');
   const owner = await resolveStoreAndOperator(client, data.storeName, firstOnlineAt);
   if (!owner.storeId) throw new Error(`未匹配到 TEMU 店铺：${text(data.storeName)}`);
   const before = await client.query(
-    `SELECT id, current_price, current_inventory FROM temu_products WHERE store_id = $1 AND temu_product_id = $2 LIMIT 1`,
-    [owner.storeId, skcId],
+    `SELECT id, current_price, current_inventory FROM temu_products WHERE store_id = $1 AND temu_spu_id = $2 LIMIT 2`,
+    [owner.storeId, spuId],
   );
-  const result = await client.query(
-    `INSERT INTO temu_products (
-       legacy_id, source_id, store_id, store_name, operator_id, operator_name,
-       temu_product_id, temu_spu_id, product_name, product_image_url, category_name,
-       first_online_at, product_status, current_price, current_inventory,
-       product_title, spu_id, skc_id, skc_code, leaf_category_name, declared_price_cny,
-       declared_price_status, created_time, raw_data, updated_at
-     )
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::timestamptz,$13,$14,$15,
-             $16,$17,$18,$19,$20,$21,$22,$23::timestamptz,$24::jsonb,NOW())
-     ON CONFLICT (store_id, temu_product_id) WHERE store_id IS NOT NULL AND temu_product_id IS NOT NULL
-     DO UPDATE SET
-       store_name = EXCLUDED.store_name,
-       operator_id = EXCLUDED.operator_id,
-       operator_name = EXCLUDED.operator_name,
-       temu_spu_id = EXCLUDED.temu_spu_id,
-       product_name = EXCLUDED.product_name,
-       product_image_url = EXCLUDED.product_image_url,
-       category_name = EXCLUDED.category_name,
-       first_online_at = EXCLUDED.first_online_at,
-       product_status = EXCLUDED.product_status,
-       current_price = EXCLUDED.current_price,
-       current_inventory = COALESCE(EXCLUDED.current_inventory, temu_products.current_inventory),
-       product_title = EXCLUDED.product_title,
-       spu_id = EXCLUDED.spu_id,
-       skc_id = EXCLUDED.skc_id,
-       skc_code = EXCLUDED.skc_code,
-       leaf_category_name = EXCLUDED.leaf_category_name,
-       declared_price_cny = EXCLUDED.declared_price_cny,
-       declared_price_status = EXCLUDED.declared_price_status,
-       created_time = EXCLUDED.created_time,
-       raw_data = EXCLUDED.raw_data,
-       updated_at = NOW()
-     RETURNING id`,
-    [
-      `${owner.storeId}-${skcId}`,
-      `${batchId}-${rowNumber}`,
-      owner.storeId,
-      owner.storeName,
-      owner.operatorId,
-      owner.operatorName,
-      skcId,
-      spuId,
-      productTitle,
-      nullableText(data.productImageUrl),
-      leafCategoryName,
-      firstOnlineAt,
-      nullableText(data.productStatus),
-      declaredPriceCny,
-      nullableNumber(data.currentInventory) === null ? null : Math.trunc(numberValue(data.currentInventory)),
-      productTitle,
-      spuId,
-      skcId,
-      skcCode,
-      leafCategoryName,
-      declaredPriceCny,
-      declaredPriceStatus,
-      createdTime,
-      json(row),
-    ],
-  );
-  const productId = result.rows[0].id;
-  if (!before.rows[0]) {
+  if (before.rows.length > 1) throw new Error(`同店铺 SPU ID 匹配到多个商品主记录：${spuId}`);
+  const productValues = [
+    `${owner.storeId}-${spuId}`,
+    `${batchId}-${rowNumber}`,
+    owner.storeId,
+    owner.storeName,
+    owner.operatorId,
+    owner.operatorName,
+    null,
+    spuId,
+    productTitle,
+    nullableText(data.productImageUrl),
+    leafCategoryName,
+    firstOnlineAt,
+    nullableText(data.productStatus),
+    declaredPriceCny,
+    nullableNumber(data.currentInventory) === null ? null : Math.trunc(numberValue(data.currentInventory)),
+    productTitle,
+    spuId,
+    skcId,
+    skcCode,
+    leafCategoryName,
+    declaredPriceCny,
+    declaredPriceStatus,
+    createdTime,
+    json(row),
+  ];
+  let productId = before.rows[0]?.id;
+  if (productId) {
+    await client.query(
+      `UPDATE temu_products
+       SET legacy_id=$1, source_id=$2, store_id=$3, store_name=$4, operator_id=$5, operator_name=$6,
+           temu_product_id=$7, temu_spu_id=$8, product_name=$9, product_image_url=$10,
+           category_name=$11, first_online_at=$12::timestamptz, product_status=$13,
+           current_price=$14, current_inventory=COALESCE($15, current_inventory),
+           product_title=$16, spu_id=$17, skc_id=$18, skc_code=$19,
+           leaf_category_name=$20, declared_price_cny=$21, declared_price_status=$22,
+           created_time=$23::timestamptz, raw_data=$24::jsonb, updated_at=NOW()
+       WHERE id=$25`,
+      [...productValues, productId],
+    );
+  } else {
+    const result = await client.query(
+      `INSERT INTO temu_products (
+         legacy_id, source_id, store_id, store_name, operator_id, operator_name,
+         temu_product_id, temu_spu_id, product_name, product_image_url, category_name,
+         first_online_at, product_status, current_price, current_inventory,
+         product_title, spu_id, skc_id, skc_code, leaf_category_name, declared_price_cny,
+         declared_price_status, created_time, raw_data, updated_at
+       )
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::timestamptz,$13,$14,$15,
+               $16,$17,$18,$19,$20,$21,$22,$23::timestamptz,$24::jsonb,NOW())
+       RETURNING id`,
+      productValues,
+    );
+    productId = result.rows[0].id;
     await addTimeline(client, {
       productId,
       storeId: owner.storeId,
@@ -488,7 +483,9 @@ async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName 
       sourceId: String(batchId),
       rawData: row,
     });
-  } else {
+  }
+  await client.query('UPDATE temu_products SET temu_skc_id=$1 WHERE id=$2', [skcId, productId]);
+  if (before.rows[0]) {
     const oldPrice = Number(before.rows[0].current_price);
     const newPrice = Number(data.currentPrice);
     if (Number.isFinite(newPrice) && oldPrice !== newPrice) {
@@ -529,7 +526,7 @@ async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName 
   if (skuId || skuCode) {
     const existingSku = await client.query(
       `SELECT id FROM temu_product_skus
-       WHERE store_id = $1 AND COALESCE(sku_id, '') = COALESCE($2, '') AND COALESCE(sku_code, '') = COALESCE($3, '')
+       WHERE store_id = $1 AND COALESCE(sku_id, '') = COALESCE($2::text, '') AND COALESCE(sku_code, '') = COALESCE($3::text, '')
        LIMIT 1`,
       [owner.storeId, skuId, skuCode || null],
     );
@@ -543,7 +540,7 @@ async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName 
              declared_price_status=$17, created_time=$18::timestamptz, raw_data=$19::jsonb, updated_at=NOW()
          WHERE id=$20`,
         [
-          productId, owner.storeName, skcId, spuId, nullableText(skuName), declaredPriceCny,
+          productId, owner.storeName, null, spuId, nullableText(skuName), declaredPriceCny,
           nullableNumber(data.currentInventory) === null ? null : Math.trunc(numberValue(data.currentInventory)),
           productTitle, spuId, skcId, skcCode, leafCategoryName, nullableText(data.productStatus),
           nullableText(data.spec1Name), nullableText(data.spec2Name), declaredPriceCny, declaredPriceStatus,
@@ -560,7 +557,7 @@ async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName 
          )
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::timestamptz,$22::jsonb)`,
         [
-          productId, owner.storeId, owner.storeName, skcId, spuId, skuId, skuCode || null,
+          productId, owner.storeId, owner.storeName, null, spuId, skuId, skuCode || null,
           nullableText(skuName), declaredPriceCny,
           nullableNumber(data.currentInventory) === null ? null : Math.trunc(numberValue(data.currentInventory)),
           productTitle, spuId, skcId, skcCode, leafCategoryName, nullableText(data.productStatus),
@@ -569,6 +566,14 @@ async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName 
         ],
       );
     }
+    await client.query(
+      `UPDATE temu_product_skus
+       SET temu_skc_id=$1
+       WHERE product_id=$2
+         AND store_id=$3
+         AND (($4::text IS NOT NULL AND sku_id = $4) OR ($5::text IS NOT NULL AND sku_code = $5))`,
+      [skcId, productId, owner.storeId, skuId, skuCode || null],
+    );
   }
   return productId;
 }
@@ -576,33 +581,28 @@ async function upsertProduct(client, row, batchId, rowNumber, fallbackStoreName 
 async function findProductForAd(client, owner, data) {
   const result = await client.query(
     `SELECT id FROM temu_products
-     WHERE store_id = $1 AND (temu_product_id = $2 OR ($3 <> '' AND temu_spu_id = $3))
-     ORDER BY CASE WHEN temu_product_id = $2 THEN 0 ELSE 1 END, updated_at DESC
-     LIMIT 1`,
-    [owner.storeId, text(data.temuProductId), text(data.temuSpuId)],
+     WHERE store_id = $1 AND temu_spu_id = $2
+     LIMIT 2`,
+    [owner.storeId, text(data.temuSpuId)],
   );
-  return result.rows[0]?.id || null;
+  if (result.rows.length > 1) {
+    throw new Error(`同店铺 SPU ID 匹配到多个商品主记录：${text(data.temuSpuId)}`);
+  }
+  if (!result.rows[0]) {
+    throw new Error(`广告 SPU ID 未匹配到商品信息：${text(data.temuSpuId)}`);
+  }
+  return result.rows[0].id;
 }
 
 async function resolveAdOwner(client, storeName, data, reportDate) {
   if (text(storeName)) {
     return resolveStoreAndOperator(client, storeName, reportDate);
   }
-  const result = await client.query(
-    `SELECT p.store_id, p.store_name, p.operator_id, p.operator_name
-     FROM temu_products p
-     WHERE (p.temu_product_id = $1 OR ($2 <> '' AND p.temu_spu_id = $2))
-       AND p.store_id IS NOT NULL
-     ORDER BY CASE WHEN p.temu_product_id = $1 THEN 0 ELSE 1 END, p.updated_at DESC
-     LIMIT 1`,
-    [text(data.temuProductId), text(data.temuSpuId)],
-  );
-  const product = result.rows[0];
   return {
-    storeId: product?.store_id || null,
-    storeName: product?.store_name || '',
-    operatorId: product?.operator_id || null,
-    operatorName: product?.operator_name || '',
+    storeId: null,
+    storeName: '',
+    operatorId: null,
+    operatorName: '',
   };
 }
 
@@ -610,45 +610,11 @@ async function upsertAdRow(client, row, batchId, rowNumber, reportDate, fallback
   const data = mapRow(row, row.__mapping);
   const storeName = text(data.storeName || fallbackStoreName);
   if (!text(data.temuProductId)) throw new Error('缺少商品ID');
+  if (!text(data.temuSpuId)) throw new Error('缺少 SPU ID');
   const owner = await resolveAdOwner(client, storeName, data, reportDate);
-  if (!owner.storeId) throw new Error(storeName ? `未匹配到 TEMU 店铺：${storeName}` : '缺少店铺，且无法通过商品ID/SPU ID反查店铺');
+  if (!owner.storeId) throw new Error(storeName ? `未匹配到 TEMU 店铺：${storeName}` : '缺少店铺：广告数据必须提供店铺字段或在导入页选择默认店铺');
   const productId = await findProductForAd(client, owner, data);
-  await client.query(
-    `INSERT INTO temu_ad_product_daily (
-       report_date, import_batch_id, store_id, store_name, operator_id, operator_name,
-       product_id, temu_product_id, temu_spu_id, product_name, ad_spend, net_ad_spend,
-       global_sales_amount, global_roas, global_acos, global_cpa, global_sub_order_count,
-       global_unit_count, global_impressions, global_clicks, global_ctr, global_cvr,
-       global_add_to_cart_count, promo_sales_amount, promo_roas, promo_week_roas, target_roas,
-       promo_acos, promo_cpa, promo_sub_order_count, promo_unit_count, promo_impressions,
-       promo_clicks, promo_ctr, promo_cvr, promo_add_to_cart_count, net_promo_sales_amount,
-       net_promo_roas, net_promo_acos, net_promo_cpa, net_promo_sub_order_count,
-       net_promo_unit_count, raw_data, updated_at
-     )
-     VALUES (
-       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,
-       $23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43::jsonb,NOW()
-     )
-     ON CONFLICT (store_id, report_date, temu_product_id) WHERE store_id IS NOT NULL AND temu_product_id IS NOT NULL
-     DO UPDATE SET
-       import_batch_id=EXCLUDED.import_batch_id, store_name=EXCLUDED.store_name,
-       operator_id=EXCLUDED.operator_id, operator_name=EXCLUDED.operator_name, product_id=EXCLUDED.product_id,
-       temu_spu_id=EXCLUDED.temu_spu_id, product_name=EXCLUDED.product_name, ad_spend=EXCLUDED.ad_spend,
-       net_ad_spend=EXCLUDED.net_ad_spend, global_sales_amount=EXCLUDED.global_sales_amount,
-       global_roas=EXCLUDED.global_roas, global_acos=EXCLUDED.global_acos, global_cpa=EXCLUDED.global_cpa,
-       global_sub_order_count=EXCLUDED.global_sub_order_count, global_unit_count=EXCLUDED.global_unit_count,
-       global_impressions=EXCLUDED.global_impressions, global_clicks=EXCLUDED.global_clicks,
-       global_ctr=EXCLUDED.global_ctr, global_cvr=EXCLUDED.global_cvr,
-       global_add_to_cart_count=EXCLUDED.global_add_to_cart_count, promo_sales_amount=EXCLUDED.promo_sales_amount,
-       promo_roas=EXCLUDED.promo_roas, promo_week_roas=EXCLUDED.promo_week_roas, target_roas=EXCLUDED.target_roas,
-       promo_acos=EXCLUDED.promo_acos, promo_cpa=EXCLUDED.promo_cpa, promo_sub_order_count=EXCLUDED.promo_sub_order_count,
-       promo_unit_count=EXCLUDED.promo_unit_count, promo_impressions=EXCLUDED.promo_impressions,
-       promo_clicks=EXCLUDED.promo_clicks, promo_ctr=EXCLUDED.promo_ctr, promo_cvr=EXCLUDED.promo_cvr,
-       promo_add_to_cart_count=EXCLUDED.promo_add_to_cart_count, net_promo_sales_amount=EXCLUDED.net_promo_sales_amount,
-       net_promo_roas=EXCLUDED.net_promo_roas, net_promo_acos=EXCLUDED.net_promo_acos, net_promo_cpa=EXCLUDED.net_promo_cpa,
-       net_promo_sub_order_count=EXCLUDED.net_promo_sub_order_count, net_promo_unit_count=EXCLUDED.net_promo_unit_count,
-       raw_data=EXCLUDED.raw_data, updated_at=NOW()`,
-    [
+  const adValues = [
       dateText(reportDate),
       batchId,
       owner.storeId,
@@ -692,8 +658,52 @@ async function upsertAdRow(client, row, batchId, rowNumber, reportDate, fallback
       nullableNumber(data.netPromoSubOrderCount),
       nullableNumber(data.netPromoUnitCount),
       json(row),
-    ],
+  ];
+  const existing = await client.query(
+    `SELECT id FROM temu_ad_product_daily
+     WHERE store_id = $1 AND report_date = $2::date AND temu_spu_id = $3
+     LIMIT 2`,
+    [owner.storeId, dateText(reportDate), text(data.temuSpuId)],
   );
+  if (existing.rows.length > 1) throw new Error(`同店铺同日期 SPU ID 匹配到多条广告记录：${text(data.temuSpuId)}`);
+  if (existing.rows[0]) {
+    await client.query(
+      `UPDATE temu_ad_product_daily
+       SET import_batch_id=$2, store_name=$4, operator_id=$5, operator_name=$6,
+           product_id=$7, temu_product_id=$8, temu_spu_id=$9, product_name=$10,
+           ad_spend=$11, net_ad_spend=$12, global_sales_amount=$13, global_roas=$14,
+           global_acos=$15, global_cpa=$16, global_sub_order_count=$17, global_unit_count=$18,
+           global_impressions=$19, global_clicks=$20, global_ctr=$21, global_cvr=$22,
+           global_add_to_cart_count=$23, promo_sales_amount=$24, promo_roas=$25,
+           promo_week_roas=$26, target_roas=$27, promo_acos=$28, promo_cpa=$29,
+           promo_sub_order_count=$30, promo_unit_count=$31, promo_impressions=$32,
+           promo_clicks=$33, promo_ctr=$34, promo_cvr=$35, promo_add_to_cart_count=$36,
+           net_promo_sales_amount=$37, net_promo_roas=$38, net_promo_acos=$39,
+           net_promo_cpa=$40, net_promo_sub_order_count=$41, net_promo_unit_count=$42,
+           raw_data=$43::jsonb, updated_at=NOW()
+       WHERE id=$44`,
+      [...adValues, existing.rows[0].id],
+    );
+  } else {
+    await client.query(
+      `INSERT INTO temu_ad_product_daily (
+         report_date, import_batch_id, store_id, store_name, operator_id, operator_name,
+         product_id, temu_product_id, temu_spu_id, product_name, ad_spend, net_ad_spend,
+         global_sales_amount, global_roas, global_acos, global_cpa, global_sub_order_count,
+         global_unit_count, global_impressions, global_clicks, global_ctr, global_cvr,
+         global_add_to_cart_count, promo_sales_amount, promo_roas, promo_week_roas, target_roas,
+         promo_acos, promo_cpa, promo_sub_order_count, promo_unit_count, promo_impressions,
+         promo_clicks, promo_ctr, promo_cvr, promo_add_to_cart_count, net_promo_sales_amount,
+         net_promo_roas, net_promo_acos, net_promo_cpa, net_promo_sub_order_count,
+         net_promo_unit_count, raw_data, updated_at
+       )
+       VALUES (
+         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,
+         $23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43::jsonb,NOW()
+       )`,
+      adValues,
+    );
+  }
   if (productId) {
     const spend = numberValue(data.adSpend);
     const clicks = numberValue(data.promoClicks || data.globalClicks);
@@ -715,10 +725,13 @@ export async function importProductRows({ rows = [], mapping = {}, fileName = ''
   const productIds = new Set();
   try {
     await client.query('BEGIN');
+    const batchOwner = fallbackStoreName ? await resolveStoreAndOperator(client, fallbackStoreName, null) : {};
     batchId = await createImportBatch(client, {
       sourceBatchId,
       importType: 'product_info',
       fileName,
+      storeId: batchOwner.storeId || null,
+      storeName: batchOwner.storeName || fallbackStoreName,
       totalRows: rows.length,
       status: 'processing',
       uploadedBy: currentUser.userId || currentUser.username,
@@ -728,13 +741,17 @@ export async function importProductRows({ rows = [], mapping = {}, fileName = ''
     let rowNumber = 0;
     for (const row of rows) {
       rowNumber += 1;
+      await client.query('SAVEPOINT import_product_row');
       try {
         const productId = await upsertProduct(client, { ...row, __mapping: mapping }, batchId, rowNumber, fallbackStoreName);
         productIds.add(productId);
+        await client.query('RELEASE SAVEPOINT import_product_row');
       } catch (error) {
+        await client.query('ROLLBACK TO SAVEPOINT import_product_row');
         const reason = error instanceof Error ? error.message : String(error);
         errors.push({ rowNumber, errorReason: reason, rawData: row });
         await insertImportError(client, batchId, rowNumber, reason, row);
+        await client.query('RELEASE SAVEPOINT import_product_row');
       }
     }
     await client.query(
@@ -780,12 +797,16 @@ export async function importAdRows({ rows = [], mapping = {}, fileName = '', rep
     for (const row of rows) {
       rowNumber += 1;
       if (isAdSummaryRow(row, mapping)) continue;
+      await client.query('SAVEPOINT import_ad_row');
       try {
         await upsertAdRow(client, { ...row, __mapping: mapping }, batchId, rowNumber, reportDate, fallbackStoreName);
+        await client.query('RELEASE SAVEPOINT import_ad_row');
       } catch (error) {
+        await client.query('ROLLBACK TO SAVEPOINT import_ad_row');
         const reason = error instanceof Error ? error.message : String(error);
         errors.push({ rowNumber, errorReason: reason, rawData: row });
         await insertImportError(client, batchId, rowNumber, reason, row);
+        await client.query('RELEASE SAVEPOINT import_ad_row');
       }
     }
     await client.query(
@@ -934,8 +955,9 @@ export async function rebuildNewProductSnapshots({ snapshotDate = new Date().toI
          WHERE o.is_valid_order = TRUE
            AND o.is_cancelled = FALSE
            AND o.order_date = $1::date
-           AND (o.product_id = $2 OR s.product_id = $2 OR (o.temu_product_id IS NOT NULL AND o.temu_product_id = $3))`,
-        [targetDate, product.id, product.temu_product_id],
+           AND o.store_id = $3
+           AND s.product_id = $2`,
+        [targetDate, product.id, product.store_id],
       );
       const adResult = await client.query(
         `SELECT COALESCE(SUM(ad_spend),0) AS ad_spend,
@@ -945,11 +967,14 @@ export async function rebuildNewProductSnapshots({ snapshotDate = new Date().toI
                 COALESCE(SUM(promo_impressions),0) AS impressions,
                 COALESCE(SUM(promo_clicks),0) AS clicks,
                 COALESCE(SUM(promo_add_to_cart_count),0) AS add_to_cart_count,
-                MAX(target_roas) AS target_roas
+                MAX(target_roas) AS target_roas,
+                MAX(promo_roas) AS promo_roas,
+                MAX(promo_acos) AS promo_acos
          FROM temu_ad_product_daily
          WHERE report_date = $1::date
-           AND (product_id = $2 OR (store_id = $3 AND temu_product_id = $4) OR (store_id = $3 AND temu_spu_id = $5))`,
-        [targetDate, product.id, product.store_id, product.temu_product_id, product.temu_spu_id],
+           AND store_id = $2
+           AND temu_spu_id = $3`,
+        [targetDate, product.store_id, product.temu_spu_id],
       );
       const orders = orderResult.rows[0] || {};
       const ads = adResult.rows[0] || {};
@@ -998,8 +1023,8 @@ export async function rebuildNewProductSnapshots({ snapshotDate = new Date().toI
         clicks,
         add_to_cart_count: Number(ads.add_to_cart_count || 0),
         target_roas: ads.target_roas === null ? null : Number(ads.target_roas),
-        roas: safeDivide(adSales, adSpend),
-        acos: safeDivide(adSpend, adSales),
+        roas: ads.promo_roas === null || ads.promo_roas === undefined ? safeDivide(adSales, adSpend) : Number(ads.promo_roas),
+        acos: ads.promo_acos === null || ads.promo_acos === undefined ? safeDivide(adSpend, adSales) : Number(ads.promo_acos),
         ctr: safeDivide(clicks, impressions),
         cvr: safeDivide(adOrderCount, clicks),
         cpc: safeDivide(adSpend, clicks),
@@ -1092,6 +1117,35 @@ function toCamel(row) {
   ]));
 }
 
+export async function getNewProductDataCutoffDate() {
+  await runTemuMigrations();
+  const result = await queryTemuDatabase(
+    `SELECT
+       (SELECT MAX(order_date)::date FROM temu_order_items WHERE is_valid_order = TRUE AND is_cancelled = FALSE) AS latest_order_date,
+       (SELECT MAX(report_date)::date FROM temu_ad_product_daily) AS latest_ad_date,
+       (SELECT MAX(snapshot_date)::date FROM temu_new_product_daily_snapshot) AS latest_snapshot_date,
+       (CURRENT_DATE - INTERVAL '1 day')::date AS yesterday`,
+  );
+  const row = result.rows[0] || {};
+  const latestOrderDate = dateText(row.latest_order_date);
+  const latestAdDate = dateText(row.latest_ad_date);
+  const latestSnapshotDate = dateText(row.latest_snapshot_date);
+  const yesterday = dateText(row.yesterday);
+  if (latestOrderDate && latestAdDate) {
+    return latestOrderDate <= latestAdDate ? latestOrderDate : latestAdDate;
+  }
+  return latestOrderDate || latestAdDate || latestSnapshotDate || yesterday || new Date().toISOString().slice(0, 10);
+}
+
+async function resolveSnapshotDate(params = {}) {
+  const selectedDate = dateText(params.snapshotDate);
+  if (selectedDate) {
+    return { snapshotDate: selectedDate, dataCutoffDate: selectedDate, dateMode: 'manual' };
+  }
+  const dataCutoffDate = await getNewProductDataCutoffDate();
+  return { snapshotDate: dataCutoffDate, dataCutoffDate, dateMode: 'auto' };
+}
+
 export async function getTemuStorageStatus() {
   const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
   if (!hasDatabaseUrl) {
@@ -1170,7 +1224,7 @@ function buildScopeWhere(params, startIndex = 1) {
 }
 
 export async function getProducts(params = {}) {
-  const snapshotDate = dateText(params.snapshotDate) || new Date().toISOString().slice(0, 10);
+  const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
   await rebuildNewProductSnapshots({ snapshotDate });
   const page = Math.max(1, Number(params.page || 1));
   const pageSize = Math.min(100, Math.max(1, Number(params.pageSize || 20)));
@@ -1189,11 +1243,14 @@ export async function getProducts(params = {}) {
     total: Number(result.rows[0]?.total || 0),
     page,
     pageSize,
+    snapshotDate,
+    dataCutoffDate,
+    dateMode,
   };
 }
 
 export async function getBossDashboard(params = {}) {
-  const snapshotDate = dateText(params.snapshotDate) || new Date().toISOString().slice(0, 10);
+  const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
   await rebuildNewProductSnapshots({ snapshotDate });
   const { where, values } = buildScopeWhere(params, 2);
   const condition = [`s.snapshot_date = $1`, ...where].join(' AND ');
@@ -1235,6 +1292,8 @@ export async function getBossDashboard(params = {}) {
   const row = summary.rows[0] || {};
   return {
     snapshotDate,
+    dataCutoffDate,
+    dateMode,
     summary: {
       todayNewCount: Number(row.today_new_count || 0),
       recent7NewCount: Number(row.recent7_new_count || 0),
@@ -1297,51 +1356,153 @@ export async function getRecommendations(params = {}) {
   return { records: result.rows.map(toCamel), total: Number(result.rows[0]?.total || 0), page, pageSize };
 }
 
-export async function getProductImportOverview({ page = 1, pageSize = 50 } = {}) {
-  await runTemuMigrations();
-  const currentPage = Math.max(Number(page) || 1, 1);
-  const size = Math.min(Math.max(Number(pageSize) || 50, 1), 50);
-  const offset = (currentPage - 1) * size;
-  const batches = await queryTemuDatabase(
-    `SELECT id, import_type, file_name, total_rows, success_rows, error_rows, status, error_message, created_at, finished_at
-     FROM temu_import_batches
-     WHERE import_type = 'product_info'
-     ORDER BY created_at DESC, id DESC
-     LIMIT $1`,
-    [size],
+function createWhereBuilder(startIndex = 1) {
+  const values = [];
+  const where = [];
+  const push = (sql, value) => {
+    values.push(value);
+    where.push(sql.replace(/\?/g, `$${startIndex + values.length - 1}`));
+  };
+  return { values, where, push };
+}
+
+function appendStoreScope(whereBuilder, alias, params = {}) {
+  if (params.storeId) whereBuilder.push(`${alias}.store_id = ?::uuid`, params.storeId);
+  if (params.storeName) whereBuilder.push(`${alias}.store_name = ?`, params.storeName);
+  if (Array.isArray(params.storeIds)) {
+    if (params.storeIds.length === 0) {
+      whereBuilder.where.push('1 = 0');
+    } else {
+      whereBuilder.values.push(params.storeIds);
+      whereBuilder.where.push(`${alias}.store_id = ANY($${whereBuilder.values.length}::uuid[])`);
+    }
+  }
+  if (Array.isArray(params.storeNames)) {
+    if (params.storeNames.length === 0) {
+      whereBuilder.where.push('1 = 0');
+    } else {
+      whereBuilder.values.push(params.storeNames);
+      whereBuilder.where.push(`${alias}.store_name = ANY($${whereBuilder.values.length}::text[])`);
+    }
+  }
+}
+
+async function backfillTemuImportBatchStores() {
+  await queryTemuDatabase(
+    `UPDATE temu_import_batches b
+     SET store_id = s.id,
+         store_name = s.store_name,
+         updated_at = NOW()
+     FROM temu_stores s
+     WHERE b.import_type IN ('product_info', 'ad_product_daily')
+       AND (b.store_id IS NULL OR COALESCE(b.store_name, '') = '')
+       AND NULLIF(b.raw_data ->> 'storeName', '') = s.store_name`,
   );
+}
+
+export async function getProductImportOverview(params = {}) {
+  await runTemuMigrations();
+  await backfillTemuImportBatchStores();
+  const currentPage = Math.max(Number(params.page) || 1, 1);
+  const size = Math.min(Math.max(Number(params.pageSize) || 50, 1), 50);
+  const offset = (currentPage - 1) * size;
+  const filter = createWhereBuilder(1);
+  appendStoreScope(filter, 'product_rows', params);
+  if (params.createdDateStart) filter.push('product_rows.created_time::date >= ?::date', params.createdDateStart);
+  if (params.createdDateEnd) filter.push('product_rows.created_time::date <= ?::date', params.createdDateEnd);
+  if (params.productStatus) filter.push('product_rows.product_status = ?', params.productStatus);
+  if (params.categoryName) filter.push('product_rows.leaf_category_name ILIKE ?', `%${params.categoryName}%`);
+  if (params.spuId) filter.push('product_rows.spu_id ILIKE ?', `%${params.spuId}%`);
+  if (params.skuId) filter.push('product_rows.sku_id ILIKE ?', `%${params.skuId}%`);
+  if (params.skuCode) filter.push('product_rows.sku_code ILIKE ?', `%${params.skuCode}%`);
+  if (params.productTitle) filter.push('product_rows.product_title ILIKE ?', `%${params.productTitle}%`);
+  const productCondition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : '';
+
+  const batchFilter = createWhereBuilder(1);
+  batchFilter.push('b.import_type = ?', 'product_info');
+  if (params.storeId) {
+    batchFilter.values.push(params.storeId);
+    batchFilter.where.push(`(
+      b.store_id = $${batchFilter.values.length}::uuid
+      OR b.store_name = (SELECT store_name FROM temu_stores WHERE id = $${batchFilter.values.length}::uuid)
+      OR b.raw_data ->> 'storeName' = (SELECT store_name FROM temu_stores WHERE id = $${batchFilter.values.length}::uuid)
+    )`);
+  }
+  if (params.storeName) {
+    batchFilter.push(`COALESCE(NULLIF(b.store_name, ''), b.raw_data ->> 'storeName') = ?`, params.storeName);
+  }
+  if (Array.isArray(params.storeIds)) {
+    if (params.storeIds.length === 0) {
+      batchFilter.where.push('1 = 0');
+    } else {
+      batchFilter.values.push(params.storeIds);
+      batchFilter.where.push(`b.store_id = ANY($${batchFilter.values.length}::uuid[])`);
+    }
+  }
+  if (Array.isArray(params.storeNames)) {
+    if (params.storeNames.length === 0) {
+      batchFilter.where.push('1 = 0');
+    } else {
+      batchFilter.values.push(params.storeNames);
+      batchFilter.where.push(`COALESCE(NULLIF(b.store_name, ''), b.raw_data ->> 'storeName') = ANY($${batchFilter.values.length}::text[])`);
+    }
+  }
+  const batchCondition = `WHERE ${batchFilter.where.join(' AND ')}`;
+  const batches = await queryTemuDatabase(
+    `SELECT b.id, b.import_type, b.file_name, b.report_date::text AS report_date, b.store_id, b.store_name,
+            b.total_rows, b.success_rows, b.error_rows, b.status, b.error_message,
+            b.uploaded_by, b.uploaded_by_name, b.created_at, b.finished_at
+     FROM temu_import_batches b
+     ${batchCondition}
+     ORDER BY created_at DESC, id DESC
+     LIMIT 20`,
+    batchFilter.values,
+  );
+  const skuCreatedTimeFromRaw = `CASE WHEN NULLIF(s.raw_data ->> '创建时间', '') ~ '^\\d{4}-\\d{1,2}-\\d{1,2}' THEN NULLIF(s.raw_data ->> '创建时间', '')::timestamptz ELSE NULL END`;
+  const productCreatedTimeFromRaw = `CASE WHEN NULLIF(p.raw_data ->> '创建时间', '') ~ '^\\d{4}-\\d{1,2}-\\d{1,2}' THEN NULLIF(p.raw_data ->> '创建时间', '')::timestamptz ELSE NULL END`;
+  const baseCte = `WITH product_rows AS (
+     SELECT s.id, s.product_id, s.store_id,
+          COALESCE(NULLIF(s.product_title, ''), NULLIF(s.raw_data ->> '商品标题', ''), NULLIF(p.product_title, ''), NULLIF(p.raw_data ->> '商品标题', ''), p.product_name) AS product_title,
+          COALESCE(NULLIF(s.spu_id, ''), NULLIF(s.raw_data ->> 'SPU ID', ''), NULLIF(p.spu_id, ''), NULLIF(p.raw_data ->> 'SPU ID', ''), p.temu_spu_id) AS spu_id,
+          COALESCE(NULLIF(s.skc_id, ''), NULLIF(s.temu_skc_id, ''), NULLIF(s.raw_data ->> 'SKC ID', ''), NULLIF(p.skc_id, ''), NULLIF(p.temu_skc_id, ''), NULLIF(p.raw_data ->> 'SKC ID', '')) AS skc_id,
+          COALESCE(NULLIF(s.sku_id, ''), NULLIF(s.raw_data ->> 'SKU ID', '')) AS sku_id,
+          COALESCE(NULLIF(s.skc_code, ''), NULLIF(s.raw_data ->> 'SKC货号', ''), NULLIF(p.skc_code, ''), NULLIF(p.raw_data ->> 'SKC货号', '')) AS skc_code,
+          COALESCE(NULLIF(s.sku_code, ''), NULLIF(s.raw_data ->> 'SKU货号', '')) AS sku_code,
+          COALESCE(NULLIF(s.leaf_category_name, ''), NULLIF(s.raw_data ->> '叶子类目名称', ''), NULLIF(p.leaf_category_name, ''), NULLIF(p.raw_data ->> '叶子类目名称', ''), p.category_name) AS leaf_category_name,
+          COALESCE(NULLIF(s.product_status, ''), NULLIF(s.raw_data ->> '商品状态', ''), NULLIF(p.product_status, ''), NULLIF(p.raw_data ->> '商品状态', '')) AS product_status,
+          COALESCE(NULLIF(s.spec1_name, ''), NULLIF(s.raw_data ->> '规格1名称', '')) AS spec1_name,
+          COALESCE(NULLIF(s.spec2_name, ''), NULLIF(s.raw_data ->> '规格2名称', '')) AS spec2_name,
+          COALESCE(
+            s.declared_price_cny,
+            CASE WHEN (s.raw_data ->> '申报价格(CNY)') ~ '^\\s*-?\\d+(\\.\\d+)?\\s*$' THEN (s.raw_data ->> '申报价格(CNY)')::numeric ELSE NULL END,
+            p.declared_price_cny,
+            CASE WHEN (p.raw_data ->> '申报价格(CNY)') ~ '^\\s*-?\\d+(\\.\\d+)?\\s*$' THEN (p.raw_data ->> '申报价格(CNY)')::numeric ELSE NULL END,
+            p.current_price
+          ) AS declared_price_cny,
+          COALESCE(NULLIF(s.declared_price_status, ''), NULLIF(s.raw_data ->> '申报价格状态', ''), NULLIF(p.declared_price_status, ''), NULLIF(p.raw_data ->> '申报价格状态', '')) AS declared_price_status,
+          COALESCE(s.created_time, ${skuCreatedTimeFromRaw}, p.created_time, ${productCreatedTimeFromRaw}, p.first_online_at) AS created_time,
+          s.store_name,
+          s.updated_at
+     FROM temu_product_skus s
+     LEFT JOIN temu_products p ON p.id = s.product_id
+   )`;
   const products = await queryTemuDatabase(
-    `WITH product_rows AS (
-       SELECT s.id,
-            COALESCE(NULLIF(s.product_title, ''), NULLIF(s.raw_data ->> '商品标题', ''), NULLIF(p.product_title, ''), NULLIF(p.raw_data ->> '商品标题', ''), p.product_name) AS product_title,
-            COALESCE(NULLIF(s.spu_id, ''), NULLIF(s.raw_data ->> 'SPU ID', ''), NULLIF(p.spu_id, ''), NULLIF(p.raw_data ->> 'SPU ID', ''), p.temu_spu_id) AS spu_id,
-            COALESCE(NULLIF(s.skc_id, ''), NULLIF(s.raw_data ->> 'SKC ID', ''), NULLIF(p.skc_id, ''), NULLIF(p.raw_data ->> 'SKC ID', ''), p.temu_product_id) AS skc_id,
-            COALESCE(NULLIF(s.sku_id, ''), NULLIF(s.raw_data ->> 'SKU ID', '')) AS sku_id,
-            COALESCE(NULLIF(s.skc_code, ''), NULLIF(s.raw_data ->> 'SKC货号', ''), NULLIF(p.skc_code, ''), NULLIF(p.raw_data ->> 'SKC货号', '')) AS skc_code,
-            COALESCE(NULLIF(s.sku_code, ''), NULLIF(s.raw_data ->> 'SKU货号', '')) AS sku_code,
-            COALESCE(NULLIF(s.leaf_category_name, ''), NULLIF(s.raw_data ->> '叶子类目名称', ''), NULLIF(p.leaf_category_name, ''), NULLIF(p.raw_data ->> '叶子类目名称', ''), p.category_name) AS leaf_category_name,
-            COALESCE(NULLIF(s.product_status, ''), NULLIF(s.raw_data ->> '商品状态', ''), NULLIF(p.product_status, ''), NULLIF(p.raw_data ->> '商品状态', '')) AS product_status,
-            COALESCE(NULLIF(s.spec1_name, ''), NULLIF(s.raw_data ->> '规格1名称', '')) AS spec1_name,
-            COALESCE(NULLIF(s.spec2_name, ''), NULLIF(s.raw_data ->> '规格2名称', '')) AS spec2_name,
-            COALESCE(
-              s.declared_price_cny,
-              CASE WHEN (s.raw_data ->> '申报价格(CNY)') ~ '^\\s*-?\\d+(\\.\\d+)?\\s*$' THEN (s.raw_data ->> '申报价格(CNY)')::numeric ELSE NULL END,
-              p.declared_price_cny,
-              CASE WHEN (p.raw_data ->> '申报价格(CNY)') ~ '^\\s*-?\\d+(\\.\\d+)?\\s*$' THEN (p.raw_data ->> '申报价格(CNY)')::numeric ELSE NULL END,
-              p.current_price
-            ) AS declared_price_cny,
-            COALESCE(NULLIF(s.declared_price_status, ''), NULLIF(s.raw_data ->> '申报价格状态', ''), NULLIF(p.declared_price_status, ''), NULLIF(p.raw_data ->> '申报价格状态', '')) AS declared_price_status,
-            COALESCE(s.created_time, NULLIF(s.raw_data ->> '创建时间', '')::timestamptz, p.created_time, NULLIF(p.raw_data ->> '创建时间', '')::timestamptz, p.first_online_at) AS created_time,
-            s.store_name,
-            s.updated_at
-       FROM temu_product_skus s
-       LEFT JOIN temu_products p ON p.id = s.product_id
-     )
+    `${baseCte}
      SELECT *, COUNT(*) OVER()::int AS total_count
      FROM product_rows
+     ${productCondition}
      ORDER BY created_time DESC NULLS LAST, updated_at DESC, id DESC
-     LIMIT $1 OFFSET $2`,
-    [size, offset],
+     LIMIT $${filter.values.length + 1} OFFSET $${filter.values.length + 2}`,
+    [...filter.values, size, offset],
+  );
+  const summary = await queryTemuDatabase(
+    `${baseCte}
+     SELECT COUNT(DISTINCT product_id)::int AS product_count,
+            COUNT(*)::int AS sku_count,
+            COUNT(*) FILTER (WHERE sku_id IS NULL OR sku_id = '')::int AS missing_sku_id
+     FROM product_rows
+     ${productCondition}`,
+    filter.values,
   );
   const records = products.rows.map(toCamel);
   return {
@@ -1350,21 +1511,62 @@ export async function getProductImportOverview({ page = 1, pageSize = 50 } = {})
     total: Number(products.rows[0]?.total_count || 0),
     page: currentPage,
     pageSize: size,
+    summary: toCamel(summary.rows[0] || {}),
   };
 }
 
-export async function getAdImportOverview({ page = 1, pageSize = 50 } = {}) {
+export async function getAdImportOverview(params = {}) {
   await runTemuMigrations();
-  const currentPage = Math.max(Number(page) || 1, 1);
-  const size = Math.min(Math.max(Number(pageSize) || 50, 1), 50);
+  await backfillTemuImportBatchStores();
+  const currentPage = Math.max(Number(params.page) || 1, 1);
+  const size = Math.min(Math.max(Number(params.pageSize) || 50, 1), 50);
   const offset = (currentPage - 1) * size;
+  const filter = createWhereBuilder(1);
+  appendStoreScope(filter, 'a', params);
+  if (params.reportDate) filter.push('a.report_date = ?::date', params.reportDate);
+  if (params.spuId) filter.push('a.temu_spu_id ILIKE ?', `%${params.spuId}%`);
+  if (params.productName) filter.push('a.product_name ILIKE ?', `%${params.productName}%`);
+  if (params.matched === 'true') filter.where.push('a.product_id IS NOT NULL');
+  if (params.matched === 'false') filter.where.push('a.product_id IS NULL');
+  if (params.roasMet === 'true') filter.where.push('a.target_roas IS NOT NULL AND a.promo_roas IS NOT NULL AND a.promo_roas >= a.target_roas');
+  if (params.roasMet === 'false') filter.where.push('a.target_roas IS NOT NULL AND a.promo_roas IS NOT NULL AND a.promo_roas < a.target_roas');
+  if (params.adSpendMin) filter.push('a.ad_spend >= ?', Number(params.adSpendMin));
+  if (params.adSpendMax) filter.push('a.ad_spend <= ?', Number(params.adSpendMax));
+  if (params.promoOrderMin) filter.push('a.promo_sub_order_count >= ?', Number(params.promoOrderMin));
+  if (params.promoOrderMax) filter.push('a.promo_sub_order_count <= ?', Number(params.promoOrderMax));
+  const adCondition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : 'WHERE 1 = 0';
+
+  const batchFilter = createWhereBuilder(1);
+  batchFilter.push('b.import_type = ?', 'ad_product_daily');
+  if (params.storeId) batchFilter.push('b.store_id = ?::uuid', params.storeId);
+  if (params.storeName) batchFilter.push('b.store_name = ?', params.storeName);
+  if (params.reportDate) batchFilter.push('b.report_date = ?::date', params.reportDate);
+  if (Array.isArray(params.storeIds)) {
+    if (params.storeIds.length === 0) {
+      batchFilter.where.push('1 = 0');
+    } else {
+      batchFilter.values.push(params.storeIds);
+      batchFilter.where.push(`b.store_id = ANY($${batchFilter.values.length}::uuid[])`);
+    }
+  }
+  if (Array.isArray(params.storeNames)) {
+    if (params.storeNames.length === 0) {
+      batchFilter.where.push('1 = 0');
+    } else {
+      batchFilter.values.push(params.storeNames);
+      batchFilter.where.push(`b.store_name = ANY($${batchFilter.values.length}::text[])`);
+    }
+  }
+  const batchCondition = `WHERE ${batchFilter.where.join(' AND ')}`;
   const batches = await queryTemuDatabase(
-    `SELECT id, import_type, file_name, report_date, store_name, total_rows, success_rows, error_rows, status, error_message, created_at, finished_at
-     FROM temu_import_batches
-     WHERE import_type = 'ad_product_daily'
+    `SELECT b.id, b.import_type, b.file_name, b.report_date::text AS report_date, b.store_id, b.store_name,
+            b.total_rows, b.success_rows, b.error_rows, b.status, b.error_message,
+            b.uploaded_by, b.uploaded_by_name, b.created_at, b.finished_at
+     FROM temu_import_batches b
+     ${batchCondition}
      ORDER BY created_at DESC, id DESC
-     LIMIT $1`,
-    [size],
+     LIMIT 20`,
+    batchFilter.values,
   );
   const ads = await queryTemuDatabase(
     `SELECT id, report_date, store_name, operator_name, temu_product_id, temu_spu_id,
@@ -1379,10 +1581,42 @@ export async function getAdImportOverview({ page = 1, pageSize = 50 } = {}) {
             net_promo_sub_order_count, net_promo_unit_count,
             raw_data, updated_at, COUNT(*) OVER()::int AS total_count
      FROM temu_ad_product_daily
-     WHERE report_date = (SELECT MAX(report_date) FROM temu_ad_product_daily)
+     a
+     ${adCondition}
      ORDER BY ad_spend DESC NULLS LAST, report_date DESC, updated_at DESC, id DESC
-     LIMIT $1 OFFSET $2`,
-    [size, offset],
+     LIMIT $${filter.values.length + 1} OFFSET $${filter.values.length + 2}`,
+    [...filter.values, size, offset],
+  );
+  const summary = await queryTemuDatabase(
+    `SELECT COUNT(*)::int AS ad_product_count,
+            COALESCE(SUM(a.ad_spend),0) AS ad_spend,
+            COALESCE(SUM(a.promo_sales_amount),0) AS promo_sales_amount,
+            COALESCE(SUM(a.promo_sub_order_count),0) AS promo_sub_order_count,
+            CASE WHEN COALESCE(SUM(a.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(a.promo_sales_amount),0) / NULLIF(SUM(a.ad_spend),0) END AS promo_roas,
+            COUNT(*) FILTER (WHERE a.product_id IS NULL)::int AS unmatched_count,
+            COUNT(*) FILTER (WHERE a.product_id IS NOT NULL)::int AS matched_count
+     FROM temu_ad_product_daily a
+     ${adCondition}`,
+    filter.values,
+  );
+  const unmatched = await queryTemuDatabase(
+    `SELECT product_name, temu_product_id, temu_spu_id, 'SPU未匹配商品信息' AS error_reason
+     FROM temu_ad_product_daily a
+     ${adCondition} AND a.product_id IS NULL
+     ORDER BY a.ad_spend DESC NULLS LAST, a.updated_at DESC
+     LIMIT 50`,
+    filter.values,
+  );
+  const dateFilter = createWhereBuilder(1);
+  appendStoreScope(dateFilter, 'a', params);
+  const dateCondition = dateFilter.where.length ? `WHERE ${dateFilter.where.join(' AND ')}` : '';
+  const dates = await queryTemuDatabase(
+    `SELECT DISTINCT report_date::text AS report_date
+     FROM temu_ad_product_daily a
+     ${dateCondition}
+     ORDER BY report_date DESC
+     LIMIT 30`,
+    dateFilter.values,
   );
   return {
     batches: batches.rows.map(toCamel),
@@ -1390,6 +1624,9 @@ export async function getAdImportOverview({ page = 1, pageSize = 50 } = {}) {
     total: Number(ads.rows[0]?.total_count || 0),
     page: currentPage,
     pageSize: size,
+    summary: toCamel(summary.rows[0] || {}),
+    unmatched: unmatched.rows.map(toCamel),
+    reportDates: dates.rows.map((row) => String(row.report_date || '').slice(0, 10)).filter(Boolean),
   };
 }
 
@@ -1425,7 +1662,7 @@ export async function getProductDetail(productId) {
     `SELECT o.order_date, COUNT(DISTINCT o.order_no) AS order_count, COALESCE(SUM(o.quantity),0) AS quantity, COALESCE(SUM(o.item_amount),0) AS sales_amount
      FROM temu_order_items o
      LEFT JOIN temu_product_skus s ON o.product_sku_id = s.id OR (s.store_id = o.store_id AND (s.sku_id = o.sku_id OR s.sku_code = o.sku_code))
-     WHERE o.is_valid_order = TRUE AND o.is_cancelled = FALSE AND (o.product_id = $1 OR s.product_id = $1)
+     WHERE o.is_valid_order = TRUE AND o.is_cancelled = FALSE AND s.product_id = $1
      GROUP BY o.order_date
      ORDER BY o.order_date DESC
      LIMIT 30`,

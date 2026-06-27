@@ -280,6 +280,39 @@ async function resolveStoreAndOperator(client, storeKey, operatorName, reportDat
   };
 }
 
+async function resolveOrderSkuProduct(client, owner, order) {
+  if (!owner.storeId) {
+    return { productId: null, productSkuId: null, temuSpuId: null, errorReason: '订单店铺未匹配，无法按店铺匹配 SKU' };
+  }
+  const skuId = nullableText(order?.productSku);
+  const skuCode = nullableText(order?.skuCode);
+  if (!skuId && !skuCode) {
+    return { productId: null, productSkuId: null, temuSpuId: null, errorReason: '订单缺少 SKU ID 和 SKU货号' };
+  }
+  const result = await client.query(
+    `SELECT id, product_id, temu_spu_id
+     FROM temu_product_skus
+     WHERE store_id = $1
+       AND (($2::text IS NOT NULL AND sku_id = $2) OR ($3::text IS NOT NULL AND sku_code = $3))
+     ORDER BY CASE WHEN $2::text IS NOT NULL AND sku_id = $2 THEN 0 ELSE 1 END, updated_at DESC
+     LIMIT 2`,
+    [owner.storeId, skuId, skuCode],
+  );
+  if (result.rows.length > 1) {
+    return { productId: null, productSkuId: null, temuSpuId: null, errorReason: `订单 SKU 匹配到多条商品 SKU：${skuId || skuCode}` };
+  }
+  const match = result.rows[0];
+  if (!match) {
+    return { productId: null, productSkuId: null, temuSpuId: null, errorReason: `订单 SKU 未匹配到商品信息：${skuId || skuCode}` };
+  }
+  return {
+    productId: match.product_id || null,
+    productSkuId: match.id || null,
+    temuSpuId: match.temu_spu_id || null,
+    errorReason: '',
+  };
+}
+
 async function withClient(callback) {
   await runTemuMigrations();
   const { getAlibaba1688Pool } = await import('../alibaba1688/postgresDatabase.js');
@@ -376,13 +409,23 @@ export async function syncTemuReferenceJsonToPostgres({ stores = [], operators =
 
 export async function syncOrderStoreToPostgres(orderStore = { batches: [] }) {
   return withClient(async (client) => {
+    await client.query(`DELETE FROM temu_import_errors WHERE batch_id IN (SELECT id FROM temu_import_batches WHERE import_type = 'order_sales' AND source_type = 'json_migration')`);
     await client.query('DELETE FROM temu_order_items');
     await client.query(`DELETE FROM temu_import_batches WHERE import_type = 'order_sales' AND source_type = 'json_migration'`);
     return syncOrderStoreWithClient(client, orderStore);
   });
 }
 
-async function syncOrderStoreWithClient(client, orderStore) {
+export async function replaceOrderStoreInPostgres(orderStore = { batches: [] }, { sourceType = 'api_import' } = {}) {
+  return withClient(async (client) => {
+    await client.query(`DELETE FROM temu_import_errors WHERE batch_id IN (SELECT id FROM temu_import_batches WHERE import_type = 'order_sales')`);
+    await client.query('DELETE FROM temu_order_items');
+    await client.query(`DELETE FROM temu_import_batches WHERE import_type = 'order_sales'`);
+    return syncOrderStoreWithClient(client, orderStore, { sourceType });
+  });
+}
+
+async function syncOrderStoreWithClient(client, orderStore, { sourceType = 'json_migration' } = {}) {
   const summary = { orderBatches: 0, orderItems: 0, errors: 0 };
   for (const batch of orderStore?.batches ?? []) {
     const batchId = text(batch?.batchId || batch?.id || `${batch?.fileName}-${batch?.importedAt}`);
@@ -390,7 +433,7 @@ async function syncOrderStoreWithClient(client, orderStore) {
       legacyId: batchId,
       sourceBatchId: batchId,
       importType: 'order_sales',
-      sourceType: 'json_migration',
+      sourceType,
       fileName: batch?.fileName,
       totalRows: batch?.totalRows ?? batch?.orders?.length ?? 0,
       successRows: batch?.validRows ?? batch?.orders?.length ?? 0,
@@ -408,6 +451,10 @@ async function syncOrderStoreWithClient(client, orderStore) {
       try {
         const orderDate = dateValue(order?.orderDate || order?.orderTime);
         const owner = await resolveStoreAndOperator(client, order?.storeName, order?.operatorName, orderDate);
+        const skuMatch = await resolveOrderSkuProduct(client, owner, order);
+        if (skuMatch.errorReason) {
+          await insertImportError(client, importBatchId, rowNumber, skuMatch.errorReason, order);
+        }
         const flags = orderStatusFlags(order?.status);
         const rowHash = sha256(`${batchId}|${rowNumber}|${json(order)}`);
         const quantity = numberValue(order?.quantity);
@@ -419,11 +466,11 @@ async function syncOrderStoreWithClient(client, orderStore) {
         await client.query(
           `INSERT INTO temu_order_items (
              legacy_id, source_id, import_batch_id, source_batch_id, source_row_number, source_row_hash,
-             order_no, store_id, store_name, operator_id, operator_name, temu_product_id, temu_spu_id,
-             sku_id, sku_code, declared_price, currency, quantity, item_amount, order_time, order_date,
+             order_no, store_id, store_name, operator_id, operator_name, product_id, product_sku_id,
+             temu_product_id, temu_spu_id, sku_id, sku_code, declared_price, currency, quantity, item_amount, order_time, order_date,
              order_status, is_valid_order, is_cancelled, raw_data, updated_at
            )
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25::jsonb,NOW())
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27::jsonb,NOW())
            ON CONFLICT (source_batch_id, source_row_hash)
            DO UPDATE SET
              legacy_id = EXCLUDED.legacy_id,
@@ -435,6 +482,8 @@ async function syncOrderStoreWithClient(client, orderStore) {
              store_name = EXCLUDED.store_name,
              operator_id = EXCLUDED.operator_id,
              operator_name = EXCLUDED.operator_name,
+             product_id = EXCLUDED.product_id,
+             product_sku_id = EXCLUDED.product_sku_id,
              temu_product_id = EXCLUDED.temu_product_id,
              temu_spu_id = EXCLUDED.temu_spu_id,
              sku_id = EXCLUDED.sku_id,
@@ -462,8 +511,10 @@ async function syncOrderStoreWithClient(client, orderStore) {
             owner.storeName,
             owner.operatorId,
             owner.operatorName,
-            nullableText(order?.skc || order?.skcCode),
-            nullableText(order?.skcCode || order?.skc),
+            skuMatch.productId,
+            skuMatch.productSkuId,
+            null,
+            skuMatch.temuSpuId,
             nullableText(order?.productSku),
             nullableText(order?.skuCode),
             declaredPrice,
@@ -490,13 +541,23 @@ async function syncOrderStoreWithClient(client, orderStore) {
 
 export async function syncTrafficStoreToPostgres(trafficStore = { records: [], batches: [] }) {
   return withClient(async (client) => {
+    await client.query(`DELETE FROM temu_import_errors WHERE batch_id IN (SELECT id FROM temu_import_batches WHERE import_type = 'traffic_conversion' AND source_type = 'json_migration')`);
     await client.query('DELETE FROM temu_traffic_daily_records');
     await client.query(`DELETE FROM temu_import_batches WHERE import_type = 'traffic_conversion' AND source_type = 'json_migration'`);
     return syncTrafficStoreWithClient(client, trafficStore);
   });
 }
 
-async function syncTrafficStoreWithClient(client, trafficStore) {
+export async function replaceTrafficStoreInPostgres(trafficStore = { records: [], batches: [] }, { sourceType = 'api_import' } = {}) {
+  return withClient(async (client) => {
+    await client.query(`DELETE FROM temu_import_errors WHERE batch_id IN (SELECT id FROM temu_import_batches WHERE import_type = 'traffic_conversion')`);
+    await client.query('DELETE FROM temu_traffic_daily_records');
+    await client.query(`DELETE FROM temu_import_batches WHERE import_type = 'traffic_conversion'`);
+    return syncTrafficStoreWithClient(client, trafficStore, { sourceType });
+  });
+}
+
+async function syncTrafficStoreWithClient(client, trafficStore, { sourceType = 'json_migration' } = {}) {
   const summary = { trafficBatches: 0, trafficRecords: 0, errors: 0 };
   const batchMap = new Map((trafficStore?.batches ?? []).map((batch) => [text(batch?.id), batch]));
   const grouped = new Map();
@@ -515,7 +576,7 @@ async function syncTrafficStoreWithClient(client, trafficStore) {
       legacyId: sourceBatchId,
       sourceBatchId,
       importType: 'traffic_conversion',
-      sourceType: 'json_migration',
+      sourceType,
       fileName: batch?.fileName || first?.fileName,
       storeId: owner.storeId,
       storeName: owner.storeName,
@@ -825,14 +886,14 @@ export async function readOrderImportStoreFromPostgres() {
   const batchesResult = await queryTemuDatabase(
     `SELECT id, source_batch_id, file_name, uploaded_at, total_rows, success_rows, error_rows, raw_data
      FROM temu_import_batches
-     WHERE import_type = 'order_sales' AND source_type = 'json_migration'
+     WHERE import_type = 'order_sales' AND source_type IN ('json_migration', 'api_import')
      ORDER BY uploaded_at, created_at`,
   );
   const ordersResult = await queryTemuDatabase(
     `SELECT b.source_batch_id, o.raw_data
      FROM temu_order_items o
      JOIN temu_import_batches b ON b.id = o.import_batch_id
-     WHERE b.import_type = 'order_sales' AND b.source_type = 'json_migration'
+     WHERE b.import_type = 'order_sales' AND b.source_type IN ('json_migration', 'api_import')
      ORDER BY b.uploaded_at, o.source_row_number`,
   );
   const ordersByBatch = new Map();
@@ -864,14 +925,14 @@ export async function readTrafficConversionStoreFromPostgres() {
      FROM temu_traffic_daily_records r
      JOIN temu_import_batches b ON b.id = r.import_batch_id
      WHERE b.import_type = 'traffic_conversion'
-       AND b.source_type = 'json_migration'
+       AND b.source_type IN ('json_migration', 'api_import')
        AND r.is_current = TRUE
      ORDER BY r.report_date, r.store_name`,
   );
   const batchesResult = await queryTemuDatabase(
     `SELECT source_batch_id, file_name, uploaded_at, store_name, total_rows, success_rows, status, raw_data
      FROM temu_import_batches
-     WHERE import_type = 'traffic_conversion' AND source_type = 'json_migration'
+     WHERE import_type = 'traffic_conversion' AND source_type IN ('json_migration', 'api_import')
      ORDER BY uploaded_at, created_at`,
   );
   return {
