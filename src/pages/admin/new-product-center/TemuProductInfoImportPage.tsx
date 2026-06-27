@@ -62,6 +62,7 @@ function getMissingProductMappings(mapping: Record<string, string>) {
     ['spuId', 'SPU ID'],
     ['skcId', 'SKC ID'],
     ['skuId', 'SKU ID'],
+    ['skcCode', 'SKC货号'],
     ['skuCode', 'SKU货号'],
     ['createdTime', '创建时间'],
   ].filter(([field]) => !mapping[field]).map(([, label]) => label);

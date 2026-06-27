@@ -23,10 +23,12 @@ import {
   getBossDashboard,
   getAdImportOverview,
   getOperatorDashboard,
+  getOperatorOptions,
   getProductDetail,
   getProductImportOverview,
   getProducts,
   getRecommendations,
+  getStoreOptions,
   getTemuStorageStatus,
   handleRecommendation,
   importAdRows,
@@ -3269,6 +3271,14 @@ async function handleNewProductCenterApi(req, res) {
     }
     if (req.method === 'GET' && pathname === 'operator-dashboard') {
       res.end(JSON.stringify(await getOperatorDashboard(params)));
+      return;
+    }
+    if (req.method === 'GET' && pathname === 'operator-options') {
+      res.end(JSON.stringify(await getOperatorOptions(params)));
+      return;
+    }
+    if (req.method === 'GET' && pathname === 'store-options') {
+      res.end(JSON.stringify(await getStoreOptions(params)));
       return;
     }
     if (req.method === 'GET' && pathname === 'products') {

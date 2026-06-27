@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { newProductCenterDataSource, type DashboardResponse, type ProductDetailResponse, type ProductSnapshot, type RecommendationRecord, type TemuStorageStatus } from '../../../data-source/newProductCenterDataSource';
+import { newProductCenterDataSource, type DashboardResponse, type OperatorOption, type ProductDetailResponse, type ProductSnapshot, type RecommendationRecord, type StoreScopeOption, type TemuStorageStatus } from '../../../data-source/newProductCenterDataSource';
 import type { CurrentUser } from '../../../types/auth';
 
 type StoreOption = { id?: string; storeName?: string; platform?: string; status?: string };
@@ -261,11 +261,19 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   const [tag, setTag] = useState('');
   const [isAdEnabled, setIsAdEnabled] = useState('');
   const [isOrdered, setIsOrdered] = useState('');
+  const [appliedSnapshotDate, setAppliedSnapshotDate] = useState('');
+  const [appliedStoreName, setAppliedStoreName] = useState('');
+  const [appliedOperatorName, setAppliedOperatorName] = useState('');
+  const [appliedTag, setAppliedTag] = useState('');
+  const [appliedIsAdEnabled, setAppliedIsAdEnabled] = useState('');
+  const [appliedIsOrdered, setAppliedIsOrdered] = useState('');
   const [quickKey, setQuickKey] = useState('pending');
   const [page, setPage] = useState(1);
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [products, setProducts] = useState<{ records: ProductSnapshot[]; total: number; page?: number; pageSize?: number; snapshotDate?: string; dataCutoffDate?: string }>({ records: [], total: 0 });
   const [storageStatus, setStorageStatus] = useState<TemuStorageStatus | null>(null);
+  const [operatorOptions, setOperatorOptions] = useState<OperatorOption[]>([]);
+  const [operatorStoreOptions, setOperatorStoreOptions] = useState<StoreScopeOption[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [message, setMessage] = useState('');
 
@@ -277,26 +285,72 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   }, []);
 
   const quickParams = QUICK_FILTERS.find((item) => item.key === quickKey)?.params || {};
-  const baseParams = useMemo(() => {
-    const params: Record<string, string> = { page: String(page), pageSize: '50' };
+
+  useEffect(() => {
+    const params: Record<string, string> = {};
     if (snapshotDate) params.snapshotDate = snapshotDate;
     if (storeName) params.storeName = storeName;
-    if (operatorName) params.operatorName = operatorName;
-    if (tag) params.productTag = tag;
-    if (isAdEnabled) params.isAdEnabled = isAdEnabled;
-    if (isOrdered) params.isOrdered = isOrdered;
+    newProductCenterDataSource.getOperatorOptions(buildQuery(params))
+      .then((data) => setOperatorOptions(data.operators || []))
+      .catch(() => setOperatorOptions([]));
+  }, [snapshotDate, storeName]);
+
+  useEffect(() => {
+    if (!operatorName) return;
+    const exists = operatorOptions.some((operator) => operator.operatorName === operatorName);
+    if (!exists) {
+      setOperatorName('');
+      setPage(1);
+    }
+  }, [operatorName, operatorOptions]);
+
+  useEffect(() => {
+    if (!operatorName) {
+      setOperatorStoreOptions([]);
+      return;
+    }
+    const params: Record<string, string> = { operatorName };
+    if (snapshotDate) params.snapshotDate = snapshotDate;
+    newProductCenterDataSource.getStoreOptions(buildQuery(params))
+      .then((data) => setOperatorStoreOptions(data.stores || []))
+      .catch(() => setOperatorStoreOptions([]));
+  }, [operatorName, snapshotDate]);
+
+  const visibleStoreOptions = useMemo(() => (
+    operatorName
+      ? operatorStoreOptions.map((store) => ({ id: store.storeId, storeName: store.storeName }))
+      : stores
+  ), [operatorName, operatorStoreOptions, stores]);
+
+  useEffect(() => {
+    if (!storeName || visibleStoreOptions.length === 0) return;
+    const exists = visibleStoreOptions.some((store) => store.storeName === storeName);
+    if (!exists) {
+      setStoreName('');
+      setPage(1);
+    }
+  }, [storeName, visibleStoreOptions]);
+
+  const baseParams = useMemo(() => {
+    const params: Record<string, string> = { page: String(page), pageSize: '50' };
+    if (appliedSnapshotDate) params.snapshotDate = appliedSnapshotDate;
+    if (appliedStoreName) params.storeName = appliedStoreName;
+    if (appliedOperatorName) params.operatorName = appliedOperatorName;
+    if (appliedTag) params.productTag = appliedTag;
+    if (appliedIsAdEnabled) params.isAdEnabled = appliedIsAdEnabled;
+    if (appliedIsOrdered) params.isOrdered = appliedIsOrdered;
     return { ...params, ...quickParams };
-  }, [isAdEnabled, isOrdered, operatorName, page, quickParams, snapshotDate, storeName, tag]);
+  }, [appliedIsAdEnabled, appliedIsOrdered, appliedOperatorName, appliedSnapshotDate, appliedStoreName, appliedTag, page, quickParams]);
 
   useEffect(() => {
     const dashboardParams: Record<string, string> = {};
-    if (snapshotDate) dashboardParams.snapshotDate = snapshotDate;
-    if (storeName) dashboardParams.storeName = storeName;
-    if (operatorName) dashboardParams.operatorName = operatorName;
+    if (appliedSnapshotDate) dashboardParams.snapshotDate = appliedSnapshotDate;
+    if (appliedStoreName) dashboardParams.storeName = appliedStoreName;
+    if (appliedOperatorName) dashboardParams.operatorName = appliedOperatorName;
     newProductCenterDataSource.getOperatorDashboard(buildQuery(dashboardParams))
       .then(setDashboard)
       .catch((error) => setMessage(error instanceof Error ? error.message : String(error)));
-  }, [operatorName, snapshotDate, storeName]);
+  }, [appliedOperatorName, appliedSnapshotDate, appliedStoreName]);
 
   useEffect(() => {
     newProductCenterDataSource.getProducts(buildQuery(baseParams))
@@ -306,14 +360,14 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
 
   useEffect(() => {
     const countBase: Record<string, string> = {};
-    if (snapshotDate) countBase.snapshotDate = snapshotDate;
-    if (storeName) countBase.storeName = storeName;
-    if (operatorName) countBase.operatorName = operatorName;
+    if (appliedSnapshotDate) countBase.snapshotDate = appliedSnapshotDate;
+    if (appliedStoreName) countBase.storeName = appliedStoreName;
+    if (appliedOperatorName) countBase.operatorName = appliedOperatorName;
     Promise.all(QUICK_FILTERS.map((filter) => newProductCenterDataSource.getProducts(buildQuery({ ...countBase, ...filter.params, pageSize: '1' })).then((data) => [filter.key, data.total] as const).catch(() => [filter.key, 0] as const)))
       .then((pairs) => setCounts(Object.fromEntries(pairs)));
     Promise.all(TAGS.map((item) => newProductCenterDataSource.getProducts(buildQuery({ ...countBase, productTag: item, pageSize: '1' })).then((data) => [item, data.total] as const).catch(() => [item, 0] as const)))
       .then((pairs) => setCounts((current) => ({ ...current, ...Object.fromEntries(pairs) })));
-  }, [operatorName, snapshotDate, storeName]);
+  }, [appliedOperatorName, appliedSnapshotDate, appliedStoreName]);
 
   useEffect(() => {
     if (quickKey === 'pending' && counts.pending === 0 && counts.all > 0) {
@@ -321,11 +375,44 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
     }
   }, [counts.all, counts.pending, quickKey]);
 
-  const displayedDate = snapshotDate || products.dataCutoffDate || dashboard?.dataCutoffDate || products.snapshotDate || dashboard?.snapshotDate || '';
+  const displayedDate = appliedSnapshotDate || products.dataCutoffDate || dashboard?.dataCutoffDate || products.snapshotDate || dashboard?.snapshotDate || '';
   const totalPages = Math.max(1, Math.ceil((products.total || 0) / 50));
+  const hasPendingFilterChanges = snapshotDate !== appliedSnapshotDate ||
+    storeName !== appliedStoreName ||
+    operatorName !== appliedOperatorName ||
+    tag !== appliedTag ||
+    isAdEnabled !== appliedIsAdEnabled ||
+    isOrdered !== appliedIsOrdered;
+
+  const applyWorkbenchFilters = () => {
+    setAppliedSnapshotDate(snapshotDate);
+    setAppliedStoreName(storeName);
+    setAppliedOperatorName(operatorName);
+    setAppliedTag(tag);
+    setAppliedIsAdEnabled(isAdEnabled);
+    setAppliedIsOrdered(isOrdered);
+    setPage(1);
+  };
+
+  const resetWorkbenchFilters = () => {
+    setSnapshotDate('');
+    setStoreName('');
+    setOperatorName('');
+    setTag('');
+    setIsAdEnabled('');
+    setIsOrdered('');
+    setAppliedSnapshotDate('');
+    setAppliedStoreName('');
+    setAppliedOperatorName('');
+    setAppliedTag('');
+    setAppliedIsAdEnabled('');
+    setAppliedIsOrdered('');
+    setPage(1);
+  };
 
   const selectTag = (nextTag: string) => {
     setTag(nextTag);
+    setAppliedTag(nextTag);
     setQuickKey('all');
     setPage(1);
   };
@@ -333,12 +420,14 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   return (
     <section className="npc-page npc-workbench-page">
       <div className="npc-toolbar npc-workbench-toolbar">
-        <label>统计日期<input type="date" value={displayedDate} onChange={(event) => { setSnapshotDate(event.target.value); setPage(1); }} /></label>
-        <label>店铺<select value={storeName} onChange={(event) => { setStoreName(event.target.value); setPage(1); }}><option value="">全部店铺</option>{stores.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}</select></label>
-        <label>运营<input value={operatorName} onChange={(event) => { setOperatorName(event.target.value); setPage(1); }} placeholder="全部运营" /></label>
+        <label className="npc-primary-filter">店铺<select value={storeName} onChange={(event) => { setStoreName(event.target.value); setPage(1); }}><option value="">{operatorName ? '所有店铺' : '全部店铺'}</option>{visibleStoreOptions.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}</select></label>
+        <label>统计日期<input type="date" value={snapshotDate || displayedDate} onChange={(event) => { setSnapshotDate(event.target.value); setPage(1); }} /></label>
+        <label>运营<select value={operatorName} onChange={(event) => { setOperatorName(event.target.value); setPage(1); }}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorId || operator.operatorName} value={operator.operatorName}>{operator.operatorName}{storeName ? '' : `（${operator.storeCount || 0}店）`}</option>)}</select></label>
         <label>商品标签<select value={tag} onChange={(event) => { setTag(event.target.value); setPage(1); }}><option value="">全部</option>{TAGS.map((item) => <option key={item}>{item}</option>)}</select></label>
         <label>广告<select value={isAdEnabled} onChange={(event) => { setIsAdEnabled(event.target.value); setPage(1); }}><option value="">全部</option><option value="true">已开广告</option><option value="false">未开广告</option></select></label>
         <label>出单<select value={isOrdered} onChange={(event) => { setIsOrdered(event.target.value); setPage(1); }}><option value="">全部</option><option value="true">已出单</option><option value="false">未出单</option></select></label>
+        <button type="button" className="npc-apply-filter-button" disabled={!hasPendingFilterChanges} onClick={applyWorkbenchFilters}>确定筛选</button>
+        <button type="button" className="npc-reset-filter-button" onClick={resetWorkbenchFilters}>重置</button>
         <span className="npc-date-badge">数据截止 {dashboard?.dataCutoffDate || products.dataCutoffDate || '-'}</span>
       </div>
       {message && <div className="excel-import-error">{message}</div>}

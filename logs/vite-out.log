@@ -3,52 +3,25 @@
 > vite --configLoader runner --host 127.0.0.1 --port 5176
 
 
-  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m995[22m[2m[0m ms[22m
+  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m948[22m[2m[0m ms[22m
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
-[temu-product-info-api] { method: 'POST', action: 'upload', bodySize: 198491 }
-[temu-product-info-preview] {
-  fileName: 'S店商品基础信息6.27.xlsx',
-  previewId: '930023db-e0b0-49f7-9375-320be45d8c16',
-  rows: 1219,
-  headers: 13
-}
-[temu-product-info-api] { method: 'POST', action: 'confirm', bodySize: 616 }
-[temu-product-info-confirm-start] {
-  fileName: 'S店商品基础信息6.27.xlsx',
-  previewId: '930023db-e0b0-49f7-9375-320be45d8c16',
-  storeName: 'S店',
-  rows: 1219
-}
-[temu-product-info-confirm-done] {
-  fileName: 'S店商品基础信息6.27.xlsx',
-  totalRows: 1219,
-  successRows: 399,
-  errorRows: 820
-}
-[2m15:13:35[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
-[2m15:13:35[22m [36m[1m[vite][22m[39m server restarted.
-[2m15:16:54[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
-[2m15:16:54[22m [36m[1m[vite][22m[39m server restarted.
-[2m15:17:32[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
-[2m15:17:32[22m [36m[1m[vite][22m[39m server restarted.
-[2m15:21:12[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
-[2m15:21:13[22m [36m[1m[vite][22m[39m server restarted.
-[2m15:22:18[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
-[2m15:22:18[22m [36m[1m[vite][22m[39m server restarted.
-[2m15:22:33[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
-[2m15:22:33[22m [36m[1m[vite][22m[39m server restarted.
-[2m15:22:50[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
-[2m15:22:50[22m [36m[1m[vite][22m[39m server restarted.
-[2m15:23:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
-[2m15:23:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
-[2m15:27:21[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
-[2m15:27:21[22m [36m[1m[vite][22m[39m server restarted.
-[2m15:27:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
-[2m15:32:04[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
-[2m15:32:04[22m [36m[1m[vite][22m[39m server restarted.
-[2m15:32:13[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
-[2m15:32:13[22m [36m[1m[vite][22m[39m server restarted.
-[2m15:32:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/TemuProductInfoImportPage.tsx[22m
-[2m15:33:03[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
-[2m15:33:03[22m [36m[1m[vite][22m[39m server restarted.
+[2m20:47:18[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m20:47:18[22m [36m[1m[vite][22m[39m server restarted.
+[2m20:48:08[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m20:48:08[22m [36m[1m[vite][22m[39m server restarted.
+[2m20:48:25[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m20:48:26[22m [36m[1m[vite][22m[39m server restarted.
+[2m20:48:47[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m20:48:47[22m [36m[1m[vite][22m[39m server restarted.
+[2m20:51:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m20:52:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m20:53:12[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m20:53:30[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m20:53:30[22m [36m[1m[vite][22m[39m server restarted.
+[2m20:53:44[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m20:53:44[22m [36m[1m[vite][22m[39m server restarted.
+[2m20:53:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m20:57:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m21:01:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m21:05:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m

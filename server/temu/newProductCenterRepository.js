@@ -151,6 +151,16 @@ function inferStoreNameFromFileName(fileName = '') {
   return matched ? matched[1] : '';
 }
 
+function normalizeStoreNameForValidation(value) {
+  return text(value).replace(/\s+/g, '').toUpperCase();
+}
+
+function storePrefixFromName(storeName = '') {
+  const normalized = normalizeStoreNameForValidation(storeName);
+  const matched = normalized.match(/^([A-Z0-9]+)店$/i);
+  return matched ? matched[1] : '';
+}
+
 function normalizeSkuCode(value) {
   return text(value).replace(/\s+/g, '').toUpperCase();
 }
@@ -218,6 +228,49 @@ function headersFromRowsAndMapping(rows, mapping) {
   return Array.from(headerSet);
 }
 
+function validateProductStoreImportScope({ rows = [], mapping = {}, fileName = '', storeName = '' }) {
+  const selectedStoreName = text(storeName);
+  if (!selectedStoreName) {
+    throw new Error('导入店铺必选：请先选择本次商品信息所属店铺。');
+  }
+
+  const fileStoreName = inferStoreNameFromFileName(fileName);
+  if (!fileStoreName) {
+    throw new Error(`商品信息导入失败：文件名必须包含店铺名，例如“A店商品基础信息.xlsx”。当前文件名：${fileName || '-'}`);
+  }
+  if (normalizeStoreNameForValidation(fileStoreName) !== normalizeStoreNameForValidation(selectedStoreName)) {
+    throw new Error(`商品信息导入失败：文件名店铺“${fileStoreName}”与导入店铺“${selectedStoreName}”不一致，请选择正确店铺后重新导入。`);
+  }
+
+  const skcCodeHeader = mapping.skcCode;
+  if (!skcCodeHeader) {
+    throw new Error('商品信息导入失败：必须映射“SKC货号”，用于校验文件所属店铺。');
+  }
+
+  const expectedPrefix = storePrefixFromName(selectedStoreName);
+  if (!expectedPrefix) {
+    throw new Error(`商品信息导入失败：无法从店铺名“${selectedStoreName}”识别 SKC 货号前缀。店铺名需类似“A店”。`);
+  }
+
+  const skcCodes = rows
+    .map((row) => normalizeSkuCode(row?.[skcCodeHeader]))
+    .filter(Boolean);
+  if (!skcCodes.length) {
+    throw new Error('商品信息导入失败：Excel 中“SKC货号”为空，无法校验文件所属店铺。');
+  }
+
+  const matchedCount = skcCodes.filter((code) => code.startsWith(expectedPrefix)).length;
+  const matchedRate = matchedCount / skcCodes.length;
+  if (matchedRate < 0.9) {
+    const invalidSamples = skcCodes.filter((code) => !code.startsWith(expectedPrefix)).slice(0, 10);
+    throw new Error(
+      `商品信息导入失败：导入店铺为“${selectedStoreName}”，要求至少 90% 的 SKC货号以“${expectedPrefix}”开头。` +
+      `当前匹配 ${matchedCount}/${skcCodes.length}，匹配率 ${(matchedRate * 100).toFixed(2)}%。` +
+      `异常样例：${invalidSamples.join('、') || '-'}`,
+    );
+  }
+}
+
 function formatMissingFields(mapping, fields) {
   return fields.filter(([field]) => !mapping[field]).map(([, label]) => label);
 }
@@ -225,7 +278,7 @@ function formatMissingFields(mapping, fields) {
 export function assertImportFileShape({ headers = [], mapping: explicitMapping = null, type }) {
   const productMapping = explicitMapping && type === 'product' ? explicitMapping : inferMapping(headers, PRODUCT_FIELDS);
   const adMapping = explicitMapping && type === 'ad' ? explicitMapping : inferMapping(headers, AD_FIELDS);
-  const productScore = countMappedFields(productMapping, ['productTitle', 'spuId', 'skcId', 'skuId', 'skuCode', 'spec1Name', 'spec2Name', 'declaredPriceStatus', 'createdTime']);
+  const productScore = countMappedFields(productMapping, ['productTitle', 'spuId', 'skcId', 'skuId', 'skcCode', 'skuCode', 'spec1Name', 'spec2Name', 'declaredPriceStatus', 'createdTime']);
   const adScore = countMappedFields(adMapping, ['adSpend', 'netAdSpend', 'promoSalesAmount', 'promoRoas', 'targetRoas', 'promoSubOrderCount', 'promoImpressions', 'promoClicks', 'globalSalesAmount', 'globalImpressions', 'globalClicks']);
 
   if (type === 'product') {
@@ -237,6 +290,7 @@ export function assertImportFileShape({ headers = [], mapping: explicitMapping =
       ['spuId', 'SPU ID'],
       ['skcId', 'SKC ID'],
       ['skuId', 'SKU ID'],
+      ['skcCode', 'SKC货号'],
       ['skuCode', 'SKU货号'],
       ['createdTime', '创建时间'],
     ]);
@@ -717,6 +771,7 @@ async function upsertAdRow(client, row, batchId, rowNumber, reportDate, fallback
 export async function importProductRows({ rows = [], mapping = {}, fileName = '', storeName = '', currentUser = {} }) {
   await runTemuMigrations();
   assertImportFileShape({ headers: headersFromRowsAndMapping(rows, mapping), mapping, type: 'product' });
+  validateProductStoreImportScope({ rows, mapping, fileName, storeName });
   const client = await getAlibaba1688Pool().connect();
   const sourceBatchId = `product-info-${Date.now().toString(36)}`;
   const fallbackStoreName = text(storeName) || inferStoreNameFromFileName(fileName);
@@ -945,6 +1000,7 @@ export async function rebuildNewProductSnapshots({ snapshotDate = new Date().toI
     );
     let count = 0;
     for (const product of products.rows) {
+      const firstDate = dateText(product.first_online_at);
       const orderResult = await client.query(
         `SELECT COUNT(DISTINCT o.order_no) AS order_count,
                 COALESCE(SUM(o.quantity),0) AS order_quantity,
@@ -962,10 +1018,10 @@ export async function rebuildNewProductSnapshots({ snapshotDate = new Date().toI
          )
          WHERE o.is_valid_order = TRUE
            AND o.is_cancelled = FALSE
-           AND o.order_date = $1::date
+           AND o.order_date BETWEEN $4::date AND $1::date
            AND o.store_id = $3
            AND s.product_id = $2`,
-        [targetDate, product.id, product.store_id],
+        [targetDate, product.id, product.store_id, firstDate],
       );
       const adResult = await client.query(
         `SELECT COALESCE(SUM(ad_spend),0) AS ad_spend,
@@ -993,7 +1049,6 @@ export async function rebuildNewProductSnapshots({ snapshotDate = new Date().toI
       const clicks = Number(ads.clicks || 0);
       const impressions = Number(ads.impressions || 0);
       const orderSales = Number(orders.order_sales_amount || 0);
-      const firstDate = dateText(product.first_online_at);
       const daysOnline = Math.floor((new Date(`${targetDate}T00:00:00Z`) - new Date(`${firstDate}T00:00:00Z`)) / 86400000) + 1;
       const naturalOrderCount = Math.max(orderCount - adOrderCount, 0);
       const naturalSalesAmount = Math.max(orderSales - adSales, 0);
@@ -1286,6 +1341,7 @@ export async function getBossDashboard(params = {}) {
   await rebuildNewProductSnapshots({ snapshotDate });
   const { where, values } = buildScopeWhere(params, 2);
   const condition = [`s.snapshot_date = $1`, ...where].join(' AND ');
+  const recommendationScopeCondition = where.length ? `AND ${where.join(' AND ').replace(/\bs\./g, 'sr.')}` : '';
   const summary = await queryTemuDatabase(
     `SELECT
        COUNT(*) FILTER (WHERE days_online = 1) AS today_new_count,
@@ -1301,8 +1357,12 @@ export async function getBossDashboard(params = {}) {
        (
          SELECT COUNT(*)
          FROM temu_ad_recommendations r
+         LEFT JOIN temu_new_product_daily_snapshot sr
+           ON sr.product_id = r.product_id
+          AND sr.snapshot_date = r.recommendation_date
          WHERE r.status = 'PENDING'
            AND r.recommendation_date = $1
+           ${recommendationScopeCondition}
        ) AS pending_recommendation_count
      FROM temu_new_product_daily_snapshot s
      WHERE ${condition}`,
@@ -1349,6 +1409,54 @@ export async function getBossDashboard(params = {}) {
     },
     operatorRanking: operatorRanking.rows.map(toCamel),
     storeRanking: storeRanking.rows.map(toCamel),
+  };
+}
+
+export async function getOperatorOptions(params = {}) {
+  const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
+  await rebuildNewProductSnapshots({ snapshotDate });
+  const { where, values } = buildScopeWhere(params, 2);
+  const condition = [`s.snapshot_date = $1`, ...where, `COALESCE(NULLIF(s.operator_name, ''), '') <> ''`].join(' AND ');
+  const result = await queryTemuDatabase(
+    `SELECT s.operator_id,
+            s.operator_name,
+            COUNT(DISTINCT s.store_id) AS store_count,
+            COUNT(*) AS product_count
+     FROM temu_new_product_daily_snapshot s
+     WHERE ${condition}
+     GROUP BY s.operator_id, s.operator_name
+     ORDER BY s.operator_name ASC`,
+    [snapshotDate, ...values],
+  );
+  return {
+    snapshotDate,
+    dataCutoffDate,
+    dateMode,
+    operators: result.rows.map(toCamel),
+  };
+}
+
+export async function getStoreOptions(params = {}) {
+  const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
+  await rebuildNewProductSnapshots({ snapshotDate });
+  const { where, values } = buildScopeWhere(params, 2);
+  const condition = [`s.snapshot_date = $1`, ...where, `COALESCE(NULLIF(s.store_name, ''), '') <> ''`].join(' AND ');
+  const result = await queryTemuDatabase(
+    `SELECT s.store_id,
+            s.store_name,
+            COUNT(DISTINCT s.operator_id) AS operator_count,
+            COUNT(*) AS product_count
+     FROM temu_new_product_daily_snapshot s
+     WHERE ${condition}
+     GROUP BY s.store_id, s.store_name
+     ORDER BY s.store_name ASC`,
+    [snapshotDate, ...values],
+  );
+  return {
+    snapshotDate,
+    dataCutoffDate,
+    dateMode,
+    stores: result.rows.map(toCamel),
   };
 }
 

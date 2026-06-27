@@ -104,6 +104,14 @@ export const newProductCenterDataSource = {
     return request<DashboardResponse & { recommendations: RecommendationRecord[] }>(`/api/new-product-center/operator-dashboard${params}`);
   },
 
+  getOperatorOptions(params = '') {
+    return request<OperatorOptionsResponse>(`/api/new-product-center/operator-options${params}`);
+  },
+
+  getStoreOptions(params = '') {
+    return request<StoreOptionsResponse>(`/api/new-product-center/store-options${params}`);
+  },
+
   getProducts(params = '') {
     return request<PagedResponse<ProductSnapshot>>(`/api/new-product-center/products${params}`);
   },
@@ -235,6 +243,34 @@ export interface DashboardResponse {
   summary: Record<string, number | null>;
   operatorRanking: Array<Record<string, unknown>>;
   storeRanking: Array<Record<string, unknown>>;
+}
+
+export interface OperatorOption {
+  operatorId?: string;
+  operatorName: string;
+  storeCount?: number;
+  productCount?: number;
+}
+
+export interface OperatorOptionsResponse {
+  snapshotDate: string;
+  dataCutoffDate?: string;
+  dateMode?: 'auto' | 'manual';
+  operators: OperatorOption[];
+}
+
+export interface StoreScopeOption {
+  storeId?: string;
+  storeName: string;
+  operatorCount?: number;
+  productCount?: number;
+}
+
+export interface StoreOptionsResponse {
+  snapshotDate: string;
+  dataCutoffDate?: string;
+  dateMode?: 'auto' | 'manual';
+  stores: StoreScopeOption[];
 }
 
 export interface PagedResponse<T> {
