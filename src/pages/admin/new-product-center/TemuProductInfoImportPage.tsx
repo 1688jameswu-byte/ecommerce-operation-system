@@ -74,6 +74,7 @@ export default function TemuProductInfoImportPage() {
   const [result, setResult] = useState<ImportResult | null>(null);
   const [message, setMessage] = useState('');
   const [storeName, setStoreName] = useState('');
+  const [importStoreName, setImportStoreName] = useState('');
   const [storageStatus, setStorageStatus] = useState<TemuStorageStatus | null>(null);
   const [storageError, setStorageError] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -83,7 +84,7 @@ export default function TemuProductInfoImportPage() {
   const [filters, setFilters] = useState<Record<string, string>>({});
 
   const refreshOverview = async (page = recordsPage) => {
-    if (!storeName) {
+    if (!importStoreName) {
       setOverview({ batches: [], records: [] });
       return;
     }
@@ -122,6 +123,7 @@ export default function TemuProductInfoImportPage() {
         // Keep the first visible store when recent import lookup is unavailable.
       }
       setStoreName(defaultStoreName);
+      setImportStoreName((current) => current || defaultStoreName);
     }).catch(() => setStores([]));
   }, []);
 
@@ -140,9 +142,10 @@ export default function TemuProductInfoImportPage() {
     setResult(null);
     try {
       const next = await newProductCenterDataSource.previewProductFile(file);
-      const nextStoreName = storeName || inferStoreNameFromFileName(file.name);
+      const nextStoreName = importStoreName || storeName || inferStoreNameFromFileName(file.name);
       setPreview(next);
       setMapping(next.mapping);
+      setImportStoreName(nextStoreName);
       setStoreName(nextStoreName);
       setMessage('预览完成，正在自动导入 PostgreSQL...');
       await importProductPreview(next, next.mapping, nextStoreName);
@@ -170,7 +173,17 @@ export default function TemuProductInfoImportPage() {
       });
       setResult(next);
       setRecordsPage(1);
-      await refreshOverview(1);
+      setStoreName(nextStoreName);
+      const [status, records] = await Promise.all([
+        newProductCenterDataSource.getTemuStorageStatus(),
+        newProductCenterDataSource.getProductImportRecords(1, PRODUCT_RECORD_PAGE_SIZE, {
+          storeName: nextStoreName,
+          ...filters,
+        }),
+      ]);
+      setStorageStatus(status);
+      setStorageError(status.ok ? '' : (status.message || 'PostgreSQL 未连接'));
+      setOverview(records);
       setMessage(`导入完成：成功 ${next.successRows} 行，失败 ${next.errorRows} 行。`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
@@ -182,7 +195,7 @@ export default function TemuProductInfoImportPage() {
   const confirm = async () => {
     if (!preview) return;
     setMessage('正在按当前字段映射重新导入 PostgreSQL...');
-    await importProductPreview(preview, mapping, storeName);
+    await importProductPreview(preview, mapping, importStoreName || storeName);
   };
 
   const isStorageReady = Boolean(storageStatus?.ok && !storageError);
@@ -203,7 +216,7 @@ export default function TemuProductInfoImportPage() {
             </label>
             <div className="npc-import-controls temu-import-store-control">
               <label>导入店铺
-                <select value={storeName} onChange={(event) => { setStoreName(event.target.value); setRecordsPage(1); }}>
+                <select value={importStoreName} onChange={(event) => setImportStoreName(event.target.value)}>
                   <option value="">请选择店铺</option>
                   {stores.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}
                 </select>
@@ -241,6 +254,12 @@ export default function TemuProductInfoImportPage() {
           <span>{latestBatch?.fileName ? `最近批次：${latestBatch.fileName}` : '暂无导入批次'}</span>
         </header>
         <div className="npc-mapping-grid temu-import-filter-grid">
+          <label>查看店铺
+            <select value={storeName} onChange={(event) => { setStoreName(event.target.value); setRecordsPage(1); }}>
+              <option value="">请选择店铺</option>
+              {stores.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}
+            </select>
+          </label>
           <label>创建开始<input type="date" value={filters.createdDateStart || ''} onChange={(event) => setFilters({ ...filters, createdDateStart: event.target.value })} /></label>
           <label>创建结束<input type="date" value={filters.createdDateEnd || ''} onChange={(event) => setFilters({ ...filters, createdDateEnd: event.target.value })} /></label>
           <label>商品状态<input value={filters.productStatus || ''} onChange={(event) => setFilters({ ...filters, productStatus: event.target.value })} placeholder="在售中" /></label>

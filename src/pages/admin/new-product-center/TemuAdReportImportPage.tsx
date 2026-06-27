@@ -162,7 +162,9 @@ function getMissingAdMappings(mapping: Record<string, string>) {
 
 export default function TemuAdReportImportPage() {
   const [reportDate, setReportDate] = useState('');
+  const [importReportDate, setImportReportDate] = useState('');
   const [storeName, setStoreName] = useState('');
+  const [importStoreName, setImportStoreName] = useState('');
   const [overview, setOverview] = useState<ImportOverview>({ batches: [], records: [] });
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [mapping, setMapping] = useState<Record<string, string>>({});
@@ -219,7 +221,9 @@ export default function TemuAdReportImportPage() {
         // Keep the first visible store; a later effect will try to load its latest report date.
       }
       setStoreName((current) => current || defaultStoreName);
+      setImportStoreName((current) => current || defaultStoreName);
       if (defaultReportDate) setReportDate((current) => current || defaultReportDate);
+      if (defaultReportDate) setImportReportDate((current) => current || defaultReportDate);
     }).catch(() => setStores([]));
   }, []);
 
@@ -239,11 +243,11 @@ export default function TemuAdReportImportPage() {
 
   const onFile = async (file?: File) => {
     if (!file) return;
-    if (!storeName) {
+    if (!importStoreName) {
       setMessage('请先选择导入店铺。');
       return;
     }
-    if (!reportDate) {
+    if (!importReportDate) {
       setMessage('请先选择广告日期。');
       return;
     }
@@ -252,10 +256,12 @@ export default function TemuAdReportImportPage() {
     setResult(null);
     try {
       const next = await newProductCenterDataSource.previewAdFile(file);
-      const nextStoreName = storeName || inferStoreNameFromFileName(file.name);
+      const nextStoreName = importStoreName || storeName || inferStoreNameFromFileName(file.name);
       setPreview(next);
       setMapping(next.mapping);
+      setImportStoreName(nextStoreName);
       setStoreName(nextStoreName);
+      setReportDate(importReportDate);
       setMessage('预览完成，正在自动导入 PostgreSQL...');
       await importAdPreview(next, next.mapping, nextStoreName);
     } catch (error) {
@@ -282,12 +288,25 @@ export default function TemuAdReportImportPage() {
         fileName: nextPreview.fileName,
         rows: nextPreview.rows || [],
         mapping: nextMapping,
-        reportDate,
+        reportDate: importReportDate || reportDate,
         storeName: nextStoreName,
       });
       setResult(next);
       setRecordsPage(1);
-      await refreshOverview(1);
+      const effectiveReportDate = importReportDate || reportDate;
+      setStoreName(nextStoreName);
+      setReportDate(effectiveReportDate);
+      const [status, records] = await Promise.all([
+        newProductCenterDataSource.getTemuStorageStatus(),
+        newProductCenterDataSource.getAdImportRecords(1, AD_RECORD_PAGE_SIZE, {
+          storeName: nextStoreName,
+          reportDate: effectiveReportDate,
+          ...filters,
+        }),
+      ]);
+      setStorageStatus(status);
+      setStorageError(status.ok ? '' : (status.message || 'PostgreSQL 未连接'));
+      setOverview(records);
       setMessage(`导入完成：成功 ${next.successRows} 行，失败 ${next.errorRows} 行。`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
@@ -299,7 +318,7 @@ export default function TemuAdReportImportPage() {
   const confirm = async () => {
     if (!preview) return;
     setMessage('正在按当前字段映射重新导入 PostgreSQL...');
-    await importAdPreview(preview, mapping, storeName);
+    await importAdPreview(preview, mapping, importStoreName || storeName);
   };
 
   const isStorageReady = Boolean(storageStatus?.ok && !storageError);
@@ -314,14 +333,14 @@ export default function TemuAdReportImportPage() {
         <div className="temu-import-hero-copy">
           <div className="temu-import-hero-upload temu-ad-hero-upload">
             <label className="excel-upload-box temu-import-upload-box">
-              <input type="file" accept=".xlsx,.xls,.csv" disabled={previewLoading || confirmLoading || !reportDate || !storeName} onChange={(event) => void onFile(event.target.files?.[0])} />
+              <input type="file" accept=".xlsx,.xls,.csv" disabled={previewLoading || confirmLoading || !importReportDate || !importStoreName} onChange={(event) => void onFile(event.target.files?.[0])} />
               <strong>{previewLoading ? '处理中...' : confirmLoading ? '导入中...' : '选择或拖入 Excel 文件'}</strong>
               <span>支持 .xlsx / .xls / .csv</span>
             </label>
             <div className="npc-import-controls temu-import-store-control">
-              <label>报表日期<input type="date" value={reportDate} onChange={(event) => setReportDate(event.target.value)} /></label>
+              <label>报表日期<input type="date" value={importReportDate} onChange={(event) => setImportReportDate(event.target.value)} /></label>
               <label>导入店铺
-                <select value={storeName} onChange={(event) => { setStoreName(event.target.value); setRecordsPage(1); }}>
+                <select value={importStoreName} onChange={(event) => setImportStoreName(event.target.value)}>
                   <option value="">请选择店铺</option>
                   {stores.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}
                 </select>
@@ -359,6 +378,13 @@ export default function TemuAdReportImportPage() {
           <span>{latestBatch?.fileName ? `最近批次：${latestBatch.fileName}` : '暂无导入批次'}</span>
         </header>
         <div className="npc-mapping-grid temu-import-filter-grid">
+          <label>查看店铺
+            <select value={storeName} onChange={(event) => { setStoreName(event.target.value); setRecordsPage(1); }}>
+              <option value="">请选择店铺</option>
+              {stores.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}
+            </select>
+          </label>
+          <label>查看日期<input type="date" value={reportDate} onChange={(event) => { setReportDate(event.target.value); setRecordsPage(1); }} /></label>
           <label>SPU ID<input value={filters.spuId || ''} onChange={(event) => setFilters({ ...filters, spuId: event.target.value })} /></label>
           <label>商品名称<input value={filters.productName || ''} onChange={(event) => setFilters({ ...filters, productName: event.target.value })} /></label>
           <label>是否匹配商品<select value={filters.matched || ''} onChange={(event) => setFilters({ ...filters, matched: event.target.value })}><option value="">全部</option><option value="true">已匹配</option><option value="false">未匹配</option></select></label>
