@@ -206,6 +206,69 @@ function inferMapping(headers, fieldMap) {
   }));
 }
 
+function countMappedFields(mapping, fields) {
+  return fields.filter((field) => Boolean(mapping[field])).length;
+}
+
+function headersFromRowsAndMapping(rows, mapping) {
+  const headerSet = new Set(Object.values(mapping || {}).filter(Boolean));
+  for (const row of rows.slice(0, 5)) {
+    Object.keys(row || {}).forEach((header) => headerSet.add(header));
+  }
+  return Array.from(headerSet);
+}
+
+function formatMissingFields(mapping, fields) {
+  return fields.filter(([field]) => !mapping[field]).map(([, label]) => label);
+}
+
+export function assertImportFileShape({ headers = [], mapping: explicitMapping = null, type }) {
+  const productMapping = explicitMapping && type === 'product' ? explicitMapping : inferMapping(headers, PRODUCT_FIELDS);
+  const adMapping = explicitMapping && type === 'ad' ? explicitMapping : inferMapping(headers, AD_FIELDS);
+  const productScore = countMappedFields(productMapping, ['productTitle', 'spuId', 'skcId', 'skuId', 'skuCode', 'spec1Name', 'spec2Name', 'declaredPriceStatus', 'createdTime']);
+  const adScore = countMappedFields(adMapping, ['adSpend', 'netAdSpend', 'promoSalesAmount', 'promoRoas', 'targetRoas', 'promoSubOrderCount', 'promoImpressions', 'promoClicks', 'globalSalesAmount', 'globalImpressions', 'globalClicks']);
+
+  if (type === 'product') {
+    if (adScore >= 3) {
+      throw new Error('导入信息错误：当前文件像广告数据报表，请使用“广告数据导入”。');
+    }
+    const missing = formatMissingFields(productMapping, [
+      ['productTitle', '商品标题'],
+      ['spuId', 'SPU ID'],
+      ['skcId', 'SKC ID'],
+      ['skuId', 'SKU ID'],
+      ['skuCode', 'SKU货号'],
+      ['createdTime', '创建时间'],
+    ]);
+    if (missing.length) {
+      throw new Error(`导入信息错误：当前文件不是商品信息表，缺少字段：${missing.join('、')}。`);
+    }
+    return productMapping;
+  }
+
+  if (type === 'ad') {
+    if (productScore >= 5 && adScore < 3) {
+      throw new Error('导入信息错误：当前文件像商品信息表，请使用“商品信息导入”。');
+    }
+    const missing = formatMissingFields(adMapping, [
+      ['temuProductId', '商品ID'],
+      ['adSpend', '总花费'],
+    ]);
+    if (!adMapping.promoSalesAmount && !adMapping.globalSalesAmount) {
+      missing.push('销售额字段');
+    }
+    if (!adMapping.promoImpressions && !adMapping.globalImpressions && !adMapping.promoClicks && !adMapping.globalClicks) {
+      missing.push('曝光或点击字段');
+    }
+    if (missing.length) {
+      throw new Error(`导入信息错误：当前文件不是广告数据报表，缺少字段：${missing.join('、')}。`);
+    }
+    return adMapping;
+  }
+
+  return explicitMapping || {};
+}
+
 function mapRow(row, mapping) {
   return Object.fromEntries(Object.entries(mapping).map(([field, header]) => [field, header ? row[header] : '']));
 }
@@ -220,7 +283,7 @@ export function parseExcelDataUrl(dataUrl) {
   const workbook = XLSX.read(Buffer.from(base64, 'base64'), { type: 'buffer', cellDates: true });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: true });
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
   const headers = rows.length ? Object.keys(rows[0]) : [];
   return { sheetName, headers, rows };
 }
@@ -643,6 +706,7 @@ async function upsertAdRow(client, row, batchId, rowNumber, reportDate, fallback
 
 export async function importProductRows({ rows = [], mapping = {}, fileName = '', storeName = '', currentUser = {} }) {
   await runTemuMigrations();
+  assertImportFileShape({ headers: headersFromRowsAndMapping(rows, mapping), mapping, type: 'product' });
   const client = await getAlibaba1688Pool().connect();
   const sourceBatchId = `product-info-${Date.now().toString(36)}`;
   const fallbackStoreName = text(storeName) || inferStoreNameFromFileName(fileName);
@@ -690,6 +754,7 @@ export async function importProductRows({ rows = [], mapping = {}, fileName = ''
 
 export async function importAdRows({ rows = [], mapping = {}, fileName = '', reportDate, storeName = '', currentUser = {} }) {
   await runTemuMigrations();
+  assertImportFileShape({ headers: headersFromRowsAndMapping(rows, mapping), mapping, type: 'ad' });
   const client = await getAlibaba1688Pool().connect();
   const sourceBatchId = `ad-report-${dateText(reportDate)}-${Date.now().toString(36)}`;
   const fallbackStoreName = text(storeName) || inferStoreNameFromFileName(fileName);
@@ -1232,9 +1297,11 @@ export async function getRecommendations(params = {}) {
   return { records: result.rows.map(toCamel), total: Number(result.rows[0]?.total || 0), page, pageSize };
 }
 
-export async function getProductImportOverview({ limit = 50 } = {}) {
+export async function getProductImportOverview({ page = 1, pageSize = 50 } = {}) {
   await runTemuMigrations();
-  const size = Math.min(Math.max(Number(limit) || 50, 1), 100);
+  const currentPage = Math.max(Number(page) || 1, 1);
+  const size = Math.min(Math.max(Number(pageSize) || 50, 1), 50);
+  const offset = (currentPage - 1) * size;
   const batches = await queryTemuDatabase(
     `SELECT id, import_type, file_name, total_rows, success_rows, error_rows, status, error_message, created_at, finished_at
      FROM temu_import_batches
@@ -1244,34 +1311,53 @@ export async function getProductImportOverview({ limit = 50 } = {}) {
     [size],
   );
   const products = await queryTemuDatabase(
-    `SELECT s.id,
-            COALESCE(s.product_title, p.product_title, p.product_name) AS product_title,
-            COALESCE(s.spu_id, p.spu_id, p.temu_spu_id) AS spu_id,
-            COALESCE(s.skc_id, p.skc_id, p.temu_product_id) AS skc_id,
-            s.sku_id,
-            COALESCE(s.skc_code, p.skc_code) AS skc_code,
-            s.sku_code,
-            COALESCE(s.leaf_category_name, p.leaf_category_name, p.category_name) AS leaf_category_name,
-            COALESCE(s.product_status, p.product_status) AS product_status,
-            s.spec1_name,
-            s.spec2_name,
-            COALESCE(s.declared_price_cny, p.declared_price_cny, p.current_price) AS declared_price_cny,
-            COALESCE(s.declared_price_status, p.declared_price_status) AS declared_price_status,
-            COALESCE(s.created_time, p.created_time, p.first_online_at) AS created_time,
+    `WITH product_rows AS (
+       SELECT s.id,
+            COALESCE(NULLIF(s.product_title, ''), NULLIF(s.raw_data ->> '商品标题', ''), NULLIF(p.product_title, ''), NULLIF(p.raw_data ->> '商品标题', ''), p.product_name) AS product_title,
+            COALESCE(NULLIF(s.spu_id, ''), NULLIF(s.raw_data ->> 'SPU ID', ''), NULLIF(p.spu_id, ''), NULLIF(p.raw_data ->> 'SPU ID', ''), p.temu_spu_id) AS spu_id,
+            COALESCE(NULLIF(s.skc_id, ''), NULLIF(s.raw_data ->> 'SKC ID', ''), NULLIF(p.skc_id, ''), NULLIF(p.raw_data ->> 'SKC ID', ''), p.temu_product_id) AS skc_id,
+            COALESCE(NULLIF(s.sku_id, ''), NULLIF(s.raw_data ->> 'SKU ID', '')) AS sku_id,
+            COALESCE(NULLIF(s.skc_code, ''), NULLIF(s.raw_data ->> 'SKC货号', ''), NULLIF(p.skc_code, ''), NULLIF(p.raw_data ->> 'SKC货号', '')) AS skc_code,
+            COALESCE(NULLIF(s.sku_code, ''), NULLIF(s.raw_data ->> 'SKU货号', '')) AS sku_code,
+            COALESCE(NULLIF(s.leaf_category_name, ''), NULLIF(s.raw_data ->> '叶子类目名称', ''), NULLIF(p.leaf_category_name, ''), NULLIF(p.raw_data ->> '叶子类目名称', ''), p.category_name) AS leaf_category_name,
+            COALESCE(NULLIF(s.product_status, ''), NULLIF(s.raw_data ->> '商品状态', ''), NULLIF(p.product_status, ''), NULLIF(p.raw_data ->> '商品状态', '')) AS product_status,
+            COALESCE(NULLIF(s.spec1_name, ''), NULLIF(s.raw_data ->> '规格1名称', '')) AS spec1_name,
+            COALESCE(NULLIF(s.spec2_name, ''), NULLIF(s.raw_data ->> '规格2名称', '')) AS spec2_name,
+            COALESCE(
+              s.declared_price_cny,
+              CASE WHEN (s.raw_data ->> '申报价格(CNY)') ~ '^\\s*-?\\d+(\\.\\d+)?\\s*$' THEN (s.raw_data ->> '申报价格(CNY)')::numeric ELSE NULL END,
+              p.declared_price_cny,
+              CASE WHEN (p.raw_data ->> '申报价格(CNY)') ~ '^\\s*-?\\d+(\\.\\d+)?\\s*$' THEN (p.raw_data ->> '申报价格(CNY)')::numeric ELSE NULL END,
+              p.current_price
+            ) AS declared_price_cny,
+            COALESCE(NULLIF(s.declared_price_status, ''), NULLIF(s.raw_data ->> '申报价格状态', ''), NULLIF(p.declared_price_status, ''), NULLIF(p.raw_data ->> '申报价格状态', '')) AS declared_price_status,
+            COALESCE(s.created_time, NULLIF(s.raw_data ->> '创建时间', '')::timestamptz, p.created_time, NULLIF(p.raw_data ->> '创建时间', '')::timestamptz, p.first_online_at) AS created_time,
             s.store_name,
             s.updated_at
-     FROM temu_product_skus s
-     LEFT JOIN temu_products p ON p.id = s.product_id
-     ORDER BY s.updated_at DESC, s.id DESC
-     LIMIT $1`,
-    [size],
+       FROM temu_product_skus s
+       LEFT JOIN temu_products p ON p.id = s.product_id
+     )
+     SELECT *, COUNT(*) OVER()::int AS total_count
+     FROM product_rows
+     ORDER BY created_time DESC NULLS LAST, updated_at DESC, id DESC
+     LIMIT $1 OFFSET $2`,
+    [size, offset],
   );
-  return { batches: batches.rows.map(toCamel), records: products.rows.map(toCamel) };
+  const records = products.rows.map(toCamel);
+  return {
+    batches: batches.rows.map(toCamel),
+    records,
+    total: Number(products.rows[0]?.total_count || 0),
+    page: currentPage,
+    pageSize: size,
+  };
 }
 
-export async function getAdImportOverview({ limit = 50 } = {}) {
+export async function getAdImportOverview({ page = 1, pageSize = 50 } = {}) {
   await runTemuMigrations();
-  const size = Math.min(Math.max(Number(limit) || 50, 1), 100);
+  const currentPage = Math.max(Number(page) || 1, 1);
+  const size = Math.min(Math.max(Number(pageSize) || 50, 1), 50);
+  const offset = (currentPage - 1) * size;
   const batches = await queryTemuDatabase(
     `SELECT id, import_type, file_name, report_date, store_name, total_rows, success_rows, error_rows, status, error_message, created_at, finished_at
      FROM temu_import_batches
@@ -1282,15 +1368,29 @@ export async function getAdImportOverview({ limit = 50 } = {}) {
   );
   const ads = await queryTemuDatabase(
     `SELECT id, report_date, store_name, operator_name, temu_product_id, temu_spu_id,
-            product_name, ad_spend, promo_sales_amount, promo_sub_order_count,
-            promo_impressions, promo_clicks, promo_add_to_cart_count, promo_roas,
-            target_roas, updated_at
+            product_name, ad_spend, net_ad_spend,
+            global_sales_amount, global_roas, global_acos, global_cpa, global_sub_order_count,
+            global_unit_count, global_impressions, global_clicks, global_ctr, global_cvr,
+            global_add_to_cart_count,
+            promo_sales_amount, promo_roas, promo_week_roas, target_roas, promo_acos, promo_cpa,
+            promo_sub_order_count, promo_unit_count, promo_impressions, promo_clicks, promo_ctr,
+            promo_cvr, promo_add_to_cart_count,
+            net_promo_sales_amount, net_promo_roas, net_promo_acos, net_promo_cpa,
+            net_promo_sub_order_count, net_promo_unit_count,
+            raw_data, updated_at, COUNT(*) OVER()::int AS total_count
      FROM temu_ad_product_daily
-     ORDER BY report_date DESC, updated_at DESC, id DESC
-     LIMIT $1`,
-    [size],
+     WHERE report_date = (SELECT MAX(report_date) FROM temu_ad_product_daily)
+     ORDER BY ad_spend DESC NULLS LAST, report_date DESC, updated_at DESC, id DESC
+     LIMIT $1 OFFSET $2`,
+    [size, offset],
   );
-  return { batches: batches.rows.map(toCamel), records: ads.rows.map(toCamel) };
+  return {
+    batches: batches.rows.map(toCamel),
+    records: ads.rows.map(toCamel),
+    total: Number(ads.rows[0]?.total_count || 0),
+    page: currentPage,
+    pageSize: size,
+  };
 }
 
 export async function handleRecommendation(id, payload = {}, currentUser = {}) {

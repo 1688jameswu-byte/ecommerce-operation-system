@@ -16,6 +16,7 @@ import {
   syncWarningRulesToPostgres,
 } from './server/temu/temuPostgresRepository.js';
 import {
+  assertImportFileShape,
   buildImportPreview,
   getBossDashboard,
   getAdImportOverview,
@@ -3046,9 +3047,13 @@ async function handleTemuProductInfoImportApi(req, res) {
       res.end(JSON.stringify({ ok: false, message: '请先登录' }));
       return;
     }
+    const requestUrl = new URL(req.url ?? '/', 'http://localhost');
     const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
     if (req.method === 'GET' && action === 'records') {
-      res.end(JSON.stringify(await getProductImportOverview({ limit: 50 })));
+      res.end(JSON.stringify(await getProductImportOverview({
+        page: requestUrl.searchParams.get('page'),
+        pageSize: requestUrl.searchParams.get('pageSize'),
+      })));
       return;
     }
     if (req.method !== 'POST') {
@@ -3065,6 +3070,7 @@ async function handleTemuProductInfoImportApi(req, res) {
     const body = JSON.parse(bodyText || '{}');
     if (action === 'upload' || action === 'preview') {
       const parsed = body.rows ? { rows: body.rows, headers: body.headers || Object.keys(body.rows[0] || {}) } : parseExcelDataUrl(body.dataUrl);
+      assertImportFileShape({ headers: parsed.headers, type: 'product' });
       const previewId = saveTemuImportPreview('product', {
         fileName: body.fileName || '',
         rows: parsed.rows,
@@ -3082,7 +3088,9 @@ async function handleTemuProductInfoImportApi(req, res) {
     if (action === 'confirm') {
       const cachedPreview = getTemuImportPreview(body.previewId, 'product');
       const rows = cachedPreview?.rows || body.rows || [];
+      const headers = cachedPreview?.headers || Object.keys(rows[0] || {});
       const fileName = body.fileName || cachedPreview?.fileName || '';
+      assertImportFileShape({ headers, mapping: body.mapping || {}, type: 'product' });
       console.info('[temu-product-info-confirm-start]', {
         fileName,
         previewId: body.previewId || '',
@@ -3115,9 +3123,14 @@ async function handleTemuProductInfoImportApi(req, res) {
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
-    res.statusCode = 500;
+    res.statusCode = messageIncludesImportError(error) ? 400 : 500;
     res.end(JSON.stringify({ ok: false, message: error instanceof Error ? error.message : String(error) }));
   }
+}
+
+function messageIncludesImportError(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('导入信息错误');
 }
 
 async function handleTemuAdReportImportApi(req, res) {
@@ -3130,9 +3143,13 @@ async function handleTemuAdReportImportApi(req, res) {
       res.end(JSON.stringify({ ok: false, message: '请先登录' }));
       return;
     }
+    const requestUrl = new URL(req.url ?? '/', 'http://localhost');
     const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
     if (req.method === 'GET' && action === 'records') {
-      res.end(JSON.stringify(await getAdImportOverview({ limit: 50 })));
+      res.end(JSON.stringify(await getAdImportOverview({
+        page: requestUrl.searchParams.get('page'),
+        pageSize: requestUrl.searchParams.get('pageSize'),
+      })));
       return;
     }
     if (req.method !== 'POST') {
@@ -3149,6 +3166,7 @@ async function handleTemuAdReportImportApi(req, res) {
     const body = JSON.parse(bodyText || '{}');
     if (action === 'upload' || action === 'preview') {
       const parsed = body.rows ? { rows: body.rows, headers: body.headers || Object.keys(body.rows[0] || {}) } : parseExcelDataUrl(body.dataUrl);
+      assertImportFileShape({ headers: parsed.headers, type: 'ad' });
       const previewId = saveTemuImportPreview('ad', {
         fileName: body.fileName || '',
         rows: parsed.rows,
@@ -3166,7 +3184,9 @@ async function handleTemuAdReportImportApi(req, res) {
     if (action === 'confirm') {
       const cachedPreview = getTemuImportPreview(body.previewId, 'ad');
       const rows = cachedPreview?.rows || body.rows || [];
+      const headers = cachedPreview?.headers || Object.keys(rows[0] || {});
       const fileName = body.fileName || cachedPreview?.fileName || '';
+      assertImportFileShape({ headers, mapping: body.mapping || {}, type: 'ad' });
       console.info('[temu-ad-report-confirm-start]', {
         fileName,
         previewId: body.previewId || '',
@@ -3201,7 +3221,7 @@ async function handleTemuAdReportImportApi(req, res) {
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
-    res.statusCode = 500;
+    res.statusCode = messageIncludesImportError(error) ? 400 : 500;
     res.end(JSON.stringify({ ok: false, message: error instanceof Error ? error.message : String(error) }));
   }
 }

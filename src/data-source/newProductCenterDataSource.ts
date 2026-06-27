@@ -50,8 +50,9 @@ export const newProductCenterDataSource = {
     });
   },
 
-  getProductImportRecords() {
-    return request<ImportOverview>('/api/data-import/temu-product-info/records');
+  getProductImportRecords(page = 1, pageSize = 50) {
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+    return request<ImportOverview>(`/api/data-import/temu-product-info/records?${params.toString()}`);
   },
 
   getTemuStorageStatus() {
@@ -72,8 +73,9 @@ export const newProductCenterDataSource = {
     });
   },
 
-  getAdImportRecords() {
-    return request<ImportOverview>('/api/data-import/temu-ad-report/records');
+  getAdImportRecords(page = 1, pageSize = 50) {
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+    return request<ImportOverview>(`/api/data-import/temu-ad-report/records?${params.toString()}`);
   },
 
   getBossDashboard(params = '') {
@@ -141,6 +143,9 @@ export interface ImportResult {
 export interface ImportOverview {
   batches: Array<Record<string, any>>;
   records: Array<Record<string, any>>;
+  total?: number;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface TemuStorageStatus {

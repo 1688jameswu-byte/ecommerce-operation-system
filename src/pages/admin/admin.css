@@ -9033,7 +9033,8 @@
   background: rgba(15, 23, 42, 0.6);
 }
 
-.temu-product-import-page {
+.temu-product-import-page,
+.temu-ad-import-page {
   gap: 18px;
 }
 
@@ -9060,6 +9061,47 @@
   max-width: 760px;
   color: #bfdbfe;
   line-height: 1.7;
+}
+
+.temu-import-hero-copy {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.temu-import-hero-copy h2 {
+  margin-bottom: 0;
+}
+
+.temu-import-hero-upload {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(220px, 360px);
+  gap: 12px;
+  align-items: end;
+  max-width: 820px;
+}
+
+.temu-import-hero-upload .temu-import-upload-box {
+  min-height: 82px;
+  padding: 12px 16px;
+}
+
+.temu-import-hero-upload .temu-import-upload-box strong {
+  font-size: 16px;
+}
+
+.temu-ad-hero-upload {
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 420px);
+}
+
+.temu-ad-hero-upload .temu-import-store-control {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.85fr) minmax(150px, 1.15fr);
+  gap: 10px;
+}
+
+.temu-ad-hero-upload .temu-import-store-control label {
+  width: auto;
 }
 
 .temu-import-metrics {
@@ -9182,22 +9224,173 @@
   margin-top: 4px;
 }
 
-.temu-import-result-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.65fr);
-  gap: 16px;
-  align-items: start;
+.temu-product-record-panel {
+  width: 100%;
 }
 
-.temu-import-result-grid .npc-table-wrap {
+.temu-product-record-table {
   max-height: 520px;
+}
+
+.temu-product-record-table table {
+  table-layout: fixed;
+  min-width: 1220px;
+}
+
+.temu-product-record-table th,
+.temu-product-record-table td {
+  padding: 7px 5px;
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.temu-product-record-table th:nth-child(1),
+.temu-product-record-table td:nth-child(1) {
+  width: 76px;
+  max-width: 76px;
+}
+
+.temu-product-record-table th:nth-child(2),
+.temu-product-record-table td:nth-child(2),
+.temu-product-record-table th:nth-child(3),
+.temu-product-record-table td:nth-child(3),
+.temu-product-record-table th:nth-child(4),
+.temu-product-record-table td:nth-child(4) {
+  width: 102px;
+}
+
+.temu-product-record-table th:nth-child(5),
+.temu-product-record-table td:nth-child(5),
+.temu-product-record-table th:nth-child(6),
+.temu-product-record-table td:nth-child(6) {
+  width: 96px;
+}
+
+.temu-product-record-table th:nth-child(7),
+.temu-product-record-table td:nth-child(7) {
+  width: 104px;
+}
+
+.temu-product-record-table th:nth-child(8),
+.temu-product-record-table td:nth-child(8),
+.temu-product-record-table th:nth-child(9),
+.temu-product-record-table td:nth-child(9),
+.temu-product-record-table th:nth-child(10),
+.temu-product-record-table td:nth-child(10) {
+  width: 74px;
+}
+
+.temu-product-record-table th:nth-child(11),
+.temu-product-record-table td:nth-child(11) {
+  width: 98px;
+}
+
+.temu-product-record-table th:nth-child(12),
+.temu-product-record-table td:nth-child(12) {
+  width: 96px;
+}
+
+.temu-product-record-table th:nth-child(13),
+.temu-product-record-table td:nth-child(13) {
+  width: 132px;
+}
+
+.temu-product-title-cell {
+  display: table-cell;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.temu-product-record-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  color: #bfdbfe;
+  font-size: 13px;
+}
+
+.temu-product-record-pagination div {
+  display: flex;
+  gap: 8px;
+}
+
+.temu-product-record-pagination button {
+  border: 1px solid rgba(59, 130, 246, 0.55);
+  color: #dbeafe;
+  background: rgba(37, 99, 235, 0.18);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.temu-product-record-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.temu-import-batch-panel .npc-table-wrap {
+  max-height: 260px;
+}
+
+.temu-import-batch-panel table {
+  min-width: 760px;
+}
+
+.temu-ad-record-panel {
+  width: 100%;
+}
+
+.temu-ad-record-table {
+  max-height: 520px;
+}
+
+.temu-ad-record-table table {
+  table-layout: fixed;
+  min-width: 5200px;
+}
+
+.temu-ad-record-table th,
+.temu-ad-record-table td {
+  padding: 7px 5px;
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.temu-ad-record-table th,
+.temu-ad-record-table td {
+  width: 150px;
+}
+
+.temu-ad-record-table th:nth-child(1),
+.temu-ad-record-table td:nth-child(1) {
+  width: 84px;
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.temu-ad-record-table th:nth-child(2),
+.temu-ad-record-table td:nth-child(2),
+.temu-ad-record-table th:nth-child(3),
+.temu-ad-record-table td:nth-child(3) {
+  width: 120px;
 }
 
 @media (max-width: 1200px) {
   .temu-import-hero,
-  .temu-import-workspace,
-  .temu-import-result-grid {
+  .temu-import-workspace {
     grid-template-columns: 1fr;
+  }
+
+  .temu-import-hero-upload {
+    max-width: none;
   }
 
   .temu-import-metrics {
@@ -9212,7 +9405,8 @@
   }
 
   .temu-import-metrics,
-  .temu-import-rule-list {
+  .temu-import-rule-list,
+  .temu-import-hero-upload {
     grid-template-columns: 1fr;
   }
 }
