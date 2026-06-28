@@ -1567,6 +1567,41 @@ function mergeOperatorRecords(target, source, normalizedName, time) {
   };
 }
 
+function normalizeOperatorCollection(operators) {
+  if (!Array.isArray(operators)) {
+    return [];
+  }
+
+  const time = nowIso();
+  const canonicalByName = new Map();
+
+  operators.forEach((operator) => {
+    const rawName = String(operator?.operatorName ?? operator?.name ?? '').trim();
+    const operatorName = normalizeSyncedOperatorName(rawName) || rawName;
+    if (!operatorName) {
+      return;
+    }
+
+    const normalizedOperator = {
+      ...operator,
+      operatorName,
+    };
+    const current = canonicalByName.get(operatorName);
+    if (!current) {
+      canonicalByName.set(operatorName, normalizedOperator);
+      return;
+    }
+
+    const preferred = shouldPreferOperator(normalizedOperator, current, operatorName) ? normalizedOperator : current;
+    const merged = preferred === current
+      ? mergeOperatorRecords(current, normalizedOperator, operatorName, time)
+      : mergeOperatorRecords(normalizedOperator, current, operatorName, time);
+    canonicalByName.set(operatorName, merged);
+  });
+
+  return Array.from(canonicalByName.values());
+}
+
 function getOperatorNameFromUser(user) {
   const displayName = String(user?.displayName ?? '').trim();
   const username = String(user?.username ?? '').trim();
@@ -1977,14 +2012,14 @@ function mergeTemuPostgresCollection(name, jsonData, postgresData) {
 
   if (name === 'operators') {
     const postgresIds = new Set(postgresData.map((item) => item.id).filter(Boolean));
-    const postgresNames = new Set(postgresData.map((item) => item.operatorName).filter(Boolean));
-    return [
+    const postgresNames = new Set(postgresData.map((item) => normalizeSyncedOperatorName(item.operatorName) || item.operatorName).filter(Boolean));
+    return normalizeOperatorCollection([
       ...(Array.isArray(jsonData) ? jsonData.filter((item) => (
         !postgresIds.has(item?.id) &&
-        !postgresNames.has(item?.operatorName)
+        !postgresNames.has(normalizeSyncedOperatorName(item?.operatorName) || item?.operatorName)
       )) : []),
       ...postgresData,
-    ];
+    ]);
   }
 
   if (name === 'storeOperatorRelations') {
