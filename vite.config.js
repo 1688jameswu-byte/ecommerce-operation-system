@@ -1519,13 +1519,59 @@ function getOperators() {
   return migratedOperators;
 }
 
+function normalizeSyncedOperatorName(value) {
+  const rawName = String(value ?? '').trim();
+  return rawName
+    .replace(/^(temu|TEMU|Temu)\s*[-_:\uFF1A\uFF0D\u2014\u2013\s]*/u, '')
+    .replace(/^(temu|TEMU|Temu)?\s*\u8FD0\u8425\s*[-_:\uFF1A\uFF0D\u2014\u2013\s]*/u, '')
+    .replace(/^\u8FD0\u8425\s*[-_:\uFF1A\uFF0D\u2014\u2013\s]*/u, '')
+    .replace(/^1688\s*[-_:\uFF1A\uFF0D\u2014\u2013\s]*/u, '')
+    .replace(/^1688\s*(\u4E1A\u52A1\u5458|\u8FD0\u8425|\u9500\u552E)\s*[-_:\uFF1A\uFF0D\u2014\u2013\s]*/u, '')
+    .replace(/^(\u4E1A\u52A1\u5458|1688\u9500\u552E|\u9500\u552E)\s*[-_:\uFF1A\uFF0D\u2014\u2013\s]*/u, '')
+    .trim();
+}
+
+function isAccountSyncedOperator(operator) {
+  return String(operator?.remark ?? '').includes('\u6765\u81EA\u8D26\u53F7\u7BA1\u7406');
+}
+
+function shouldPreferOperator(candidate, current, normalizedName) {
+  const candidateName = String(candidate?.operatorName ?? candidate?.name ?? '').trim();
+  const currentName = String(current?.operatorName ?? current?.name ?? '').trim();
+  const candidateIsClean = candidateName === normalizedName;
+  const currentIsClean = currentName === normalizedName;
+
+  if (candidateIsClean !== currentIsClean) {
+    return candidateIsClean;
+  }
+
+  const candidateIsSynced = isAccountSyncedOperator(candidate);
+  const currentIsSynced = isAccountSyncedOperator(current);
+  if (candidateIsSynced !== currentIsSynced) {
+    return !candidateIsSynced;
+  }
+
+  return false;
+}
+
+function mergeOperatorRecords(target, source, normalizedName, time) {
+  return {
+    ...target,
+    operatorName: normalizedName,
+    groupName: String(target.groupName ?? '').trim() || String(source.groupName ?? '').trim(),
+    level: String(target.level ?? '').trim() || String(source.level ?? '').trim(),
+    status: target.status === 'active' || source.status === 'active' ? 'active' : (target.status || source.status || 'active'),
+    remark: String(target.remark ?? '').trim() || String(source.remark ?? '').trim(),
+    createdAt: target.createdAt ?? source.createdAt ?? time,
+    updatedAt: time,
+  };
+}
+
 function getOperatorNameFromUser(user) {
   const displayName = String(user?.displayName ?? '').trim();
   const username = String(user?.username ?? '').trim();
   const rawName = displayName || username;
-  const cleanedName = rawName
-    .replace(/^(1688业务员|运营|业务员|1688销售|销售)[-－—_\s]*/u, '')
-    .trim();
+  const cleanedName = normalizeSyncedOperatorName(rawName);
 
   return cleanedName || username;
 }
@@ -1545,11 +1591,42 @@ function syncOperatorUsers() {
   const time = nowIso();
   let operatorsChanged = false;
   let usersChanged = false;
-  const nextOperators = operators.map((operator) => ({
-    ...operator,
-    operatorName: operator.operatorName ?? operator.name ?? '',
-  }));
-  const operatorById = new Map(nextOperators.map((operator) => [operator.id, operator]));
+  const operatorIdRedirect = new Map();
+  const canonicalByName = new Map();
+
+  operators.forEach((operator) => {
+    const rawName = String(operator.operatorName ?? operator.name ?? '').trim();
+    const operatorName = normalizeSyncedOperatorName(rawName) || rawName;
+    const normalizedOperator = {
+      ...operator,
+      operatorName,
+    };
+
+    if (operatorName !== rawName) {
+      operatorsChanged = true;
+    }
+
+    const current = canonicalByName.get(operatorName);
+    if (!current) {
+      canonicalByName.set(operatorName, normalizedOperator);
+      return;
+    }
+
+    operatorsChanged = true;
+    const preferred = shouldPreferOperator(normalizedOperator, current, operatorName) ? normalizedOperator : current;
+    const merged = preferred === current
+      ? mergeOperatorRecords(current, normalizedOperator, operatorName, time)
+      : mergeOperatorRecords(normalizedOperator, current, operatorName, time);
+    const dropped = preferred === current ? normalizedOperator : current;
+
+    canonicalByName.set(operatorName, merged);
+    if (dropped.id && merged.id && dropped.id !== merged.id) {
+      operatorIdRedirect.set(String(dropped.id), String(merged.id));
+    }
+  });
+
+  const nextOperators = Array.from(canonicalByName.values());
+  const operatorById = new Map(nextOperators.map((operator) => [String(operator.id), operator]));
   const operatorByName = new Map(nextOperators.map((operator) => [String(operator.operatorName ?? '').trim(), operator]));
   const nextUsers = users.map((user) => {
     if (!shouldSyncUserToOperator(user)) {
@@ -1561,8 +1638,10 @@ function syncOperatorUsers() {
       return user;
     }
 
-    const currentOperator = String(user.operatorId ?? '').trim()
-      ? operatorById.get(String(user.operatorId).trim())
+    const userOperatorId = String(user.operatorId ?? '').trim();
+    const canonicalOperatorId = operatorIdRedirect.get(userOperatorId) || userOperatorId;
+    const currentOperator = canonicalOperatorId
+      ? operatorById.get(canonicalOperatorId)
       : null;
     let operator = currentOperator || operatorByName.get(operatorName);
 
@@ -1583,17 +1662,49 @@ function syncOperatorUsers() {
       operatorsChanged = true;
     }
 
-    if (String(user.operatorId ?? '') !== operator.id) {
+    if (String(user.operatorId ?? '') !== operator.id || String(user.operatorName ?? '') !== String(operator.operatorName ?? '')) {
       usersChanged = true;
       return {
         ...user,
         operatorId: operator.id,
+        operatorName: operator.operatorName,
         updatedAt: time,
       };
     }
 
     return user;
   });
+
+  const relations = readJsonFile('storeOperatorRelations');
+  if (Array.isArray(relations)) {
+    let relationsChanged = false;
+    const nextRelations = relations.map((relation) => {
+      const relationOperatorId = String(relation.operatorId ?? '').trim();
+      const canonicalOperatorId = operatorIdRedirect.get(relationOperatorId) || relationOperatorId;
+      const relationName = normalizeSyncedOperatorName(relation.operatorName ?? '');
+      const operator = (canonicalOperatorId ? operatorById.get(canonicalOperatorId) : null) || operatorByName.get(relationName);
+
+      if (!operator) {
+        return relation;
+      }
+
+      if (relation.operatorId === operator.id && relation.operatorName === operator.operatorName) {
+        return relation;
+      }
+
+      relationsChanged = true;
+      return {
+        ...relation,
+        operatorId: operator.id,
+        operatorName: operator.operatorName,
+        updatedAt: time,
+      };
+    });
+
+    if (relationsChanged) {
+      writeJsonFile('storeOperatorRelations', nextRelations);
+    }
+  }
 
   if (operatorsChanged) {
     writeJsonFile('operators', nextOperators);
