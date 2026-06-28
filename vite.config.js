@@ -236,6 +236,8 @@ function readJsonFile(name) {
 }
 
 const jsonReadCache = new Map();
+const persistentResponseCache = new Map();
+const persistentResponseCacheTtlMs = 2 * 60 * 1000;
 
 function readJsonFileCached(name) {
   const filePath = ensureDataFile(name);
@@ -323,6 +325,7 @@ function writeJsonFile(name, value) {
   const filePath = ensureDataFile(name);
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2), 'utf-8');
   jsonReadCache.delete(name);
+  persistentResponseCache.clear();
 }
 
 function nowIso() {
@@ -2970,6 +2973,75 @@ function filterPersistentDataForUser(name, data, currentUser) {
   }
 
   return sanitize(data);
+}
+
+function normalizePersistentCacheParams(searchParams) {
+  const params = new URLSearchParams(searchParams);
+  params.delete('t');
+  return Array.from(params.entries())
+    .sort(([firstKey, firstValue], [secondKey, secondValue]) => (
+      firstKey.localeCompare(secondKey) || firstValue.localeCompare(secondValue)
+    ))
+    .map(([key, value]) => `${key}=${value}`)
+    .join('&');
+}
+
+function getPersistentUserScopeKey(currentUser, companyDashboardRead) {
+  if (companyDashboardRead) {
+    return 'company-dashboard';
+  }
+
+  return [
+    currentUser?.role ?? '',
+    currentUser?.roleCode ?? '',
+    currentUser?.id ?? '',
+    currentUser?.username ?? '',
+    currentUser?.operatorId ?? '',
+    currentUser?.displayName ?? '',
+    [...(currentUser?.allowedStoreIds ?? [])].sort().join('|'),
+  ].join('::');
+}
+
+function getPersistentResponseCacheKey(name, searchParams, currentUser, companyDashboardRead) {
+  if (!['orderImportStore', 'trafficConversionStore', 'riskResults', 'growthOpportunities', 'businessAnalysisItems', 'trafficDailySummary'].includes(name)) {
+    return '';
+  }
+
+  const view = searchParams.get('view') || '';
+  if ((name === 'orderImportStore' || name === 'trafficConversionStore') && !view) {
+    return '';
+  }
+
+  return [
+    name,
+    normalizePersistentCacheParams(searchParams),
+    getPersistentUserScopeKey(currentUser, companyDashboardRead),
+  ].join('::');
+}
+
+function readPersistentResponseCache(key) {
+  if (!key) {
+    return undefined;
+  }
+
+  const cached = persistentResponseCache.get(key);
+  if (!cached || cached.expiresAt <= Date.now()) {
+    persistentResponseCache.delete(key);
+    return undefined;
+  }
+
+  return cached.value;
+}
+
+function writePersistentResponseCache(key, value) {
+  if (!key) {
+    return;
+  }
+
+  persistentResponseCache.set(key, {
+    value,
+    expiresAt: Date.now() + persistentResponseCacheTtlMs,
+  });
 }
 
 function normalizeEffectiveListingPayload(payload, current) {
@@ -5728,13 +5800,21 @@ function localDataPlugin() {
         if (req.method === 'GET') {
           try {
             const currentUser = toCurrentUser(findCurrentUser(req));
+            const cacheKey = getPersistentResponseCacheKey(name, requestUrl.searchParams, currentUser, companyDashboardRead);
+            const cachedResponse = readPersistentResponseCache(cacheKey);
+            if (cachedResponse !== undefined) {
+              res.end(JSON.stringify(cachedResponse));
+              return;
+            }
             const data = await readPersistentDataForApi(name, filePath);
             const scopedData = companyDashboardRead ? data : filterPersistentDataForUser(name, data, currentUser);
-            res.end(JSON.stringify(name === 'orderImportStore'
+            const responsePayload = name === 'orderImportStore'
               ? filterOrderImportStoreByQuery(scopedData, requestUrl.searchParams, currentUser)
               : name === 'trafficConversionStore'
                 ? filterTrafficConversionStoreByQuery(scopedData, requestUrl.searchParams, currentUser)
-                : scopedData));
+                : scopedData;
+            writePersistentResponseCache(cacheKey, responsePayload);
+            res.end(JSON.stringify(responsePayload));
           } catch (error) {
             res.statusCode = 500;
             res.end(JSON.stringify({

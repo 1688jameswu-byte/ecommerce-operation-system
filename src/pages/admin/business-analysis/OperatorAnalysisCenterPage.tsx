@@ -208,7 +208,17 @@ interface StoreBusinessTrafficResponse {
   records: StoreBusinessTrafficRecord[];
 }
 
+const businessFetchCache = new Map<string, { expiresAt: number; promise: Promise<unknown> }>();
+const businessFetchCacheTtlMs = 30 * 1000;
+
 async function fetchJson<T>(url: string, fallback: T): Promise<T> {
+  const now = Date.now();
+  const cached = businessFetchCache.get(url);
+  if (cached && cached.expiresAt > now) {
+    return cached.promise as Promise<T>;
+  }
+
+  const request = (async () => {
   try {
     const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`, {
       credentials: 'include',
@@ -218,6 +228,10 @@ async function fetchJson<T>(url: string, fallback: T): Promise<T> {
   } catch {
     return fallback;
   }
+  })();
+
+  businessFetchCache.set(url, { expiresAt: now + businessFetchCacheTtlMs, promise: request });
+  return request;
 }
 
 function currentMonth() {

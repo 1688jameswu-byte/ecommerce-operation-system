@@ -73,6 +73,9 @@ interface StoreBusinessTrafficResponse {
   records: StoreBusinessTrafficRecord[];
 }
 
+const businessFetchCache = new Map<string, { expiresAt: number; promise: Promise<unknown> }>();
+const businessFetchCacheTtlMs = 30 * 1000;
+
 const trendConfigs: Array<{ key: TrendKey; label: string; unit: string; percentValue?: boolean }> = [
   { key: 'newProduct', label: '上新趋势', unit: '款' },
   { key: 'firstOrder', label: '首单趋势', unit: '单' },
@@ -82,6 +85,13 @@ const trendConfigs: Array<{ key: TrendKey; label: string; unit: string; percentV
 ];
 
 async function fetchJson<T>(url: string, fallback: T): Promise<T> {
+  const now = Date.now();
+  const cached = businessFetchCache.get(url);
+  if (cached && cached.expiresAt > now) {
+    return cached.promise as Promise<T>;
+  }
+
+  const request = (async () => {
   try {
     const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`, {
       credentials: 'include',
@@ -91,6 +101,10 @@ async function fetchJson<T>(url: string, fallback: T): Promise<T> {
   } catch {
     return fallback;
   }
+  })();
+
+  businessFetchCache.set(url, { expiresAt: now + businessFetchCacheTtlMs, promise: request });
+  return request;
 }
 
 function formatDateKey(date: Date) {
@@ -709,16 +723,20 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
 
   useEffect(() => {
     let cancelled = false;
+    const isAdmin = currentUser.role === 'admin';
+    const scopedOrderRequest = fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37', { records: [] });
+    const scopedTrafficRequest = fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=37', { records: [] });
+    const scopedEffectiveListingRequest = fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []);
     Promise.all([
       referenceDataService.loadCompanyStores(),
-      fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37', { records: [] }),
-      fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=37', { records: [] }),
-      fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []),
+      scopedOrderRequest,
+      scopedTrafficRequest,
+      scopedEffectiveListingRequest,
       referenceDataService.loadCompanyStoreOperatorRelations(),
       referenceDataService.loadCompanyOperators(),
-      fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37&scope=company-dashboard', { records: [] }),
-      fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=37&scope=company-dashboard', { records: [] }),
-      fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings?scope=company-dashboard', []),
+      isAdmin ? scopedOrderRequest : fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37&scope=company-dashboard', { records: [] }),
+      isAdmin ? scopedTrafficRequest : fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=37&scope=company-dashboard', { records: [] }),
+      isAdmin ? scopedEffectiveListingRequest : fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings?scope=company-dashboard', []),
     ]).then(([
       companyStores,
       orderStore,
