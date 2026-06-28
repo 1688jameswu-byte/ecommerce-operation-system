@@ -56,3 +56,220 @@
 [2m21:52:06[22m [36m[1m[vite][22m[39m server restarted.
 [2m21:52:19[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
 [2m21:52:20[22m [36m[1m[vite][22m[39m server restarted.
+[2m22:25:31[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m22:26:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:29:00[22m [36m[1m[vite][22m[39m [32mserver/temu/temuPostgresRepository.js changed, restarting server...[39m
+[2m22:29:00[22m [36m[1m[vite][22m[39m server restarted.
+[2m22:29:18[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:29:19[22m [36m[1m[vite][22m[39m server restarted.
+[2m22:29:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:29:41[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m22:29:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m22:30:14[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m22:30:14[22m [36m[1m[vite][22m[39m server restarted.
+[2m22:30:36[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m22:30:36[22m [36m[1m[vite][22m[39m server restarted.
+[2m22:35:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m22:35:47[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m22:36:18[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m22:36:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m22:46:58[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m22:46:58[22m [36m[1m[vite][22m[39m server restarted.
+[2m22:47:07[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m22:47:08[22m [36m[1m[vite][22m[39m server restarted.
+[2m22:47:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m22:47:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m22:47:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m22:48:02[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[temu-product-info-api] { method: 'POST', action: 'upload', bodySize: 324412 }
+[temu-product-info-preview] {
+  fileName: 'H店商品基础信息 .xlsx',
+  previewId: '7d41a910-6055-4aa3-9efb-bef3ee195ffb',
+  rows: 2093,
+  headers: 13
+}
+[temu-product-info-api] { method: 'POST', action: 'confirm', bodySize: 613 }
+[temu-product-info-confirm-start] {
+  fileName: 'H店商品基础信息 .xlsx',
+  previewId: '7d41a910-6055-4aa3-9efb-bef3ee195ffb',
+  storeName: 'F店',
+  rows: 2093
+}
+[2m22:48:38[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m22:48:38[22m [36m[1m[vite][22m[39m server restarted.
+[2m22:48:46[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:48:46[22m [36m[1m[vite][22m[39m server restarted.
+[temu-product-info-api] { method: 'POST', action: 'upload', bodySize: 162108 }
+[temu-product-info-preview] {
+  fileName: 'K店商品基础信息 .xlsx',
+  previewId: 'aef6f3c1-729f-43f7-8529-e35cd2e97a77',
+  rows: 1004,
+  headers: 13
+}
+[temu-product-info-api] { method: 'POST', action: 'confirm', bodySize: 613 }
+[temu-product-info-confirm-start] {
+  fileName: 'K店商品基础信息 .xlsx',
+  previewId: 'aef6f3c1-729f-43f7-8529-e35cd2e97a77',
+  storeName: 'F店',
+  rows: 1004
+}
+[temu-product-info-api] { method: 'POST', action: 'upload', bodySize: 161119 }
+[temu-product-info-preview] {
+  fileName: 'F店商品基础信息.xlsx',
+  previewId: '838302e2-a80d-4891-9fce-2457fc4e4682',
+  rows: 1016,
+  headers: 13
+}
+[temu-product-info-api] { method: 'POST', action: 'confirm', bodySize: 612 }
+[temu-product-info-confirm-start] {
+  fileName: 'F店商品基础信息.xlsx',
+  previewId: '838302e2-a80d-4891-9fce-2457fc4e4682',
+  storeName: 'F店',
+  rows: 1016
+}
+[temu-product-info-confirm-done] {
+  fileName: 'F店商品基础信息.xlsx',
+  totalRows: 1016,
+  successRows: 1016,
+  errorRows: 0
+}
+[temu-product-info-api] { method: 'POST', action: 'upload', bodySize: 297623 }
+[temu-product-info-preview] {
+  fileName: 'C店商品基础信息.xlsx',
+  previewId: '35fbb16b-23bb-42be-ad80-7172164ec3ad',
+  rows: 1910,
+  headers: 13
+}
+[temu-product-info-api] { method: 'POST', action: 'confirm', bodySize: 612 }
+[temu-product-info-confirm-start] {
+  fileName: 'C店商品基础信息.xlsx',
+  previewId: '35fbb16b-23bb-42be-ad80-7172164ec3ad',
+  storeName: 'K店',
+  rows: 1910
+}
+[temu-product-info-api] { method: 'POST', action: 'upload', bodySize: 162108 }
+[temu-product-info-preview] {
+  fileName: 'K店商品基础信息 .xlsx',
+  previewId: 'b4c205dc-569c-44e9-8d8b-06d58ab7aeb8',
+  rows: 1004,
+  headers: 13
+}
+[temu-product-info-api] { method: 'POST', action: 'confirm', bodySize: 613 }
+[temu-product-info-confirm-start] {
+  fileName: 'K店商品基础信息 .xlsx',
+  previewId: 'b4c205dc-569c-44e9-8d8b-06d58ab7aeb8',
+  storeName: 'K店',
+  rows: 1004
+}
+[2m22:50:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/TemuProductInfoImportPage.tsx[22m
+[2m22:50:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:53:18[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/TemuProductInfoImportPage.tsx[22m
+[2m22:53:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/TemuProductInfoImportPage.tsx[22m
+[temu-product-info-api] { method: 'POST', action: 'upload', bodySize: 233235 }
+[temu-product-info-preview] {
+  fileName: 'U店商品基础信息6.27.xlsx',
+  previewId: '280c40bc-c5db-482a-8f52-8d5dae36af60',
+  rows: 1497,
+  headers: 13
+}
+[temu-product-info-api] { method: 'POST', action: 'confirm', bodySize: 616 }
+[temu-product-info-confirm-start] {
+  fileName: 'U店商品基础信息6.27.xlsx',
+  previewId: '280c40bc-c5db-482a-8f52-8d5dae36af60',
+  storeName: 'U店',
+  rows: 1497
+}
+[temu-product-info-confirm-done] {
+  fileName: 'U店商品基础信息6.27.xlsx',
+  totalRows: 1497,
+  successRows: 1497,
+  errorRows: 0
+}
+[temu-product-info-api] { method: 'POST', action: 'upload', bodySize: 162108 }
+[temu-product-info-preview] {
+  fileName: 'K店商品基础信息 .xlsx',
+  previewId: '5d25b3f9-58b0-4e80-927a-ff388015d594',
+  rows: 1004,
+  headers: 13
+}
+[temu-product-info-api] { method: 'POST', action: 'confirm', bodySize: 613 }
+[temu-product-info-confirm-start] {
+  fileName: 'K店商品基础信息 .xlsx',
+  previewId: '5d25b3f9-58b0-4e80-927a-ff388015d594',
+  storeName: 'K店',
+  rows: 1004
+}
+[temu-product-info-api] { method: 'POST', action: 'upload', bodySize: 210459 }
+[temu-product-info-preview] {
+  fileName: 'B店商品基础信息.xlsx',
+  previewId: '2e866a61-f558-42ea-ab86-62d66dbbd5ab',
+  rows: 1408,
+  headers: 13
+}
+[temu-product-info-api] { method: 'POST', action: 'confirm', bodySize: 612 }
+[temu-product-info-confirm-start] {
+  fileName: 'B店商品基础信息.xlsx',
+  previewId: '2e866a61-f558-42ea-ab86-62d66dbbd5ab',
+  storeName: 'B店',
+  rows: 1408
+}
+[2m22:56:58[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m22:56:58[22m [36m[1m[vite][22m[39m server restarted.
+[temu-product-info-api] { method: 'POST', action: 'upload', bodySize: 210459 }
+[temu-product-info-preview] {
+  fileName: 'B店商品基础信息.xlsx',
+  previewId: '57b41f33-330a-48c1-9db6-0721832725d9',
+  rows: 1408,
+  headers: 13
+}
+[temu-product-info-api] { method: 'POST', action: 'confirm', bodySize: 612 }
+[temu-product-info-confirm-start] {
+  fileName: 'B店商品基础信息.xlsx',
+  previewId: '57b41f33-330a-48c1-9db6-0721832725d9',
+  storeName: 'B店',
+  rows: 1408
+}
+[temu-product-info-api] { method: 'POST', action: 'upload', bodySize: 162108 }
+[temu-product-info-preview] {
+  fileName: 'K店商品基础信息 .xlsx',
+  previewId: '0083c3ba-091d-4d56-b8d0-61209747e7c1',
+  rows: 1004,
+  headers: 13
+}
+[temu-product-info-api] { method: 'POST', action: 'confirm', bodySize: 613 }
+[temu-product-info-confirm-start] {
+  fileName: 'K店商品基础信息 .xlsx',
+  previewId: '0083c3ba-091d-4d56-b8d0-61209747e7c1',
+  storeName: 'K店',
+  rows: 1004
+}
+[2m22:58:39[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m22:58:39[22m [36m[1m[vite][22m[39m server restarted.
+[temu-product-info-api] { method: 'POST', action: 'confirm', bodySize: 613 }
+[temu-product-info-confirm-start] {
+  fileName: 'K店商品基础信息 .xlsx',
+  previewId: '0083c3ba-091d-4d56-b8d0-61209747e7c1',
+  storeName: 'K店',
+  rows: 0
+}
+[temu-product-info-confirm-done] {
+  fileName: 'K店商品基础信息 .xlsx',
+  totalRows: 1004,
+  successRows: 1004,
+  errorRows: 0
+}
+[2m23:07:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/TemuAdReportImportPage.tsx[22m
+[2m23:07:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:08:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/TemuProductInfoImportPage.tsx[22m
+[2m23:08:41[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:15:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/TemuAdReportImportPage.tsx[22m
+[2m23:16:08[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m23:16:09[22m [36m[1m[vite][22m[39m server restarted.
+[2m23:16:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:20:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/TemuAdReportImportPage.tsx[22m
+[2m23:22:52[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/TemuProductInfoImportPage.tsx[22m
+[2m23:23:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:24:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/TemuAdReportImportPage.tsx, /src/pages/admin/new-product-center/TemuProductInfoImportPage.tsx[22m
+[2m23:24:58[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m23:24:58[22m [36m[1m[vite][22m[39m server restarted.
+[2m23:25:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/TemuProductInfoImportPage.tsx[22m

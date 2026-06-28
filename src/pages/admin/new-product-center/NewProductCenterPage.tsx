@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { newProductCenterDataSource, type DashboardResponse, type OperatorOption, type ProductDetailResponse, type ProductSnapshot, type RecommendationRecord, type StoreScopeOption, type TemuStorageStatus } from '../../../data-source/newProductCenterDataSource';
 import type { CurrentUser } from '../../../types/auth';
 
-type StoreOption = { id?: string; storeName?: string; platform?: string; status?: string };
+type StoreOption = { id?: string; dbId?: string; storeName?: string; platform?: string; status?: string };
 type QuickFilter = { key: string; label: string; params: Record<string, string> };
 
 const TAGS = ['高潜新品', '烧钱无单', '有流量无转化', '加购未成交', '低曝光新品', '高费比新品', '自然起量', '已出单新品', '未出单新品', '数据未匹配', '普通新品'];
@@ -172,9 +172,12 @@ function DashboardView() {
   );
 }
 
-function DataHealthPanel({ snapshotDate, dataCutoffDate, storageStatus, productTotal }: { snapshotDate: string; dataCutoffDate?: string; storageStatus: TemuStorageStatus | null; productTotal: number }) {
+function DataHealthPanel({ snapshotDate, dataCutoffDate, storageStatus, productTotal, healthCounts }: { snapshotDate: string; dataCutoffDate?: string; storageStatus: TemuStorageStatus | null; productTotal: number; healthCounts?: Record<string, number | null> }) {
   const isLate = Boolean(snapshotDate && dataCutoffDate && snapshotDate > dataCutoffDate);
   const showDataCutoffDate = Boolean(dataCutoffDate && dataCutoffDate !== snapshotDate);
+  const productCount = healthCounts?.baseProductCount ?? storageStatus?.counts?.products ?? 0;
+  const skuCount = healthCounts?.baseSkuCount ?? storageStatus?.counts?.skus ?? 0;
+  const adCount = healthCounts?.baseAdCount ?? storageStatus?.counts?.ads ?? 0;
   return (
     <article className={`excel-record-panel npc-panel npc-health-panel ${isLate ? 'is-warning' : ''}`}>
       <header className="npc-panel-header">
@@ -184,9 +187,9 @@ function DataHealthPanel({ snapshotDate, dataCutoffDate, storageStatus, productT
       <div className="npc-health-grid">
         <span>统计日期<strong>{snapshotDate || dataCutoffDate || '-'}</strong></span>
         {showDataCutoffDate && <span>数据截止日期<strong>{dataCutoffDate || '-'}</strong></span>}
-        <span>商品数<strong>{storageStatus?.counts?.products ?? 0}</strong></span>
-        <span>SKU 数据<strong>{storageStatus?.counts?.skus ?? 0}</strong></span>
-        <span>广告日报<strong>{storageStatus?.counts?.ads ?? 0}</strong></span>
+        <span>商品数<strong>{productCount}</strong></span>
+        <span>SKU 数据<strong>{skuCount}</strong></span>
+        <span>广告日报<strong>{adCount}</strong></span>
         <span>当前筛选新品<strong>{productTotal}</strong></span>
       </div>
       {isLate && <p>当前统计日期晚于数据截止日期，部分订单/广告数据可能为空，建议切换到数据截止日期。</p>}
@@ -260,6 +263,8 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [snapshotDate, setSnapshotDate] = useState('');
   const [storeId, setStoreId] = useState('');
+  const [storeSearchText, setStoreSearchText] = useState('');
+  const [storeSearchOpen, setStoreSearchOpen] = useState(false);
   const [operatorName, setOperatorName] = useState('');
   const [tag, setTag] = useState('');
   const [isAdEnabled, setIsAdEnabled] = useState('');
@@ -282,7 +287,9 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
 
   useEffect(() => {
     newProductCenterDataSource.getVisibleStores()
-      .then((data) => setStores((data.stores || []).filter((store) => store.platform === 'TEMU' && store.status !== 'inactive')))
+      .then((data) => setStores((data.stores || [])
+        .filter((store) => store.platform === 'TEMU' && store.status !== 'inactive')
+        .map((store) => ({ ...store, id: store.dbId || store.id }))))
       .catch(() => setStores([]));
     newProductCenterDataSource.getTemuStorageStatus().then(setStorageStatus).catch(() => setStorageStatus(null));
   }, []);
@@ -324,6 +331,28 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
       ? operatorStoreOptions.map((store) => ({ id: store.storeId, storeName: store.storeName }))
       : stores
   ), [operatorName, operatorStoreOptions, stores]);
+
+  const selectedStore = useMemo(() => (
+    visibleStoreOptions.find((store) => store.id === storeId)
+  ), [storeId, visibleStoreOptions]);
+
+  const filteredStoreOptions = useMemo(() => {
+    const keyword = storeSearchText.trim().toLowerCase();
+    if (!keyword) return visibleStoreOptions.slice(0, 20);
+    return visibleStoreOptions
+      .filter((store) => String(store.storeName || '').toLowerCase().includes(keyword))
+      .slice(0, 20);
+  }, [storeSearchText, visibleStoreOptions]);
+
+  useEffect(() => {
+    if (!storeId) {
+      setStoreSearchText('');
+      return;
+    }
+    if (selectedStore?.storeName) {
+      setStoreSearchText(selectedStore.storeName);
+    }
+  }, [selectedStore, storeId]);
 
   useEffect(() => {
     if (!storeId || visibleStoreOptions.length === 0) return;
@@ -380,6 +409,10 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
 
   const displayedDate = appliedSnapshotDate || products.dataCutoffDate || dashboard?.dataCutoffDate || products.snapshotDate || dashboard?.snapshotDate || '';
   const totalPages = Math.max(1, Math.ceil((products.total || 0) / 50));
+  const isAdmin = currentUser.role === 'admin';
+  const readonlyOperator = operatorOptions[0];
+  const readonlyOperatorName = readonlyOperator?.operatorName || currentUser.displayName || currentUser.username || '-';
+  const readonlyOperatorStoreCount = visibleStoreOptions.length || readonlyOperator?.storeCount || 0;
   const hasPendingFilterChanges = snapshotDate !== appliedSnapshotDate ||
     storeId !== appliedStoreId ||
     operatorName !== appliedOperatorName ||
@@ -397,6 +430,37 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
     setPage(1);
   };
 
+  const applyStoreFilter = (nextStoreId: string, nextStoreName = '') => {
+    setStoreId(nextStoreId);
+    setAppliedStoreId(nextStoreId);
+    setStoreSearchText(nextStoreName);
+    setStoreSearchOpen(false);
+    setPage(1);
+  };
+
+  const clearStoreFilter = (keepOpen = true) => {
+    setStoreId('');
+    setAppliedStoreId('');
+    setStoreSearchText('');
+    setStoreSearchOpen(keepOpen);
+    setPage(1);
+  };
+
+  const submitStoreSearch = () => {
+    const keyword = storeSearchText.trim();
+    if (!keyword) {
+      clearStoreFilter();
+      return;
+    }
+    const exact = visibleStoreOptions.find((store) => String(store.storeName || '').toLowerCase() === keyword.toLowerCase());
+    const target = exact || filteredStoreOptions[0];
+    if (target?.id) {
+      applyStoreFilter(target.id, target.storeName || '');
+    } else {
+      setStoreSearchOpen(true);
+    }
+  };
+
   const resetWorkbenchFilters = () => {
     setSnapshotDate('');
     setStoreId('');
@@ -410,6 +474,8 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
     setAppliedTag('');
     setAppliedIsAdEnabled('');
     setAppliedIsOrdered('');
+    setStoreSearchText('');
+    setStoreSearchOpen(false);
     setPage(1);
   };
 
@@ -423,9 +489,58 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   return (
     <section className="npc-page npc-workbench-page">
       <div className="npc-toolbar npc-workbench-toolbar">
-        <label className="npc-primary-filter">店铺<select value={storeId} onChange={(event) => { setStoreId(event.target.value); setPage(1); }}><option value="">{operatorName ? '所有店铺' : '全部店铺'}</option>{visibleStoreOptions.map((store) => <option key={store.id || store.storeName} value={store.id || ''}>{store.storeName}</option>)}</select></label>
+        <label className="npc-primary-filter npc-store-search-filter">店铺
+          <span className="npc-store-search-box">
+            <input
+              type="text"
+              value={storeSearchText}
+              placeholder={operatorName ? '搜索我的店铺' : '搜索店铺'}
+              onChange={(event) => {
+                setStoreSearchText(event.target.value);
+                setStoreSearchOpen(true);
+              }}
+              onFocus={() => setStoreSearchOpen(true)}
+              onClick={() => setStoreSearchOpen(true)}
+              onBlur={() => window.setTimeout(() => setStoreSearchOpen(false), 120)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  submitStoreSearch();
+                }
+                if (event.key === 'Escape') {
+                  setStoreSearchOpen(false);
+                }
+              }}
+            />
+            {storeSearchText && (
+              <button type="button" className="npc-store-clear-button" aria-label="清空店铺筛选" onMouseDown={(event) => event.preventDefault()} onClick={() => clearStoreFilter(true)}>×</button>
+            )}
+            <button type="button" className="npc-store-search-button" aria-label="搜索店铺" onMouseDown={(event) => event.preventDefault()} onClick={submitStoreSearch}>⌕</button>
+            {storeSearchOpen && (
+              <span className="npc-store-search-menu">
+                <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => clearStoreFilter(false)}>{operatorName ? '所有店铺' : '全部店铺'}</button>
+                {filteredStoreOptions.map((store) => (
+                  <button
+                    type="button"
+                    key={store.id || store.storeName}
+                    className={store.id === storeId ? 'is-active' : ''}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => applyStoreFilter(store.id || '', store.storeName || '')}
+                  >
+                    {store.storeName}
+                  </button>
+                ))}
+                {filteredStoreOptions.length === 0 && <span className="npc-store-search-empty">没有匹配店铺</span>}
+              </span>
+            )}
+          </span>
+        </label>
         <label>统计日期<input type="date" value={snapshotDate || displayedDate} onChange={(event) => { setSnapshotDate(event.target.value); setPage(1); }} /></label>
-        <label>运营<select value={operatorName} onChange={(event) => { setOperatorName(event.target.value); setPage(1); }}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorId || operator.operatorName} value={operator.operatorName}>{operator.operatorName}{storeId ? '' : `（${operator.storeCount || 0}店）`}</option>)}</select></label>
+        {isAdmin ? (
+          <label>运营<select value={operatorName} onChange={(event) => { setOperatorName(event.target.value); setPage(1); }}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorId || operator.operatorName} value={operator.operatorName}>{operator.operatorName}{storeId ? '' : `（${operator.storeCount || 0}店）`}</option>)}</select></label>
+        ) : (
+          <label>运营<span className="npc-readonly-filter">{readonlyOperatorName}（{readonlyOperatorStoreCount}店）</span></label>
+        )}
         <label>商品标签<select value={tag} onChange={(event) => { setTag(event.target.value); setPage(1); }}><option value="">全部</option>{TAGS.map((item) => <option key={item}>{item}</option>)}</select></label>
         <label>广告<select value={isAdEnabled} onChange={(event) => { setIsAdEnabled(event.target.value); setPage(1); }}><option value="">全部</option><option value="true">已开广告</option><option value="false">未开广告</option></select></label>
         <label>出单<select value={isOrdered} onChange={(event) => { setIsOrdered(event.target.value); setPage(1); }}><option value="">全部</option><option value="true">已出单</option><option value="false">未出单</option></select></label>
@@ -434,7 +549,7 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
         <span className="npc-date-badge">数据截止 {dashboard?.dataCutoffDate || products.dataCutoffDate || '-'}</span>
       </div>
       {message && <div className="excel-import-error">{message}</div>}
-      <DataHealthPanel snapshotDate={displayedDate} dataCutoffDate={dashboard?.dataCutoffDate || products.dataCutoffDate} storageStatus={storageStatus} productTotal={products.total} />
+      <DataHealthPanel snapshotDate={displayedDate} dataCutoffDate={dashboard?.dataCutoffDate || products.dataCutoffDate} storageStatus={storageStatus} productTotal={products.total} healthCounts={dashboard?.summary} />
       {dashboard && <MetricCards summary={dashboard.summary} />}
       <TaskBoard counts={counts} onSelect={selectTag} />
       <div className="npc-two-columns">

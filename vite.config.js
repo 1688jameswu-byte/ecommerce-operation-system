@@ -2279,6 +2279,26 @@ function getVisibleStores(currentUser) {
   ));
 }
 
+async function attachTemuStoreDatabaseIds(stores) {
+  const temuStores = stores.filter(isTemuStore);
+  if (temuStores.length === 0) {
+    return stores;
+  }
+
+  try {
+    const postgresStores = await readTemuCollectionFromPostgres('stores');
+    const byLegacyId = new Map(postgresStores.map((store) => [String(store.id || '').trim(), store.dbId]).filter(([key, value]) => key && value));
+    const byName = new Map(postgresStores.map((store) => [String(store.storeName || '').trim(), store.dbId]).filter(([key, value]) => key && value));
+    return stores.map((store) => ({
+      ...store,
+      dbId: isTemuStore(store) ? (byLegacyId.get(String(store.id || '').trim()) || byName.get(String(store.storeName || '').trim()) || store.dbId) : store.dbId,
+    }));
+  } catch (error) {
+    console.warn('[TEMU PostgreSQL] visible stores dbId mapping skipped:', error instanceof Error ? error.message : error);
+    return stores;
+  }
+}
+
 function isTemuStore(store) {
   return String(store?.platform ?? 'TEMU').trim().toUpperCase() === 'TEMU';
 }
@@ -3303,7 +3323,7 @@ async function handleNewProductCenterApi(req, res) {
       return;
     }
     if (req.method === 'GET' && pathname.startsWith('products/')) {
-      res.end(JSON.stringify(await getProductDetail(decodeURIComponent(pathname.replace(/^products\//, '')))));
+      res.end(JSON.stringify(await getProductDetail(decodeURIComponent(pathname.replace(/^products\//, '')), params)));
       return;
     }
     if (req.method === 'GET' && pathname === 'ad-recommendations') {
@@ -5111,7 +5131,7 @@ function getPersistentMenuKey(name) {
   return '';
 }
 
-function handleVisibleStoresApi(req, res) {
+async function handleVisibleStoresApi(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
 
@@ -5123,7 +5143,7 @@ function handleVisibleStoresApi(req, res) {
 
   try {
     const currentUser = readCurrentUser(req);
-    const stores = getVisibleStores(currentUser);
+    const stores = await attachTemuStoreDatabaseIds(getVisibleStores(currentUser));
     const storeIds = unique(stores.flatMap((store) => [store.id, store.storeName].filter(Boolean)));
     const role = String(currentUser?.role ?? '').toLowerCase();
     const message = role !== 'admin' && storeIds.length === 0 ? '当前用户暂未绑定可见店铺' : undefined;

@@ -67,7 +67,7 @@ export const newProductCenterDataSource = {
   },
 
   getVisibleStores() {
-    return request<{ success: boolean; stores: Array<{ id?: string; storeName?: string; platform?: string; status?: string }>; message?: string }>('/api/auth/visible-stores');
+    return request<{ success: boolean; stores: Array<{ id?: string; dbId?: string; storeName?: string; platform?: string; status?: string }>; message?: string }>('/api/auth/visible-stores');
   },
 
   getTemuStorageStatus() {
@@ -175,6 +175,7 @@ export interface ImportOverview {
   summary?: Record<string, any>;
   unmatched?: Array<Record<string, any>>;
   reportDates?: string[];
+  categoryOptions?: string[];
 }
 
 export interface TemuStorageStatus {

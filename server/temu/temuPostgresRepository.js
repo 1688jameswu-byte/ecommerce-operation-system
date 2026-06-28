@@ -815,13 +815,14 @@ async function syncWarningRulesWithClient(client, ruleStore) {
 export async function readTemuCollectionFromPostgres(name) {
   if (name === 'stores') {
     const result = await queryTemuDatabase(
-      `SELECT legacy_id, store_name, platform, platform_store_id, site_country, store_group,
+      `SELECT id, legacy_id, store_name, platform, platform_store_id, site_country, store_group,
               country, status, group_name, remark, created_at, updated_at
        FROM temu_stores
        ORDER BY store_name`,
     );
     return result.rows.map((row) => ({
       id: row.legacy_id,
+      dbId: row.id,
       storeName: row.store_name,
       platform: row.platform,
       platformStoreId: row.platform_store_id || '',

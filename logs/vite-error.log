@@ -1,2 +1,66 @@
 [TEMU PostgreSQL] orderImportStore sync failed: Vite module runner has been closed.
 [TEMU PostgreSQL] orderImportStore mirror skipped after JSON save: Vite module runner has been closed.
+[temu-product-info-api-error] {
+  message: '商品信息导入失败：文件名店铺“H店”与导入店铺“F店”不一致，请选择正确店铺后重新导入。',
+  stack: 'Error: 商品信息导入失败：文件名店铺“H店”与导入店铺“F店”不一致，请选择正确店铺后重新导入。\n' +
+    '    at validateProductStoreImportScope (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:265:11)\n' +
+    '    at importProductRows (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:797:3)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async handleTemuProductInfoImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3141:22)'
+}
+[temu-product-info-api-error] {
+  message: '商品信息导入失败：文件名店铺“K店”与导入店铺“F店”不一致，请选择正确店铺后重新导入。',
+  stack: 'Error: 商品信息导入失败：文件名店铺“K店”与导入店铺“F店”不一致，请选择正确店铺后重新导入。\n' +
+    '    at validateProductStoreImportScope (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:265:11)\n' +
+    '    at importProductRows (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:797:3)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async handleTemuProductInfoImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3141:22)'
+}
+[temu-product-info-api-error] {
+  message: '商品信息导入失败：文件名店铺“C店”与导入店铺“K店”不一致，请选择正确店铺后重新导入。',
+  stack: 'Error: 商品信息导入失败：文件名店铺“C店”与导入店铺“K店”不一致，请选择正确店铺后重新导入。\n' +
+    '    at validateProductStoreImportScope (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:265:11)\n' +
+    '    at importProductRows (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:797:3)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async handleTemuProductInfoImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3141:22)'
+}
+[temu-product-info-api-error] {
+  message: '商品信息导入失败：导入店铺为“K店”，要求至少 90% 的 SKC货号以“K”开头。当前匹配 569/1004，匹配率 56.67%。异常样例：UK266、UK266、UK433、UK433、UK433、UK433、UK433、UK433、UK392、UK392',
+  stack: 'Error: 商品信息导入失败：导入店铺为“K店”，要求至少 90% 的 SKC货号以“K”开头。当前匹配 569/1004，匹配率 56.67%。异常样例：UK266、UK266、UK433、UK433、UK433、UK433、UK433、UK433、UK392、UK392\n' +
+    '    at validateProductStoreImportScope (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:289:11)\n' +
+    '    at importProductRows (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:797:3)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async handleTemuProductInfoImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3141:22)'
+}
+[temu-product-info-api-error] {
+  message: '商品信息导入失败：导入店铺为“K店”，要求至少 90% 的 SKC货号以“K”开头。当前匹配 569/1004，匹配率 56.67%。异常样例：UK266、UK266、UK433、UK433、UK433、UK433、UK433、UK433、UK392、UK392',
+  stack: 'Error: 商品信息导入失败：导入店铺为“K店”，要求至少 90% 的 SKC货号以“K”开头。当前匹配 569/1004，匹配率 56.67%。异常样例：UK266、UK266、UK433、UK433、UK433、UK433、UK433、UK433、UK392、UK392\n' +
+    '    at validateProductStoreImportScope (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:289:11)\n' +
+    '    at importProductRows (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:797:3)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async handleTemuProductInfoImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3141:22)'
+}
+[temu-product-info-api-error] {
+  message: '商品信息导入失败：导入店铺为“B店”，要求至少 90% 的 SKC货号以“B”开头。当前匹配 848/1408，匹配率 60.23%。异常样例：XL-DW503、XL-DW503、SL-TP170、SL-TP170、SL-AX291、SL-AX291、XL-TP003、XL-TP003、XL-TP003、XL-TP003',
+  stack: 'Error: 商品信息导入失败：导入店铺为“B店”，要求至少 90% 的 SKC货号以“B”开头。当前匹配 848/1408，匹配率 60.23%。异常样例：XL-DW503、XL-DW503、SL-TP170、SL-TP170、SL-AX291、SL-AX291、XL-TP003、XL-TP003、XL-TP003、XL-TP003\n' +
+    '    at validateProductStoreImportScope (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:289:11)\n' +
+    '    at importProductRows (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:797:3)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async handleTemuProductInfoImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3141:22)'
+}
+[temu-product-info-api-error] {
+  message: '商品信息导入失败：导入店铺为“B店”，要求至少 90% 的 SKC货号以“B”开头。当前匹配 848/1408，匹配率 60.23%。异常样例：XL-DW503、XL-DW503、SL-TP170、SL-TP170、SL-AX291、SL-AX291、XL-TP003、XL-TP003、XL-TP003、XL-TP003',
+  stack: 'Error: 商品信息导入失败：导入店铺为“B店”，要求至少 90% 的 SKC货号以“B”开头。当前匹配 848/1408，匹配率 60.23%。异常样例：XL-DW503、XL-DW503、SL-TP170、SL-TP170、SL-AX291、SL-AX291、XL-TP003、XL-TP003、XL-TP003、XL-TP003\n' +
+    '    at validateProductStoreImportScope (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:297:11)\n' +
+    '    at importProductRows (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:805:3)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async handleTemuProductInfoImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3141:22)'
+}
+[temu-product-info-api-error] {
+  message: '商品信息导入失败：Excel 中“SKC货号”为空，无法校验文件所属店铺。',
+  stack: 'Error: 商品信息导入失败：Excel 中“SKC货号”为空，无法校验文件所属店铺。\n' +
+    '    at validateProductStoreImportScope (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:289:11)\n' +
+    '    at importProductRows (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:805:3)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async handleTemuProductInfoImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3141:22)'
+}

@@ -105,6 +105,8 @@ const adRecordFallbackFields: Record<string, string> = {
   '净件数（推广）': 'netPromoUnitCount',
 };
 
+const AD_RECORD_ID_COLUMNS = new Set(['商品名称', '商品ID', 'SPU ID']);
+
 function normalizeAdRecordHeader(value: string) {
   return value.replace(/\s+/g, '').replace(/[（]/g, '(').replace(/[）]/g, ')').toLowerCase();
 }
@@ -177,6 +179,8 @@ export default function TemuAdReportImportPage() {
   const [recordsPage, setRecordsPage] = useState(1);
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
+  const [sortField, setSortField] = useState('adSpend');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const refreshOverview = async (page = recordsPage) => {
     if (!storeName || !reportDate) {
@@ -190,6 +194,8 @@ export default function TemuAdReportImportPage() {
           storeName,
           reportDate,
           ...filters,
+          sortField,
+          sortDirection,
         }),
       ]);
       setStorageStatus(status);
@@ -229,7 +235,7 @@ export default function TemuAdReportImportPage() {
 
   useEffect(() => {
     void refreshOverview(1);
-  }, [storeName, reportDate, filters]);
+  }, [storeName, reportDate, filters, sortField, sortDirection]);
 
   useEffect(() => {
     const selectedStore = stores.find((store) => store.storeName === storeName);
@@ -302,6 +308,8 @@ export default function TemuAdReportImportPage() {
           storeName: nextStoreName,
           reportDate: effectiveReportDate,
           ...filters,
+          sortField,
+          sortDirection,
         }),
       ]);
       setStorageStatus(status);
@@ -326,6 +334,17 @@ export default function TemuAdReportImportPage() {
   const totalRecords = overview.total ?? overview.records.length;
   const totalPages = Math.max(Math.ceil(totalRecords / AD_RECORD_PAGE_SIZE), 1);
   const summary = overview.summary || {};
+  const changeSort = (column: string) => {
+    const nextField = adRecordFallbackFields[column] || '';
+    if (!nextField || AD_RECORD_ID_COLUMNS.has(column)) return;
+    setRecordsPage(1);
+    if (sortField === nextField) {
+      setSortDirection((current) => current === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortField(nextField);
+      setSortDirection('desc');
+    }
+  };
 
   return (
     <section className="npc-page temu-ad-import-page">
@@ -347,6 +366,7 @@ export default function TemuAdReportImportPage() {
               </label>
             </div>
           </div>
+          {message && <div className="excel-import-error temu-import-inline-message">{message}</div>}
         </div>
         <div className="temu-import-metrics">
           <article className={isStorageReady ? 'is-ok' : 'is-warning'}>
@@ -389,14 +409,8 @@ export default function TemuAdReportImportPage() {
           <label>商品名称<input value={filters.productName || ''} onChange={(event) => setFilters({ ...filters, productName: event.target.value })} /></label>
           <label>是否匹配商品<select value={filters.matched || ''} onChange={(event) => setFilters({ ...filters, matched: event.target.value })}><option value="">全部</option><option value="true">已匹配</option><option value="false">未匹配</option></select></label>
           <label>ROAS是否达标<select value={filters.roasMet || ''} onChange={(event) => setFilters({ ...filters, roasMet: event.target.value })}><option value="">全部</option><option value="true">达标</option><option value="false">未达标</option></select></label>
-          <label>总花费最小<input value={filters.adSpendMin || ''} onChange={(event) => setFilters({ ...filters, adSpendMin: event.target.value })} /></label>
-          <label>总花费最大<input value={filters.adSpendMax || ''} onChange={(event) => setFilters({ ...filters, adSpendMax: event.target.value })} /></label>
-          <label>推广订单最小<input value={filters.promoOrderMin || ''} onChange={(event) => setFilters({ ...filters, promoOrderMin: event.target.value })} /></label>
-          <label>推广订单最大<input value={filters.promoOrderMax || ''} onChange={(event) => setFilters({ ...filters, promoOrderMax: event.target.value })} /></label>
         </div>
       </article>
-
-      {message && <div className="excel-import-error">{message}</div>}
 
       {preview && (
         <article className="excel-record-panel npc-panel temu-import-preview-panel">
@@ -449,16 +463,35 @@ export default function TemuAdReportImportPage() {
       )}
 
       <article className="excel-record-panel npc-panel temu-ad-record-panel">
-        <header className="npc-panel-header">
-          <div>
-            <h2>PostgreSQL 广告记录</h2>
-            <p>刷新页面后从 temu_ad_product_daily 按页读取，每页 50 条。</p>
-          </div>
-          <button type="button" disabled={!storeName || !reportDate} onClick={() => void refreshOverview(recordsPage)}>刷新</button>
-        </header>
         <div className="npc-table-wrap temu-ad-record-table">
           <table>
-            <thead><tr>{AD_RECORD_COLUMNS.map((column) => <th key={column}>{column}</th>)}</tr></thead>
+            <thead>
+              <tr>
+                {AD_RECORD_COLUMNS.map((column) => {
+                  const field = adRecordFallbackFields[column];
+                  const isSortable = Boolean(field && !AD_RECORD_ID_COLUMNS.has(column));
+                  const isActive = isSortable && sortField === field;
+                  return (
+                    <th key={column}>
+                      <span className="temu-ad-sort-header">
+                        <span>{column}</span>
+                        {isSortable && (
+                          <button
+                            type="button"
+                            className={`temu-ad-sort-button${isActive ? ' is-active' : ''}`}
+                            title={`${column}${isActive && sortDirection === 'asc' ? '从小到大' : '从大到小'}排序`}
+                            aria-label={`${column}${isActive && sortDirection === 'asc' ? '从小到大' : '从大到小'}排序`}
+                            onClick={() => changeSort(column)}
+                          >
+                            {isActive ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}
+                          </button>
+                        )}
+                      </span>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
             <tbody>
               {overview.records.map((row) => (
                 <tr key={String(row.id)}>

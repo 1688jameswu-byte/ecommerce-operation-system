@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { type ImportOverview, type ImportPreview, type ImportResult, type TemuStorageStatus, newProductCenterDataSource } from '../../../data-source/newProductCenterDataSource';
 
 const fieldLabels: Record<string, string> = {
@@ -83,9 +83,12 @@ export default function TemuProductInfoImportPage() {
   const [recordsPage, setRecordsPage] = useState(1);
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
+  const overviewRequestSeq = useRef(0);
 
   const refreshOverview = async (page = recordsPage, nextStoreName = storeName, nextFilters = filters) => {
+    const requestSeq = ++overviewRequestSeq.current;
     if (!nextStoreName) {
+      if (requestSeq !== overviewRequestSeq.current) return;
       setOverview({ batches: [], records: [] });
       return;
     }
@@ -97,11 +100,13 @@ export default function TemuProductInfoImportPage() {
           ...nextFilters,
         }),
       ]);
+      if (requestSeq !== overviewRequestSeq.current) return;
       setStorageStatus(status);
       setStorageError(status.ok ? '' : (status.message || 'PostgreSQL 未连接'));
       setOverview(records);
       setRecordsPage(records.page || page);
     } catch (error) {
+      if (requestSeq !== overviewRequestSeq.current) return;
       setStorageStatus(null);
       setStorageError(error instanceof Error ? error.message : String(error));
       setOverview({ batches: [], records: [] });
@@ -175,16 +180,7 @@ export default function TemuProductInfoImportPage() {
       setResult(next);
       setRecordsPage(1);
       setStoreName(nextStoreName);
-      const [status, records] = await Promise.all([
-        newProductCenterDataSource.getTemuStorageStatus(),
-        newProductCenterDataSource.getProductImportRecords(1, PRODUCT_RECORD_PAGE_SIZE, {
-          storeName: nextStoreName,
-          ...filters,
-        }),
-      ]);
-      setStorageStatus(status);
-      setStorageError(status.ok ? '' : (status.message || 'PostgreSQL 未连接'));
-      setOverview(records);
+      await refreshOverview(1, nextStoreName, filters);
       setMessage(`导入完成：成功 ${next.successRows} 行，失败 ${next.errorRows} 行。`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
@@ -224,6 +220,7 @@ export default function TemuProductInfoImportPage() {
               </label>
             </div>
           </div>
+          {message && <div className="excel-import-error temu-import-inline-message">{message}</div>}
         </div>
         <div className="temu-import-metrics">
           <article className={isStorageReady ? 'is-ok' : 'is-warning'}>
@@ -260,7 +257,6 @@ export default function TemuProductInfoImportPage() {
               const nextStoreName = event.target.value;
               setStoreName(nextStoreName);
               setRecordsPage(1);
-              void refreshOverview(1, nextStoreName, filters);
             }}>
               <option value="">请选择店铺</option>
               {stores.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}
@@ -269,15 +265,17 @@ export default function TemuProductInfoImportPage() {
           <label>创建开始<input type="date" value={filters.createdDateStart || ''} onChange={(event) => setFilters({ ...filters, createdDateStart: event.target.value })} /></label>
           <label>创建结束<input type="date" value={filters.createdDateEnd || ''} onChange={(event) => setFilters({ ...filters, createdDateEnd: event.target.value })} /></label>
           <label>商品状态<input value={filters.productStatus || ''} onChange={(event) => setFilters({ ...filters, productStatus: event.target.value })} placeholder="在售中" /></label>
-          <label>叶子类目<input value={filters.categoryName || ''} onChange={(event) => setFilters({ ...filters, categoryName: event.target.value })} /></label>
+          <label>叶子类目
+            <select value={filters.categoryName || ''} onChange={(event) => setFilters({ ...filters, categoryName: event.target.value })}>
+              <option value="">全部类目</option>
+              {(overview.categoryOptions || []).map((category) => <option key={category} value={category}>{category}</option>)}
+            </select>
+          </label>
           <label>SPU ID<input value={filters.spuId || ''} onChange={(event) => setFilters({ ...filters, spuId: event.target.value })} /></label>
           <label>SKU ID<input value={filters.skuId || ''} onChange={(event) => setFilters({ ...filters, skuId: event.target.value })} /></label>
           <label>SKU货号<input value={filters.skuCode || ''} onChange={(event) => setFilters({ ...filters, skuCode: event.target.value })} /></label>
-          <label>商品标题<input value={filters.productTitle || ''} onChange={(event) => setFilters({ ...filters, productTitle: event.target.value })} /></label>
         </div>
       </article>
-
-      {message && <div className="excel-import-error">{message}</div>}
 
       {preview && (
         <article className="excel-record-panel npc-panel temu-import-preview-panel">
@@ -320,13 +318,6 @@ export default function TemuProductInfoImportPage() {
       )}
 
       <article className="excel-record-panel npc-panel temu-product-record-panel">
-        <header className="npc-panel-header">
-          <div>
-            <h2>PostgreSQL 商品记录</h2>
-            <p>刷新页面后从 temu_products / temu_product_skus 读取，最多显示最近 50 条。</p>
-          </div>
-          <button type="button" disabled={!storeName} onClick={() => void refreshOverview(recordsPage)}>刷新</button>
-        </header>
         <div className="npc-table-wrap temu-product-record-table">
           <table>
             <thead><tr><th>商品标题</th><th>SPU ID</th><th>SKC ID</th><th>SKU ID</th><th>SKC货号</th><th>SKU货号</th><th>叶子类目名称</th><th>商品状态</th><th>规格1名称</th><th>规格2名称</th><th>申报价格(CNY)</th><th>申报价格状态</th><th>创建时间</th></tr></thead>

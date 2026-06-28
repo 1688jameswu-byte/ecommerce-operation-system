@@ -161,6 +161,13 @@ function storePrefixFromName(storeName = '') {
   return matched ? matched[1] : '';
 }
 
+function allowedProductCodePrefixesForStore(storeName = '') {
+  const expectedPrefix = storePrefixFromName(storeName);
+  if (!expectedPrefix) return [];
+  if (expectedPrefix === 'K') return ['K', 'UK', 'TM'];
+  return [expectedPrefix];
+}
+
 function normalizeSkuCode(value) {
   return text(value).replace(/\s+/g, '').toUpperCase();
 }
@@ -247,8 +254,8 @@ function validateProductStoreImportScope({ rows = [], mapping = {}, fileName = '
     throw new Error('商品信息导入失败：必须映射“SKC货号”，用于校验文件所属店铺。');
   }
 
-  const expectedPrefix = storePrefixFromName(selectedStoreName);
-  if (!expectedPrefix) {
+  const allowedPrefixes = allowedProductCodePrefixesForStore(selectedStoreName);
+  if (!allowedPrefixes.length) {
     throw new Error(`商品信息导入失败：无法从店铺名“${selectedStoreName}”识别 SKC 货号前缀。店铺名需类似“A店”。`);
   }
 
@@ -259,12 +266,13 @@ function validateProductStoreImportScope({ rows = [], mapping = {}, fileName = '
     throw new Error('商品信息导入失败：Excel 中“SKC货号”为空，无法校验文件所属店铺。');
   }
 
-  const matchedCount = skcCodes.filter((code) => code.startsWith(expectedPrefix)).length;
+  const matchedCount = skcCodes.filter((code) => allowedPrefixes.some((prefix) => code.startsWith(prefix))).length;
   const matchedRate = matchedCount / skcCodes.length;
-  if (matchedRate < 0.9) {
-    const invalidSamples = skcCodes.filter((code) => !code.startsWith(expectedPrefix)).slice(0, 10);
+  if (matchedRate <= 0.5) {
+    const invalidSamples = skcCodes.filter((code) => !allowedPrefixes.some((prefix) => code.startsWith(prefix))).slice(0, 10);
+    const expectedPrefixText = allowedPrefixes.join(' / ');
     throw new Error(
-      `商品信息导入失败：导入店铺为“${selectedStoreName}”，要求至少 90% 的 SKC货号以“${expectedPrefix}”开头。` +
+      `商品信息导入失败：导入店铺为“${selectedStoreName}”，要求超过 50% 的 SKC货号以“${expectedPrefixText}”开头。` +
       `当前匹配 ${matchedCount}/${skcCodes.length}，匹配率 ${(matchedRate * 100).toFixed(2)}%。` +
       `异常样例：${invalidSamples.join('、') || '-'}`,
     );
@@ -1291,7 +1299,11 @@ function buildScopeWhere(params, startIndex = 1) {
     values.push(value);
     where.push(sql.replace('?', `$${startIndex + values.length - 1}`));
   };
-  if (params.storeId) push('s.store_id = ?', params.storeId);
+  if (params.storeId) {
+    values.push(params.storeId);
+    const placeholder = `$${startIndex + values.length - 1}`;
+    where.push(`s.store_id = (SELECT id FROM temu_stores WHERE id::text = ${placeholder} OR legacy_id = ${placeholder} OR store_name = ${placeholder} LIMIT 1)`);
+  }
   if (params.storeName) push('s.store_name = ?', params.storeName);
   if (Array.isArray(params.storeIds)) {
     if (params.storeIds.length === 0) {
@@ -1324,6 +1336,61 @@ function buildScopeWhere(params, startIndex = 1) {
   if (params.adSpendMin) push('s.ad_spend >= ?', Number(params.adSpendMin));
   if (params.adSpendMax) push('s.ad_spend <= ?', Number(params.adSpendMax));
   return { where, values };
+}
+
+function buildBaseDataScopeWhere(params, aliases, startIndex = 1) {
+  const values = [];
+  const where = [];
+  const storeAlias = aliases.store;
+  const operatorAlias = aliases.operator || aliases.store;
+  const push = (sql, value) => {
+    values.push(value);
+    where.push(sql.replace('?', `$${startIndex + values.length - 1}`));
+  };
+  if (params.storeId) {
+    values.push(params.storeId);
+    const placeholder = `$${startIndex + values.length - 1}`;
+    where.push(`${storeAlias}.store_id = (SELECT id FROM temu_stores WHERE id::text = ${placeholder} OR legacy_id = ${placeholder} OR store_name = ${placeholder} LIMIT 1)`);
+  }
+  if (params.storeName) push(`${storeAlias}.store_name = ?`, params.storeName);
+  if (Array.isArray(params.storeIds)) {
+    if (params.storeIds.length === 0) {
+      where.push('1 = 0');
+    } else {
+      values.push(params.storeIds);
+      where.push(`${storeAlias}.store_id = ANY($${startIndex + values.length - 1}::uuid[])`);
+    }
+  }
+  if (Array.isArray(params.storeNames)) {
+    if (params.storeNames.length === 0) {
+      where.push('1 = 0');
+    } else {
+      values.push(params.storeNames);
+      where.push(`${storeAlias}.store_name = ANY($${startIndex + values.length - 1}::text[])`);
+    }
+  }
+  if (operatorAlias && params.operatorId) push(`${operatorAlias}.operator_id = ?`, params.operatorId);
+  if (operatorAlias && params.operatorName) push(`${operatorAlias}.operator_name = ?`, params.operatorName);
+  return { where, values };
+}
+
+async function getScopedBaseCounts(params = {}) {
+  const productScope = buildBaseDataScopeWhere(params, { store: 'p', operator: 'p' }, 1);
+  const skuScope = buildBaseDataScopeWhere(params, { store: 's', operator: 'p' }, 1);
+  const adScope = buildBaseDataScopeWhere(params, { store: 'a', operator: 'a' }, 1);
+  const productCondition = productScope.where.length ? `WHERE ${productScope.where.join(' AND ')}` : '';
+  const skuCondition = skuScope.where.length ? `WHERE ${skuScope.where.join(' AND ')}` : '';
+  const adCondition = adScope.where.length ? `WHERE ${adScope.where.join(' AND ')}` : '';
+  const [products, skus, ads] = await Promise.all([
+    queryTemuDatabase(`SELECT COUNT(*)::int AS total FROM temu_products p ${productCondition}`, productScope.values),
+    queryTemuDatabase(`SELECT COUNT(*)::int AS total FROM temu_product_skus s LEFT JOIN temu_products p ON p.id = s.product_id ${skuCondition}`, skuScope.values),
+    queryTemuDatabase(`SELECT COUNT(*)::int AS total FROM temu_ad_product_daily a ${adCondition}`, adScope.values),
+  ]);
+  return {
+    products: Number(products.rows[0]?.total || 0),
+    skus: Number(skus.rows[0]?.total || 0),
+    ads: Number(ads.rows[0]?.total || 0),
+  };
 }
 
 export async function getProducts(params = {}) {
@@ -1367,6 +1434,7 @@ export async function getBossDashboard(params = {}) {
   const { where, values } = buildScopeWhere(params, 2);
   const condition = [`s.snapshot_date = $1`, ...where].join(' AND ');
   const recommendationScopeCondition = where.length ? `AND ${where.join(' AND ').replace(/\bs\./g, 'sr.')}` : '';
+  const baseCounts = await getScopedBaseCounts(params);
   const summary = await queryTemuDatabase(
     `SELECT
        COUNT(*) FILTER (WHERE days_online = 1) AS today_new_count,
@@ -1435,6 +1503,9 @@ export async function getBossDashboard(params = {}) {
       highPotentialCount: Number(row.high_potential_count || 0),
       unmatchedCount: Number(row.unmatched_count || 0),
       pendingRecommendationCount: Number(row.pending_recommendation_count || 0),
+      baseProductCount: baseCounts.products,
+      baseSkuCount: baseCounts.skus,
+      baseAdCount: baseCounts.ads,
     },
     operatorRanking: operatorRanking.rows.map(toCamel),
     storeRanking: storeRanking.rows.map(toCamel),
@@ -1505,7 +1576,10 @@ export async function getRecommendations(params = {}) {
     where.push(sql.replace('?', `$${values.length}`));
   };
   if (params.recommendationDate) push('r.recommendation_date = ?', params.recommendationDate);
-  if (params.storeId) push('r.store_id = ?', params.storeId);
+  if (params.storeId) {
+    values.push(params.storeId);
+    where.push(`r.store_id = (SELECT id FROM temu_stores WHERE id::text = $${values.length} OR legacy_id = $${values.length} OR store_name = $${values.length} LIMIT 1)`);
+  }
   if (params.storeName) push('r.store_name = ?', params.storeName);
   if (Array.isArray(params.storeIds)) {
     if (params.storeIds.length === 0) {
@@ -1692,6 +1766,18 @@ export async function getProductImportOverview(params = {}) {
      ${productCondition}`,
     filter.values,
   );
+  const categoryFilter = createWhereBuilder(1);
+  appendStoreScope(categoryFilter, 'product_rows', params);
+  const categoryCondition = categoryFilter.where.length ? `WHERE ${categoryFilter.where.join(' AND ')} AND` : 'WHERE';
+  const categories = await queryTemuDatabase(
+    `${baseCte}
+     SELECT DISTINCT leaf_category_name
+     FROM product_rows
+     ${categoryCondition} NULLIF(leaf_category_name, '') IS NOT NULL
+     ORDER BY leaf_category_name ASC
+     LIMIT 200`,
+    categoryFilter.values,
+  );
   const records = products.rows.map(toCamel);
   return {
     batches: batches.rows.map(toCamel),
@@ -1700,8 +1786,44 @@ export async function getProductImportOverview(params = {}) {
     page: currentPage,
     pageSize: size,
     summary: toCamel(summary.rows[0] || {}),
+    categoryOptions: categories.rows.map((row) => String(row.leaf_category_name || '')).filter(Boolean),
   };
 }
+
+const AD_IMPORT_SORT_FIELDS = {
+  adSpend: 'a.ad_spend',
+  netAdSpend: 'a.net_ad_spend',
+  globalSalesAmount: 'a.global_sales_amount',
+  globalRoas: 'a.global_roas',
+  globalAcos: 'a.global_acos',
+  globalCpa: 'a.global_cpa',
+  globalSubOrderCount: 'a.global_sub_order_count',
+  globalUnitCount: 'a.global_unit_count',
+  globalImpressions: 'a.global_impressions',
+  globalClicks: 'a.global_clicks',
+  globalCtr: 'a.global_ctr',
+  globalCvr: 'a.global_cvr',
+  globalAddToCartCount: 'a.global_add_to_cart_count',
+  promoSalesAmount: 'a.promo_sales_amount',
+  promoRoas: 'a.promo_roas',
+  promoWeekRoas: 'a.promo_week_roas',
+  targetRoas: 'a.target_roas',
+  promoAcos: 'a.promo_acos',
+  promoCpa: 'a.promo_cpa',
+  promoSubOrderCount: 'a.promo_sub_order_count',
+  promoUnitCount: 'a.promo_unit_count',
+  promoImpressions: 'a.promo_impressions',
+  promoClicks: 'a.promo_clicks',
+  promoCtr: 'a.promo_ctr',
+  promoCvr: 'a.promo_cvr',
+  promoAddToCartCount: 'a.promo_add_to_cart_count',
+  netPromoSalesAmount: 'a.net_promo_sales_amount',
+  netPromoRoas: 'a.net_promo_roas',
+  netPromoAcos: 'a.net_promo_acos',
+  netPromoCpa: 'a.net_promo_cpa',
+  netPromoSubOrderCount: 'a.net_promo_sub_order_count',
+  netPromoUnitCount: 'a.net_promo_unit_count',
+};
 
 export async function getAdImportOverview(params = {}) {
   await runTemuMigrations();
@@ -1723,6 +1845,8 @@ export async function getAdImportOverview(params = {}) {
   if (params.promoOrderMin) filter.push('a.promo_sub_order_count >= ?', Number(params.promoOrderMin));
   if (params.promoOrderMax) filter.push('a.promo_sub_order_count <= ?', Number(params.promoOrderMax));
   const adCondition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : 'WHERE 1 = 0';
+  const sortColumn = AD_IMPORT_SORT_FIELDS[params.sortField] || AD_IMPORT_SORT_FIELDS.adSpend;
+  const sortDirection = String(params.sortDirection || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
   const batchFilter = createWhereBuilder(1);
   batchFilter.push('b.import_type = ?', 'ad_product_daily');
@@ -1771,7 +1895,7 @@ export async function getAdImportOverview(params = {}) {
      FROM temu_ad_product_daily
      a
      ${adCondition}
-     ORDER BY ad_spend DESC NULLS LAST, report_date DESC, updated_at DESC, id DESC
+     ORDER BY ${sortColumn} ${sortDirection} NULLS LAST, report_date DESC, updated_at DESC, id DESC
      LIMIT $${filter.values.length + 1} OFFSET $${filter.values.length + 2}`,
     [...filter.values, size, offset],
   );
@@ -1841,8 +1965,21 @@ export async function handleRecommendation(id, payload = {}, currentUser = {}) {
   return { ok: true, recommendation: row ? toCamel(row) : null };
 }
 
-export async function getProductDetail(productId) {
-  const product = await queryTemuDatabase(`SELECT * FROM temu_products WHERE id = $1`, [productId]);
+export async function getProductDetail(productId, params = {}) {
+  const scope = buildBaseDataScopeWhere(params, { store: 'p', operator: 'p' }, 2);
+  const condition = ['p.id = $1', ...scope.where].join(' AND ');
+  const product = await queryTemuDatabase(`SELECT * FROM temu_products p WHERE ${condition}`, [productId, ...scope.values]);
+  if (!product.rows[0]) {
+    return {
+      product: null,
+      skus: [],
+      snapshots: [],
+      ads: [],
+      orders: [],
+      recommendations: [],
+      timeline: [],
+    };
+  }
   const skus = await queryTemuDatabase(`SELECT * FROM temu_product_skus WHERE product_id = $1 ORDER BY sku_code`, [productId]);
   const snapshots = await queryTemuDatabase(`SELECT * FROM temu_new_product_daily_snapshot WHERE product_id = $1 ORDER BY snapshot_date DESC LIMIT 30`, [productId]);
   const ads = await queryTemuDatabase(`SELECT * FROM temu_ad_product_daily WHERE product_id = $1 ORDER BY report_date DESC LIMIT 30`, [productId]);
