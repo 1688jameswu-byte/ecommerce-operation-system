@@ -3725,6 +3725,23 @@ function formatOrderDateKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+function getDateRangeKeys(startValue, endValue, maxDays = 370) {
+  const start = String(startValue ?? '').slice(0, 10);
+  const end = String(endValue ?? startValue ?? '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || start > end) {
+    return [];
+  }
+
+  const keys = [];
+  const date = new Date(`${start}T00:00:00`);
+  const endDate = new Date(`${end}T00:00:00`);
+  while (date <= endDate && keys.length < maxDays) {
+    keys.push(formatOrderDateKey(date));
+    date.setDate(date.getDate() + 1);
+  }
+  return keys;
+}
+
 function getOrderImportStatus(batch, orders, storeName, date) {
   if (!storeName || !date || orders.length === 0) {
     return 'missing';
@@ -3738,9 +3755,12 @@ function getOrderImportStatus(batch, orders, storeName, date) {
   return 'normal';
 }
 
-function getRecentOrderCheckDates(days = 7) {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
+function getRecentOrderCheckDates(days = 7, endDateKey = '') {
+  const latest = /^\d{4}-\d{2}-\d{2}$/.test(String(endDateKey)) ? new Date(`${endDateKey}T00:00:00`) : null;
+  const yesterday = latest ?? new Date();
+  if (!latest) {
+    yesterday.setDate(yesterday.getDate() - 1);
+  }
   return Array.from({ length: days }, (_, index) => {
     const date = new Date(yesterday);
     date.setDate(yesterday.getDate() - (days - 1 - index));
@@ -3824,8 +3844,9 @@ function buildOrderImportSummary(data, records, currentUser) {
   const storeOptions = unique(records.filter(itemMatchesTemuImportStore).map((row) => row.storeName)).sort();
   const dateOptions = unique(records.map((row) => row.orderDate)).sort().reverse();
   const visibleStoreNames = getVisibleOrderStoreNames(currentUser, data);
+  const checkEndDate = dateOptions[0] || '';
   const missingOrderItems = visibleStoreNames.flatMap((storeName) =>
-    getRecentOrderCheckDates().filter((date) => !importedKeys.has(`${normalizeOrderImportStoreName(storeName)}|${date}`))
+    getRecentOrderCheckDates(7, checkEndDate).filter((date) => !importedKeys.has(`${normalizeOrderImportStoreName(storeName)}|${date}`))
       .map((date) => ({ storeName, date })),
   );
 
@@ -4719,7 +4740,16 @@ function filterTrafficConversionStoreByQuery(data, searchParams, currentUser) {
       )
       .sort((first, second) => String(second.importedAt ?? '').localeCompare(String(first.importedAt ?? '')));
     const temuRecords = (data?.records ?? []).filter(itemMatchesTemuImportStore);
-    const importedKeys = new Set(temuRecords.map((record) => `${record.storeName}|${record.date}`));
+    const importedKeys = new Set(temuRecords.map((record) => `${String(record?.storeName ?? '').trim()}|${String(record?.date ?? '').slice(0, 10)}`));
+    batches.forEach((batch) => {
+      const batchStoreName = String(batch?.storeName ?? '').trim();
+      if (!batchStoreName) {
+        return;
+      }
+      getDateRangeKeys(batch?.dateStart, batch?.dateEnd).forEach((date) => {
+        importedKeys.add(`${batchStoreName}|${date}`);
+      });
+    });
     const visibleStoreNames = String(currentUser?.role ?? '').toLowerCase() === 'admin'
       ? getTemuStores().map((store) => store.storeName).filter(Boolean)
       : getTemuVisibleStores(currentUser).map((store) => store.storeName).filter(Boolean);
