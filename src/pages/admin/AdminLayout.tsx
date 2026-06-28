@@ -53,6 +53,29 @@ const roleLabels: Record<UserRole, string> = {
   operator: '运营',
 };
 
+type DataSourceStatusItem = {
+  name: string;
+  readSource: string;
+  writeSource: string;
+  fallback: string;
+  mode: string;
+};
+
+type DataSourceStatusGroup = {
+  name: string;
+  items: DataSourceStatusItem[];
+};
+
+type DataSourceRuntimeStatus = {
+  generatedAt: string;
+  environment: {
+    temuReadSource: string;
+    temuUsePostgresReads: string;
+    postgresConfigured: boolean;
+  };
+  groups: DataSourceStatusGroup[];
+};
+
 function getActiveRoute() {
   const pathname = window.location.pathname;
 
@@ -211,6 +234,13 @@ function toRecentSalesOrder(order: TemuOrderDetail & { batchId?: string }): Sale
     sourceBatchId: order.batchId,
     sourceKey: order.uniqueKey,
   };
+}
+
+function getSourceTone(source: string) {
+  const value = source.toLowerCase();
+  if (value.includes('postgres') || value.includes('pg')) return 'pg';
+  if (value.includes('json')) return 'json';
+  return 'mixed';
 }
 
 function AdminHome({
@@ -447,6 +477,8 @@ function AdminHome({
 
 function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const [requestedRoute, setRequestedRoute] = useState(getActiveRoute);
+  const [dataSourceStatus, setDataSourceStatus] = useState<DataSourceRuntimeStatus | null>(null);
+  const [dataSourceOpen, setDataSourceOpen] = useState(false);
   const visibleStores = useVisibleStores(currentUser);
   const allowedMenuKeys = new Set(currentUser.allowedMenuKeys ?? []);
   const hasNewProductCenterAccess = [
@@ -557,6 +589,18 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
     }
   }, [activeRoute.path, canAccessActiveRoute, requestedRoute.path]);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetchAdminJson<DataSourceRuntimeStatus | null>('/api/data-source/status', null).then((status) => {
+      if (!cancelled) {
+        setDataSourceStatus(status);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <main className="admin-shell">
       <aside className="admin-sidebar">
@@ -641,6 +685,36 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
                 <span className="admin-visible-store-popover">
                   {visibleStoreNames.map((storeName) => (
                     <b key={storeName}>{storeName}</b>
+                  ))}
+                </span>
+              )}
+            </span>
+            <span className="admin-data-source-status">
+              <button type="button" onClick={() => setDataSourceOpen((current) => !current)}>
+                数据源
+              </button>
+              {dataSourceOpen && (
+                <span className="admin-data-source-popover">
+                  <span className="admin-data-source-head">
+                    <b>数据源状态</b>
+                    <small>{dataSourceStatus?.environment.temuReadSource === 'postgres' ? 'TEMU读取PG' : 'TEMU读取JSON'}</small>
+                  </span>
+                  <span className="admin-data-source-env">
+                    <span>PG连接：{dataSourceStatus?.environment.postgresConfigured ? '已配置' : '未配置'}</span>
+                    <span>JSON兜底：已开启</span>
+                  </span>
+                  {(dataSourceStatus?.groups ?? []).map((group) => (
+                    <span className="admin-data-source-group" key={group.name}>
+                      <strong>{group.name}</strong>
+                      {group.items.map((item) => (
+                        <span className="admin-data-source-row" key={`${group.name}-${item.name}`}>
+                          <span>{item.name}</span>
+                          <em className={`source-${getSourceTone(item.readSource)}`}>读：{item.readSource}</em>
+                          <em className={`source-${getSourceTone(item.writeSource)}`}>写：{item.writeSource}</em>
+                          <small>{item.mode}</small>
+                        </span>
+                      ))}
+                    </span>
                   ))}
                 </span>
               )}

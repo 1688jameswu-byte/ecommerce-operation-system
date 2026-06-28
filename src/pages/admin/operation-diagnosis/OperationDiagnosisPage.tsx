@@ -16,7 +16,8 @@ import {
 } from '../../../ai/knowledge';
 import type { PlatformCode } from '../../../ai/rule-engine';
 import {
-  subscribeOrderImportStorageChange,
+  TEMU_ORDER_IMPORT_STORAGE_EVENT,
+  TEMU_ORDER_IMPORT_STORAGE_KEY,
 } from '../../../data-source/orderImportStorageDataSource';
 import {
   subscribeTrafficConversionChange,
@@ -41,7 +42,7 @@ import { buildOperationAnomalyTaskDedupKey, createTaskFromOperationAnomaly } fro
 import { filterTasksByPermission } from '../../../utils/permissionScope';
 import { hasPermission } from '../../../auth/permissions';
 import type { CurrentUser } from '../../../types/auth';
-import { createEmptyOperationDiagnosisDataSet, loadOperationDiagnosisDataSetAsync } from './operationDiagnosisDataService';
+import { clearOperationDiagnosisDataSetCache, createEmptyOperationDiagnosisDataSet, loadOperationDiagnosisDataSetAsync } from './operationDiagnosisDataService';
 
 const taskStatusLabels: Record<OperationTaskStatus, string> = {
   todo: '待处理',
@@ -220,8 +221,8 @@ function buildDiagnosisState(dataSet: ReturnType<typeof createEmptyOperationDiag
   };
 }
 
-async function loadDiagnosisState(currentUser: CurrentUser) {
-  return buildDiagnosisState(await loadOperationDiagnosisDataSetAsync(currentUser));
+async function loadDiagnosisState(currentUser: CurrentUser, options: { force?: boolean } = {}) {
+  return buildDiagnosisState(await loadOperationDiagnosisDataSetAsync(currentUser, options));
 }
 
 type DiagnosisAuditState = ReturnType<typeof buildDiagnosisState>['auditReport'];
@@ -422,8 +423,11 @@ function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
 
   useEffect(() => {
     let cancelled = false;
-    const refresh = () => {
-      void loadDiagnosisState(currentUser).then((next) => {
+    const refresh = (options: { force?: boolean } = {}) => {
+      if (options.force) {
+        clearOperationDiagnosisDataSetCache();
+      }
+      void loadDiagnosisState(currentUser, options).then((next) => {
         if (!cancelled) {
           setDiagnosisState(next);
         }
@@ -435,15 +439,24 @@ function OperationDiagnosisPage({ currentUser }: { currentUser: CurrentUser }) {
       });
     };
     refresh();
-    const unsubscribeOrders = subscribeOrderImportStorageChange(refresh);
-    const unsubscribeTraffic = subscribeTrafficConversionChange(refresh);
-    window.addEventListener('focus', refresh);
+    const refreshFromDataChange = () => refresh({ force: true });
+    const refreshFromFocus = () => refresh();
+    const handleOrderStorageChange = (event: StorageEvent) => {
+      if (event.key === TEMU_ORDER_IMPORT_STORAGE_KEY) {
+        refreshFromDataChange();
+      }
+    };
+    window.addEventListener(TEMU_ORDER_IMPORT_STORAGE_EVENT, refreshFromDataChange);
+    window.addEventListener('storage', handleOrderStorageChange);
+    const unsubscribeTraffic = subscribeTrafficConversionChange(refreshFromDataChange);
+    window.addEventListener('focus', refreshFromFocus);
 
     return () => {
       cancelled = true;
-      unsubscribeOrders();
+      window.removeEventListener(TEMU_ORDER_IMPORT_STORAGE_EVENT, refreshFromDataChange);
+      window.removeEventListener('storage', handleOrderStorageChange);
       unsubscribeTraffic();
-      window.removeEventListener('focus', refresh);
+      window.removeEventListener('focus', refreshFromFocus);
     };
   }, [currentUser]);
 

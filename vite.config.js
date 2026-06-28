@@ -17,6 +17,7 @@ import {
   syncTrafficStoreToPostgres,
   syncWarningRulesToPostgres,
 } from './server/temu/temuPostgresRepository.js';
+import { isTemuPostgresConfigured } from './server/temu/postgresDatabase.js';
 import {
   assertImportFileShape,
   buildImportPreview,
@@ -265,6 +266,57 @@ function readCollectionCached(name) {
 
 function preferTemuPostgresReads() {
   return process.env.TEMU_READ_SOURCE === 'postgres' || process.env.TEMU_USE_POSTGRES_READS === 'true';
+}
+
+function getDataSourceRuntimeStatus() {
+  const temuReadsPostgres = preferTemuPostgresReads();
+  const postgresConfigured = isTemuPostgresConfigured();
+  const temuSource = temuReadsPostgres ? 'postgres' : 'json';
+  const temuMode = temuReadsPostgres ? 'PG优先，JSON兜底' : 'JSON读取，PG同步备用';
+
+  return {
+    generatedAt: nowIso(),
+    environment: {
+      temuReadSource: process.env.TEMU_READ_SOURCE || '',
+      temuUsePostgresReads: process.env.TEMU_USE_POSTGRES_READS || '',
+      postgresConfigured,
+    },
+    groups: [
+      {
+        name: 'TEMU核心数据',
+        items: [
+          { name: '订单数据', readSource: temuSource, writeSource: 'JSON + PG同步', fallback: 'JSON', mode: temuMode },
+          { name: '广告/流量转化', readSource: temuSource, writeSource: 'PG，保留JSON兼容', fallback: 'JSON', mode: temuMode },
+          { name: '店铺/运营/店铺关系', readSource: temuReadsPostgres ? 'postgres+json' : 'json', writeSource: 'JSON + PG同步', fallback: 'JSON', mode: temuReadsPostgres ? 'PG合并JSON' : 'JSON为主' },
+          { name: '有效上新', readSource: 'json', writeSource: 'JSON + PG同步', fallback: 'JSON', mode: '旧页面JSON为主' },
+        ],
+      },
+      {
+        name: '新品中心',
+        items: [
+          { name: '商品信息/SKU', readSource: 'postgres', writeSource: 'postgres', fallback: '无', mode: 'PG正式数据' },
+          { name: '广告日报', readSource: 'postgres', writeSource: 'postgres', fallback: '无', mode: 'PG正式数据' },
+          { name: '新品统计/建议', readSource: 'postgres', writeSource: 'postgres', fallback: '无', mode: 'PG正式数据' },
+        ],
+      },
+      {
+        name: '1688业务',
+        items: [
+          { name: '产品库/SKU/上架任务', readSource: 'postgres', writeSource: 'postgres', fallback: '无', mode: 'PG正式数据' },
+          { name: '供应商/图片/设置', readSource: 'postgres', writeSource: 'postgres', fallback: '无', mode: 'PG正式数据' },
+        ],
+      },
+      {
+        name: '仍在JSON的旧模块',
+        items: [
+          { name: '用户/权限/session', readSource: 'json', writeSource: 'json', fallback: '无', mode: '未迁移PG' },
+          { name: '运营任务/任务模板', readSource: 'json', writeSource: 'json', fallback: '无', mode: '未迁移PG' },
+          { name: '薪资绩效', readSource: 'json', writeSource: 'json', fallback: '无', mode: '未迁移PG' },
+          { name: '旧异常分析/汇总文件', readSource: 'json', writeSource: 'json', fallback: '无', mode: '未迁移PG' },
+        ],
+      },
+    ],
+  };
 }
 
 function writeJsonFile(name, value) {
@@ -5457,6 +5509,26 @@ function localDataPlugin() {
         }
 
         res.end(JSON.stringify({ path: dataDir }));
+      });
+
+      server.middlewares.use('/api/data-source/status', (req, res) => {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+
+        if (req.method !== 'GET') {
+          res.statusCode = 405;
+          res.end('Method not allowed');
+          return;
+        }
+
+        const user = findCurrentUser(req);
+        if (!user) {
+          res.statusCode = 403;
+          res.end(JSON.stringify({ success: false, message: '无权访问' }));
+          return;
+        }
+
+        res.end(JSON.stringify(getDataSourceRuntimeStatus()));
       });
 
       server.middlewares.use('/api/auth', (req, res, next) => {

@@ -1,15 +1,20 @@
 import type { StandardFactDataSet } from '../../../data-standard';
 import {
-  orderImportStorageDataSource,
-} from '../../../data-source/orderImportStorageDataSource';
-import {
   trafficConversionDataSource,
 } from '../../../data-source/trafficConversionDataSource';
 import { runOperationDiagnosis, type OperationDiagnosisResult } from '../../../rules/operationAnomaly';
 import type { CurrentUser } from '../../../types/auth';
-import type { TrafficAnalysisItem, TrafficAnalysisResultStore, TrafficConversionStore } from '../../../types/traffic';
-import { buildStandardAnalysisResults, buildStandardTrafficRecords } from '../../../utils/factDataStandardization';
+import type { TrafficAnalysisItem, TrafficAnalysisResultStore, TrafficDailySummaryStore } from '../../../types/traffic';
+import { buildStandardAnalysisResults, buildStandardSalesOrders, buildStandardTrafficRecords } from '../../../utils/factDataStandardization';
+import { buildOrderDetailsFromDailySummary, type OrderDailySummaryRecord } from '../../../utils/orderDailySummaryAdapter';
 import { filterFactDataSetByPermission } from '../../../utils/permissionScope';
+import { buildTrafficRecordsFromDailySummary } from '../../../utils/trafficDailySummaryAdapter';
+
+type OrderDailySummaryResponse = {
+  records?: OrderDailySummaryRecord[];
+};
+
+const diagnosisDataSetCache = new Map<string, Promise<StandardFactDataSet>>();
 
 function safeLoad<T>(loader: () => T, fallback: T) {
   try {
@@ -55,6 +60,29 @@ async function fetchPersistentJson<T>(name: string, fallback: T): Promise<T> {
   }
 }
 
+async function fetchJsonByUrl<T>(url: string, fallback: T): Promise<T> {
+  try {
+    const response = await fetch(url, { cache: 'no-store', credentials: 'include' });
+    return response.ok ? await response.json() as T : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function getDiagnosisCacheKey(currentUser?: CurrentUser) {
+  return [
+    currentUser?.role ?? '',
+    currentUser?.operatorId ?? '',
+    currentUser?.username ?? '',
+    currentUser?.displayName ?? '',
+    [...(currentUser?.allowedStoreIds ?? [])].sort().join('|'),
+  ].join('::');
+}
+
+export function clearOperationDiagnosisDataSetCache() {
+  diagnosisDataSetCache.clear();
+}
+
 export function createEmptyOperationDiagnosisDataSet(currentUser?: CurrentUser): StandardFactDataSet {
   return buildDataSet([], [], [], currentUser);
 }
@@ -66,17 +94,29 @@ export function loadOperationDiagnosisDataSet(currentUser?: CurrentUser): Standa
   return buildDataSet([], trafficMetrics, analysisResults, currentUser);
 }
 
-export async function loadOperationDiagnosisDataSetAsync(currentUser?: CurrentUser): Promise<StandardFactDataSet> {
-  const [orderStore, trafficStore, analysisStore] = await Promise.all([
-    orderImportStorageDataSource.loadRecentStore({ recentDays: 30, limit: 500 }),
-    fetchPersistentJson<TrafficConversionStore>('trafficConversionStore', { records: [], batches: [] }),
-    fetchPersistentJson<TrafficAnalysisResultStore<TrafficAnalysisItem>>('businessAnalysisItems', { items: [], updatedAt: '' }),
-  ]);
-  const salesOrders = orderImportStorageDataSource.buildStandardSalesOrdersFromStore(orderStore);
-  const trafficMetrics = buildStandardTrafficRecords(trafficStore.records ?? []);
-  const analysisResults = buildStandardAnalysisResults(analysisStore.items ?? []);
+export async function loadOperationDiagnosisDataSetAsync(currentUser?: CurrentUser, options: { force?: boolean } = {}): Promise<StandardFactDataSet> {
+  const cacheKey = getDiagnosisCacheKey(currentUser);
+  const cached = diagnosisDataSetCache.get(cacheKey);
 
-  return buildDataSet(salesOrders, trafficMetrics, analysisResults, currentUser);
+  if (cached && !options.force) {
+    return cached;
+  }
+
+  const request = (async () => {
+    const [orderSummary, trafficSummary, analysisStore] = await Promise.all([
+      fetchJsonByUrl<OrderDailySummaryResponse>('/api/persistent-data/orderImportStore?view=dashboard-orders&recentDays=30', { records: [] }),
+      fetchPersistentJson<TrafficDailySummaryStore>('trafficDailySummary', { items: [], updatedAt: '' }),
+      fetchPersistentJson<TrafficAnalysisResultStore<TrafficAnalysisItem>>('businessAnalysisItems', { items: [], updatedAt: '' }),
+    ]);
+    const salesOrders = buildStandardSalesOrders(buildOrderDetailsFromDailySummary(orderSummary.records ?? []));
+    const trafficMetrics = buildStandardTrafficRecords(buildTrafficRecordsFromDailySummary(trafficSummary.items ?? []));
+    const analysisResults = buildStandardAnalysisResults(analysisStore.items ?? []);
+
+    return buildDataSet(salesOrders, trafficMetrics, analysisResults, currentUser);
+  })();
+
+  diagnosisDataSetCache.set(cacheKey, request);
+  return request;
 }
 
 export function loadOperationDiagnosisData(currentUser?: CurrentUser): OperationDiagnosisResult {
