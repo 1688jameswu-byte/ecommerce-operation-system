@@ -2072,11 +2072,15 @@ async function readPersistentDataForApi(name, filePath) {
     try {
       const postgresData = await readOrderImportStoreFromPostgres();
       const postgresOrderCount = (postgresData?.batches ?? []).reduce((total, batch) => total + (batch?.orders ?? []).length, 0);
+      const jsonData = readJsonFileCached(name);
+      const jsonOrderCount = (jsonData?.batches ?? []).reduce((total, batch) => total + (batch?.orders ?? []).length, 0);
+      if (jsonOrderCount > postgresOrderCount) {
+        console.warn('[TEMU PostgreSQL] orderImportStore stale in PostgreSQL, fallback to JSON');
+        return jsonData;
+      }
       if (postgresOrderCount > 0) {
         return postgresData;
       }
-      const jsonData = readJsonFileCached(name);
-      const jsonOrderCount = (jsonData?.batches ?? []).reduce((total, batch) => total + (batch?.orders ?? []).length, 0);
       if (jsonOrderCount > 0) {
         console.warn('[TEMU PostgreSQL] orderImportStore empty in PostgreSQL, fallback to JSON');
         return jsonData;
@@ -2091,11 +2095,19 @@ async function readPersistentDataForApi(name, filePath) {
   if (name === 'trafficConversionStore') {
     try {
       const postgresData = await readTrafficConversionStoreFromPostgres();
+      const jsonData = readJsonFileCached(name);
+      const postgresRecordCount = (postgresData?.records ?? []).length;
+      const postgresBatchCount = (postgresData?.batches ?? []).length;
+      const jsonRecordCount = (jsonData?.records ?? []).length;
+      const jsonBatchCount = (jsonData?.batches ?? []).length;
+      if (jsonRecordCount > postgresRecordCount || jsonBatchCount > postgresBatchCount) {
+        console.warn('[TEMU PostgreSQL] trafficConversionStore stale in PostgreSQL, fallback to JSON');
+        return jsonData;
+      }
       if ((postgresData?.records ?? []).length > 0 || (postgresData?.batches ?? []).length > 0) {
         return postgresData;
       }
 
-      const jsonData = readJsonFileCached(name);
       return (jsonData?.records ?? []).length > 0 || (jsonData?.batches ?? []).length > 0 ? jsonData : postgresData;
     } catch (error) {
       console.warn('[TEMU PostgreSQL] trafficConversionStore read fallback to JSON:', error instanceof Error ? error.message : error);
@@ -6037,7 +6049,7 @@ function localDataPlugin() {
             }
 
             if (name === 'trafficConversionStore') {
-              const currentData = await readTrafficConversionStoreFromPostgres();
+              const currentData = readJsonFile('trafficConversionStore');
               let trafficAppendBatch = null;
               let trafficDeleteSummary = null;
               const trafficAppendResult = isTrafficImportAppend ? mergeTrafficConversionAppendWithExisting(currentData, parsed, filePath) : null;
@@ -6047,11 +6059,20 @@ function localDataPlugin() {
                 : isTrafficImportAppend
                   ? (trafficAppendBatch = trafficAppendResult?.batch ?? null, trafficAppendResult?.data)
                   : mergeTrafficConversionImportWithExisting(currentData, parsed);
-              await replaceTrafficStoreInPostgres(nextData);
+              fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
+              let mirrorWarning = null;
+              try {
+                await replaceTrafficStoreInPostgres(nextData);
+              } catch (mirrorError) {
+                const mirrorMessage = mirrorError instanceof Error ? mirrorError.message : String(mirrorError);
+                mirrorWarning = `已保存到 JSON，PostgreSQL 同步失败：${mirrorMessage}`;
+                console.warn('[TEMU PostgreSQL] trafficConversionStore mirror skipped after JSON save:', mirrorMessage);
+              }
               res.end(JSON.stringify({
                 ok: true,
                 success: true,
-                storage: 'postgres',
+                storage: mirrorWarning ? 'json' : 'postgres',
+                warning: mirrorWarning,
                 trafficDeleteSummary,
                 batch: trafficAppendBatch,
                 savedCount: Array.isArray(parsed) ? parsed.length : undefined,

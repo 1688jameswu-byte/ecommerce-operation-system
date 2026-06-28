@@ -108,6 +108,7 @@ function MetricCards({ summary }: { summary: Record<string, number | null> }) {
     ['近7天新品', summary.recent7NewCount],
     ['近7天出单率', formatRatio(summary.recent7OrderedRate)],
     ['近30天新品', summary.recent30NewCount],
+    ['近30天出单数', summary.recent30OrderedCount ?? 0],
     ['近30天出单率', formatRatio(summary.recent30OrderedRate)],
     ['近60天出单数', summary.recent60OrderedCount ?? 0],
     ['近60天出单率', formatRatio(summary.recent60OrderedRate)],

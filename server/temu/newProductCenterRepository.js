@@ -1594,6 +1594,7 @@ export async function getBossDashboard(params = {}) {
       recent7NewCount: Number(row.recent7_new_count || 0),
       recent7OrderedRate: safeDivide(row.recent7_ordered_count, row.recent7_new_count),
       recent30NewCount: Number(row.recent30_new_count || 0),
+      recent30OrderedCount: Number(row.recent30_ordered_count || 0),
       recent30OrderedRate: safeDivide(row.recent30_ordered_count, row.recent30_new_count),
       recent60OrderedCount: Number(row.recent60_ordered_count || 0),
       recent60OrderedRate: safeDivide(row.recent60_ordered_count, row.recent60_new_count),
