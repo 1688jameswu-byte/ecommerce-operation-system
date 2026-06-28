@@ -64,3 +64,7 @@
     '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
     '    at async handleTemuProductInfoImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3141:22)'
 }
+[TEMU PostgreSQL] operators read fallback to JSON: Connection terminated due to connection timeout
+[TEMU PostgreSQL] trafficConversionStore read fallback to JSON: Connection terminated due to connection timeout
+[TEMU PostgreSQL] trafficConversionStore read fallback to JSON: timeout exceeded when trying to connect
+[TEMU PostgreSQL] operators read fallback to JSON: timeout exceeded when trying to connect

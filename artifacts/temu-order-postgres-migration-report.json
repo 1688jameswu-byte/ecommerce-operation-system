@@ -1,0 +1,249 @@
+{
+  "generatedAt": "2026-06-28T04:53:26.284Z",
+  "source": {
+    "file": "F:\\项目\\TEMU运营数据大屏\\data\\order-import-store.json",
+    "batches": 40,
+    "orders": 4507,
+    "uniqueOrders": 532,
+    "salesAmount": 83843,
+    "quantity": 4607,
+    "dateMin": "2026-04-20",
+    "dateMax": "2026-06-27"
+  },
+  "postgres": {
+    "batches": 40,
+    "orders": 4507,
+    "unique_orders": 532,
+    "sales_amount": 83843,
+    "quantity": 4607,
+    "date_min": "2026-04-20",
+    "date_max": "2026-06-27"
+  },
+  "matched": {
+    "batches": true,
+    "orders": true,
+    "uniqueOrders": true,
+    "salesAmount": true,
+    "quantity": true,
+    "dateRange": true
+  },
+  "postgresByStore": [
+    {
+      "store_name": "X店",
+      "orders": 3941,
+      "sales_amount": 74404.96
+    },
+    {
+      "store_name": "A店",
+      "orders": 174,
+      "sales_amount": 3073.27
+    },
+    {
+      "store_name": "F店",
+      "orders": 143,
+      "sales_amount": 2615.3
+    },
+    {
+      "store_name": "M店",
+      "orders": 67,
+      "sales_amount": 1226.26
+    },
+    {
+      "store_name": "H店",
+      "orders": 63,
+      "sales_amount": 1226.76
+    },
+    {
+      "store_name": "Honey Jewels",
+      "orders": 55,
+      "sales_amount": 0
+    },
+    {
+      "store_name": "L店",
+      "orders": 44,
+      "sales_amount": 830.07
+    },
+    {
+      "store_name": "O店",
+      "orders": 20,
+      "sales_amount": 466.38
+    }
+  ],
+  "postgresByDate": [
+    {
+      "report_date": "2026-04-20",
+      "orders": 126,
+      "sales_amount": 2406.8
+    },
+    {
+      "report_date": "2026-04-21",
+      "orders": 126,
+      "sales_amount": 2346.6
+    },
+    {
+      "report_date": "2026-04-22",
+      "orders": 126,
+      "sales_amount": 2372.2
+    },
+    {
+      "report_date": "2026-04-23",
+      "orders": 126,
+      "sales_amount": 2287
+    },
+    {
+      "report_date": "2026-04-24",
+      "orders": 126,
+      "sales_amount": 2352.2
+    },
+    {
+      "report_date": "2026-04-25",
+      "orders": 126,
+      "sales_amount": 2436.96
+    },
+    {
+      "report_date": "2026-04-26",
+      "orders": 126,
+      "sales_amount": 2404.96
+    },
+    {
+      "report_date": "2026-04-27",
+      "orders": 126,
+      "sales_amount": 2475.76
+    },
+    {
+      "report_date": "2026-04-28",
+      "orders": 126,
+      "sales_amount": 2522.7
+    },
+    {
+      "report_date": "2026-04-29",
+      "orders": 126,
+      "sales_amount": 2394
+    },
+    {
+      "report_date": "2026-04-30",
+      "orders": 126,
+      "sales_amount": 2518.1
+    },
+    {
+      "report_date": "2026-05-01",
+      "orders": 126,
+      "sales_amount": 2518.14
+    },
+    {
+      "report_date": "2026-05-02",
+      "orders": 126,
+      "sales_amount": 2232.2
+    },
+    {
+      "report_date": "2026-05-03",
+      "orders": 126,
+      "sales_amount": 2518.14
+    },
+    {
+      "report_date": "2026-05-04",
+      "orders": 126,
+      "sales_amount": 2232.2
+    },
+    {
+      "report_date": "2026-05-05",
+      "orders": 126,
+      "sales_amount": 2518.14
+    },
+    {
+      "report_date": "2026-05-06",
+      "orders": 126,
+      "sales_amount": 2232.2
+    },
+    {
+      "report_date": "2026-05-07",
+      "orders": 126,
+      "sales_amount": 2203.4
+    },
+    {
+      "report_date": "2026-05-08",
+      "orders": 126,
+      "sales_amount": 2269.78
+    },
+    {
+      "report_date": "2026-05-09",
+      "orders": 126,
+      "sales_amount": 2362.18
+    },
+    {
+      "report_date": "2026-05-10",
+      "orders": 126,
+      "sales_amount": 2542.36
+    },
+    {
+      "report_date": "2026-05-11",
+      "orders": 126,
+      "sales_amount": 2518.14
+    },
+    {
+      "report_date": "2026-05-12",
+      "orders": 126,
+      "sales_amount": 2406.42
+    },
+    {
+      "report_date": "2026-05-13",
+      "orders": 126,
+      "sales_amount": 2338.32
+    },
+    {
+      "report_date": "2026-05-14",
+      "orders": 126,
+      "sales_amount": 2292.28
+    },
+    {
+      "report_date": "2026-05-15",
+      "orders": 126,
+      "sales_amount": 2293.27
+    },
+    {
+      "report_date": "2026-05-16",
+      "orders": 132,
+      "sales_amount": 2454.93
+    },
+    {
+      "report_date": "2026-05-17",
+      "orders": 132,
+      "sales_amount": 2445.11
+    },
+    {
+      "report_date": "2026-05-18",
+      "orders": 126,
+      "sales_amount": 2442.16
+    },
+    {
+      "report_date": "2026-05-19",
+      "orders": 132,
+      "sales_amount": 2453.01
+    },
+    {
+      "report_date": "2026-05-20",
+      "orders": 323,
+      "sales_amount": 5894.55
+    },
+    {
+      "report_date": "2026-05-27",
+      "orders": 105,
+      "sales_amount": 1028.69
+    },
+    {
+      "report_date": "2026-05-28",
+      "orders": 107,
+      "sales_amount": 2056.83
+    },
+    {
+      "report_date": "2026-06-26",
+      "orders": 78,
+      "sales_amount": 1367.41
+    },
+    {
+      "report_date": "2026-06-27",
+      "orders": 96,
+      "sales_amount": 1705.86
+    }
+  ]
+}

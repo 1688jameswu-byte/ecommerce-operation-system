@@ -184,6 +184,7 @@ interface StoreBusinessOrderDailyResponse {
   records: StoreBusinessOrderDailyRecord[];
   skuTrend?: SkuSalesTrendResponse;
   firstOrderProducts?: FirstOrderProductSummaryResponse;
+  averagePriceSummary?: StoreAveragePriceSummaryResponse;
 }
 
 interface StoreAveragePriceSummaryResponse {
@@ -584,19 +585,15 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetchJson<TrafficAnalysisResultStore<TrafficAnalysisItem>>('/api/persistent-data/businessAnalysisItems', { items: [], updatedAt: '' }),
       referenceDataService.loadCompanyStores(),
       referenceDataService.loadOperators(),
       referenceDataService.loadStoreOperatorRelations(),
       fetchJson<OperationTaskRecord[]>('/api/tasks', []),
-      fetchJson<StoreAveragePriceSummaryResponse>('/api/persistent-data/orderImportStore?view=store-average-price-summary&recentDays=30', { records: [] }),
-      fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=62&includeSkuTrend=1&includeFirstOrderProducts=1', { records: [] }),
-      fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=62', { records: [] }),
-      fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []),
-    ]).then(([analysisStore, companyStores, nextOperators, nextRelations, nextTasks, averagePriceStore, orderStore, trafficStore, nextEffectiveNewListings]) => {
+    ]).then(([companyStores, nextOperators, nextRelations, nextTasks]) => {
       if (cancelled) {
         return;
       }
+
       const temuStores = companyStores.filter(isTemuStore);
       const temuStoreKeys = buildStoreKeySet(temuStores);
       const temuRelations = nextRelations
@@ -609,8 +606,6 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       const visibleTemuTasks = filterTasksByPermission(nextTasks, currentUser)
         .filter((task) => recordMatchesTemuStore(task, visibleTemuStoreKeys));
 
-      setItems(filterRecordsByPermission(analysisStore.items ?? [], currentUser)
-        .filter((item) => recordMatchesTemuStore(item, visibleTemuStoreKeys)));
       setOperators(nextOperators.filter((operator) =>
         operator.status !== 'inactive' &&
         (visibleOperatorKeys.has(normalizeStoreKey(operator.id)) || visibleOperatorKeys.has(normalizeStoreKey(operator.operatorName))),
@@ -618,16 +613,42 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       setRelations(visibleTemuRelations);
       setTasks(visibleTemuTasks);
       setVisibleTemuStores(nextVisibleTemuStores);
-      setAveragePriceRecords((averagePriceStore.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
-      setOrderDailyRecords((orderStore.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
-      setSkuTrend({
-        ...orderStore.skuTrend,
-        storeSkuRankings: (orderStore.skuTrend?.storeSkuRankings ?? [])
-          .filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)),
-      });
-      setFirstOrderProductSummary(orderStore.firstOrderProducts ?? { records: [] });
-      setTrafficRecords((trafficStore.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
-      setEffectiveNewListings((nextEffectiveNewListings ?? []).filter((record) => listingMatchesTemuStore(record, visibleTemuStoreKeys)));
+
+      void fetchJson<TrafficAnalysisResultStore<TrafficAnalysisItem>>('/api/persistent-data/businessAnalysisItems', { items: [], updatedAt: '' })
+        .then((analysisStore) => {
+          if (!cancelled) {
+            setItems(filterRecordsByPermission(analysisStore.items ?? [], currentUser)
+              .filter((item) => recordMatchesTemuStore(item, visibleTemuStoreKeys)));
+          }
+        });
+
+      void fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=62&includeSkuTrend=1&includeFirstOrderProducts=1&includeAveragePriceSummary=1&averagePriceRecentDays=30', { records: [], averagePriceSummary: { records: [] } })
+        .then((orderStore) => {
+          if (!cancelled) {
+            setAveragePriceRecords((orderStore.averagePriceSummary?.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
+            setOrderDailyRecords((orderStore.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
+            setSkuTrend({
+              ...orderStore.skuTrend,
+              storeSkuRankings: (orderStore.skuTrend?.storeSkuRankings ?? [])
+                .filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)),
+            });
+            setFirstOrderProductSummary(orderStore.firstOrderProducts ?? { records: [] });
+          }
+        });
+
+      void fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=62', { records: [] })
+        .then((trafficStore) => {
+          if (!cancelled) {
+            setTrafficRecords((trafficStore.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
+          }
+        });
+
+      void fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', [])
+        .then((nextEffectiveNewListings) => {
+          if (!cancelled) {
+            setEffectiveNewListings((nextEffectiveNewListings ?? []).filter((record) => listingMatchesTemuStore(record, visibleTemuStoreKeys)));
+          }
+        });
     });
     return () => {
       cancelled = true;

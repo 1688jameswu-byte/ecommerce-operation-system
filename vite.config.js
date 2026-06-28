@@ -234,9 +234,43 @@ function readJsonFile(name) {
   }
 }
 
+const jsonReadCache = new Map();
+
+function readJsonFileCached(name) {
+  const filePath = ensureDataFile(name);
+
+  try {
+    const stat = fs.statSync(filePath);
+    const cached = jsonReadCache.get(name);
+    if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+      return cached.value;
+    }
+
+    const value = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    jsonReadCache.set(name, {
+      mtimeMs: stat.mtimeMs,
+      size: stat.size,
+      value,
+    });
+    return value;
+  } catch {
+    return [];
+  }
+}
+
+function readCollectionCached(name) {
+  const value = readJsonFileCached(name);
+  return Array.isArray(value) ? value : [];
+}
+
+function preferTemuPostgresReads() {
+  return process.env.TEMU_READ_SOURCE === 'postgres' || process.env.TEMU_USE_POSTGRES_READS === 'true';
+}
+
 function writeJsonFile(name, value) {
   const filePath = ensureDataFile(name);
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2), 'utf-8');
+  jsonReadCache.delete(name);
 }
 
 function nowIso() {
@@ -1803,7 +1837,7 @@ function mergeTemuPostgresCollection(name, jsonData, postgresData) {
 
 async function readCollectionForApi(name) {
   const jsonData = name === 'stores' ? getStores() : name === 'operators' ? getOperators() : readCollection(name);
-  if (!['stores', 'operators', 'storeOperatorRelations'].includes(name)) {
+  if (!['stores', 'operators', 'storeOperatorRelations'].includes(name) || !preferTemuPostgresReads()) {
     return jsonData;
   }
 
@@ -1829,20 +1863,27 @@ async function mirrorTemuReferenceJsonToPostgres() {
 }
 
 async function readPersistentDataForApi(name, filePath) {
+  if (!preferTemuPostgresReads()) {
+    return readJsonFileCached(name);
+  }
+
   if (name === 'orderImportStore') {
-    const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     try {
       const postgresData = await readOrderImportStoreFromPostgres();
       const postgresOrderCount = (postgresData?.batches ?? []).reduce((total, batch) => total + (batch?.orders ?? []).length, 0);
+      if (postgresOrderCount > 0) {
+        return postgresData;
+      }
+      const jsonData = readJsonFileCached(name);
       const jsonOrderCount = (jsonData?.batches ?? []).reduce((total, batch) => total + (batch?.orders ?? []).length, 0);
-      if (postgresOrderCount === 0 && jsonOrderCount > 0) {
+      if (jsonOrderCount > 0) {
         console.warn('[TEMU PostgreSQL] orderImportStore empty in PostgreSQL, fallback to JSON');
         return jsonData;
       }
       return postgresData;
     } catch (error) {
       console.warn('[TEMU PostgreSQL] orderImportStore read fallback to JSON:', error instanceof Error ? error.message : error);
-      return jsonData;
+      return readJsonFileCached(name);
     }
   }
 
@@ -1853,14 +1894,14 @@ async function readPersistentDataForApi(name, filePath) {
         return postgresData;
       }
 
-      const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      const jsonData = readJsonFileCached(name);
       return (jsonData?.records ?? []).length > 0 || (jsonData?.batches ?? []).length > 0 ? jsonData : postgresData;
     } catch (error) {
       console.warn('[TEMU PostgreSQL] trafficConversionStore read fallback to JSON:', error instanceof Error ? error.message : error);
     }
   }
 
-  return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  return readJsonFileCached(name);
 }
 
 async function rebuildOrderImportSnapshots(orderStore) {
@@ -2292,7 +2333,7 @@ function getVisibleStores(currentUser) {
 
 async function attachTemuStoreDatabaseIds(stores) {
   const temuStores = stores.filter(isTemuStore);
-  if (temuStores.length === 0) {
+  if (temuStores.length === 0 || !preferTemuPostgresReads()) {
     return stores;
   }
 
@@ -3568,6 +3609,13 @@ function buildStoreBusinessOrderDaily(data, searchParams) {
 
   if (searchParams.get('includeFirstOrderProducts') === '1') {
     result.firstOrderProducts = buildFirstOrderProductSummary(data);
+  }
+
+  if (searchParams.get('includeAveragePriceSummary') === '1') {
+    result.averagePriceSummary = buildStoreAveragePriceSummary(
+      data,
+      new URLSearchParams({ recentDays: String(searchParams.get('averagePriceRecentDays') || 30) }),
+    );
   }
 
   return result;
@@ -5063,8 +5111,8 @@ function buildOperatorAnalysisStoreFinancialRecords(searchParams, currentUser) {
   const operatorById = new Map(readCollection('operators').map((operator) => [String(operator?.id ?? '').trim(), operator]));
   const storeById = new Map(getStores().map((store) => [String(store.id), store]));
   const summaries = buildFinancialStoreSummaries(
-    readCollection('salaryFinancialDetails'),
-    readCollection('salaryFinancialImportBatches'),
+    readCollectionCached('salaryFinancialDetails'),
+    readCollectionCached('salaryFinancialImportBatches'),
     new URLSearchParams(requestedPeriod ? { period: requestedPeriod } : {}),
     currentUser,
   );

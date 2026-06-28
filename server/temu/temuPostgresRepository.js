@@ -350,7 +350,7 @@ export async function syncAllTemuJsonToPostgres({ stores = [], operators = [], r
     await client.query('DELETE FROM temu_traffic_daily_records');
     await client.query('DELETE FROM temu_effective_new_listings');
     await client.query('DELETE FROM temu_warning_rules');
-    await client.query(`DELETE FROM temu_import_batches WHERE import_type IN ('order_sales','traffic_conversion','effective_new_listing','warning_rule') AND source_type = 'json_migration'`);
+    await client.query(`DELETE FROM temu_import_batches WHERE import_type IN ('order_sales','traffic_conversion','effective_new_listing','warning_rule')`);
 
     for (const store of stores.filter((item) => text(item?.platform || 'TEMU').toUpperCase() === 'TEMU')) {
       await upsertStore(client, store);
@@ -409,9 +409,9 @@ export async function syncTemuReferenceJsonToPostgres({ stores = [], operators =
 
 export async function syncOrderStoreToPostgres(orderStore = { batches: [] }) {
   return withClient(async (client) => {
-    await client.query(`DELETE FROM temu_import_errors WHERE batch_id IN (SELECT id FROM temu_import_batches WHERE import_type = 'order_sales' AND source_type = 'json_migration')`);
+    await client.query(`DELETE FROM temu_import_errors WHERE batch_id IN (SELECT id FROM temu_import_batches WHERE import_type = 'order_sales')`);
     await client.query('DELETE FROM temu_order_items');
-    await client.query(`DELETE FROM temu_import_batches WHERE import_type = 'order_sales' AND source_type = 'json_migration'`);
+    await client.query(`DELETE FROM temu_import_batches WHERE import_type = 'order_sales'`);
     return syncOrderStoreWithClient(client, orderStore);
   });
 }
