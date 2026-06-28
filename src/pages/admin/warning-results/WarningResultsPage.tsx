@@ -51,6 +51,7 @@ import { analyzeStoreNameMatches, createStoreMatcher, type StoreMatchCheckReport
 import { buildTrafficRecordsFromDailySummary } from '../../../utils/trafficDailySummaryAdapter';
 import { hasPermission } from '../../../auth/permissions';
 import type { CurrentUser } from '../../../types/auth';
+import { runOperationDiagnosis, type AnomalyResult } from '../../../rules/operationAnomaly';
 
 type OrderDailySummaryResponse = {
   records?: OrderDailySummaryRecord[];
@@ -166,6 +167,56 @@ function riskSort(first: TrafficWarningResult, second: TrafficWarningResult) {
   const levelRank = { critical: 0, warning: 1, insufficient: 2 };
   const typeRank: Record<TrafficWarningType, number> = { deal: 0, conversion: 1, traffic: 2 };
   return levelRank[first.level] - levelRank[second.level] || second.dropRate - first.dropRate || typeRank[first.type] - typeRank[second.type];
+}
+
+function isFormalSalesOrOrderAnomaly(anomaly: AnomalyResult) {
+  return (anomaly.ruleId === 'sales-amount-decline-v1' || anomaly.ruleId === 'order-count-decline-v1') &&
+    anomaly.sourceMetrics.resultLevel === 'anomaly';
+}
+
+function getSourceMetricNumber(anomaly: AnomalyResult, key: string) {
+  const value = anomaly.sourceMetrics[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function operationAnomalyToRiskWarning(anomaly: AnomalyResult): TrafficWarningResult {
+  const isSalesAmount = anomaly.ruleId === 'sales-amount-decline-v1';
+  const dropRate = Number((getSourceMetricNumber(anomaly, 'declineRate') * 100).toFixed(2));
+  const metricField = isSalesAmount ? 'salesAmount' : 'orderCount';
+  const metricName = isSalesAmount ? '销售额' : '订单数';
+
+  return {
+    id: `operation-${anomaly.id}`,
+    date: anomaly.date,
+    storeName: anomaly.storeName || '未绑定店铺',
+    type: 'deal',
+    ruleName: anomaly.ruleName,
+    metricField,
+    previous30Avg: Number(getSourceMetricNumber(anomaly, 'baseline30Avg').toFixed(4)),
+    recent7Avg: Number(getSourceMetricNumber(anomaly, 'recent7Avg').toFixed(4)),
+    dropRate,
+    level: anomaly.severity === 'critical' || anomaly.severity === 'high' ? 'critical' : 'warning',
+    triggeredAt: anomaly.createdAt,
+    content: `${metricName}最近7日均值较前30日下降 ${dropRate.toFixed(2)}%`,
+    sortWeight: isSalesAmount ? 5 : 8,
+  };
+}
+
+function mergeRiskResults(
+  trafficRiskResults: TrafficWarningResult[],
+  operationAnomalyRiskResults: TrafficWarningResult[],
+) {
+  const resultsByKey = new Map<string, TrafficWarningResult>();
+
+  [...trafficRiskResults, ...operationAnomalyRiskResults].forEach((item) => {
+    const key = `${item.storeName}|${item.metricField}|${item.date}`;
+    const existing = resultsByKey.get(key);
+    if (!existing || riskSort(item, existing) < 0) {
+      resultsByKey.set(key, item);
+    }
+  });
+
+  return Array.from(resultsByKey.values()).sort(riskSort);
 }
 
 function safeLoad<T>(loader: () => T, fallback: T) {
@@ -646,11 +697,34 @@ async function loadAnalysisData(currentUser: CurrentUser, options: { force?: boo
   const trafficRecords = buildTrafficRecordsFromDailySummary(trafficSummary.items ?? []);
   const standardTrafficRecords = filterRecordsByPermission(standardizeTrafficRecords(trafficRecords, stores, relations, operators), currentUser);
   const standardAnalysisResults = filterRecordsByPermission(standardizeAnalysisItems(analysisItems, stores, relations, operators), currentUser);
+  const operationDiagnosis = runOperationDiagnosis({
+    salesOrders: standardSalesOrders,
+    trafficMetrics: standardTrafficRecords,
+    analysisResults: standardAnalysisResults,
+    warnings: [],
+    meta: {
+      platforms: Array.from(new Set([
+        ...standardSalesOrders.map((record) => record.platform),
+        ...standardTrafficRecords.map((record) => record.platform),
+        ...standardAnalysisResults.map((record) => record.platform),
+      ].filter(Boolean))),
+      generatedAt: new Date().toISOString(),
+      recordCounts: {
+        salesOrders: standardSalesOrders.length,
+        trafficMetrics: standardTrafficRecords.length,
+        analysisResults: standardAnalysisResults.length,
+      },
+    },
+  });
   const storeNames = [
     ...orderRecords.map((order) => order.storeName),
     ...trafficRecords.map((record) => record.storeName),
   ];
-  const riskResults = filterRecordsByPermission(riskStore.items ?? [], currentUser).filter((item) => item.level !== 'insufficient').sort(riskSort);
+  const trafficRiskResults = filterRecordsByPermission(riskStore.items ?? [], currentUser).filter((item) => item.level !== 'insufficient');
+  const operationAnomalyRiskResults = operationDiagnosis.anomalies
+    .filter(isFormalSalesOrOrderAnomaly)
+    .map(operationAnomalyToRiskWarning);
+  const riskResults = mergeRiskResults(trafficRiskResults, operationAnomalyRiskResults);
   const growthResults = filterRecordsByPermission(growthStore.items ?? [], currentUser).slice(0, 999);
 
     return {

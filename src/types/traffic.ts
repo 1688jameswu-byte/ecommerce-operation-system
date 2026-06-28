@@ -1,9 +1,14 @@
 export type TrafficWarningType = 'traffic' | 'conversion' | 'deal';
 
-export type TrafficMetricField =
+export type TrafficConversionMetricField =
   | 'productVisitors'
   | 'detailPayConversionRate'
   | 'totalPayBuyers';
+
+export type TrafficMetricField =
+  | TrafficConversionMetricField
+  | 'salesAmount'
+  | 'orderCount';
 
 export type TrafficWarningLevel = 'warning' | 'critical' | 'insufficient';
 
@@ -87,7 +92,7 @@ export interface TrafficWarningRuleConfig {
   id: string;
   name: string;
   type: TrafficWarningType;
-  metricField: TrafficMetricField;
+  metricField: TrafficConversionMetricField;
   yellowThreshold: number;
   redThreshold: number;
   enabled: boolean;
@@ -99,7 +104,7 @@ export interface TrafficGrowthRuleConfig {
   id: string;
   name: string;
   type: TrafficWarningType;
-  metricField: TrafficMetricField;
+  metricField: TrafficConversionMetricField;
   growthThreshold: number;
   enabled: boolean;
   sortWeight: number;

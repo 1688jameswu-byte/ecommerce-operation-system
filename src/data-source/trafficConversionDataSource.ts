@@ -7,6 +7,7 @@ import type { AnalysisResultRecord, TrafficMetricRecord } from '../types/fact';
 import type {
   TrafficAnalysisItem,
   TrafficAnalysisResultStore,
+  TrafficConversionMetricField,
   TrafficConversionRecord,
   TrafficConversionStore,
   TrafficDailySummaryItem,
@@ -61,6 +62,8 @@ export const metricFieldLabels: Record<TrafficMetricField, string> = {
   productVisitors: '商品访客数',
   detailPayConversionRate: '商详支付转化率',
   totalPayBuyers: '总支付买家数',
+  salesAmount: '销售额',
+  orderCount: '订单数',
 };
 
 export const defaultTrafficWarningRules: TrafficWarningRuleConfig[] = [
@@ -284,7 +287,7 @@ function dateKeys(endDate: Date, days: number) {
   });
 }
 
-function average(records: TrafficConversionRecord[], field: TrafficMetricField, dates: string[]) {
+function average(records: TrafficConversionRecord[], field: TrafficConversionMetricField, dates: string[]) {
   const byDate = new Map(records.map((record) => [record.date, record[field]]));
   const values = dates.flatMap((date) => {
     const value = byDate.get(date);
@@ -345,7 +348,7 @@ function typePriority(type: TrafficWarningType) {
   return type === 'deal' ? 0 : type === 'conversion' ? 1 : 2;
 }
 
-function buildMetrics(storeRecords: TrafficConversionRecord[], latestDate: string, field: TrafficMetricField) {
+function buildMetrics(storeRecords: TrafficConversionRecord[], latestDate: string, field: TrafficConversionMetricField) {
   const endDate = new Date(latestDate);
   const previousEndDate = new Date(endDate);
   previousEndDate.setDate(endDate.getDate() - 7);
