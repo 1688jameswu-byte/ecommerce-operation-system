@@ -1,13 +1,17 @@
 .admin-shell {
   display: grid;
-  min-height: 100%;
+  min-height: 100vh;
   grid-template-columns: 260px minmax(0, 1fr);
   background: #07101f;
   color: #edf6ff;
 }
 
 .admin-route-loading {
-  padding: 8px 0;
+  display: flex;
+  min-height: 240px;
+  align-items: center;
+  padding: 24px 0;
+  background: transparent;
   color: #8fb3d6;
   font-size: 13px;
 }
@@ -122,6 +126,7 @@
 
 .admin-main {
   min-width: 0;
+  background: #07101f;
   padding: 28px 32px;
 }
 

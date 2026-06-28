@@ -69,7 +69,15 @@ function getActiveRoute() {
 
 const dataCenterMenuSections = ['数据导入', '数据源'];
 
-function DataCenterMenuLinks({ routes, activeRoute }: { routes: AdminRoute[]; activeRoute: AdminRoute }) {
+function DataCenterMenuLinks({
+  routes,
+  activeRoute,
+  onNavigate,
+}: {
+  routes: AdminRoute[];
+  activeRoute: AdminRoute;
+  onNavigate: (route: AdminRoute) => void;
+}) {
   const sectionRoutes = routes.filter((route) => route.menuSection);
   const standaloneRoutes = routes.filter((route) => !route.menuSection);
 
@@ -89,6 +97,10 @@ function DataCenterMenuLinks({ routes, activeRoute }: { routes: AdminRoute[]; ac
                 key={route.path}
                 className={`admin-nav-sub-link ${route.path === activeRoute.path ? 'active' : ''}`}
                 href={route.path}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onNavigate(route);
+                }}
               >
                 {route.label}
               </a>
@@ -101,6 +113,10 @@ function DataCenterMenuLinks({ routes, activeRoute }: { routes: AdminRoute[]; ac
           key={route.path}
           className={route.path === activeRoute.path ? 'active' : ''}
           href={route.path}
+          onClick={(event) => {
+            event.preventDefault();
+            onNavigate(route);
+          }}
         >
           {route.label}
         </a>
@@ -430,7 +446,7 @@ function AdminHome({
 }
 
 function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
-  const requestedRoute = getActiveRoute();
+  const [requestedRoute, setRequestedRoute] = useState(getActiveRoute);
   const visibleStores = useVisibleStores(currentUser);
   const allowedMenuKeys = new Set(currentUser.allowedMenuKeys ?? []);
   const hasNewProductCenterAccess = [
@@ -473,6 +489,13 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const groups = groupOrder.filter((group) => menuAdminRoutes.some((route) => route.group === group));
   const activeRouteGroup = groups.includes(activeRoute.group) ? activeRoute.group : null;
   const [activeOpenGroup, setActiveOpenGroup] = useState<string | null>(activeRouteGroup);
+  const navigateToRoute = (route: AdminRoute) => {
+    if (window.location.pathname !== route.path) {
+      window.history.pushState(null, '', route.path);
+    }
+    setRequestedRoute(route);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
   const isExcelImportPage = activeRoute.path === '/admin/import';
   const isEffectiveNewListingsPage = activeRoute.path === '/admin/effective-new-listings';
   const isStoreManagementPage = activeRoute.path === '/admin/stores';
@@ -519,6 +542,16 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   }, [activeRouteGroup]);
 
   useEffect(() => {
+    const handlePopState = () => {
+      setRequestedRoute(getActiveRoute());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  useEffect(() => {
     if (requestedRoute.path !== activeRoute.path && canAccessActiveRoute) {
       window.history.replaceState(null, '', activeRoute.path);
     }
@@ -539,7 +572,11 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
             <a
               className={dashboardRoute.path === activeRoute.path ? 'active' : ''}
               href={dashboardRoute.path}
-              onClick={() => setActiveOpenGroup(null)}
+              onClick={(event) => {
+                event.preventDefault();
+                setActiveOpenGroup(null);
+                navigateToRoute(dashboardRoute);
+              }}
             >
               {dashboardRoute.label}
             </a>
@@ -565,6 +602,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
                       <DataCenterMenuLinks
                         routes={groupRoutes}
                         activeRoute={activeRoute}
+                        onNavigate={navigateToRoute}
                       />
                     ) : (
                       groupRoutes.map((route) => (
@@ -572,6 +610,10 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
                             key={route.path}
                             className={route.path === activeRoute.path ? 'active' : ''}
                             href={route.path}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              navigateToRoute(route);
+                            }}
                           >
                             {route.label}
                           </a>
