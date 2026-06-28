@@ -1555,7 +1555,12 @@ export async function getBossDashboard(params = {}) {
     [snapshotDate, ...values],
   );
   const operatorRanking = await queryTemuDatabase(
-    `SELECT operator_id, operator_name, COUNT(*) AS new_count, COALESCE(SUM(order_count),0) AS order_count,
+    `SELECT operator_id, operator_name,
+            COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 7) AS recent7_new_count,
+            COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 30) AS recent30_new_count,
+            COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 60 AND is_ordered) AS recent60_ordered_count,
+            COUNT(*) AS new_count,
+            COALESCE(SUM(order_count),0) AS order_count,
             COALESCE(SUM(ad_spend),0) AS ad_spend, COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount
      FROM temu_new_product_daily_snapshot s
      WHERE ${condition}
@@ -1565,7 +1570,12 @@ export async function getBossDashboard(params = {}) {
     [snapshotDate, ...values],
   );
   const storeRanking = await queryTemuDatabase(
-    `SELECT store_id, store_name, COUNT(*) AS new_count, COALESCE(SUM(order_count),0) AS order_count,
+    `SELECT store_id, store_name,
+            COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 7) AS recent7_new_count,
+            COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 30) AS recent30_new_count,
+            COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 60 AND is_ordered) AS recent60_ordered_count,
+            COUNT(*) AS new_count,
+            COALESCE(SUM(order_count),0) AS order_count,
             COALESCE(SUM(ad_spend),0) AS ad_spend, COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount
      FROM temu_new_product_daily_snapshot s
      WHERE ${condition}

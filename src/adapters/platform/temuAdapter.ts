@@ -1,5 +1,5 @@
 import type { AnalysisResultRecord, SalesOrderRecord, TrafficMetricRecord } from '../../types/fact';
-import type { TrafficAnalysisResultType, TrafficMetricField, TrafficWarningLevel, TrafficWarningType } from '../../types/traffic';
+import type { TrafficAnalysisResultLevel, TrafficAnalysisResultType, TrafficMetricField, TrafficWarningLevel, TrafficWarningType } from '../../types/traffic';
 import {
   buildStandardAnalysisResults,
   buildStandardSalesOrders,
@@ -78,7 +78,10 @@ type TemuSourceAnalysisResult = {
   previous30Avg: number;
   recent7Avg: number;
   changeRate: number;
+  changeRateText?: string;
   resultType: TrafficAnalysisResultType;
+  resultLevel?: TrafficAnalysisResultLevel;
+  resultLabel?: string;
   level: TrafficWarningLevel | 'normal' | 'opportunity';
   content: string;
   rawSource?: unknown;
@@ -220,7 +223,10 @@ function analysisResultSources(input: PlatformAdapterInput, warnings: string[]):
       previous30Avg: toNumber(record.previous30Avg),
       recent7Avg: toNumber(record.recent7Avg),
       changeRate: toNumber(record.changeRate),
+      changeRateText: toText(record.changeRateText),
       resultType,
+      resultLevel: record.resultLevel as TrafficAnalysisResultLevel | undefined,
+      resultLabel: toText(record.resultLabel),
       level,
       content: toText(record.content),
       rawSource: record,

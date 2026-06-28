@@ -4,7 +4,7 @@ import { storeOperatorDataSource } from '../data-source/storeOperatorDataSource'
 import type { AnalysisResultRecord, SalesOrderRecord, TrafficMetricRecord } from '../types/fact';
 import type { StorePlatform, StoreRecord } from '../types/store';
 import type { StoreOperatorRelation } from '../types/storeOperator';
-import type { TrafficAnalysisResultType, TrafficMetricField, TrafficWarningLevel, TrafficWarningType } from '../types/traffic';
+import type { TrafficAnalysisResultLevel, TrafficAnalysisResultType, TrafficMetricField, TrafficWarningLevel, TrafficWarningType } from '../types/traffic';
 import { createStoreMatcher } from './storeStandardization';
 
 interface SourceSalesOrder {
@@ -73,7 +73,10 @@ interface SourceAnalysisResult {
   previous30Avg: number;
   recent7Avg: number;
   changeRate: number;
+  changeRateText?: string;
   resultType: TrafficAnalysisResultType;
+  resultLevel?: TrafficAnalysisResultLevel;
+  resultLabel?: string;
   level: TrafficWarningLevel | 'normal' | 'opportunity';
   content: string;
   rawSource?: unknown;
@@ -276,7 +279,10 @@ export function buildStandardAnalysisResults(items: SourceAnalysisResult[]): Ana
       previous30Avg: item.previous30Avg,
       recent7Avg: item.recent7Avg,
       changeRate: item.changeRate,
+      changeRateText: item.changeRateText,
       resultType: item.resultType,
+      resultLevel: item.resultLevel,
+      resultLabel: item.resultLabel,
       level: item.level,
       content: item.content,
       rawSource: item.rawSource,

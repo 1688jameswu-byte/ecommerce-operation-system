@@ -6,6 +6,7 @@ import { buildStandardAnalysisResults, buildStandardTrafficRecords } from '../ut
 import type { AnalysisResultRecord, TrafficMetricRecord } from '../types/fact';
 import type {
   TrafficAnalysisItem,
+  TrafficAnalysisResultLevel,
   TrafficAnalysisResultStore,
   TrafficConversionMetricField,
   TrafficConversionRecord,
@@ -32,6 +33,15 @@ const GROWTH_RESULTS_KEY = 'growthOpportunities';
 const BUSINESS_ANALYSIS_KEY = 'businessAnalysisItems';
 const TRAFFIC_CONVERSION_CHANGE_EVENT = 'traffic-conversion-data-change';
 type StoreMatcher = ReturnType<typeof createStoreMatcher>;
+
+const trafficAnalysisThresholds = {
+  criticalRiskRate: -20,
+  mediumRiskRate: -10,
+  slightFluctuationRate: -3,
+  opportunityRate: 10,
+  riskThresholdRate: 10,
+  growthThresholdRate: 10,
+};
 
 function getStoreSnapshot(storeName: string) {
   const stores = storeDataSource.load();
@@ -359,14 +369,114 @@ function buildMetrics(storeRecords: TrafficConversionRecord[], latestDate: strin
   const hasEnoughData = previous30.count > 0 && recent7.count > 0 && previous30.value > 0;
   const dropRate = hasEnoughData ? Math.max(((previous30.value - recent7.value) / previous30.value) * 100, 0) : 0;
   const growthRate = hasEnoughData ? Math.max(((recent7.value - previous30.value) / previous30.value) * 100, 0) : 0;
+  const changeRate = hasEnoughData ? ((recent7.value - previous30.value) / previous30.value) * 100 : 0;
 
   return {
     previous30Avg: previous30.value,
     recent7Avg: recent7.value,
+    previous30Count: previous30.count,
+    recent7Count: recent7.count,
     hasEnoughData,
     dropRate,
     growthRate,
+    changeRate,
   };
+}
+
+function signedPercent(value: number) {
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
+}
+
+function formatAnalysisMetricValue(field: TrafficMetricField, value: number) {
+  return field === 'detailPayConversionRate' || /rate|conversion/i.test(field)
+    ? `${(value * 100).toFixed(2)}%`
+    : value.toFixed(2);
+}
+
+function classifyAnalysisResult(metrics: ReturnType<typeof buildMetrics>): {
+  resultType: TrafficAnalysisItem['resultType'];
+  resultLevel: TrafficAnalysisResultLevel;
+  resultLabel: string;
+  level: TrafficAnalysisItem['level'];
+} {
+  if (!metrics.hasEnoughData || metrics.recent7Count < 7 || metrics.previous30Avg <= 0) {
+    return {
+      resultType: 'insufficient',
+      resultLevel: 'insufficient',
+      resultLabel: '数据不足',
+      level: 'insufficient',
+    };
+  }
+
+  if (metrics.changeRate <= trafficAnalysisThresholds.criticalRiskRate) {
+    return {
+      resultType: 'risk',
+      resultLevel: 'critical',
+      resultLabel: '严重风险',
+      level: 'critical',
+    };
+  }
+
+  if (metrics.changeRate <= trafficAnalysisThresholds.mediumRiskRate) {
+    return {
+      resultType: 'risk',
+      resultLevel: 'medium_risk',
+      resultLabel: '中度风险',
+      level: 'warning',
+    };
+  }
+
+  if (metrics.changeRate < trafficAnalysisThresholds.slightFluctuationRate) {
+    return {
+      resultType: 'normal',
+      resultLevel: 'slight_fluctuation',
+      resultLabel: '轻微波动',
+      level: 'normal',
+    };
+  }
+
+  if (metrics.changeRate >= trafficAnalysisThresholds.opportunityRate) {
+    return {
+      resultType: 'opportunity',
+      resultLevel: 'opportunity',
+      resultLabel: '增长机会',
+      level: 'opportunity',
+    };
+  }
+
+  return {
+    resultType: 'normal',
+    resultLevel: 'normal',
+    resultLabel: '正常',
+    level: 'normal',
+  };
+}
+
+function buildAnalysisContent(field: TrafficMetricField, metrics: ReturnType<typeof buildMetrics>, resultLabel: string) {
+  const metricName = metricFieldLabels[field];
+
+  if (!metrics.hasEnoughData || metrics.recent7Count < 7 || metrics.previous30Avg <= 0) {
+    return `${metricName}数据不足：前30日可用样本 ${metrics.previous30Count} 天，近7日可用样本 ${metrics.recent7Count} 天，暂不判定风险或增长机会。`;
+  }
+
+  const trendText = metrics.changeRate > 0 ? '增长' : metrics.changeRate < 0 ? '下降' : '持平';
+  const absChangeRate = Math.abs(metrics.changeRate).toFixed(2);
+  const recentText = formatAnalysisMetricValue(field, metrics.recent7Avg);
+  const previousText = formatAnalysisMetricValue(field, metrics.previous30Avg);
+
+  if (resultLabel === '严重风险' || resultLabel === '中度风险') {
+    return `${metricName}近7日均值 ${recentText}，较前30日均值 ${previousText} ${trendText} ${absChangeRate}%，超过风险阈值 ${trafficAnalysisThresholds.riskThresholdRate}%，判定为${resultLabel}。`;
+  }
+
+  if (resultLabel === '轻微波动') {
+    return `${metricName}近7日均值 ${recentText}，较前30日均值 ${previousText} ${trendText} ${absChangeRate}%，未达到风险阈值 ${trafficAnalysisThresholds.riskThresholdRate}%，判定为轻微波动。`;
+  }
+
+  if (resultLabel === '增长机会') {
+    return `${metricName}近7日均值 ${recentText}，较前30日均值 ${previousText} ${trendText} ${absChangeRate}%，达到增长机会阈值 ${trafficAnalysisThresholds.growthThresholdRate}%，建议关注近期商品、价格、活动或流量质量变化。`;
+  }
+
+  return `${metricName}近7日均值 ${recentText}，较前30日均值 ${previousText} ${trendText} ${absChangeRate}%，处于正常波动范围。`;
 }
 
 function buildBatch(records: TrafficConversionRecord[], coveredCount: number, batchId: string): TrafficImportBatch {
@@ -786,7 +896,7 @@ export const trafficConversionDataSource = {
 
   computeAnalysisItems(): TrafficAnalysisItem[] {
     const { records } = this.loadStore();
-    const { rules, growthRules } = this.loadRuleStore();
+    const { rules } = this.loadRuleStore();
 
     return groupTrafficRecordsByStore(records).flatMap(({ storeKey, storeName, records: storeRecords }) => {
       const latestDate = storeRecords.map((record) => record.date).sort().at(-1);
@@ -795,34 +905,9 @@ export const trafficConversionDataSource = {
       }
 
       return rules.map((riskRule) => {
-        const growthRule = growthRules.find((item) => item.type === riskRule.type);
         const metrics = buildMetrics(storeRecords, latestDate, riskRule.metricField);
-        let resultType: TrafficAnalysisItem['resultType'] = 'normal';
-        let level: TrafficAnalysisItem['level'] = 'normal';
-        let changeRate = 0;
-        let content = '未触发风险或增长机会';
-
-        if (!metrics.hasEnoughData) {
-          resultType = 'insufficient';
-          level = 'insufficient';
-          content = '数据不足，仅在详细列表展示';
-        } else if (metrics.dropRate >= riskRule.redThreshold) {
-          resultType = 'risk';
-          level = 'critical';
-          changeRate = metrics.dropRate;
-          content = `${metricFieldLabels[riskRule.metricField]}近7日均值较前30日下降 ${metrics.dropRate.toFixed(2)}%`;
-        } else if (metrics.dropRate >= riskRule.yellowThreshold) {
-          resultType = 'risk';
-          level = 'warning';
-          changeRate = metrics.dropRate;
-          content = `${metricFieldLabels[riskRule.metricField]}近7日均值较前30日下降 ${metrics.dropRate.toFixed(2)}%`;
-        } else if (growthRule?.enabled && metrics.growthRate >= growthRule.growthThreshold) {
-          resultType = 'opportunity';
-          level = 'opportunity';
-          changeRate = metrics.growthRate;
-          content = `${metricFieldLabels[riskRule.metricField]}近7日较前30日增长 ${metrics.growthRate.toFixed(2)}%`;
-        }
-
+        const classification = classifyAnalysisResult(metrics);
+        const changeRate = Number(metrics.changeRate.toFixed(2));
         return {
           id: `${storeKey}-${riskRule.id}-analysis-${latestDate}`,
           date: latestDate,
@@ -831,10 +916,13 @@ export const trafficConversionDataSource = {
           metricField: riskRule.metricField,
           previous30Avg: Number(metrics.previous30Avg.toFixed(4)),
           recent7Avg: Number(metrics.recent7Avg.toFixed(4)),
-          changeRate: Number(changeRate.toFixed(2)),
-          resultType,
-          level,
-          content,
+          changeRate,
+          changeRateText: signedPercent(changeRate),
+          resultType: classification.resultType,
+          resultLevel: classification.resultLevel,
+          resultLabel: classification.resultLabel,
+          level: classification.level,
+          content: buildAnalysisContent(riskRule.metricField, metrics, classification.resultLabel),
         } satisfies TrafficAnalysisItem;
       });
     });

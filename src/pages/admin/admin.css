@@ -2227,6 +2227,21 @@
   color: #ff4d76;
 }
 
+.analysis-result-critical {
+  background: rgba(248, 77, 77, 0.18);
+  color: #ff6b6b;
+}
+
+.analysis-result-medium_risk {
+  background: rgba(255, 77, 118, 0.14);
+  color: #ff7aa2;
+}
+
+.analysis-result-slight_fluctuation {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
 .analysis-result-opportunity {
   background: rgba(61, 222, 169, 0.12);
   color: #54e6ba;
@@ -2240,6 +2255,27 @@
 .analysis-result-normal {
   background: rgba(86, 154, 230, 0.14);
   color: #8bd7ff;
+}
+
+.numeric-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-cell {
+  text-align: center;
+}
+
+.change-rate-cell.is-up {
+  color: #54e6ba;
+}
+
+.change-rate-cell.is-down {
+  color: #ffca66;
+}
+
+.change-rate-cell.is-flat {
+  color: #cbd5e1;
 }
 
 .operator-performance-panel {

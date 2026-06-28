@@ -1,5 +1,5 @@
 import type { StorePlatform } from './store';
-import type { TrafficAnalysisResultType, TrafficMetricField, TrafficWarningLevel, TrafficWarningType } from './traffic';
+import type { TrafficAnalysisResultLevel, TrafficAnalysisResultType, TrafficMetricField, TrafficWarningLevel, TrafficWarningType } from './traffic';
 
 export interface DateDimension {
   date: string;
@@ -74,7 +74,10 @@ export interface AnalysisResultRecord extends BaseFactRecord {
   previous30Avg: number;
   recent7Avg: number;
   changeRate: number;
+  changeRateText?: string;
   resultType: TrafficAnalysisResultType;
+  resultLevel?: TrafficAnalysisResultLevel;
+  resultLabel?: string;
   level: TrafficWarningLevel | 'normal' | 'opportunity';
   content: string;
   rawSource?: unknown;

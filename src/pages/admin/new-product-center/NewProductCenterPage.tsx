@@ -249,18 +249,20 @@ function StorePerformance({ rows }: { rows: Array<Record<string, unknown>> }) {
       <h2>我的店铺表现</h2>
       <div className="npc-table-wrap">
         <table>
-          <thead><tr><th>店铺</th><th>新品数</th><th>订单数</th><th>广告花费</th><th>广告销售额</th></tr></thead>
+          <thead><tr><th>店铺</th><th>近7天新品</th><th>近30天新品</th><th>近60天出单数</th><th>订单明细数</th><th>广告花费</th><th>广告销售额</th></tr></thead>
           <tbody>
             {rows.map((row) => (
               <tr key={String(row.storeId || row.storeName)}>
                 <td>{String(row.storeName || '-')}</td>
-                <td>{String(row.newCount || 0)}</td>
+                <td>{String(row.recent7NewCount || 0)}</td>
+                <td>{String(row.recent30NewCount || 0)}</td>
+                <td>{String(row.recent60OrderedCount || 0)}</td>
                 <td>{String(row.orderCount || 0)}</td>
                 <td>{formatMoney(row.adSpend)}</td>
                 <td>{formatMoney(row.adSalesAmount)}</td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={5}>暂无店铺表现。</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={7}>暂无店铺表现。</td></tr>}
           </tbody>
         </table>
       </div>
@@ -433,8 +435,22 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
     isOrdered !== appliedIsOrdered;
 
   const applyWorkbenchFilters = () => {
+    let nextStoreId = storeId;
+    const keyword = storeSearchText.trim();
+    if (!nextStoreId && keyword) {
+      const exact = visibleStoreOptions.find((store) => String(store.storeName || '').toLowerCase() === keyword.toLowerCase());
+      const target = exact || filteredStoreOptions[0];
+      if (target?.id) {
+        nextStoreId = target.id;
+        setStoreId(target.id);
+        setStoreSearchText(target.storeName || '');
+      } else {
+        setMessage(`未找到店铺：${keyword}`);
+        return;
+      }
+    }
     setAppliedSnapshotDate(snapshotDate);
-    setAppliedStoreId(storeId);
+    setAppliedStoreId(nextStoreId);
     setAppliedOperatorName(operatorName);
     setAppliedTag(tag);
     setAppliedIsAdEnabled(isAdEnabled);

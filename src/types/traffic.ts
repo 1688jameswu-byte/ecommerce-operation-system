@@ -11,6 +11,13 @@ export type TrafficMetricField =
   | 'orderCount';
 
 export type TrafficWarningLevel = 'warning' | 'critical' | 'insufficient';
+export type TrafficAnalysisResultLevel =
+  | 'critical'
+  | 'medium_risk'
+  | 'slight_fluctuation'
+  | 'normal'
+  | 'opportunity'
+  | 'insufficient';
 
 export type TrafficImportStatus = 'success' | 'covered' | 'abnormal' | 'missing';
 
@@ -161,7 +168,10 @@ export interface TrafficAnalysisItem {
   previous30Avg: number;
   recent7Avg: number;
   changeRate: number;
+  changeRateText?: string;
   resultType: TrafficAnalysisResultType;
+  resultLevel?: TrafficAnalysisResultLevel;
+  resultLabel?: string;
   level: TrafficWarningLevel | 'normal' | 'opportunity';
   content: string;
 }
