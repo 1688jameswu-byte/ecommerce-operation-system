@@ -546,7 +546,7 @@ async function loadAnalysisData(currentUser: CurrentUser, options: { force?: boo
       operators,
       suggestionTemplates,
     ] = await Promise.all([
-      fetchJson<OrderDailySummaryResponse>('/api/persistent-data/orderImportStore?view=dashboard-orders&recentDays=30', { records: [] }),
+      fetchJson<OrderDailySummaryResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=30', { records: [] }),
       fetchJson<TrafficDailySummaryStore>('/api/persistent-data/trafficDailySummary', { items: [], updatedAt: '' }),
       fetchJson<TrafficAnalysisResultStore<TrafficWarningResult>>('/api/persistent-data/riskResults', { items: [], updatedAt: '' }),
       fetchJson<TrafficAnalysisResultStore<TrafficGrowthOpportunity>>('/api/persistent-data/growthOpportunities', { items: [], updatedAt: '' }),

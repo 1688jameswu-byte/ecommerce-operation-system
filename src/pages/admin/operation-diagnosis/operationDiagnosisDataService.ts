@@ -104,7 +104,7 @@ export async function loadOperationDiagnosisDataSetAsync(currentUser?: CurrentUs
 
   const request = (async () => {
     const [orderSummary, trafficSummary, analysisStore] = await Promise.all([
-      fetchJsonByUrl<OrderDailySummaryResponse>('/api/persistent-data/orderImportStore?view=dashboard-orders&recentDays=30', { records: [] }),
+      fetchJsonByUrl<OrderDailySummaryResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=30', { records: [] }),
       fetchPersistentJson<TrafficDailySummaryStore>('trafficDailySummary', { items: [], updatedAt: '' }),
       fetchPersistentJson<TrafficAnalysisResultStore<TrafficAnalysisItem>>('businessAnalysisItems', { items: [], updatedAt: '' }),
     ]);
