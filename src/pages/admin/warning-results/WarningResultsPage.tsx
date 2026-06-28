@@ -268,6 +268,21 @@ function previousDateKey(dateKey: string) {
   return formatDateKey(date);
 }
 
+function normalizeOperatorNameForPerformance(value?: string) {
+  return String(value ?? '')
+    .trim()
+    .replace(/^(temu|TEMU|Temu)\s*[-_:\uFF1A\uFF0D\u2014\u2013\s]*/u, '')
+    .replace(/^(temu|TEMU|Temu)?\s*运营\s*[-_:\uFF1A\uFF0D\u2014\u2013\s]*/u, '')
+    .replace(/^运营\s*[-_:\uFF1A\uFF0D\u2014\u2013\s]*/u, '')
+    .replace(/^1688\s*[-_:\uFF1A\uFF0D\u2014\u2013\s]*/u, '')
+    .replace(/^1688\s*(业务员|运营|销售)\s*[-_:\uFF1A\uFF0D\u2014\u2013\s]*/u, '')
+    .trim();
+}
+
+function getOperatorPerformanceKey(operatorId?: string, operatorName?: string) {
+  return normalizeOperatorNameForPerformance(operatorName) || String(operatorId ?? '').trim();
+}
+
 async function fetchJson<T>(url: string, fallback: T): Promise<T> {
   try {
     const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`, {
@@ -425,16 +440,57 @@ function standardizeAnalysisItems(
 
 function buildOperatorPerformanceSummary(
   operators: OperatorRecord[],
+  stores: StoreRecord[],
+  relations: StoreOperatorRelation[],
   orders: SalesOrderForPerformance[],
   analysisResults: AnalysisResultRecord[],
 ): OperatorPerformanceSummary {
-  const activeOperators = operators.filter((operator) => operator.status !== 'inactive');
+  const operatorById = new Map(operators.map((operator) => [operator.id, operator]));
+  const storeById = new Map(stores.map((store) => [store.id, store]));
+  const storeByName = new Map(stores.map((store) => [store.storeName, store]));
   const latestOrderDate = orders.map((order) => order.date).sort().at(-1) || formatDateKey(new Date());
   const monthKey = latestOrderDate.slice(0, 7);
   const yesterdayKey = previousDateKey(latestOrderDate);
   const operatorStores = new Map<string, Map<string, string>>();
+  const activeOperatorsByKey = new Map<string, OperatorRecord>();
 
-  activeOperators.forEach((operator) => operatorStores.set(operator.id, new Map()));
+  relations
+    .filter((relation) => {
+      const store = storeById.get(relation.storeId) || storeByName.get(relation.storeName || '');
+      return relation.status !== 'inactive' &&
+        (String(relation.platform ?? '').toUpperCase() === 'TEMU' || String(store?.platform ?? '').toUpperCase() === 'TEMU');
+    })
+    .forEach((relation) => {
+      const operator = operatorById.get(relation.operatorId);
+      if (operator?.status === 'inactive') {
+        return;
+      }
+
+      const operatorName = normalizeOperatorNameForPerformance(operator?.operatorName || relation.operatorName);
+      const key = getOperatorPerformanceKey(operator?.id || relation.operatorId, operatorName);
+      if (!key || !operatorName) {
+        return;
+      }
+
+      if (!activeOperatorsByKey.has(key)) {
+        activeOperatorsByKey.set(key, {
+          id: key,
+          operatorName,
+          groupName: operator?.groupName || '',
+          level: operator?.level || '',
+          status: operator?.status || 'active',
+        });
+      }
+
+      const store = storeById.get(relation.storeId) || storeByName.get(relation.storeName || '');
+      const storeId = store?.id || relation.storeId || relation.storeName || '';
+      const storeName = store?.storeName || relation.storeName || relation.storeId || '';
+      if (storeId && storeName) {
+        const storesForOperator = operatorStores.get(key) ?? new Map<string, string>();
+        storesForOperator.set(storeId, storeName);
+        operatorStores.set(key, storesForOperator);
+      }
+    });
 
   const monthlySales = new Map<string, number>();
   const yesterdaySales = new Map<string, number>();
@@ -442,23 +498,43 @@ function buildOperatorPerformanceSummary(
   const monthlyOrderTotals = new Map<string, number>();
 
   orders.forEach((order) => {
-    if (!order.operatorId) {
+    if (String(order.platform ?? '').toUpperCase() !== 'TEMU') {
       return;
     }
 
-    operatorStores.get(order.operatorId)?.set(order.storeId, order.storeName);
+    const key = getOperatorPerformanceKey(order.operatorId, order.operatorName);
+    if (!key) {
+      return;
+    }
+
+    if (!activeOperatorsByKey.has(key)) {
+      const operatorName = normalizeOperatorNameForPerformance(order.operatorName);
+      if (!operatorName) {
+        return;
+      }
+      activeOperatorsByKey.set(key, {
+        id: key,
+        operatorName,
+        groupName: '',
+        status: 'active',
+      });
+    }
+
+    const storesForOperator = operatorStores.get(key) ?? new Map<string, string>();
+    storesForOperator.set(order.storeId, order.storeName);
+    operatorStores.set(key, storesForOperator);
     if (order.month === monthKey) {
-      monthlySales.set(order.operatorId, (monthlySales.get(order.operatorId) ?? 0) + order.salesAmount);
+      monthlySales.set(key, (monthlySales.get(key) ?? 0) + order.salesAmount);
       if (typeof order.orderCountForSummary === 'number') {
-        monthlyOrderTotals.set(order.operatorId, (monthlyOrderTotals.get(order.operatorId) ?? 0) + order.orderCountForSummary);
+        monthlyOrderTotals.set(key, (monthlyOrderTotals.get(key) ?? 0) + order.orderCountForSummary);
       } else {
-        const orderIds = monthlyOrders.get(order.operatorId) ?? new Set<string>();
+        const orderIds = monthlyOrders.get(key) ?? new Set<string>();
         orderIds.add(order.orderId || order.sourceKey || `${order.storeId}-${order.date}-${order.salesAmount}`);
-        monthlyOrders.set(order.operatorId, orderIds);
+        monthlyOrders.set(key, orderIds);
       }
     }
     if (order.date === yesterdayKey) {
-      yesterdaySales.set(order.operatorId, (yesterdaySales.get(order.operatorId) ?? 0) + order.salesAmount);
+      yesterdaySales.set(key, (yesterdaySales.get(key) ?? 0) + order.salesAmount);
     }
   });
 
@@ -468,27 +544,35 @@ function buildOperatorPerformanceSummary(
   const conversionDropRate = new Map<string, number>();
 
   analysisResults.forEach((item) => {
-    if (!item.operatorId) {
+    if (String(item.platform ?? '').toUpperCase() !== 'TEMU') {
       return;
     }
 
-    operatorStores.get(item.operatorId)?.set(item.storeId, item.storeName);
+    const key = getOperatorPerformanceKey(item.operatorId, item.operatorName);
+    if (!key || !activeOperatorsByKey.has(key)) {
+      return;
+    }
+
+    const storesForOperator = operatorStores.get(key) ?? new Map<string, string>();
+    storesForOperator.set(item.storeId, item.storeName);
+    operatorStores.set(key, storesForOperator);
     if (item.resultType === 'risk') {
-      const storesSet = riskStores.get(item.operatorId) ?? new Set<string>();
+      const storesSet = riskStores.get(key) ?? new Set<string>();
       storesSet.add(item.storeId);
-      riskStores.set(item.operatorId, storesSet);
+      riskStores.set(key, storesSet);
       if (item.analysisType === 'conversion') {
-        conversionDropRate.set(item.operatorId, Math.max(conversionDropRate.get(item.operatorId) ?? 0, item.changeRate));
+        conversionDropRate.set(key, Math.max(conversionDropRate.get(key) ?? 0, item.changeRate));
       }
     }
     if (item.resultType === 'opportunity') {
-      const storesSet = growthStores.get(item.operatorId) ?? new Set<string>();
+      const storesSet = growthStores.get(key) ?? new Set<string>();
       storesSet.add(item.storeId);
-      growthStores.set(item.operatorId, storesSet);
-      growthRate.set(item.operatorId, Math.max(growthRate.get(item.operatorId) ?? 0, item.changeRate));
+      growthStores.set(key, storesSet);
+      growthRate.set(key, Math.max(growthRate.get(key) ?? 0, item.changeRate));
     }
   });
 
+  const activeOperators = Array.from(activeOperatorsByKey.values());
   const rows = activeOperators
     .map((operator) => {
       const storesForOperator = Array.from(operatorStores.get(operator.id)?.values() ?? []);
@@ -579,7 +663,7 @@ async function loadAnalysisData(currentUser: CurrentUser, options: { force?: boo
         trafficRecords: standardTrafficRecords,
         analysisResults: standardAnalysisResults,
       }),
-      operatorPerformance: buildOperatorPerformanceSummary(operators, standardSalesOrders, standardAnalysisResults),
+      operatorPerformance: buildOperatorPerformanceSummary(operators, stores, relations, standardSalesOrders, standardAnalysisResults),
       suggestionTemplates: suggestionTemplates.length > 0 ? suggestionTemplates : defaultTaskSuggestionTemplates,
     };
   })();
