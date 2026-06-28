@@ -256,9 +256,9 @@ export const adminRoutes: AdminRoute[] = [
     path: '/new-product-center/ad-recommendations',
     menuKey: menuKeys.newProductAdRecommendations,
     parentMenuKey: menuKeys.newProductCenter,
-    label: '广告建议中心',
+    label: '广告策略中心',
     group: '新品中心',
-    description: '查看并处理新品广告建议。',
+    description: '查看新品广告建议、阶段策略、执行检查和阶段复盘。',
   },
   {
     path: '/new-product-center/products/detail',

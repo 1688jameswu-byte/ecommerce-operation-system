@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { newProductCenterDataSource, type DashboardResponse, type OperatorOption, type ProductDetailResponse, type ProductSnapshot, type RecommendationRecord, type StoreScopeOption, type TemuStorageStatus } from '../../../data-source/newProductCenterDataSource';
+import { newProductCenterDataSource, type AdStrategyConfig, type AdStrategyExecutionRecord, type AdStrategyReviewRecord, type AdStrategySuggestion, type DashboardResponse, type OperatorOption, type ProductDetailResponse, type ProductSnapshot, type RecommendationRecord, type StoreScopeOption, type TemuStorageStatus } from '../../../data-source/newProductCenterDataSource';
 import type { CurrentUser } from '../../../types/auth';
 
 type StoreOption = { id?: string; dbId?: string; storeName?: string; platform?: string; status?: string };
@@ -33,6 +33,12 @@ function formatNumber(value: unknown) {
 function formatRatio(value: unknown) {
   if (value === null || value === undefined || value === '') return '-';
   return `${(Number(value) * 100).toFixed(2)}%`;
+}
+
+function formatRoas(value: unknown) {
+  if (value === null || value === undefined || value === '') return '-';
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toFixed(2) : '-';
 }
 
 function formatDate(value: unknown) {
@@ -197,21 +203,24 @@ function DataHealthPanel({ snapshotDate, dataCutoffDate, storageStatus, productT
   );
 }
 
-function TaskBoard({ counts, onSelect }: { counts: Record<string, number>; onSelect: (key: string) => void }) {
+function TaskBoard({ counts }: { counts: Record<string, number>; onSelect: (key: string) => void }) {
   const groups: Array<[string, string[]]> = [
-    ['高优先级', ['数据未匹配', '烧钱无单', '高费比新品']],
-    ['中优先级', ['有流量无转化', '加购未成交', '低曝光新品']],
-    ['机会商品', ['高潜新品', '自然起量']],
+    ['高优先级', ['投放过激进', '应调至竞争力弱', '应调至自定义12', '烧钱无单']],
+    ['中优先级', ['投放过保守', '应调至竞争力中', '有流量无转化', '加购未成交']],
+    ['机会商品', ['高潜新品', '低曝光新品']],
   ];
+  const openStrategy = (type: string) => {
+    window.location.href = `/new-product-center/ad-recommendations?type=${encodeURIComponent(type)}`;
+  };
   return (
     <article className="excel-record-panel npc-panel npc-task-board">
-      <header className="npc-panel-header"><h2>今日待处理任务</h2><span>点击任务筛选下方诊断列表</span></header>
+      <header className="npc-panel-header"><h2>今日待处理任务</h2><span>点击任务进入广告策略中心</span></header>
       <div className="npc-task-groups">
         {groups.map(([title, tags]) => (
           <section key={title}>
             <h3>{title}</h3>
             {(tags as string[]).map((tag) => (
-              <button type="button" key={tag} onClick={() => onSelect(tag)}>
+              <button type="button" key={tag} onClick={() => openStrategy(tag)}>
                 <span>{tag}</span><strong>{counts[tag] ?? 0}</strong>
               </button>
             ))}
@@ -399,6 +408,9 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
       .then((pairs) => setCounts(Object.fromEntries(pairs)));
     Promise.all(TAGS.map((item) => newProductCenterDataSource.getProducts(buildQuery({ ...countBase, productTag: item, pageSize: '1' })).then((data) => [item, data.total] as const).catch(() => [item, 0] as const)))
       .then((pairs) => setCounts((current) => ({ ...current, ...Object.fromEntries(pairs) })));
+    newProductCenterDataSource.getAdStrategyCounts(buildQuery(countBase))
+      .then((data) => setCounts((current) => ({ ...current, ...(data.counts || {}) })))
+      .catch(() => undefined);
   }, [appliedOperatorName, appliedSnapshotDate, appliedStoreId]);
 
   useEffect(() => {
@@ -649,51 +661,194 @@ function ProductTable({ records, total, title = '新品诊断列表' }: { record
 }
 
 function RecommendationsView() {
-  const [status, setStatus] = useState('');
-  const [data, setData] = useState<{ records: RecommendationRecord[]; total: number }>({ records: [], total: 0 });
-  const refresh = () => {
-    const params = new URLSearchParams({ pageSize: '50' });
+  const initialType = new URLSearchParams(window.location.search).get('type') || '';
+  const [activeTab, setActiveTab] = useState<'pending' | 'config' | 'execution' | 'review'>('pending');
+  const [status, setStatus] = useState('PENDING');
+  const [type, setType] = useState(initialType);
+  const [page, setPage] = useState(1);
+  const [config, setConfig] = useState<AdStrategyConfig | null>(null);
+  const [pending, setPending] = useState<{ records: AdStrategySuggestion[]; total: number; page?: number; pageSize?: number }>({ records: [], total: 0 });
+  const [execution, setExecution] = useState<{ records: AdStrategyExecutionRecord[]; total: number; page?: number; pageSize?: number }>({ records: [], total: 0 });
+  const [review, setReview] = useState<{ records: AdStrategyReviewRecord[]; total: number; page?: number; pageSize?: number }>({ records: [], total: 0 });
+  const [message, setMessage] = useState('');
+  const strategyTypes = ['烧钱无单', '高费比新品', '有流量无转化', '加购未成交', '低曝光新品', '高潜新品', '投放过保守', '投放过激进', '应调至竞争力强', '应调至竞争力中', '应调至竞争力弱', '应调至自定义12', '建议延长测试', '建议提前控本', '建议转入常规商品', '建议暂停/优化'];
+
+  useEffect(() => {
+    newProductCenterDataSource.getAdStrategyConfig().then(setConfig).catch(() => setConfig(null));
+  }, []);
+
+  const refreshPending = () => {
+    const params = new URLSearchParams({ page: String(page), pageSize: '50' });
     if (status) params.set('status', status);
-    newProductCenterDataSource.getRecommendations(`?${params.toString()}`).then(setData).catch(() => setData({ records: [], total: 0 } as any));
+    if (type) params.set('type', type);
+    newProductCenterDataSource.getAdStrategyPending(`?${params.toString()}`).then(setPending).catch((error) => {
+      setMessage(error instanceof Error ? error.message : String(error));
+      setPending({ records: [], total: 0 });
+    });
   };
-  useEffect(refresh, [status]);
-  const handle = async (item: RecommendationRecord, nextStatus: string) => {
+
+  useEffect(() => {
+    if (activeTab === 'pending') refreshPending();
+    if (activeTab === 'execution') {
+      newProductCenterDataSource.getAdStrategyExecution(buildQuery({ page: String(page), pageSize: '50' }))
+        .then(setExecution)
+        .catch(() => setExecution({ records: [], total: 0 }));
+    }
+    if (activeTab === 'review') {
+      newProductCenterDataSource.getAdStrategyReview(buildQuery({ page: String(page), pageSize: '50' }))
+        .then(setReview)
+        .catch(() => setReview({ records: [], total: 0 }));
+    }
+  }, [activeTab, page, status, type]);
+
+  const handle = async (item: AdStrategySuggestion, nextStatus: string) => {
+    if (item.generated) {
+      setMessage('阶段策略建议为系统实时诊断结果，请进入商品详情查看诊断，并在 TEMU 后台手动执行。');
+      return;
+    }
     await newProductCenterDataSource.handleRecommendation(item.id, { status: nextStatus });
-    refresh();
+    refreshPending();
   };
+
+  const tabButton = (key: typeof activeTab, label: string) => (
+    <button type="button" className={activeTab === key ? 'is-active' : ''} onClick={() => { setActiveTab(key); setPage(1); }}>{label}</button>
+  );
+
   return (
-    <section className="npc-page">
-      <div className="npc-toolbar">
-        <label>状态<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">全部</option>{['PENDING','ACCEPTED','IGNORED','EXECUTED','EXPIRED'].map((item) => <option key={item}>{item}</option>)}</select></label>
-      </div>
-      <article className="excel-record-panel npc-panel">
-        <header className="npc-panel-header"><h2>广告建议中心</h2><span>{data.total} 条</span></header>
-        <div className="npc-table-wrap">
-          <table>
-            <thead><tr><th>商品</th><th>标签</th><th>指标</th><th>建议</th><th>原因</th><th>状态</th><th>操作</th></tr></thead>
-            <tbody>
-              {data.records.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.productName}<br /><small>{item.storeName} / {item.operatorName || '-'}</small></td>
-                  <td><span className="npc-tag">{item.productTag || item.problemType}</span></td>
-                  <td>{formatMoney(item.adSpend)}<br /><small>ROAS {item.roas === null ? '-' : Number(item.roas).toFixed(2)}</small></td>
-                  <td><strong>{item.recommendationText}</strong><br /><small>{item.suggestedAction}</small></td>
-                  <td>{item.reasonText}</td>
-                  <td>{item.status}</td>
-                  <td className="npc-actions">
-                    <button type="button" onClick={() => void handle(item, 'ACCEPTED')}>采纳</button>
-                    <button type="button" onClick={() => void handle(item, 'IGNORED')}>忽略</button>
-                    <button type="button" onClick={() => void handle(item, 'EXECUTED')}>已执行</button>
-                    <a href={`/new-product-center/products/${item.productId}`}>详情</a>
-                  </td>
-                </tr>
-              ))}
-              {data.records.length === 0 && <tr><td colSpan={7}>暂无广告建议。</td></tr>}
-            </tbody>
-          </table>
-        </div>
+    <section className="npc-page npc-ad-strategy-page">
+      <article className="excel-record-panel npc-panel npc-strategy-notice">
+        <strong>广告策略中心</strong>
+        <span>系统不会自动修改 TEMU 后台广告设置，只生成建议和执行检查。运营仍需在 TEMU 后台手动调整目标ROAS；系统通过后续广告日报中的“自然周目标ROAS（推广）”字段验证是否已执行。</span>
       </article>
+      <div className="npc-strategy-tabs">
+        {tabButton('pending', '待处理建议')}
+        {tabButton('config', '阶段策略配置')}
+        {tabButton('execution', '阶段执行检查')}
+        {tabButton('review', '阶段效果复盘')}
+      </div>
+      {message && <div className="excel-import-error">{message}</div>}
+
+      {activeTab === 'pending' && (
+        <article className="excel-record-panel npc-panel">
+          <header className="npc-panel-header"><h2>待处理建议</h2><span>{pending.total} 条</span></header>
+          <div className="npc-toolbar">
+            <label>建议类型<select value={type} onChange={(event) => { setType(event.target.value); setPage(1); }}><option value="">全部</option>{strategyTypes.map((item) => <option key={item}>{item}</option>)}</select></label>
+            <label>状态<select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}><option value="">全部</option>{['PENDING', 'ACCEPTED', 'IGNORED', 'EXECUTED', 'EXPIRED'].map((item) => <option key={item}>{item}</option>)}</select></label>
+          </div>
+          <div className="npc-table-wrap npc-strategy-table-wrap">
+            <table>
+              <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数</th><th>当前阶段</th><th>计划目标ROAS</th><th>实际目标ROAS</th><th>广告花费</th><th>广告订单</th><th>自然订单</th><th>ROAS</th><th>目标ROAS</th><th>诊断原因</th><th>建议动作</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody>
+                {pending.records.map((item) => (
+                  <tr key={item.id}>
+                    <td title={item.productName || '-'}>{item.productName || '-'}</td>
+                    <td>{item.storeName || '-'}</td>
+                    <td>{item.operatorName || '-'}</td>
+                    <td>{item.daysOnline ?? '-'}</td>
+                    <td>{item.currentStage || '-'}</td>
+                    <td>{formatRoas(item.plannedTargetRoas)}</td>
+                    <td>{formatRoas(item.actualTargetRoas)}</td>
+                    <td>{formatMoney(item.adSpend)}</td>
+                    <td>{item.adOrderCount ?? 0}</td>
+                    <td>{item.naturalOrderCount ?? 0}</td>
+                    <td>{formatRoas(item.roas)}</td>
+                    <td>{formatRoas(item.targetRoas)}</td>
+                    <td title={item.reasonText || ''}>{item.reasonText || item.problemType || '-'}</td>
+                    <td title={item.suggestedAction || ''}>{item.suggestedAction || item.recommendationText || '-'}</td>
+                    <td>{item.status || 'PENDING'}</td>
+                    <td className="npc-actions">
+                      <button type="button" onClick={() => void handle(item, 'ACCEPTED')}>采纳</button>
+                      <button type="button" onClick={() => void handle(item, 'IGNORED')}>忽略</button>
+                      <button type="button" onClick={() => void handle(item, 'EXECUTED')}>标记已执行</button>
+                      <a href={`/new-product-center/products/${item.productId}`}>查看诊断</a>
+                    </td>
+                  </tr>
+                ))}
+                {pending.records.length === 0 && <tr><td colSpan={16}>暂无待处理建议。</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      )}
+
+      {activeTab === 'config' && (
+        <article className="excel-record-panel npc-panel">
+          <header className="npc-panel-header"><h2>阶段策略配置</h2><span>默认新品 30 天广告阶段策略</span></header>
+          <div className="npc-stage-card-grid">
+            {(config?.stages || []).map((stage, index) => (
+              <section key={stage.key}>
+                <h3>第{index + 1}阶段：{stage.name}</h3>
+                <p>上架第 {stage.dayStart}-{stage.dayEnd} 天</p>
+                <strong>{stage.bidLevel}</strong>
+                <span>目标ROAS：{formatRoas(stage.targetRoas)}</span>
+                <small>{stage.goal}</small>
+              </section>
+            ))}
+          </div>
+          <div className="npc-threshold-grid">
+            <label>烧钱无单花费阈值<input value={config?.thresholds.burnNoOrderSpend ?? 5} readOnly /></label>
+            <label>点击阈值<input value={config?.thresholds.clickThreshold ?? 30} readOnly /></label>
+            <label>加购阈值<input value={config?.thresholds.addToCartThreshold ?? 3} readOnly /></label>
+            <label>低曝光阈值<input value={config?.thresholds.lowExposureThreshold ?? 50} readOnly /></label>
+            <label>投放过保守<input value="实际目标ROAS > 计划目标ROAS × 1.2" readOnly /></label>
+            <label>投放过激进<input value="实际目标ROAS < 计划目标ROAS × 0.8" readOnly /></label>
+          </div>
+        </article>
+      )}
+
+      {activeTab === 'execution' && (
+        <article className="excel-record-panel npc-panel">
+          <header className="npc-panel-header"><h2>阶段执行检查</h2><span>{execution.total} 条</span></header>
+          <div className="npc-table-wrap npc-strategy-table-wrap">
+            <table>
+              <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数</th><th>当前阶段</th><th>计划目标ROAS</th><th>实际目标ROAS</th><th>执行状态</th><th>阶段效果</th><th>下一步动作</th></tr></thead>
+              <tbody>
+                {execution.records.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.productName || '-'}</td><td>{item.storeName || '-'}</td><td>{item.operatorName || '-'}</td><td>{item.daysOnline}</td><td>{item.currentStage || '-'}</td><td>{formatRoas(item.plannedTargetRoas)}</td><td>{formatRoas(item.actualTargetRoas)}</td><td>{item.executionStatus || '-'}</td><td>{item.stageEffect || '-'}</td><td>{item.nextAction || '-'}</td>
+                  </tr>
+                ))}
+                {execution.records.length === 0 && <tr><td colSpan={10}>暂无阶段执行检查数据。</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      )}
+
+      {activeTab === 'review' && (
+        <article className="excel-record-panel npc-panel">
+          <header className="npc-panel-header"><h2>阶段效果复盘</h2><span>{review.total} 条</span></header>
+          <StageReviewTable rows={review.records} />
+        </article>
+      )}
+      {activeTab !== 'config' && (
+        <div className="temu-product-record-pagination">
+          <span>第 {page}/{Math.max(1, Math.ceil(((activeTab === 'pending' ? pending.total : activeTab === 'execution' ? execution.total : review.total) || 0) / 50))} 页</span>
+          <div>
+            <button type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>上一页</button>
+            <button type="button" disabled={page >= Math.max(1, Math.ceil(((activeTab === 'pending' ? pending.total : activeTab === 'execution' ? execution.total : review.total) || 0) / 50))} onClick={() => setPage((current) => current + 1)}>下一页</button>
+          </div>
+        </div>
+      )}
     </section>
+  );
+}
+
+function StageReviewTable({ rows }: { rows: AdStrategyReviewRecord[] }) {
+  return (
+    <div className="npc-table-wrap npc-strategy-table-wrap">
+      <table>
+        <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>阶段名称</th><th>阶段日期</th><th>计划目标ROAS</th><th>实际目标ROAS</th><th>广告花费</th><th>广告销售额</th><th>广告订单</th><th>自然订单</th><th>曝光</th><th>点击</th><th>加购</th><th>ROAS</th><th>系统判断</th><th>运营动作</th></tr></thead>
+        <tbody>
+          {rows.map((item, index) => (
+            <tr key={`${item.productId || index}-${item.stageName}`}>
+              <td>{item.productName || '-'}</td><td>{item.storeName || '-'}</td><td>{item.operatorName || '-'}</td><td>{item.stageName || '-'}</td><td>{item.stageDate || '-'}</td><td>{formatRoas(item.plannedTargetRoas)}</td><td>{formatRoas(item.actualTargetRoas)}</td><td>{formatMoney(item.adSpend)}</td><td>{formatMoney(item.adSalesAmount)}</td><td>{item.adOrderCount ?? 0}</td><td>{item.naturalOrderCount ?? 0}</td><td>{formatNumber(item.impressions)}</td><td>{formatNumber(item.clicks)}</td><td>{formatNumber(item.addToCartCount)}</td><td>{formatRoas(item.roas)}</td><td>{item.systemJudgement || '-'}</td><td>{item.operatorAction || '-'}</td>
+            </tr>
+          ))}
+          {rows.length === 0 && <tr><td colSpan={17}>暂无阶段效果复盘数据。</td></tr>}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -717,6 +872,10 @@ function DetailView({ productId }: { productId: string }) {
         <SimpleTable title="订单趋势" rows={data.orders} columns={['orderDate','orderCount','quantity','salesAmount']} />
         <SimpleTable title="广告趋势" rows={data.ads} columns={['reportDate','adSpend','promoSalesAmount','promoClicks','promoSubOrderCount']} />
       </div>
+      <article className="excel-record-panel npc-panel">
+        <header className="npc-panel-header"><h2>广告阶段复盘</h2><span>{data.adStageReview?.length || 0} 个阶段</span></header>
+        <StageReviewTable rows={data.adStageReview || []} />
+      </article>
       <SimpleTable title="建议历史" rows={data.recommendations} columns={['recommendationDate','recommendationType','priority','recommendationText','status']} />
       <SimpleTable title="商品时间线" rows={data.timeline} columns={['eventTime','eventType','title','description']} />
     </section>

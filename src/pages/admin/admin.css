@@ -9448,6 +9448,116 @@
   padding: 3px 8px;
 }
 
+.npc-ad-strategy-page {
+  gap: 14px;
+}
+
+.npc-strategy-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-color: rgba(34, 197, 94, 0.36);
+  background: rgba(20, 83, 45, 0.18);
+  color: #bbf7d0;
+  padding: 12px 14px;
+}
+
+.npc-strategy-notice strong {
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.npc-strategy-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.npc-strategy-tabs button {
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  background: rgba(15, 23, 42, 0.72);
+  color: #dbeafe;
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.npc-strategy-tabs button.is-active {
+  border-color: rgba(250, 204, 21, 0.68);
+  background: rgba(113, 63, 18, 0.32);
+  color: #fde68a;
+}
+
+.npc-strategy-table-wrap {
+  max-height: 620px;
+}
+
+.npc-strategy-table-wrap table {
+  min-width: 1680px;
+  table-layout: fixed;
+}
+
+.npc-strategy-table-wrap th,
+.npc-strategy-table-wrap td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.npc-strategy-table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #07152a;
+  box-shadow: 0 1px 0 rgba(59, 130, 246, 0.42), 0 8px 18px rgba(2, 6, 23, 0.32);
+}
+
+.npc-stage-card-grid,
+.npc-threshold-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.npc-stage-card-grid section,
+.npc-threshold-grid label {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.32);
+  background: rgba(15, 23, 42, 0.58);
+  border-radius: 8px;
+  padding: 12px;
+  color: #bfdbfe;
+}
+
+.npc-stage-card-grid h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.npc-stage-card-grid strong {
+  color: #fde68a;
+}
+
+.npc-stage-card-grid small {
+  color: #93c5fd;
+}
+
+.npc-threshold-grid {
+  margin-top: 14px;
+}
+
+.npc-threshold-grid input {
+  min-height: 36px;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  background: rgba(15, 23, 42, 0.85);
+  color: #f8fafc;
+  border-radius: 6px;
+  padding: 0 10px;
+}
+
 .npc-quick-filters {
   display: flex;
   flex-wrap: wrap;

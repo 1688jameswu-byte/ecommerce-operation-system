@@ -20,6 +20,11 @@ import {
 import {
   assertImportFileShape,
   buildImportPreview,
+  getAdStrategyConfig,
+  getAdStrategyCounts,
+  getAdStrategyExecution,
+  getAdStrategyPending,
+  getAdStrategyReview,
   getBossDashboard,
   getAdImportOverview,
   getOperatorDashboard,
@@ -1828,6 +1833,12 @@ async function readPersistentDataForApi(name, filePath) {
     const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     try {
       const postgresData = await readOrderImportStoreFromPostgres();
+      const postgresOrderCount = (postgresData?.batches ?? []).reduce((total, batch) => total + (batch?.orders ?? []).length, 0);
+      const jsonOrderCount = (jsonData?.batches ?? []).reduce((total, batch) => total + (batch?.orders ?? []).length, 0);
+      if (postgresOrderCount === 0 && jsonOrderCount > 0) {
+        console.warn('[TEMU PostgreSQL] orderImportStore empty in PostgreSQL, fallback to JSON');
+        return jsonData;
+      }
       return postgresData;
     } catch (error) {
       console.warn('[TEMU PostgreSQL] orderImportStore read fallback to JSON:', error instanceof Error ? error.message : error);
@@ -3328,6 +3339,26 @@ async function handleNewProductCenterApi(req, res) {
     }
     if (req.method === 'GET' && pathname === 'ad-recommendations') {
       res.end(JSON.stringify(await getRecommendations(params)));
+      return;
+    }
+    if (req.method === 'GET' && pathname === 'ad-strategy/config') {
+      res.end(JSON.stringify(getAdStrategyConfig()));
+      return;
+    }
+    if (req.method === 'GET' && pathname === 'ad-strategy/counts') {
+      res.end(JSON.stringify(await getAdStrategyCounts(params)));
+      return;
+    }
+    if (req.method === 'GET' && pathname === 'ad-strategy/pending') {
+      res.end(JSON.stringify(await getAdStrategyPending(params)));
+      return;
+    }
+    if (req.method === 'GET' && pathname === 'ad-strategy/execution') {
+      res.end(JSON.stringify(await getAdStrategyExecution(params)));
+      return;
+    }
+    if (req.method === 'GET' && pathname === 'ad-strategy/review') {
+      res.end(JSON.stringify(await getAdStrategyReview(params)));
       return;
     }
     if (req.method === 'POST' && pathname.startsWith('ad-recommendations/') && pathname.endsWith('/handle')) {

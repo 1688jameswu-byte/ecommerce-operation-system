@@ -81,7 +81,7 @@ export const menuGroups: { key: MenuKey; label: string; children: { key: MenuKey
     children: [
       { key: menuKeys.newProductBossDashboard, label: '老板总览' },
       { key: menuKeys.newProductWorkbench, label: '新品工作台' },
-      { key: menuKeys.newProductAdRecommendations, label: '广告建议中心' },
+      { key: menuKeys.newProductAdRecommendations, label: '广告策略中心' },
     ],
   },
   {

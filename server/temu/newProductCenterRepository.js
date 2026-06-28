@@ -935,6 +935,97 @@ function recommendationForTag(tag) {
   return map[tag] || null;
 }
 
+const AD_STAGE_STRATEGY_CONFIG = {
+  stages: [
+    { key: 'COLD_START', name: '冷启动期', dayStart: 1, dayEnd: 7, bidLevel: '竞争力强', targetRoas: 2.95, goal: '获取曝光、点击、加购、首单' },
+    { key: 'TESTING', name: '测试期', dayStart: 8, dayEnd: 14, bidLevel: '竞争力中', targetRoas: 5.11, goal: '验证转化能力' },
+    { key: 'CONTROL', name: '控本期', dayStart: 15, dayEnd: 21, bidLevel: '竞争力弱', targetRoas: 7.65, goal: '控制成本，筛选有效商品' },
+    { key: 'PROFIT', name: '利润期', dayStart: 22, dayEnd: 30, bidLevel: '自定义12', targetRoas: 12, goal: '利润筛选，保留优质商品' },
+  ],
+  thresholds: {
+    burnNoOrderSpend: 5,
+    clickThreshold: 30,
+    addToCartThreshold: 3,
+    lowExposureThreshold: 50,
+    conservativeRatio: 1.2,
+    aggressiveRatio: 0.8,
+  },
+};
+
+function adStagePlanForDays(daysOnline) {
+  const days = Number(daysOnline || 0);
+  return AD_STAGE_STRATEGY_CONFIG.stages.find((stage) => days >= stage.dayStart && days <= stage.dayEnd)
+    || { key: 'NORMAL', name: '常规商品', dayStart: 31, dayEnd: 9999, bidLevel: '常规投放', targetRoas: null, goal: '转入常规商品管理' };
+}
+
+function adStageExecutionStatus(row) {
+  const plan = adStagePlanForDays(row.days_online);
+  const actualTargetRoas = row.target_roas === null || row.target_roas === undefined ? null : Number(row.target_roas);
+  const plannedTargetRoas = plan.targetRoas === null ? null : Number(plan.targetRoas);
+  const adSpend = Number(row.ad_spend || 0);
+  const impressions = Number(row.impressions || 0);
+  const clicks = Number(row.clicks || 0);
+  const adOrderCount = Number(row.ad_order_count || 0);
+  const roas = row.roas === null || row.roas === undefined ? null : Number(row.roas);
+  const target = row.target_roas === null || row.target_roas === undefined ? null : Number(row.target_roas);
+  const daysOnline = Number(row.days_online || 0);
+
+  if (adSpend <= 0 && impressions <= 0 && clicks <= 0) return '无广告数据';
+  if (plannedTargetRoas === null || actualTargetRoas === null) return '无目标ROAS';
+  if (actualTargetRoas > plannedTargetRoas * AD_STAGE_STRATEGY_CONFIG.thresholds.conservativeRatio) return '投放过保守';
+  if (actualTargetRoas < plannedTargetRoas * AD_STAGE_STRATEGY_CONFIG.thresholds.aggressiveRatio) return '投放过激进';
+  if (daysOnline <= 7 && clicks >= AD_STAGE_STRATEGY_CONFIG.thresholds.clickThreshold && adOrderCount === 0) return '建议延长强投';
+  if (daysOnline >= 15 && target !== null && roas !== null && roas < target) return '建议提前控本';
+  if (daysOnline > 30 && adOrderCount > 0) return '建议转常规商品';
+  if (adSpend >= AD_STAGE_STRATEGY_CONFIG.thresholds.burnNoOrderSpend && adOrderCount === 0 && clicks >= AD_STAGE_STRATEGY_CONFIG.thresholds.clickThreshold) return '建议暂停/优化';
+  return '已按策略';
+}
+
+function strategyRecommendationForSnapshot(row) {
+  const plan = adStagePlanForDays(row.days_online);
+  const status = adStageExecutionStatus(row);
+  const actionByStatus = {
+    投放过保守: [`应调至${plan.bidLevel}`, 'MEDIUM', `当前实际目标ROAS高于计划目标ROAS，建议调至${plan.bidLevel}`, '在 TEMU 后台降低目标ROAS或切换到计划档位'],
+    投放过激进: [`应调至${plan.bidLevel}`, 'HIGH', `当前实际目标ROAS低于计划目标ROAS，建议调至${plan.bidLevel}`, '在 TEMU 后台提高目标ROAS或收紧预算'],
+    建议延长强投: ['建议延长测试', 'MEDIUM', '冷启动阶段已有点击但尚未稳定出单，建议延长测试窗口', '继续观察曝光、点击、加购和首单'],
+    建议提前控本: ['建议提前控本', 'HIGH', '当前阶段 ROAS 低于目标，建议提前控本', '提高目标ROAS、降低预算或优化商品承接'],
+    建议转常规商品: ['建议转入常规商品', 'MEDIUM', '商品已超过新品周期且有订单表现，建议进入常规商品管理', '转入常规投放和库存管理'],
+    建议暂停: ['建议暂停/优化', 'HIGH', '广告有花费但没有形成订单，建议暂停或优化后再投放', '暂停广告或优化主图、价格和详情页'],
+    '建议暂停/优化': ['建议暂停/优化', 'HIGH', '广告有花费但没有形成订单，建议暂停或优化后再投放', '暂停广告或优化主图、价格和详情页'],
+  };
+  const next = actionByStatus[status];
+  if (!next) return null;
+  return {
+    id: `strategy-${row.snapshot_date}-${row.product_id}-${status}`,
+    recommendationDate: row.snapshot_date,
+    storeId: row.store_id,
+    storeName: row.store_name,
+    operatorId: row.operator_id,
+    operatorName: row.operator_name,
+    productId: row.product_id,
+    temuProductId: row.temu_product_id,
+    temuSpuId: row.temu_spu_id,
+    productName: row.product_name,
+    recommendationType: next[0],
+    priority: next[1],
+    problemType: status,
+    recommendationText: next[2],
+    reasonText: `当前阶段：${plan.name}；计划目标ROAS：${plan.targetRoas ?? '-'}；实际目标ROAS：${row.target_roas ?? '-'}`,
+    suggestedAction: next[3],
+    status: 'PENDING',
+    daysOnline: Number(row.days_online || 0),
+    currentStage: plan.name,
+    plannedTargetRoas: plan.targetRoas,
+    actualTargetRoas: row.target_roas === null ? null : Number(row.target_roas),
+    adSpend: Number(row.ad_spend || 0),
+    adOrderCount: Number(row.ad_order_count || 0),
+    naturalOrderCount: Number(row.natural_order_count || 0),
+    roas: row.roas === null ? null : Number(row.roas),
+    targetRoas: row.target_roas === null ? null : Number(row.target_roas),
+    generated: true,
+  };
+}
+
 async function upsertRecommendation(client, snapshot) {
   const recommendation = recommendationForTag(snapshot.product_tag);
   if (!recommendation) return null;
@@ -1618,6 +1709,164 @@ export async function getRecommendations(params = {}) {
   return { records: result.rows.map(toCamel), total: Number(result.rows[0]?.total || 0), page, pageSize };
 }
 
+export function getAdStrategyConfig() {
+  return AD_STAGE_STRATEGY_CONFIG;
+}
+
+export async function getAdStrategyPending(params = {}) {
+  const page = Math.max(1, Number(params.page || 1));
+  const pageSize = Math.min(100, Math.max(1, Number(params.pageSize || 50)));
+  const existing = await getRecommendations({ ...params, page: 1, pageSize: 100 });
+  const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
+  await ensureSnapshotForRead(snapshotDate);
+  const { where, values } = buildScopeWhere(params, 2);
+  if (params.type) {
+    where.push(`(
+      s.product_tag = $${values.length + 2}
+      OR s.latest_recommendation_type = $${values.length + 2}
+      OR s.latest_recommendation_text = $${values.length + 2}
+    )`);
+    values.push(params.type);
+  }
+  const condition = [`s.snapshot_date = $1`, ...where].join(' AND ');
+  const snapshots = await queryTemuDatabase(
+    `SELECT s.*
+     FROM temu_new_product_daily_snapshot s
+     WHERE ${condition}
+     ORDER BY s.ad_spend DESC NULLS LAST, s.updated_at DESC
+     LIMIT 1000`,
+    [snapshotDate, ...values],
+  );
+  const generated = snapshots.rows
+    .map(strategyRecommendationForSnapshot)
+    .filter(Boolean)
+    .filter((record) => !params.status || params.status === 'PENDING');
+  const merged = [...existing.records, ...generated]
+    .filter((record) => !params.type || record.recommendationType === params.type || record.problemType === params.type || record.productTag === params.type);
+  const records = merged.slice((page - 1) * pageSize, page * pageSize);
+  return {
+    records,
+    total: merged.length,
+    page,
+    pageSize,
+    snapshotDate,
+    dataCutoffDate,
+    dateMode,
+  };
+}
+
+export async function getAdStrategyCounts(params = {}) {
+  const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
+  await ensureSnapshotForRead(snapshotDate);
+  const { where, values } = buildScopeWhere(params, 2);
+  const condition = [`s.snapshot_date = $1`, ...where].join(' AND ');
+  const result = await queryTemuDatabase(
+    `SELECT s.product_tag, s.latest_recommendation_type, s.latest_recommendation_text,
+            s.days_online, s.target_roas, s.ad_spend, s.impressions, s.clicks,
+            s.ad_order_count, s.roas, s.natural_order_count
+     FROM temu_new_product_daily_snapshot s
+     WHERE ${condition}`,
+    [snapshotDate, ...values],
+  );
+  const counts = {};
+  for (const row of result.rows) {
+    const productTag = row.product_tag || '普通新品';
+    counts[productTag] = (counts[productTag] || 0) + 1;
+    const generated = strategyRecommendationForSnapshot(row);
+    if (generated) {
+      counts[generated.recommendationType] = (counts[generated.recommendationType] || 0) + 1;
+      counts[generated.problemType] = (counts[generated.problemType] || 0) + 1;
+    }
+  }
+  return { counts, snapshotDate, dataCutoffDate, dateMode };
+}
+
+export async function getAdStrategyExecution(params = {}) {
+  const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
+  await ensureSnapshotForRead(snapshotDate);
+  const page = Math.max(1, Number(params.page || 1));
+  const pageSize = Math.min(100, Math.max(1, Number(params.pageSize || 50)));
+  const { where, values } = buildScopeWhere(params, 2);
+  const condition = [`s.snapshot_date = $1`, ...where].join(' AND ');
+  const result = await queryTemuDatabase(
+    `SELECT s.*, COUNT(*) OVER() AS total
+     FROM temu_new_product_daily_snapshot s
+     WHERE ${condition}
+     ORDER BY s.days_online ASC, s.ad_spend DESC NULLS LAST, s.updated_at DESC
+     LIMIT $${values.length + 2} OFFSET $${values.length + 3}`,
+    [snapshotDate, ...values, pageSize, (page - 1) * pageSize],
+  );
+  const records = result.rows.map((row) => {
+    const plan = adStagePlanForDays(row.days_online);
+    return {
+      ...toCamel(row),
+      currentStage: plan.name,
+      plannedTargetRoas: plan.targetRoas,
+      actualTargetRoas: row.target_roas === null ? null : Number(row.target_roas),
+      executionStatus: adStageExecutionStatus(row),
+      stageEffect: row.ad_order_count > 0 ? '已有广告订单' : (row.natural_order_count > 0 ? '自然出单' : '待验证'),
+      nextAction: strategyRecommendationForSnapshot(row)?.suggestedAction || '继续按阶段策略观察',
+    };
+  });
+  return { records, total: Number(result.rows[0]?.total || 0), page, pageSize, snapshotDate, dataCutoffDate, dateMode };
+}
+
+export async function getAdStrategyReview(params = {}) {
+  const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
+  await ensureSnapshotForRead(snapshotDate);
+  const page = Math.max(1, Number(params.page || 1));
+  const pageSize = Math.min(100, Math.max(1, Number(params.pageSize || 50)));
+  const { where, values } = buildScopeWhere(params, 2);
+  const condition = [`s.snapshot_date <= $1::date`, `s.days_online BETWEEN 1 AND 30`, ...where].join(' AND ');
+  const result = await queryTemuDatabase(
+    `SELECT s.product_id, s.product_name, s.store_name, s.operator_name,
+            CASE
+              WHEN s.days_online BETWEEN 1 AND 7 THEN '第1周 冷启动期'
+              WHEN s.days_online BETWEEN 8 AND 14 THEN '第2周 测试期'
+              WHEN s.days_online BETWEEN 15 AND 21 THEN '第3周 控本期'
+              ELSE '第4周 利润期'
+            END AS stage_name,
+            MIN(s.snapshot_date)::text AS stage_start_date,
+            MAX(s.snapshot_date)::text AS stage_end_date,
+            MAX(s.target_roas) AS actual_target_roas,
+            COALESCE(SUM(s.ad_spend),0) AS ad_spend,
+            COALESCE(SUM(s.ad_sales_amount),0) AS ad_sales_amount,
+            COALESCE(SUM(s.ad_order_count),0) AS ad_order_count,
+            COALESCE(SUM(s.natural_order_count),0) AS natural_order_count,
+            COALESCE(SUM(s.impressions),0) AS impressions,
+            COALESCE(SUM(s.clicks),0) AS clicks,
+            COALESCE(SUM(s.add_to_cart_count),0) AS add_to_cart_count,
+            CASE WHEN COALESCE(SUM(s.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(s.ad_sales_amount),0) / NULLIF(SUM(s.ad_spend),0) END AS roas,
+            MIN(s.days_online) AS min_days_online,
+            COUNT(*) OVER() AS total
+     FROM temu_new_product_daily_snapshot s
+     WHERE ${condition}
+     GROUP BY s.product_id, s.product_name, s.store_name, s.operator_name,
+              CASE
+                WHEN s.days_online BETWEEN 1 AND 7 THEN '第1周 冷启动期'
+                WHEN s.days_online BETWEEN 8 AND 14 THEN '第2周 测试期'
+                WHEN s.days_online BETWEEN 15 AND 21 THEN '第3周 控本期'
+                ELSE '第4周 利润期'
+              END
+     ORDER BY MAX(s.snapshot_date) DESC, SUM(s.ad_spend) DESC NULLS LAST
+     LIMIT $${values.length + 2} OFFSET $${values.length + 3}`,
+    [snapshotDate, ...values, pageSize, (page - 1) * pageSize],
+  );
+  const records = result.rows.map((row) => {
+    const plan = adStagePlanForDays(row.min_days_online);
+    const roas = row.roas === null ? null : Number(row.roas);
+    const planned = plan.targetRoas;
+    return {
+      ...toCamel(row),
+      stageDate: `${String(row.stage_start_date || '').slice(0, 10)} ~ ${String(row.stage_end_date || '').slice(0, 10)}`,
+      plannedTargetRoas: planned,
+      systemJudgement: planned && roas !== null && roas >= planned ? '阶段达标' : '继续优化',
+      operatorAction: '-',
+    };
+  });
+  return { records, total: Number(result.rows[0]?.total || 0), page, pageSize, snapshotDate, dataCutoffDate, dateMode };
+}
+
 function createWhereBuilder(startIndex = 1) {
   const values = [];
   const where = [];
@@ -1995,6 +2244,47 @@ export async function getProductDetail(productId, params = {}) {
   );
   const recommendations = await queryTemuDatabase(`SELECT * FROM temu_ad_recommendations WHERE product_id = $1 ORDER BY recommendation_date DESC, created_at DESC`, [productId]);
   const timeline = await queryTemuDatabase(`SELECT * FROM temu_product_timeline WHERE product_id = $1 ORDER BY event_time DESC LIMIT 100`, [productId]);
+  const adStageReviewRows = await queryTemuDatabase(
+    `SELECT CASE
+              WHEN days_online BETWEEN 1 AND 7 THEN '第1周 冷启动期'
+              WHEN days_online BETWEEN 8 AND 14 THEN '第2周 测试期'
+              WHEN days_online BETWEEN 15 AND 21 THEN '第3周 控本期'
+              ELSE '第4周 利润期'
+            END AS stage_name,
+            MIN(snapshot_date)::text AS stage_start_date,
+            MAX(snapshot_date)::text AS stage_end_date,
+            MAX(target_roas) AS actual_target_roas,
+            COALESCE(SUM(ad_spend),0) AS ad_spend,
+            COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount,
+            COALESCE(SUM(ad_order_count),0) AS ad_order_count,
+            COALESCE(SUM(natural_order_count),0) AS natural_order_count,
+            COALESCE(SUM(impressions),0) AS impressions,
+            COALESCE(SUM(clicks),0) AS clicks,
+            COALESCE(SUM(add_to_cart_count),0) AS add_to_cart_count,
+            CASE WHEN COALESCE(SUM(ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(ad_sales_amount),0) / NULLIF(SUM(ad_spend),0) END AS roas,
+            MIN(days_online) AS min_days_online
+     FROM temu_new_product_daily_snapshot
+     WHERE product_id = $1 AND days_online BETWEEN 1 AND 30
+     GROUP BY CASE
+              WHEN days_online BETWEEN 1 AND 7 THEN '第1周 冷启动期'
+              WHEN days_online BETWEEN 8 AND 14 THEN '第2周 测试期'
+              WHEN days_online BETWEEN 15 AND 21 THEN '第3周 控本期'
+              ELSE '第4周 利润期'
+            END
+     ORDER BY MIN(days_online) ASC`,
+    [productId],
+  );
+  const adStageReview = adStageReviewRows.rows.map((row) => {
+    const plan = adStagePlanForDays(row.min_days_online);
+    const roas = row.roas === null ? null : Number(row.roas);
+    return {
+      ...toCamel(row),
+      stageDate: `${String(row.stage_start_date || '').slice(0, 10)} ~ ${String(row.stage_end_date || '').slice(0, 10)}`,
+      plannedTargetRoas: plan.targetRoas,
+      systemJudgement: plan.targetRoas && roas !== null && roas >= plan.targetRoas ? '阶段达标' : '继续优化',
+      operatorAction: '-',
+    };
+  });
   return {
     product: product.rows[0] ? toCamel(product.rows[0]) : null,
     skus: skus.rows.map(toCamel),
@@ -2003,5 +2293,6 @@ export async function getProductDetail(productId, params = {}) {
     orders: orders.rows.map(toCamel),
     recommendations: recommendations.rows.map(toCamel),
     timeline: timeline.rows.map(toCamel),
+    adStageReview,
   };
 }

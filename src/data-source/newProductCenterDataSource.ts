@@ -124,6 +124,26 @@ export const newProductCenterDataSource = {
     return request<PagedResponse<RecommendationRecord>>(`/api/new-product-center/ad-recommendations${params}`);
   },
 
+  getAdStrategyConfig() {
+    return request<AdStrategyConfig>('/api/new-product-center/ad-strategy/config');
+  },
+
+  getAdStrategyCounts(params = '') {
+    return request<{ counts: Record<string, number>; snapshotDate?: string; dataCutoffDate?: string; dateMode?: string }>(`/api/new-product-center/ad-strategy/counts${params}`);
+  },
+
+  getAdStrategyPending(params = '') {
+    return request<PagedResponse<AdStrategySuggestion>>(`/api/new-product-center/ad-strategy/pending${params}`);
+  },
+
+  getAdStrategyExecution(params = '') {
+    return request<PagedResponse<AdStrategyExecutionRecord>>(`/api/new-product-center/ad-strategy/execution${params}`);
+  },
+
+  getAdStrategyReview(params = '') {
+    return request<PagedResponse<AdStrategyReviewRecord>>(`/api/new-product-center/ad-strategy/review${params}`);
+  },
+
   handleRecommendation(id: string, payload: { status: string; handleNote?: string }) {
     return request<{ ok: boolean; recommendation: RecommendationRecord | null }>(`/api/new-product-center/ad-recommendations/${id}/handle`, {
       method: 'POST',
@@ -237,6 +257,60 @@ export interface RecommendationRecord extends ProductSnapshot {
   targetRoas?: number | null;
 }
 
+export interface AdStrategyConfig {
+  stages: Array<{ key: string; name: string; dayStart: number; dayEnd: number; bidLevel: string; targetRoas: number | null; goal: string }>;
+  thresholds: Record<string, number>;
+}
+
+export interface AdStrategySuggestion extends Partial<RecommendationRecord> {
+  id: string;
+  recommendationDate?: string;
+  storeName?: string;
+  operatorName?: string;
+  productId?: string;
+  productName?: string;
+  daysOnline?: number;
+  currentStage?: string;
+  plannedTargetRoas?: number | null;
+  actualTargetRoas?: number | null;
+  adSpend?: number;
+  adOrderCount?: number;
+  naturalOrderCount?: number;
+  roas?: number | null;
+  targetRoas?: number | null;
+  generated?: boolean;
+}
+
+export interface AdStrategyExecutionRecord extends ProductSnapshot {
+  currentStage?: string;
+  plannedTargetRoas?: number | null;
+  actualTargetRoas?: number | null;
+  executionStatus?: string;
+  stageEffect?: string;
+  nextAction?: string;
+}
+
+export interface AdStrategyReviewRecord {
+  productId?: string;
+  productName?: string;
+  storeName?: string;
+  operatorName?: string;
+  stageName?: string;
+  stageDate?: string;
+  plannedTargetRoas?: number | null;
+  actualTargetRoas?: number | null;
+  adSpend?: number;
+  adSalesAmount?: number;
+  adOrderCount?: number;
+  naturalOrderCount?: number;
+  impressions?: number;
+  clicks?: number;
+  addToCartCount?: number;
+  roas?: number | null;
+  systemJudgement?: string;
+  operatorAction?: string;
+}
+
 export interface DashboardResponse {
   snapshotDate: string;
   dataCutoffDate?: string;
@@ -292,4 +366,5 @@ export interface ProductDetailResponse {
   orders: Record<string, unknown>[];
   recommendations: RecommendationRecord[];
   timeline: Record<string, unknown>[];
+  adStageReview?: AdStrategyReviewRecord[];
 }
