@@ -205,7 +205,7 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
   };
 
   const refreshOverview = async (page = recordsPage) => {
-    if (!storeName || !reportDate) {
+    if ((!storeName && !isAdmin) || !reportDate) {
       setOverview({ batches: [], records: [] });
       return;
     }
@@ -240,12 +240,12 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
       const temuStores = (data.stores || []).filter((store) => store.platform === 'TEMU' && store.status !== 'inactive');
       setStores(temuStores);
       if (storeName && reportDate) return;
-      let defaultStoreName = temuStores[0]?.storeName || '';
+      let defaultStoreName = isAdmin ? '' : (temuStores[0]?.storeName || '');
       let defaultReportDate = reportDate;
       try {
         const recent = await newProductCenterDataSource.getAdImportRecords(1, 1, {});
         const recentStoreName = String(recent.batches?.[0]?.storeName || recent.records?.[0]?.storeName || '');
-        if (recentStoreName && temuStores.some((store) => store.storeName === recentStoreName)) {
+        if (!isAdmin && recentStoreName && temuStores.some((store) => store.storeName === recentStoreName)) {
           defaultStoreName = recentStoreName;
         }
         defaultReportDate = String(recent.reportDates?.[0] || recent.batches?.[0]?.reportDate || defaultReportDate || '').slice(0, 10);
@@ -253,7 +253,7 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
         // Keep the first visible store; a later effect will try to load its latest report date.
       }
       setStoreName((current) => current || defaultStoreName);
-      setImportStoreName((current) => current || defaultStoreName);
+      setImportStoreName((current) => current || temuStores[0]?.storeName || '');
       if (defaultReportDate) setReportDate((current) => current || defaultReportDate);
       if (defaultReportDate) setImportReportDate((current) => current || defaultReportDate);
     }).catch(() => setStores([]));
@@ -420,7 +420,7 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
           <article>
             <span>广告商品数</span>
             <strong>{summary.adProductCount ?? 0}</strong>
-            <small>{storeName || '请选择店铺'}</small>
+            <small>{storeName || (isAdmin ? '全部店铺' : '请选择店铺')}</small>
           </article>
           <article>
             <span>总花费</span>
@@ -437,13 +437,13 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
 
       <article className="excel-record-panel npc-panel temu-import-context-panel">
         <header className="npc-panel-header">
-          <h2>当前展示：{storeName && reportDate ? `${storeName} ${reportDate} 广告数据` : '请选择店铺和广告日期后查看数据'}</h2>
+          <h2>当前展示：{reportDate ? `${storeName || '全部店铺'} ${reportDate} 广告数据` : '请选择广告日期后查看数据'}</h2>
           <span>{latestBatch?.fileName ? `最近批次：${latestBatch.fileName}` : '暂无导入批次'}</span>
         </header>
         <div className="npc-mapping-grid temu-import-filter-grid">
           <label>查看店铺
             <select value={storeName} onChange={(event) => { setStoreName(event.target.value); setRecordsPage(1); }}>
-              <option value="">请选择店铺</option>
+              <option value="">{isAdmin ? '全部店铺' : '请选择店铺'}</option>
               {stores.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}
             </select>
           </label>
@@ -543,7 +543,7 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
                   ))}
                 </tr>
               ))}
-              {overview.records.length === 0 && <tr><td colSpan={AD_RECORD_COLUMNS.length}>{storeName && reportDate ? '暂无当前店铺和日期的广告记录' : '请选择店铺和广告日期后查看数据'}</td></tr>}
+              {overview.records.length === 0 && <tr><td colSpan={AD_RECORD_COLUMNS.length}>{reportDate ? '暂无当前范围的广告记录' : '请选择广告日期后查看数据'}</td></tr>}
             </tbody>
           </table>
         </div>

@@ -104,7 +104,7 @@ export default function TemuProductInfoImportPage({ currentUser }: { currentUser
 
   const refreshOverview = async (page = recordsPage, nextStoreName = storeName, nextFilters = filters) => {
     const requestSeq = ++overviewRequestSeq.current;
-    if (!nextStoreName) {
+    if (!nextStoreName && !isAdmin) {
       if (requestSeq !== overviewRequestSeq.current) return;
       setOverview({ batches: [], records: [] });
       return;
@@ -139,18 +139,18 @@ export default function TemuProductInfoImportPage({ currentUser }: { currentUser
       const temuStores = (data.stores || []).filter((store) => store.platform === 'TEMU' && store.status !== 'inactive');
       setStores(temuStores);
       if (storeName) return;
-      let defaultStoreName = temuStores[0]?.storeName || '';
+      let defaultStoreName = isAdmin ? '' : (temuStores[0]?.storeName || '');
       try {
         const recent = await newProductCenterDataSource.getProductImportRecords(1, 1, {});
         const recentStoreName = String(recent.batches?.[0]?.storeName || recent.records?.[0]?.storeName || '');
-        if (recentStoreName && temuStores.some((store) => store.storeName === recentStoreName)) {
+        if (!isAdmin && recentStoreName && temuStores.some((store) => store.storeName === recentStoreName)) {
           defaultStoreName = recentStoreName;
         }
       } catch {
         // Keep the first visible store when recent import lookup is unavailable.
       }
       setStoreName(defaultStoreName);
-      setImportStoreName((current) => current || defaultStoreName);
+      setImportStoreName((current) => current || temuStores[0]?.storeName || '');
     }).catch(() => setStores([]));
   }, []);
 
@@ -160,7 +160,7 @@ export default function TemuProductInfoImportPage({ currentUser }: { currentUser
 
   const onFile = async (file?: File) => {
     if (!file) return;
-    if (!storeName) {
+    if (!importStoreName) {
       setMessage('请先选择导入店铺。');
       return;
     }
@@ -269,7 +269,7 @@ export default function TemuProductInfoImportPage({ currentUser }: { currentUser
           <article>
             <span>当前店铺商品数</span>
             <strong>{summary.productCount ?? 0}</strong>
-            <small>{storeName || '请选择店铺'}</small>
+            <small>{storeName || (isAdmin ? '全部店铺' : '请选择店铺')}</small>
           </article>
           <article>
             <span>当前店铺SKU数</span>
@@ -286,7 +286,7 @@ export default function TemuProductInfoImportPage({ currentUser }: { currentUser
 
       <article className="excel-record-panel npc-panel temu-import-context-panel">
         <header className="npc-panel-header">
-          <h2>当前展示：{storeName ? `${storeName} 商品信息` : '请选择店铺后查看数据'}</h2>
+          <h2>当前展示：{storeName ? `${storeName} 商品信息` : isAdmin ? '全部店铺 商品信息' : '请选择店铺后查看数据'}</h2>
           <span>{latestBatch?.fileName ? `最近批次：${latestBatch.fileName}` : '暂无导入批次'}</span>
         </header>
         <div className="npc-mapping-grid temu-import-filter-grid">
@@ -296,7 +296,7 @@ export default function TemuProductInfoImportPage({ currentUser }: { currentUser
               setStoreName(nextStoreName);
               setRecordsPage(1);
             }}>
-              <option value="">请选择店铺</option>
+              <option value="">{isAdmin ? '全部店铺' : '请选择店铺'}</option>
               {stores.map((store) => <option key={store.id || store.storeName} value={store.storeName || ''}>{store.storeName}</option>)}
             </select>
           </label>
@@ -377,7 +377,7 @@ export default function TemuProductInfoImportPage({ currentUser }: { currentUser
                   <td>{String(row.createdTime || '-').slice(0, 19).replace('T', ' ')}</td>
                 </tr>
               ))}
-              {overview.records.length === 0 && <tr><td colSpan={13}>{storeName ? '暂无当前店铺商品记录' : '请选择店铺后查看数据'}</td></tr>}
+              {overview.records.length === 0 && <tr><td colSpan={13}>{storeName || isAdmin ? '暂无当前范围商品记录' : '请选择店铺后查看数据'}</td></tr>}
             </tbody>
           </table>
         </div>
