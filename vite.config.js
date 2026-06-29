@@ -5878,10 +5878,22 @@ function getOperationWorkbenchDashboardCacheKey(searchParams, currentUser) {
     .sort(([firstKey], [secondKey]) => firstKey.localeCompare(secondKey))
     .map(([key, value]) => `${key}=${value}`)
     .join('&');
+  let resolvedStoreKey = '';
+  try {
+    const scope = getWorkbenchScope(currentUser, searchParams);
+    resolvedStoreKey = scope.stores
+      .map((store) => String(store?.id || store?.storeName || '').trim())
+      .filter(Boolean)
+      .sort((first, second) => first.localeCompare(second))
+      .join(',');
+  } catch (error) {
+    resolvedStoreKey = '';
+  }
   return [
     String(currentUser?.userId ?? currentUser?.id ?? currentUser?.username ?? ''),
     String(currentUser?.role ?? ''),
     String(currentUser?.operatorId ?? ''),
+    resolvedStoreKey,
     params,
   ].join('|');
 }
@@ -5892,7 +5904,7 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
   const now = Date.now();
   if (cached && cached.expiresAt > now) {
     if (cached.promise) return cached.promise;
-    console.info('[workbench-kpi] cacheHit 0ms');
+    console.info('[workbench-kpi] cacheHit true 0ms');
     return {
       ...cached.value,
       cache: {
@@ -5900,9 +5912,14 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
         cacheHit: true,
         ttlMs: OPERATION_WORKBENCH_DASHBOARD_CACHE_TTL_MS,
       },
+      debug: {
+        ...(cached.value?.debug ?? {}),
+        cacheHit: true,
+      },
     };
   }
 
+  console.info('[workbench-kpi] cacheHit false');
   const promise = buildOperationWorkbenchDashboardUncached(searchParams, currentUser)
     .then((value) => {
       const generatedAt = new Date().toISOString();
@@ -5912,6 +5929,11 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
           cacheHit: false,
           generatedAt,
           ttlMs: OPERATION_WORKBENCH_DASHBOARD_CACHE_TTL_MS,
+        },
+        debug: {
+          ...(value?.debug ?? {}),
+          cacheHit: false,
+          generatedAt,
         },
       };
       operationWorkbenchDashboardCache.set(cacheKey, {
@@ -5939,11 +5961,25 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const scope = getWorkbenchScope(currentUser, searchParams);
   logWorkbenchKpiTiming('scope', sectionStartedAt, timings);
   const stores = scope.stores;
+  const requestedOperatorId = String(searchParams.get('operatorId') ?? '').trim();
+  const requestedStoreId = String(searchParams.get('storeId') ?? '').trim();
+  const resolvedStoreIds = stores.map((store) => String(store?.id ?? '').trim()).filter(Boolean);
+  const resolvedStoreLabels = stores.map((store) => String(store?.storeName || store?.id || '').trim()).filter(Boolean);
+  const scopeMode = scope.selectedStoreId
+    ? 'selectedStore'
+    : scope.operatorId
+      ? 'selectedOperatorAllStores'
+      : 'allVisibleStores';
+  const scopeHash = resolvedStoreIds.length > 0 ? resolvedStoreIds.join(',') : resolvedStoreLabels.join(',');
+  console.info(`[workbench-kpi] params period=${range.period} operatorId=${requestedOperatorId || scope.operatorId || 'all'} storeId=${requestedStoreId || 'all'}`);
+  console.info(`[workbench-kpi] resolvedStoreIds count=${stores.length} stores=${resolvedStoreLabels.join('、') || '-'}`);
+  console.info(`[workbench-kpi] scope mode=${scopeMode} role=${scope.role || ''} hash=${scopeHash || '-'}`);
   const storeByName = new Map(stores.map((store) => [normalizeOrderImportStoreName(store.storeName || store.id), store]));
   sectionStartedAt = Date.now();
   const targetsPromise = readWorkbenchKpiTargets().then((value) => {
+    const scopedTargets = filterWorkbenchKpiTargetsForScope(value, currentUser, searchParams);
     logWorkbenchKpiTiming('targets', sectionStartedAt, timings);
-    return value;
+    return scopedTargets;
   });
   const orderReadStartedAt = Date.now();
   const orderStorePromise = readWorkbenchOrderStore().then((value) => {
@@ -5977,6 +6013,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   });
   const [targets, orderStore] = await Promise.all([targetsPromise, orderStorePromise]);
   const target = pickWorkbenchTarget(targets, scope, range.period);
+  console.info(`[workbench-kpi] targets count=${targets.length} targetStatus=${target ? 'matched' : 'missing'} configuredStores=${target?.configuredStoreCount ?? '-'}`);
   sectionStartedAt = Date.now();
   let salesAmountRaw = 0;
   let orderCount = 0;
@@ -6088,6 +6125,8 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const previousFinanceRecords = buildOperatorAnalysisStoreFinancialRecords(previousFinanceParams, currentUser)
     .filter((record) => !searchParams.get('storeId') || record.storeNames?.includes(searchParams.get('storeId')) || record.storeNames?.some((name) => scope.storeNames.has(normalizeOrderImportStoreName(name))));
   logWorkbenchKpiTiming('afterSaleExpense', sectionStartedAt, timings);
+  timings.expense = (timings.adExpense ?? 0) + (timings.afterSaleExpense ?? 0);
+  console.info(`[workbench-kpi] expense ${timings.expense}ms`);
   const lastMonthAfterSaleAmount = previousFinanceRecords.reduce((total, record) => total + toFiniteNumber(record.afterSaleIssueAmount), 0);
   const estimatedAfterSaleAmount = Number(((lastMonthAfterSaleAmount / 30) * expenseElapsedDays).toFixed(2));
   const adExpenseAmount = Number(toFiniteNumber(adSpendSummary.adSpend).toFixed(2));
@@ -6479,6 +6518,13 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     debug: {
       timings,
       totalMs: timings.total,
+      durationMs: timings.total,
+      cacheHit: false,
+      generatedAt: new Date().toISOString(),
+      resolvedStoreCount: stores.length,
+      resolvedStoreIds,
+      resolvedStores: resolvedStoreLabels,
+      scopeMode,
     },
   };
 }

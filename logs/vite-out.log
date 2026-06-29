@@ -873,3 +873,121 @@
 [workbench-kpi] todayActions 0ms
 [workbench-kpi] total 306ms
 [workbench-kpi] cacheHit 0ms
+[2m22:28:27[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m22:28:27[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] scope 5ms
+[workbench-kpi] salesDataRead 17ms
+[workbench-kpi] targets 73ms
+[workbench-kpi] sales 1ms
+[workbench-kpi] firstOrder 282ms
+[workbench-kpi] listing 285ms
+[workbench-kpi] adExpense 5ms
+[workbench-kpi] afterSaleExpense 39ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 354ms
+[2m22:28:46[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:28:47[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 4ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 13ms
+[workbench-kpi] targets 69ms
+[workbench-kpi] sales 1ms
+[workbench-kpi] firstOrder 242ms
+[workbench-kpi] listing 243ms
+[workbench-kpi] adExpense 4ms
+[workbench-kpi] afterSaleExpense 29ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 296ms
+[2m22:29:03[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:29:03[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 5ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 16ms
+[workbench-kpi] targets 195ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=3
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 371ms
+[workbench-kpi] firstOrder 376ms
+[workbench-kpi] adExpense 5ms
+[workbench-kpi] afterSaleExpense 28ms
+[workbench-kpi] expense 33ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 433ms
+[2m22:29:18[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:29:18[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 4ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 11ms
+[workbench-kpi] targets 65ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=3
+[workbench-kpi] sales 1ms
+[workbench-kpi] firstOrder 240ms
+[workbench-kpi] listing 246ms
+[workbench-kpi] adExpense 3ms
+[workbench-kpi] afterSaleExpense 34ms
+[workbench-kpi] expense 37ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 301ms
+[2m22:29:35[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:29:35[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 3ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 17ms
+[workbench-kpi] targets 72ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=3
+[workbench-kpi] sales 1ms
+[workbench-kpi] firstOrder 226ms
+[workbench-kpi] listing 229ms
+[workbench-kpi] adExpense 3ms
+[workbench-kpi] afterSaleExpense 38ms
+[workbench-kpi] expense 41ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 0ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 292ms
+[2m22:30:22[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m22:30:22[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 3ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 16ms
+[workbench-kpi] targets 85ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=3
+[workbench-kpi] sales 1ms
+[workbench-kpi] firstOrder 264ms
+[workbench-kpi] listing 269ms
+[workbench-kpi] adExpense 5ms
+[workbench-kpi] afterSaleExpense 34ms
+[workbench-kpi] expense 39ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 328ms

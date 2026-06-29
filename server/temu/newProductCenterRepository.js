@@ -2048,6 +2048,25 @@ async function backfillTemuImportBatchStores() {
   );
 }
 
+let temuProductStatsMaintenancePromise = null;
+let temuProductStatsMaintenanceAt = 0;
+const TEMU_PRODUCT_STATS_MAINTENANCE_TTL_MS = 5 * 60_000;
+
+async function ensureTemuProductStatsMaintenance() {
+  if (!temuProductStatsMaintenancePromise || Date.now() - temuProductStatsMaintenanceAt > TEMU_PRODUCT_STATS_MAINTENANCE_TTL_MS) {
+    temuProductStatsMaintenancePromise = (async () => {
+      await runTemuMigrations();
+      await backfillTemuImportBatchStores();
+      temuProductStatsMaintenanceAt = Date.now();
+    })().catch((error) => {
+      temuProductStatsMaintenancePromise = null;
+      temuProductStatsMaintenanceAt = 0;
+      throw error;
+    });
+  }
+  return temuProductStatsMaintenancePromise;
+}
+
 export async function getProductImportOverview(params = {}) {
   await runTemuMigrations();
   await backfillTemuImportBatchStores();
@@ -2295,14 +2314,16 @@ export async function readEffectiveListingsFromProductImport(params = {}) {
 }
 
 export async function calculateNewProductFirstOrderStats(params = {}) {
-  await runTemuMigrations();
-  await backfillTemuImportBatchStores();
+  await ensureTemuProductStatsMaintenance();
   const observeDays = Math.max(1, Number(params.observeDays || 30));
   const periodStart = dateText(params.periodStart) || `${new Date().toISOString().slice(0, 7)}-01`;
   const periodEnd = dateText(params.periodEnd) || periodStart;
   const today = dateText(params.today) || new Date().toISOString().slice(0, 10);
   const dateMode = params.dateMode === 'observeEnd' ? 'observeEnd' : 'listedAt';
-  const filter = createWhereBuilder(3);
+  const rawFilter = createWhereBuilder(3);
+  appendStoreScope(rawFilter, 's', params);
+  const rawCondition = rawFilter.where.length ? `WHERE ${rawFilter.where.join(' AND ')}` : '';
+  const filter = createWhereBuilder(3 + rawFilter.values.length);
   appendStoreScope(filter, 'product_rows', params);
   if (dateMode === 'observeEnd') {
     filter.push(`(product_rows.listed_at::date + ($1::int * INTERVAL '1 day'))::date >= ?::date`, periodStart);
@@ -2337,8 +2358,9 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
          COALESCE(NULLIF(p.operator_name, ''), NULL) AS product_operator_name,
          COALESCE(s.created_time, ${skuCreatedTimeFromRaw}, p.created_time, ${productCreatedTimeFromRaw}, p.first_online_at) AS listed_at,
          GREATEST(COALESCE(s.updated_at, '-infinity'::timestamptz), COALESCE(p.updated_at, '-infinity'::timestamptz)) AS updated_at
-       FROM temu_product_skus s
-       LEFT JOIN temu_products p ON p.id = s.product_id
+     FROM temu_product_skus s
+     LEFT JOIN temu_products p ON p.id = s.product_id
+     ${rawCondition}
      ),
      sku_rows AS (
        SELECT
@@ -2394,6 +2416,16 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
         AND o.order_date IS NOT NULL
         AND o.order_date >= p.listed_at::date
         AND (
+          o.store_id IS NULL
+          OR sr.store_id IS NULL
+          OR o.store_id = sr.store_id
+          OR (
+            NULLIF(o.store_name, '') IS NOT NULL
+            AND NULLIF(sr.store_name, '') IS NOT NULL
+            AND o.store_name = sr.store_name
+          )
+        )
+        AND (
           (o.product_id IS NOT NULL AND o.product_id = sr.product_uuid)
           OR (o.product_sku_id IS NOT NULL AND o.product_sku_id = sr.sku_row_id)
           OR (
@@ -2436,7 +2468,7 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
      FROM scoped_products
      LEFT JOIN first_orders ON first_orders.product_key = scoped_products.product_key
      ORDER BY scoped_products.listed_at DESC, scoped_products.store_name ASC, scoped_products.product_name ASC`,
-    [observeDays, today, ...filter.values],
+    [observeDays, today, ...rawFilter.values, ...filter.values],
   );
   const products = result.rows.map((row) => ({
     productId: row.product_id || row.product_key || '',
