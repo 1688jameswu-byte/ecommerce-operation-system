@@ -153,6 +153,8 @@ type WorkbenchData = {
   };
   productFollowUps: ProductFollowUp[];
   dataIntegrityWarnings: Array<string | { type?: string; level?: string; message: string }>;
+  cache?: { cacheHit: boolean; generatedAt: string; ttlMs?: number };
+  debug?: { timings?: Record<string, number>; totalMs?: number };
 };
 
 const defaultTarget: KpiTarget = {
@@ -180,12 +182,14 @@ function currentPeriod() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-async function fetchJson<T>(url: string, fallback: T, options: RequestInit = {}): Promise<T> {
+async function fetchJson<T>(url: string, fallback: T, options: RequestInit & { bustCache?: boolean } = {}): Promise<T> {
   try {
-    const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`, {
+    const { bustCache, ...fetchOptions } = options;
+    const requestUrl = bustCache ? `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}` : url;
+    const response = await fetch(requestUrl, {
       credentials: 'include',
       cache: 'no-store',
-      ...options,
+      ...fetchOptions,
     });
     return response.ok ? await response.json() as T : fallback;
   } catch (error) {
@@ -891,18 +895,21 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
   const [editingTarget, setEditingTarget] = useState<KpiTarget | null>(null);
   const requestIdRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  const dashboardQuery = useMemo(() => {
+    const params = new URLSearchParams({ period });
+    if (operatorId) params.set('operatorId', operatorId);
+    if (storeId) params.set('storeId', storeId);
+    return params.toString();
+  }, [operatorId, period, storeId]);
 
-  const loadData = () => {
+  const loadData = (query = dashboardQuery) => {
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
-    const params = new URLSearchParams({ period });
-    if (operatorId) params.set('operatorId', operatorId);
-    if (storeId) params.set('storeId', storeId);
-    void fetchJson<WorkbenchData | null>(`/api/operation-workbench/kpi-dashboard?${params.toString()}`, null, { signal: controller.signal })
+    void fetchJson<WorkbenchData | null>(`/api/operation-workbench/kpi-dashboard?${query}`, null, { signal: controller.signal })
       .then((nextData) => {
         if (requestIdRef.current === requestId) setData(nextData);
       })
@@ -916,9 +923,12 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
   };
 
   useEffect(() => {
-    loadData();
-    return () => abortRef.current?.abort();
-  }, [period, operatorId, storeId]);
+    const timer = window.setTimeout(() => loadData(dashboardQuery), 160);
+    return () => {
+      window.clearTimeout(timer);
+      abortRef.current?.abort();
+    };
+  }, [dashboardQuery]);
 
   const canManage = data?.filters.canManage ?? currentUser.role !== 'operator';
   const selectStore = (nextStoreId: string) => {

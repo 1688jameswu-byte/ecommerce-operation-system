@@ -757,3 +757,119 @@
 [2m21:45:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
 [2m21:45:31[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
 [2m21:46:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m22:05:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m22:05:59[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:06:00[22m [36m[1m[vite][22m[39m server restarted.
+[2m22:06:36[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:06:36[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] scope 4ms
+[workbench-kpi] salesDataRead 13ms
+[workbench-kpi] targets 68ms
+[workbench-kpi] listing 255ms
+[workbench-kpi] firstOrder 265ms
+[2m22:06:41[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:06:41[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] scope 5ms
+[workbench-kpi] salesDataRead 12ms
+[workbench-kpi] targets 51ms
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 230ms
+[workbench-kpi] firstOrder 231ms
+[2m22:06:51[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:06:51[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] scope 4ms
+[workbench-kpi] salesDataRead 13ms
+[workbench-kpi] targets 190ms
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 359ms
+[workbench-kpi] firstOrder 361ms
+[workbench-kpi] adExpense 4ms
+[workbench-kpi] afterSaleExpense 36ms
+[2m22:07:20[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:07:20[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] scope 5ms
+[workbench-kpi] salesDataRead 12ms
+[workbench-kpi] targets 83ms
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 249ms
+[workbench-kpi] firstOrder 264ms
+[workbench-kpi] adExpense 4ms
+[workbench-kpi] afterSaleExpense 35ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 0ms
+[2m22:07:27[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:07:27[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] scope 4ms
+[workbench-kpi] salesDataRead 11ms
+[workbench-kpi] targets 90ms
+[workbench-kpi] sales 1ms
+[workbench-kpi] firstOrder 270ms
+[workbench-kpi] listing 378ms
+[workbench-kpi] adExpense 5ms
+[workbench-kpi] afterSaleExpense 37ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 437ms
+[2m22:07:38[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:07:38[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] scope 4ms
+[workbench-kpi] salesDataRead 12ms
+[workbench-kpi] targets 49ms
+[workbench-kpi] sales 0ms
+[workbench-kpi] firstOrder 218ms
+[workbench-kpi] listing 223ms
+[workbench-kpi] adExpense 3ms
+[workbench-kpi] afterSaleExpense 31ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 0ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 276ms
+[2m22:07:58[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:07:58[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] scope 3ms
+[workbench-kpi] salesDataRead 11ms
+[workbench-kpi] targets 85ms
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 258ms
+[workbench-kpi] firstOrder 262ms
+[workbench-kpi] adExpense 4ms
+[workbench-kpi] afterSaleExpense 39ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 323ms
+[2m22:08:12[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:08:12[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] scope 5ms
+[workbench-kpi] salesDataRead 13ms
+[workbench-kpi] targets 47ms
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 207ms
+[workbench-kpi] firstOrder 207ms
+[workbench-kpi] adExpense 4ms
+[workbench-kpi] afterSaleExpense 33ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 264ms
+[2m22:09:07[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m22:09:07[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] scope 5ms
+[workbench-kpi] salesDataRead 14ms
+[workbench-kpi] targets 70ms
+[workbench-kpi] sales 0ms
+[workbench-kpi] listing 239ms
+[workbench-kpi] firstOrder 241ms
+[workbench-kpi] adExpense 4ms
+[workbench-kpi] afterSaleExpense 39ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 306ms
+[workbench-kpi] cacheHit 0ms

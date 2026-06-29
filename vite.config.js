@@ -3364,7 +3364,9 @@ async function handleTemuProductInfoImportApi(req, res) {
         return;
       }
       const batchId = decodeURIComponent(action.replace(/^batches\//, ''));
-      res.end(JSON.stringify(await deleteProductImportBatch(batchId)));
+      const result = await deleteProductImportBatch(batchId);
+      clearOperationWorkbenchDashboardCache();
+      res.end(JSON.stringify(result));
       return;
     }
     if (req.method !== 'POST') {
@@ -3424,6 +3426,7 @@ async function handleTemuProductInfoImportApi(req, res) {
         successRows: result.successRows,
         errorRows: result.errorRows,
       });
+      clearOperationWorkbenchDashboardCache();
       res.end(JSON.stringify(result));
       return;
     }
@@ -3471,7 +3474,9 @@ async function handleTemuAdReportImportApi(req, res) {
         return;
       }
       const batchId = decodeURIComponent(action.replace(/^batches\//, ''));
-      res.end(JSON.stringify(await deleteAdImportBatch(batchId)));
+      const result = await deleteAdImportBatch(batchId);
+      clearOperationWorkbenchDashboardCache();
+      res.end(JSON.stringify(result));
       return;
     }
     if (req.method !== 'POST') {
@@ -5319,6 +5324,7 @@ async function handleSalaryFinancialImportsApi(req, res) {
         ...currentDetails.filter((detail) => financialScopeKey(detail) !== scopeKey),
         ...normalizedDetails,
       ]);
+      clearOperationWorkbenchDashboardCache();
       res.end(JSON.stringify({ ok: true, batch: normalizedBatch }));
       return;
     }
@@ -5329,6 +5335,7 @@ async function handleSalaryFinancialImportsApi(req, res) {
       const batchId = decodeURIComponent(parts[0] || '');
       writeJsonFile('salaryFinancialImportBatches', readCollection('salaryFinancialImportBatches').filter((batch) => batch.id !== batchId));
       writeJsonFile('salaryFinancialDetails', readCollection('salaryFinancialDetails').filter((detail) => detail.importBatchId !== batchId));
+      clearOperationWorkbenchDashboardCache();
       res.end(JSON.stringify({ ok: true }));
       return;
     }
@@ -5852,10 +5859,17 @@ function filterWorkbenchKpiTargetsForScope(targets, currentUser, searchParams = 
 }
 
 const operationWorkbenchDashboardCache = new Map();
-const OPERATION_WORKBENCH_DASHBOARD_CACHE_TTL_MS = 60_000;
+const OPERATION_WORKBENCH_DASHBOARD_CACHE_TTL_MS = 5 * 60_000;
 
 function clearOperationWorkbenchDashboardCache() {
   operationWorkbenchDashboardCache.clear();
+}
+
+function logWorkbenchKpiTiming(label, startedAt, timings) {
+  const elapsed = Date.now() - startedAt;
+  timings[label] = elapsed;
+  console.info(`[workbench-kpi] ${label} ${elapsed}ms`);
+  return elapsed;
 }
 
 function getOperationWorkbenchDashboardCacheKey(searchParams, currentUser) {
@@ -5878,16 +5892,33 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
   const now = Date.now();
   if (cached && cached.expiresAt > now) {
     if (cached.promise) return cached.promise;
-    return cached.value;
+    console.info('[workbench-kpi] cacheHit 0ms');
+    return {
+      ...cached.value,
+      cache: {
+        ...(cached.value?.cache ?? {}),
+        cacheHit: true,
+        ttlMs: OPERATION_WORKBENCH_DASHBOARD_CACHE_TTL_MS,
+      },
+    };
   }
 
   const promise = buildOperationWorkbenchDashboardUncached(searchParams, currentUser)
     .then((value) => {
+      const generatedAt = new Date().toISOString();
+      const nextValue = {
+        ...value,
+        cache: {
+          cacheHit: false,
+          generatedAt,
+          ttlMs: OPERATION_WORKBENCH_DASHBOARD_CACHE_TTL_MS,
+        },
+      };
       operationWorkbenchDashboardCache.set(cacheKey, {
-        value,
+        value: nextValue,
         expiresAt: Date.now() + OPERATION_WORKBENCH_DASHBOARD_CACHE_TTL_MS,
       });
-      return value;
+      return nextValue;
     })
     .catch((error) => {
       operationWorkbenchDashboardCache.delete(cacheKey);
@@ -5901,13 +5932,26 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
 }
 
 async function buildOperationWorkbenchDashboardUncached(searchParams, currentUser) {
+  const totalStartedAt = Date.now();
+  const timings = {};
+  let sectionStartedAt = Date.now();
   const range = getWorkbenchMonthRange(String(searchParams.get('period') ?? ''));
   const scope = getWorkbenchScope(currentUser, searchParams);
+  logWorkbenchKpiTiming('scope', sectionStartedAt, timings);
   const stores = scope.stores;
   const storeByName = new Map(stores.map((store) => [normalizeOrderImportStoreName(store.storeName || store.id), store]));
-  const targetsPromise = readWorkbenchKpiTargets();
-  const orderStorePromise = readWorkbenchOrderStore();
+  sectionStartedAt = Date.now();
+  const targetsPromise = readWorkbenchKpiTargets().then((value) => {
+    logWorkbenchKpiTiming('targets', sectionStartedAt, timings);
+    return value;
+  });
+  const orderReadStartedAt = Date.now();
+  const orderStorePromise = readWorkbenchOrderStore().then((value) => {
+    logWorkbenchKpiTiming('salesDataRead', orderReadStartedAt, timings);
+    return value;
+  });
   const storeNames = stores.map((store) => String(store?.storeName || store?.id || '').trim()).filter(Boolean);
+  const listingStartedAt = Date.now();
   const newProductListingStatsPromise = calculateNewProductFirstOrderStats({
     periodStart: range.start,
     periodEnd: range.end,
@@ -5915,7 +5959,11 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     observeDays: 30,
     dateMode: 'listedAt',
     storeNames,
+  }).then((value) => {
+    logWorkbenchKpiTiming('listing', listingStartedAt, timings);
+    return value;
   });
+  const firstOrderStartedAt = Date.now();
   const newProductFirstOrderStatsPromise = calculateNewProductFirstOrderStats({
     periodStart: range.start,
     periodEnd: range.end,
@@ -5923,9 +5971,13 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     observeDays: 30,
     dateMode: 'observeEnd',
     storeNames,
+  }).then((value) => {
+    logWorkbenchKpiTiming('firstOrder', firstOrderStartedAt, timings);
+    return value;
   });
   const [targets, orderStore] = await Promise.all([targetsPromise, orderStorePromise]);
   const target = pickWorkbenchTarget(targets, scope, range.period);
+  sectionStartedAt = Date.now();
   let salesAmountRaw = 0;
   let orderCount = 0;
   let quantity = 0;
@@ -5946,6 +5998,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     }
   }
   const salesAmount = Number(salesAmountRaw.toFixed(2));
+  logWorkbenchKpiTiming('sales', sectionStartedAt, timings);
 
   const emptyNewProductStats = {
     newProductCount: 0,
@@ -6015,6 +6068,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const expenseElapsedDays = Math.max(range.elapsedDays || 0, 1);
   let adSpendSummary = { adSpend: 0, recordCount: 0, reportDayCount: 0, stores: [] };
   let adSpendError = '';
+  sectionStartedAt = Date.now();
   try {
     adSpendSummary = await getAdSpendSummary({
       startDate: range.start,
@@ -6025,12 +6079,15 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     adSpendError = error instanceof Error ? error.message : String(error);
     console.warn('[TEMU PostgreSQL] workbench ad spend summary failed:', adSpendError);
   }
+  logWorkbenchKpiTiming('adExpense', sectionStartedAt, timings);
   const previousFinancePeriod = getPreviousWorkbenchPeriod(range.period);
   const previousFinanceParams = new URLSearchParams({ period: previousFinancePeriod });
   if (scope.operatorId) previousFinanceParams.set('operatorId', scope.operatorId);
   if (searchParams.get('storeId')) previousFinanceParams.set('storeId', searchParams.get('storeId'));
+  sectionStartedAt = Date.now();
   const previousFinanceRecords = buildOperatorAnalysisStoreFinancialRecords(previousFinanceParams, currentUser)
     .filter((record) => !searchParams.get('storeId') || record.storeNames?.includes(searchParams.get('storeId')) || record.storeNames?.some((name) => scope.storeNames.has(normalizeOrderImportStoreName(name))));
+  logWorkbenchKpiTiming('afterSaleExpense', sectionStartedAt, timings);
   const lastMonthAfterSaleAmount = previousFinanceRecords.reduce((total, record) => total + toFiniteNumber(record.afterSaleIssueAmount), 0);
   const estimatedAfterSaleAmount = Number(((lastMonthAfterSaleAmount / 30) * expenseElapsedDays).toFixed(2));
   const adExpenseAmount = Number(toFiniteNumber(adSpendSummary.adSpend).toFixed(2));
@@ -6089,6 +6146,24 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     if (score >= 60) return '落后';
     return '严重落后';
   };
+  sectionStartedAt = Date.now();
+  const countProductsByStore = (products, predicate = () => true) => {
+    const result = new Map();
+    for (const item of products ?? []) {
+      if (!predicate(item)) continue;
+      const key = normalizeOrderImportStoreName(item?.storeName || item?.storeId);
+      if (!key) continue;
+      result.set(key, (result.get(key) ?? 0) + 1);
+    }
+    return result;
+  };
+  const listingByStore = countProductsByStore(newProductListingStats.products);
+  const listingObservingByStore = countProductsByStore(newProductListingStats.products, (item) => item.status === 'OBSERVING');
+  const firstOrderSuccessByStore = countProductsByStore(newProductFirstOrderStats.products, (item) => item.status === 'FIRST_ORDER_SUCCESS');
+  const firstOrderExpiredByStore = countProductsByStore(newProductFirstOrderStats.products, (item) => item.status === 'EXPIRED_NO_FIRST_ORDER');
+  const firstOrderObservingByStore = countProductsByStore(newProductFirstOrderStats.products, (item) => item.status === 'OBSERVING');
+  logWorkbenchKpiTiming('storeBreakdownPreAggregate', sectionStartedAt, timings);
+  sectionStartedAt = Date.now();
   const storeBreakdown = stores.map((store) => {
     const storeId = String(store?.id ?? '').trim();
     const storeName = String(store?.storeName || storeId).trim();
@@ -6098,11 +6173,10 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     const storeMissingFields = new Set(Array.isArray(storeTarget?.missingTargetFields) ? storeTarget.missingTargetFields : []);
     const storeFieldComplete = (field) => Boolean(storeTarget && toFiniteNumber(storeTarget?.[field]) > 0 && !storeMissingFields.has(field));
     const salesActual = toFiniteNumber(storeSalesMap.get(storeKey)?.salesAmount);
-    const listingActual = newProductListingStats.products.filter((item) => normalizeOrderImportStoreName(item?.storeName || item?.storeId) === storeKey).length;
-    const firstOrderActual = newProductFirstOrderStats.products.filter((item) => normalizeOrderImportStoreName(item?.storeName || item?.storeId) === storeKey && item.status === 'FIRST_ORDER_SUCCESS').length;
-    const expiredNoFirstOrder = newProductFirstOrderStats.products.filter((item) => normalizeOrderImportStoreName(item?.storeName || item?.storeId) === storeKey && item.status === 'EXPIRED_NO_FIRST_ORDER').length;
-    const observingCount = newProductListingStats.products.filter((item) => normalizeOrderImportStoreName(item?.storeName || item?.storeId) === storeKey && item.status === 'OBSERVING').length +
-      newProductFirstOrderStats.products.filter((item) => normalizeOrderImportStoreName(item?.storeName || item?.storeId) === storeKey && item.status === 'OBSERVING').length;
+    const listingActual = listingByStore.get(storeKey) ?? 0;
+    const firstOrderActual = firstOrderSuccessByStore.get(storeKey) ?? 0;
+    const expiredNoFirstOrder = firstOrderExpiredByStore.get(storeKey) ?? 0;
+    const observingCount = (listingObservingByStore.get(storeKey) ?? 0) + (firstOrderObservingByStore.get(storeKey) ?? 0);
     const storeAdExpense = toFiniteNumber(adSpendByStore.get(storeKey));
     const storeAfterSaleExpense = Number(((toFiniteNumber(afterSaleByStore.get(storeKey)) / 30) * expenseElapsedDays).toFixed(2));
     const storeTotalExpense = Number((storeAdExpense + storeAfterSaleExpense).toFixed(2));
@@ -6151,7 +6225,9 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     const secondScore = second.totalScore ?? -1;
     return firstScore - secondScore || first.storeName.localeCompare(second.storeName, 'zh-CN');
   });
+  logWorkbenchKpiTiming('storeBreakdown', sectionStartedAt, timings);
 
+  sectionStartedAt = Date.now();
   const missingTargetFields = new Set(Array.isArray(target?.missingTargetFields) ? target.missingTargetFields : []);
   const targetFieldComplete = (field) => Boolean(target && toFiniteNumber(target?.[field]) > 0 && !missingTargetFields.has(field));
   const targetIncompleteStatus = (field) => {
@@ -6215,7 +6291,9 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const totalObservingCount = newProductListingStats.observingCount + newProductFirstOrderStats.observingCount;
   if (totalObservingCount > 0) warnings.push(`还有 ${totalObservingCount} 个新品处于30天观察期内，暂不计入首单率分母`);
   if (stores.length === 0) warnings.push('当前账号未绑定 TEMU 可见店铺');
+  logWorkbenchKpiTiming('dataIntegrity', sectionStartedAt, timings);
 
+  sectionStartedAt = Date.now();
   let todayActions = [];
   const shouldShowProgressActions = range.timeProgress > 0;
   if (shouldShowProgressActions && completion.sales !== null && completion.sales < range.timeProgress) {
@@ -6314,6 +6392,9 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       todayActions = storeActions.slice(0, 5);
     }
   }
+  logWorkbenchKpiTiming('todayActions', sectionStartedAt, timings);
+  timings.total = Date.now() - totalStartedAt;
+  console.info(`[workbench-kpi] total ${timings.total}ms`);
 
   return {
     filters: {
@@ -6395,6 +6476,10 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     },
     productFollowUps,
     dataIntegrityWarnings: warnings,
+    debug: {
+      timings,
+      totalMs: timings.total,
+    },
   };
 }
 
@@ -7020,6 +7105,7 @@ function localDataPlugin() {
               jsonReadCache.delete(name);
               persistentResponseCache.clear();
               clearDashboardSummaryCache();
+              clearOperationWorkbenchDashboardCache();
               const deleteSummary = isOrderImportDelete && deleteBefore && deleteAfter
                 ? {
                   user: currentUser?.username ?? currentUser?.userId ?? '',
@@ -7113,6 +7199,9 @@ function localDataPlugin() {
             jsonReadCache.delete(name);
             persistentResponseCache.clear();
             clearDashboardSummaryCache();
+            if (name === 'orderImportStore') {
+              clearOperationWorkbenchDashboardCache();
+            }
             const deleteSummary = isOrderImportDelete && deleteBefore && deleteAfter
               ? {
                 user: currentUser?.username ?? currentUser?.userId ?? '',
