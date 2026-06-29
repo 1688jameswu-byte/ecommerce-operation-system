@@ -120,7 +120,7 @@ function EffectiveNewListingsPage({ currentUser }: { currentUser: CurrentUser })
         <header>
           <div>
             <h2>有效上新录入</h2>
-            <p>按店铺和 SKC 手动登记有效上新，用于首页“有效上新排名”。</p>
+            <p>按店铺和 SKC 手动登记有效上新，用于运营分析和历史核对。</p>
           </div>
           <span>{filteredRecords.length} 条</span>
         </header>
@@ -220,7 +220,7 @@ function EffectiveNewListingsPage({ currentUser }: { currentUser: CurrentUser })
       {deleteRecord && (
         <ConfirmDeleteModal
           title="确认删除这条有效上新记录吗？"
-          description="删除后首页有效上新排名会同步变化。"
+          description="删除后运营分析中的手动有效上新记录会同步变化。"
           onCancel={() => setDeleteRecord(null)}
           onConfirm={removeRecord}
         >

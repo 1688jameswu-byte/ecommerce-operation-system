@@ -21,7 +21,7 @@ export const rankingRules: RankingRule[] = [
     id: 'newProductRanking',
     title: '有效上新排名',
     period: '本月',
-    unit: '次',
+    unit: '款',
     showTopThreeBadge: true,
     showGrowth: false,
   },

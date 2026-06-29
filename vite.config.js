@@ -9,6 +9,7 @@ import {
   readOrderImportStoreFromPostgres,
   readTemuCollectionFromPostgres,
   readTrafficConversionStoreFromPostgres,
+  readWorkbenchKpiTargetsFromPostgres,
   replaceOrderStoreInPostgres,
   replaceTrafficStoreInPostgres,
   syncEffectiveListingsToPostgres,
@@ -16,6 +17,7 @@ import {
   syncTemuReferenceJsonToPostgres,
   syncTrafficStoreToPostgres,
   syncWarningRulesToPostgres,
+  upsertWorkbenchKpiTargetToPostgres,
 } from './server/temu/temuPostgresRepository.js';
 import { isTemuPostgresConfigured } from './server/temu/postgresDatabase.js';
 import {
@@ -32,6 +34,7 @@ import {
   getOperatorOptions,
   getProductDetail,
   getProductImportOverview,
+  getProductImportRankingSummary,
   getProducts,
   getRecommendations,
   getStoreOptions,
@@ -73,6 +76,7 @@ const dataFiles = {
   salaryRecords: 'salary-records.json',
   salaryFinancialDetails: 'salary-financial-details.json',
   salaryFinancialImportBatches: 'salary-financial-import-batches.json',
+  operationWorkbenchKpiTargets: 'operation-workbench-kpi-targets.json',
   users: 'users.json',
   authSessions: 'auth-sessions.json',
   userPermissions: 'user-permissions.json',
@@ -208,7 +212,7 @@ function ensureDataFile(name) {
           ? '[]'
         : name === 'taskSuggestionTemplates'
       ? JSON.stringify(getDefaultTaskSuggestionTemplates(), null, 2)
-      : name === 'storeOperatorRelations' || name === 'operators' || name === 'stores' || name === 'tasks' || name === 'salaryEmployees' || name === 'salaryPeriods' || name === 'salaryAttendanceRecords' || name === 'salaryAttendanceRules' || name === 'salaryEmployeeTypeRules' || name === 'salaryPieceworkRecords' || name === 'salaryPlans' || name === 'salaryItems' || name === 'employeeSalaryPlans' || name === 'salaryRecords' || name === 'salaryFinancialDetails' || name === 'salaryFinancialImportBatches' || name === 'effectiveNewListings'
+      : name === 'storeOperatorRelations' || name === 'operators' || name === 'stores' || name === 'tasks' || name === 'salaryEmployees' || name === 'salaryPeriods' || name === 'salaryAttendanceRecords' || name === 'salaryAttendanceRules' || name === 'salaryEmployeeTypeRules' || name === 'salaryPieceworkRecords' || name === 'salaryPlans' || name === 'salaryItems' || name === 'employeeSalaryPlans' || name === 'salaryRecords' || name === 'salaryFinancialDetails' || name === 'salaryFinancialImportBatches' || name === 'effectiveNewListings' || name === 'operationWorkbenchKpiTargets'
         ? '[]'
         : name === 'orderDailySummary' || name === 'trafficDailySummary'
         ? '{"items":[],"updatedAt":""}'
@@ -3442,6 +3446,14 @@ async function handleTemuProductInfoImportApi(req, res) {
     }
     const requestUrl = new URL(req.url ?? '/', 'http://localhost');
     const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
+    if (req.method === 'GET' && action === 'ranking-summary') {
+      const scope = getNewProductCenterScope(currentUser);
+      res.end(JSON.stringify(await getProductImportRankingSummary({
+        ...Object.fromEntries(requestUrl.searchParams.entries()),
+        ...scope,
+      })));
+      return;
+    }
     if (req.method === 'GET' && action === 'records') {
       const scope = getNewProductCenterScope(currentUser);
       res.end(JSON.stringify(await getProductImportOverview({
@@ -5415,6 +5427,7 @@ function handleOperatorSalaryStatisticsApi(req, res) {
 
 function buildOperatorAnalysisStoreFinancialRecords(searchParams, currentUser) {
   const requestedPeriod = String(searchParams.get('period') ?? '').trim();
+  const requestedOperatorId = String(searchParams.get('operatorId') ?? '').trim();
   const requestedStoreId = String(searchParams.get('storeId') ?? '').trim();
   const stores = getTemuVisibleStores(currentUser)
     .filter((store) => !requestedStoreId || String(store?.id ?? '') === requestedStoreId || String(store?.storeName ?? '') === requestedStoreId);
@@ -5431,6 +5444,11 @@ function buildOperatorAnalysisStoreFinancialRecords(searchParams, currentUser) {
   const summaryByStore = new Map(summaries.map((summary) => [String(summary.storeId), summary]));
 
   return stores
+    .filter((store) => !requestedOperatorId || relations.some((relation) =>
+      String(relation?.operatorId ?? '').trim() === requestedOperatorId &&
+      (String(relation?.storeId ?? '').trim() === String(store?.id ?? '').trim() ||
+        normalizeOrderImportStoreName(relation?.storeName) === normalizeOrderImportStoreName(store?.storeName))
+    ))
     .map((store) => {
       const storeId = String(store?.id ?? '').trim();
       const relation = relations.find((item) => String(item?.storeId ?? '').trim() === storeId);
@@ -5492,6 +5510,540 @@ function handleOperatorAnalysisStoreFinancialsApi(req, res) {
   const records = buildOperatorAnalysisStoreFinancialRecords(requestUrl.searchParams, currentUser);
 
   res.end(JSON.stringify({ records: sanitizeSensitiveFields(records, currentUser) }));
+}
+
+function normalizeWorkbenchSkc(value) {
+  return String(value ?? '')
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\ufeff]/g, '')
+    .trim()
+    .toUpperCase();
+}
+
+function getWorkbenchOrderSkc(order) {
+  return normalizeWorkbenchSkc(order?.skc || order?.skcCode || order?.productSku || order?.skuCode || order?.productName || order?.uniqueKey);
+}
+
+function getWorkbenchMonthRange(period) {
+  const safePeriod = /^\d{4}-\d{2}$/.test(period) ? period : formatOrderDateKey(new Date()).slice(0, 7);
+  const [year, month] = safePeriod.split('-').map(Number);
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
+  const today = new Date();
+  const todayMonth = formatOrderDateKey(today).slice(0, 7);
+  const isCurrentMonth = todayMonth === safePeriod;
+  const isFutureMonth = safePeriod > todayMonth;
+  const progressDate = isFutureMonth ? startDate : isCurrentMonth && today < endDate ? today : endDate;
+  const daysInMonth = endDate.getDate();
+  const elapsedDays = isFutureMonth ? 0 : Math.min(Math.max(progressDate.getDate(), 1), daysInMonth);
+
+  return {
+    period: safePeriod,
+    start: formatOrderDateKey(startDate),
+    end: formatOrderDateKey(endDate),
+    today: formatOrderDateKey(today),
+    daysInMonth,
+    elapsedDays,
+    remainingDays: isFutureMonth ? daysInMonth : Math.max(daysInMonth - elapsedDays + 1, 1),
+    timeProgress: elapsedDays / daysInMonth,
+  };
+}
+
+function getWorkbenchScope(currentUser, searchParams) {
+  const visibleStores = getTemuVisibleStores(currentUser);
+  const role = String(currentUser?.role ?? '').toLowerCase();
+  const requestedOperatorId = String(searchParams.get('operatorId') ?? '').trim();
+  const requestedStoreId = String(searchParams.get('storeId') ?? '').trim();
+  const relations = readCollection('storeOperatorRelations').filter((relation) => relation?.status !== 'inactive');
+  const operators = getOperators();
+  const operatorById = new Map(operators.map((operator) => [String(operator?.id ?? '').trim(), operator]));
+  let stores = visibleStores;
+  let operatorId = role === 'operator' ? String(currentUser?.operatorId ?? '').trim() : requestedOperatorId;
+  let operatorName = '';
+
+  if (requestedStoreId) {
+    stores = stores.filter((store) => String(store?.id ?? '') === requestedStoreId || String(store?.storeName ?? '') === requestedStoreId);
+  }
+
+  if (operatorId && role !== 'operator') {
+    stores = stores.filter((store) => relations.some((relation) =>
+      String(relation?.operatorId ?? '') === operatorId &&
+      (String(relation?.storeId ?? '') === String(store?.id ?? '') ||
+        normalizeOrderImportStoreName(relation?.storeName) === normalizeOrderImportStoreName(store?.storeName))
+    ));
+  }
+
+  if (operatorId) {
+    operatorName = operatorById.get(operatorId)?.operatorName || relations.find((relation) => String(relation?.operatorId ?? '') === operatorId)?.operatorName || '';
+  }
+
+  return {
+    role,
+    canManage: role === 'admin' || role === 'leader',
+    operatorId,
+    operatorName,
+    stores,
+    storeKeys: new Set(stores.flatMap((store) => [String(store?.id ?? ''), String(store?.storeName ?? '')].filter(Boolean))),
+    storeNames: new Set(stores.map((store) => normalizeOrderImportStoreName(store?.storeName || store?.id)).filter(Boolean)),
+    relations,
+    operators,
+  };
+}
+
+function itemMatchesWorkbenchScope(item, scope) {
+  const storeId = String(item?.storeId ?? '').trim();
+  const storeName = normalizeOrderImportStoreName(item?.storeName);
+  return scope.storeKeys.has(storeId) || scope.storeKeys.has(storeName) || scope.storeNames.has(storeName);
+}
+
+function normalizeWorkbenchTarget(payload, current = {}) {
+  const time = nowIso();
+  const period = String(payload?.period ?? current?.period ?? '').trim();
+  const operatorId = String(payload?.operatorId ?? current?.operatorId ?? '').trim();
+  const storeId = String(payload?.storeId ?? current?.storeId ?? '').trim();
+
+  if (!/^\d{4}-\d{2}$/.test(period)) {
+    throw new Error('period 必须是 YYYY-MM');
+  }
+
+  return {
+    id: current?.id || payload?.id || createId('operation-kpi-target'),
+    period,
+    operatorId,
+    operatorName: String(payload?.operatorName ?? current?.operatorName ?? '').trim(),
+    storeId,
+    storeName: String(payload?.storeName ?? current?.storeName ?? '').trim(),
+    salesTarget: toFiniteNumber(payload?.salesTarget ?? current?.salesTarget),
+    effectiveListingTarget: toFiniteNumber(payload?.effectiveListingTarget ?? current?.effectiveListingTarget),
+    firstOrderProductTarget: toFiniteNumber(payload?.firstOrderProductTarget ?? current?.firstOrderProductTarget),
+    expenseRatioTarget: toFiniteNumber(payload?.expenseRatioTarget ?? current?.expenseRatioTarget),
+    enabled: payload?.enabled ?? current?.enabled ?? true,
+    remark: String(payload?.remark ?? current?.remark ?? '').trim(),
+    createdAt: current?.createdAt || time,
+    updatedAt: time,
+  };
+}
+
+function scoreProgress(current, target, weight) {
+  if (!target || target <= 0) return null;
+  return Math.min(current / target, 1) * weight;
+}
+
+function scoreExpenseRatio(currentRatio, targetRatio, weight) {
+  if (!targetRatio || targetRatio <= 0 || currentRatio === null) return null;
+  if (currentRatio <= targetRatio) return weight;
+  return Math.max(0, 1 - ((currentRatio - targetRatio) / targetRatio)) * weight;
+}
+
+function getKpiStatus(score, weight, completionRate, timeProgress, inverseOverTarget = false) {
+  if (inverseOverTarget) {
+    if (completionRate === null) return '数据缺失';
+    if (score === null) return '目标未设置';
+    if (completionRate <= 1) return '正常';
+    if (completionRate <= 1.2) return '超标';
+    return '严重超标';
+  }
+  if (score === null) return '目标未设置';
+  if (completionRate >= 1) return '正常';
+  const gap = completionRate - timeProgress;
+  if (gap >= -0.05) return '正常';
+  if (gap >= -0.2) return '落后';
+  return '严重落后';
+}
+
+function pickWorkbenchTarget(targets, scope, period) {
+  const enabledTargets = targets
+    .filter((target) => target?.enabled !== false && target?.period === period)
+    .sort((first, second) => Date.parse(second?.updatedAt || '') - Date.parse(first?.updatedAt || ''));
+  const storeIds = new Set(scope.stores.map((store) => String(store?.id ?? '').trim()).filter(Boolean));
+  const storeNames = new Set(scope.stores.map((store) => normalizeOrderImportStoreName(store?.storeName || store?.id)).filter(Boolean));
+  const matchesStore = (target) => {
+    const targetStoreId = String(target?.storeId ?? '').trim();
+    const targetStoreName = normalizeOrderImportStoreName(target?.storeName || target?.storeId);
+    return (targetStoreId && storeIds.has(targetStoreId)) || (targetStoreName && storeNames.has(targetStoreName));
+  };
+
+  return enabledTargets.find((target) => target.operatorId && target.operatorId === scope.operatorId && matchesStore(target)) ||
+    enabledTargets.find((target) => target.operatorId && target.operatorId === scope.operatorId && !target.storeId && !target.storeName) ||
+    enabledTargets.find((target) => matchesStore(target)) ||
+    enabledTargets.find((target) => !target.operatorId && !target.storeId && !target.storeName) ||
+    null;
+}
+
+function buildWorkbenchOperatorStoreMap(scope) {
+  const visibleStoreKeys = new Set(scope.stores.flatMap((store) => [
+    String(store?.id ?? ''),
+    String(store?.storeName ?? ''),
+    normalizeOrderImportStoreName(store?.storeName),
+  ].filter(Boolean)));
+
+  return scope.operators.reduce((map, operator) => {
+    const operatorId = String(operator?.id ?? '').trim();
+    if (!operatorId) return map;
+
+    const storeIds = scope.relations
+      .filter((relation) => (
+        relation?.status !== 'inactive' &&
+        String(relation?.operatorId ?? '').trim() === operatorId &&
+        (
+          visibleStoreKeys.has(String(relation?.storeId ?? '').trim()) ||
+          visibleStoreKeys.has(String(relation?.storeName ?? '').trim()) ||
+          visibleStoreKeys.has(normalizeOrderImportStoreName(relation?.storeName))
+        )
+      ))
+      .flatMap((relation) => [String(relation?.storeId ?? '').trim(), String(relation?.storeName ?? '').trim()])
+      .filter(Boolean);
+
+    map[operatorId] = unique(storeIds);
+    return map;
+  }, {});
+}
+
+async function readWorkbenchOrderStore() {
+  return readPersistentDataForApi('orderImportStore', ensureDataFile('orderImportStore'));
+}
+
+async function readWorkbenchEffectiveListings() {
+  const jsonItems = Array.isArray(readJsonFile('effectiveNewListings')) ? readJsonFile('effectiveNewListings') : [];
+  try {
+    const postgresItems = await readEffectiveListingsFromPostgres();
+    return postgresItems.length > 0 ? postgresItems : jsonItems;
+  } catch (error) {
+    console.warn('[TEMU PostgreSQL] workbench effective listings read fallback to JSON:', error instanceof Error ? error.message : error);
+    return jsonItems;
+  }
+}
+
+async function readWorkbenchKpiTargets() {
+  const jsonTargets = readCollectionCached('operationWorkbenchKpiTargets').map((target) => normalizeWorkbenchTarget(target));
+  try {
+    const postgresTargets = await readWorkbenchKpiTargetsFromPostgres();
+    return postgresTargets.length > 0 ? postgresTargets.map((target) => normalizeWorkbenchTarget(target)) : jsonTargets;
+  } catch (error) {
+    console.warn('[TEMU PostgreSQL] workbench KPI targets read fallback to JSON:', error instanceof Error ? error.message : error);
+    return jsonTargets;
+  }
+}
+
+async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
+  const range = getWorkbenchMonthRange(String(searchParams.get('period') ?? ''));
+  const scope = getWorkbenchScope(currentUser, searchParams);
+  const stores = scope.stores;
+  const storeByName = new Map(stores.map((store) => [normalizeOrderImportStoreName(store.storeName || store.id), store]));
+  const targets = await readWorkbenchKpiTargets();
+  const target = pickWorkbenchTarget(targets, scope, range.period);
+  const orderStore = await readWorkbenchOrderStore();
+  const allOrders = (orderStore?.batches ?? []).flatMap((batch) =>
+    (batch.orders ?? []).map((order) => ({ ...order, importedAt: batch.importedAt, batchId: batch.batchId })),
+  );
+  const scopedOrders = allOrders.filter((order) => {
+    const date = getOrderDateKey(order);
+    return date && date >= range.start && date <= range.end && itemMatchesWorkbenchScope(order, scope);
+  });
+  const salesAmount = Number(scopedOrders.reduce((total, order) => total + getDashboardOrderSalesAmount(order), 0).toFixed(2));
+  const orderCount = scopedOrders.length;
+  const quantity = scopedOrders.reduce((total, order) => total + (Number(order?.quantity) || 0), 0);
+  const storeSalesMap = new Map();
+  for (const order of scopedOrders) {
+    const storeName = normalizeOrderImportStoreName(order?.storeName);
+    const current = storeSalesMap.get(storeName) ?? { storeName, salesAmount: 0, orderCount: 0 };
+    current.salesAmount += getDashboardOrderSalesAmount(order);
+    current.orderCount += 1;
+    storeSalesMap.set(storeName, current);
+  }
+
+  const effectiveListings = (await readWorkbenchEffectiveListings())
+    .filter((item) => String(item?.platform ?? 'TEMU').toUpperCase() === 'TEMU')
+    .filter((item) => String(item?.siteJoinDate ?? '').slice(0, 10) >= range.start && String(item?.siteJoinDate ?? '').slice(0, 10) <= range.end)
+    .filter((item) => itemMatchesWorkbenchScope(item, scope));
+  const listingSkcs = new Set(effectiveListings.map((item) => normalizeWorkbenchSkc(item?.skc)).filter(Boolean));
+  const todayListingCount = effectiveListings.filter((item) => String(item?.siteJoinDate ?? '').slice(0, 10) === range.today).length;
+
+  const firstOrderBySkc = new Map();
+  for (const order of allOrders) {
+    const skc = getWorkbenchOrderSkc(order);
+    const date = getOrderDateKey(order);
+    if (!skc || !date || !itemMatchesWorkbenchScope(order, scope)) continue;
+    const current = firstOrderBySkc.get(skc);
+    if (!current || date < current.firstOrderDate) {
+      firstOrderBySkc.set(skc, {
+        skc,
+        firstOrderDate: date,
+        storeName: normalizeOrderImportStoreName(order?.storeName),
+        salesQuantity: Number(order?.quantity) || 0,
+      });
+    } else if (current.firstOrderDate === date) {
+      current.salesQuantity += Number(order?.quantity) || 0;
+    }
+  }
+  const firstOrderProducts = Array.from(firstOrderBySkc.values()).filter((item) => item.firstOrderDate >= range.start && item.firstOrderDate <= range.end);
+  const firstOrderSkcs = new Set(firstOrderBySkc.keys());
+  const productFollowUps = effectiveListings.map((item) => {
+    const skc = normalizeWorkbenchSkc(item?.skc);
+    const siteJoinDate = String(item?.siteJoinDate ?? '').slice(0, 10);
+    const firstOrder = firstOrderBySkc.get(skc);
+    const daysOnline = siteJoinDate ? Math.max(0, Math.floor((Date.parse(`${range.today}T00:00:00`) - Date.parse(`${siteJoinDate}T00:00:00`)) / 86400000) + 1) : 0;
+    const hasFirstOrder = Boolean(firstOrder);
+    const action = hasFirstOrder
+      ? '已首单，继续观察复购和加推空间'
+      : daysOnline > 7
+        ? '重点优化主图、标题、价格或考虑下架/替换'
+        : daysOnline >= 4
+          ? '检查标题、主图、价格和活动'
+          : '继续观察曝光和点击';
+    return {
+      skc,
+      storeId: item?.storeId || '',
+      storeName: item?.storeName || storeByName.get(normalizeOrderImportStoreName(item?.storeName))?.storeName || item?.storeId || '',
+      operatorName: item?.operatorName || '',
+      siteJoinDate,
+      daysOnline,
+      firstOrderStatus: hasFirstOrder ? '已首单' : '未首单',
+      firstOrderDate: firstOrder?.firstOrderDate || '',
+      salesQuantity: firstOrder?.salesQuantity || 0,
+      suggestedAction: action,
+    };
+  }).sort((first, second) => {
+    const firstRank = first.firstOrderStatus === '未首单' && first.daysOnline > 7 ? 0 : first.firstOrderStatus === '未首单' ? 1 : 2;
+    const secondRank = second.firstOrderStatus === '未首单' && second.daysOnline > 7 ? 0 : second.firstOrderStatus === '未首单' ? 1 : 2;
+    return firstRank - secondRank || second.daysOnline - first.daysOnline || first.skc.localeCompare(second.skc);
+  }).slice(0, 20);
+
+  const financeParams = new URLSearchParams({ period: range.period });
+  if (scope.operatorId) financeParams.set('operatorId', scope.operatorId);
+  if (searchParams.get('storeId')) financeParams.set('storeId', searchParams.get('storeId'));
+  const financeRecords = buildOperatorAnalysisStoreFinancialRecords(financeParams, currentUser)
+    .filter((record) => !searchParams.get('storeId') || record.storeNames?.includes(searchParams.get('storeId')) || record.storeNames?.some((name) => scope.storeNames.has(normalizeOrderImportStoreName(name))));
+  const expense = financeRecords.reduce((total, record) => {
+    total.inflowAmount += toFiniteNumber(record.inflowAmount);
+    total.promotionServiceFee += toFiniteNumber(record.promotionServiceFee);
+    total.afterSaleIssueAmount += toFiniteNumber(record.afterSaleIssueAmount);
+    total.operationExpenseAmount += toFiniteNumber(record.operationExpenseAmount);
+    return total;
+  }, { inflowAmount: 0, promotionServiceFee: 0, afterSaleIssueAmount: 0, operationExpenseAmount: 0 });
+  const expenseSalesBase = expense.inflowAmount > 0 ? expense.inflowAmount : salesAmount;
+  const expenseRatio = expenseSalesBase > 0 ? expense.operationExpenseAmount / expenseSalesBase : null;
+  const adRatio = expenseSalesBase > 0 ? expense.promotionServiceFee / expenseSalesBase : null;
+  const afterSaleRatio = expenseSalesBase > 0 ? expense.afterSaleIssueAmount / expenseSalesBase : null;
+
+  const salesScore = scoreProgress(salesAmount, target?.salesTarget, 30);
+  const listingScore = scoreProgress(listingSkcs.size, target?.effectiveListingTarget, 30);
+  const firstOrderScore = scoreProgress(firstOrderProducts.length, target?.firstOrderProductTarget, 20);
+  const expenseScore = scoreExpenseRatio(expenseRatio, target?.expenseRatioTarget, 20);
+  const scoreParts = [salesScore, listingScore, firstOrderScore, expenseScore];
+  const hasConfiguredTarget = Boolean(
+    target?.salesTarget > 0 &&
+    target?.effectiveListingTarget > 0 &&
+    target?.firstOrderProductTarget > 0 &&
+    target?.expenseRatioTarget > 0,
+  );
+  const totalScore = hasConfiguredTarget
+    ? Number(scoreParts.reduce((total, score) => total + (score ?? 0), 0).toFixed(1))
+    : null;
+  const completion = {
+    sales: target?.salesTarget > 0 ? salesAmount / target.salesTarget : null,
+    listing: target?.effectiveListingTarget > 0 ? listingSkcs.size / target.effectiveListingTarget : null,
+    firstOrder: target?.firstOrderProductTarget > 0 ? firstOrderProducts.length / target.firstOrderProductTarget : null,
+    expense: expenseRatio,
+  };
+  const over7NoFirstOrder = productFollowUps.filter((item) => item.firstOrderStatus === '未首单' && item.daysOnline > 7).length;
+  const remainingListing = Math.max((target?.effectiveListingTarget || 0) - listingSkcs.size, 0);
+  const todaySuggestedListing = target?.effectiveListingTarget > 0 && range.timeProgress > 0 ? Math.ceil(remainingListing / range.remainingDays) : null;
+  const dataUpdatedAt = [
+    ...(orderStore?.batches ?? []).map((batch) => batch.importedAt),
+    ...effectiveListings.map((item) => item.updatedAt || item.createdAt),
+  ].filter(Boolean).sort().at(-1) || '';
+  const warnings = [];
+  if (!target?.salesTarget) warnings.push('本月未配置销售额目标');
+  if (!target?.effectiveListingTarget) warnings.push('本月未配置有效上新目标');
+  if (!target?.firstOrderProductTarget) warnings.push('本月未配置首单商品目标');
+  if (!target?.expenseRatioTarget) warnings.push('本月未配置费用占比目标');
+  if (financeRecords.length === 0) warnings.push('未找到费用数据源或当前范围暂无费用数据');
+  if (salesAmount <= 0) warnings.push('本月暂无订单销售额，费用占比无法用订单销售额校验');
+  const unmatchedListingCount = effectiveListings.filter((item) => !firstOrderSkcs.has(normalizeWorkbenchSkc(item?.skc))).length;
+  if (unmatchedListingCount > 0) warnings.push(`有 ${unmatchedListingCount} 个有效上新 SKC 暂未在订单数据中匹配到首单`);
+  if (stores.length === 0) warnings.push('当前账号未绑定 TEMU 可见店铺');
+
+  const todayActions = [];
+  const shouldShowProgressActions = range.timeProgress > 0;
+  if (shouldShowProgressActions && completion.sales !== null && completion.sales < range.timeProgress) {
+    todayActions.push({
+      priority: completion.sales < range.timeProgress - 0.2 ? '高' : '中',
+      title: `销售进度落后 ${Math.abs((completion.sales - range.timeProgress) * 100).toFixed(1)}%`,
+      kpi: '本月销售额',
+      impact: '影响销售额目标完成率和综合 KPI 得分',
+      actionLabel: '查看销售进度',
+      actionHref: '/admin/store-business',
+    });
+  }
+  if (shouldShowProgressActions && completion.listing !== null && completion.listing < range.timeProgress) {
+    todayActions.push({
+      priority: '高',
+      title: `有效上新还差 ${remainingListing} 款，今天建议至少完成 ${todaySuggestedListing ?? 0} 款`,
+      kpi: '上新商品数',
+      impact: '影响可控动作产出和后续新品转化',
+      actionLabel: '去录入有效上新',
+      actionHref: '/admin/effective-new-listings',
+    });
+  }
+  if (shouldShowProgressActions && over7NoFirstOrder > 0) {
+    todayActions.push({
+      priority: '高',
+      title: `${over7NoFirstOrder} 款商品上站超过 7 天仍未首单`,
+      kpi: '首单商品数',
+      impact: '影响首单商品数和新品质量判断',
+      actionLabel: '查看未首单商品',
+      actionHref: '#product-follow-ups',
+    });
+  }
+  if (shouldShowProgressActions && expenseRatio !== null && target?.expenseRatioTarget > 0 && expenseRatio > target.expenseRatioTarget) {
+    todayActions.push({
+      priority: '中',
+      title: `当前费用占比 ${(expenseRatio * 100).toFixed(1)}%，高于目标 ${(target.expenseRatioTarget * 100).toFixed(1)}%`,
+      kpi: '费用占比',
+      impact: '推广费和售后费超标会拉低费用控制得分',
+      actionLabel: '查看费用明细',
+      actionHref: '/admin/operator-analysis',
+    });
+  }
+
+  return {
+    filters: {
+      period: range.period,
+      canManage: scope.canManage,
+      operators: scope.canManage ? scope.operators : [],
+      stores,
+      operatorStoreMap: buildWorkbenchOperatorStoreMap(scope),
+      selectedOperatorId: scope.operatorId,
+      selectedStoreId: String(searchParams.get('storeId') ?? ''),
+    },
+    dataUpdatedAt,
+    dataIntegrityStatus: warnings.length === 0 ? '数据完整' : '存在提醒',
+    dataSourceMapping: [
+      { kpi: '销售额目标完成率', source: '订单销售导入 + KPI目标配置', endpoint: '/api/persistent-data/orderImportStore, /api/operation-workbench/kpi-targets', confirmed: '已确认' },
+      { kpi: '有效上新数', source: '有效上线录入', endpoint: '/api/effective-new-listings', confirmed: '已确认' },
+      { kpi: '首单商品数', source: '订单销售数据按 SKC 自动计算', endpoint: '/api/persistent-data/orderImportStore', confirmed: '已确认' },
+      { kpi: '费用占比', source: '薪资财务明细聚合后的推广费 + 售后费', endpoint: '/api/salary/operator-analysis-store-financials', confirmed: financeRecords.length > 0 ? '已确认' : '未找到可靠数据源' },
+    ],
+    kpiSummary: {
+      totalScore,
+      scoreText: totalScore === null ? '待配置' : `${totalScore.toFixed(1)} 分`,
+      cards: [
+        { key: 'sales', name: '本月销售额', weight: 30, targetValue: target?.salesTarget ?? null, currentValue: salesAmount, completionRate: completion.sales, score: salesScore, status: getKpiStatus(salesScore, 30, completion.sales ?? 0, range.timeProgress), unit: '¥' },
+        { key: 'listing', name: '上新商品数', weight: 30, targetValue: target?.effectiveListingTarget ?? null, currentValue: listingSkcs.size, completionRate: completion.listing, score: listingScore, status: getKpiStatus(listingScore, 30, completion.listing ?? 0, range.timeProgress), unit: '款' },
+        { key: 'firstOrder', name: '首单商品数', weight: 20, targetValue: target?.firstOrderProductTarget ?? null, currentValue: firstOrderProducts.length, completionRate: completion.firstOrder, score: firstOrderScore, status: getKpiStatus(firstOrderScore, 20, completion.firstOrder ?? 0, range.timeProgress), unit: '款' },
+        { key: 'expense', name: '费用占比', weight: 20, targetValue: target?.expenseRatioTarget ?? null, currentValue: expenseRatio, completionRate: expenseRatio, score: expenseScore, status: getKpiStatus(expenseScore, 20, expenseRatio, range.timeProgress, true), unit: '%' },
+      ],
+    },
+    todayActions,
+    salesKpi: {
+      salesTarget: target?.salesTarget ?? null,
+      salesAmount,
+      completionRate: completion.sales,
+      timeProgress: range.timeProgress,
+      progressGap: completion.sales === null ? null : completion.sales - range.timeProgress,
+      remainingSales: target?.salesTarget ? Math.max(target.salesTarget - salesAmount, 0) : null,
+      requiredDailySales: target?.salesTarget ? Math.max(target.salesTarget - salesAmount, 0) / range.remainingDays : null,
+      orderCount,
+      quantity,
+      storeBreakdown: Array.from(storeSalesMap.values()).map((item) => ({ ...item, salesAmount: Number(item.salesAmount.toFixed(2)) })).sort((first, second) => second.salesAmount - first.salesAmount),
+    },
+    listingKpi: {
+      target: target?.effectiveListingTarget ?? null,
+      completed: listingSkcs.size,
+      todayCompleted: todayListingCount,
+      remaining: target?.effectiveListingTarget ? Math.max(target.effectiveListingTarget - listingSkcs.size, 0) : null,
+      todaySuggested: todaySuggestedListing,
+      completionRate: completion.listing,
+    },
+    firstOrderKpi: {
+      target: target?.firstOrderProductTarget ?? null,
+      completed: firstOrderProducts.length,
+      completionRate: completion.firstOrder,
+      effectiveListingCount: listingSkcs.size,
+      firstOrderRate: listingSkcs.size > 0 ? firstOrderProducts.length / listingSkcs.size : null,
+      over7NoFirstOrder,
+    },
+    expenseKpi: {
+      salesAmount: expenseSalesBase,
+      adExpense: Number(expense.promotionServiceFee.toFixed(2)),
+      afterSaleExpense: Number(expense.afterSaleIssueAmount.toFixed(2)),
+      totalExpense: Number(expense.operationExpenseAmount.toFixed(2)),
+      expenseRatio,
+      adRatio,
+      afterSaleRatio,
+      targetRatio: target?.expenseRatioTarget ?? null,
+      overTargetRatio: expenseRatio !== null && target?.expenseRatioTarget ? expenseRatio - target.expenseRatioTarget : null,
+      storeBreakdown: financeRecords,
+      hasExpenseData: financeRecords.length > 0,
+    },
+    productFollowUps,
+    dataIntegrityWarnings: warnings,
+  };
+}
+
+async function handleOperationWorkbenchKpiTargetsApi(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+
+  if (!requireMenu(req, res, menuKeys.dashboard)) return;
+
+  const currentUser = toCurrentUser(findCurrentUser(req));
+
+  if (req.method === 'GET') {
+    const targets = await readWorkbenchKpiTargets();
+    res.end(JSON.stringify({ records: sanitizeSensitiveFields(targets, currentUser) }));
+    return;
+  }
+
+  if (req.method === 'POST' || req.method === 'PUT') {
+    if (String(currentUser?.role ?? '').toLowerCase() === 'operator') {
+      res.statusCode = 403;
+      res.end(JSON.stringify({ ok: false, message: '普通运营只能查看 KPI 目标，不能编辑' }));
+      return;
+    }
+
+    if (!requireOperation(res, currentUser, 'edit', '当前账号无权配置 KPI 目标')) {
+      return;
+    }
+
+    try {
+      const payload = JSON.parse((await readBody(req)) || '{}');
+      const existingTargets = await readWorkbenchKpiTargets();
+      const current = existingTargets.find((item) => String(item?.id ?? '') === String(payload?.id ?? ''));
+      const next = normalizeWorkbenchTarget(payload, current);
+      const record = await upsertWorkbenchKpiTargetToPostgres(next);
+      res.end(JSON.stringify({ ok: true, record }));
+    } catch (error) {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ ok: false, message: error instanceof Error ? error.message : String(error) }));
+    }
+    return;
+  }
+
+  res.statusCode = 405;
+  res.end('Method not allowed');
+}
+
+async function handleOperationWorkbenchKpiDashboardApi(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+
+  if (req.method !== 'GET') {
+    res.statusCode = 405;
+    res.end('Method not allowed');
+    return;
+  }
+
+  if (!requireMenu(req, res, menuKeys.dashboard)) return;
+
+  try {
+    const requestUrl = new URL(req.url ?? '/', 'http://local');
+    const currentUser = toCurrentUser(findCurrentUser(req));
+    res.end(JSON.stringify(await buildOperationWorkbenchDashboard(requestUrl.searchParams, currentUser)));
+  } catch (error) {
+    res.statusCode = 500;
+    res.end(JSON.stringify({ ok: false, message: error instanceof Error ? error.message : String(error) }));
+  }
 }
 
 function getCollectionMenuKey(name) {
@@ -5899,6 +6451,8 @@ function localDataPlugin() {
 
       server.middlewares.use('/api/auth/visible-stores', handleVisibleStoresApi);
       server.middlewares.use('/api/dashboard/company', handleCompanyDashboardApi);
+      server.middlewares.use('/api/operation-workbench/kpi-dashboard', handleOperationWorkbenchKpiDashboardApi);
+      server.middlewares.use('/api/operation-workbench/kpi-targets', handleOperationWorkbenchKpiTargetsApi);
       server.middlewares.use('/api/alibaba-1688', (req, res) => handleAlibaba1688Api(req, res, {
         getCurrentUser: () => toCurrentUser(findCurrentUser(req)),
         readBody,

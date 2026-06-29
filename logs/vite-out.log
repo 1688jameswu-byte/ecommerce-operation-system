@@ -439,3 +439,69 @@
 [2m16:49:20[22m [36m[1m[vite][22m[39m server restarted.
 [2m16:52:21[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
 [2m16:52:21[22m [36m[1m[vite][22m[39m server restarted.
+[2m17:44:46[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:44:46[22m [36m[1m[vite][22m[39m server restarted.
+[2m17:46:18[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:46:18[22m [36m[1m[vite][22m[39m server restarted.
+[2m17:46:23[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:46:23[22m [36m[1m[vite][22m[39m server restarted.
+[2m17:47:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m17:48:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m17:49:32[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:49:32[22m [36m[1m[vite][22m[39m server restarted.
+[2m17:50:03[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:50:03[22m [36m[1m[vite][22m[39m server restarted.
+[2m17:58:46[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:58:46[22m [36m[1m[vite][22m[39m server restarted.
+[2m17:58:50[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:59:10[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:59:10[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:01:02[22m [36m[1m[vite][22m[39m [32mserver/temu/temuPostgresRepository.js changed, restarting server...[39m
+[2m18:01:02[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:01:07[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:01:07[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:01:19[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:01:19[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:06:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m18:07:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m18:09:53[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:09:54[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:10:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m18:14:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m18:14:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m18:21:29[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:21:30[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:21:36[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:21:36[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:25:19[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:25:19[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:25:25[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:25:25[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:25:32[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:25:32[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:27:41[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+
+> ecommerce-operations-center@0.1.0 dev
+> vite --configLoader runner --host 127.0.0.1 --port 5176
+
+
+  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m52310[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m07:41:19[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m07:41:19[22m [36m[1m[vite][22m[39m server restarted.
+[2m07:41:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m07:55:45[22m [36m[1m[vite][22m[39m [32mserver/temu/temuPostgresRepository.js changed, restarting server...[39m
+[2m07:55:46[22m [36m[1m[vite][22m[39m server restarted.
+[2m07:55:51[22m [36m[1m[vite][22m[39m [32mserver/temu/temuPostgresRepository.js changed, restarting server...[39m
+[2m07:55:51[22m [36m[1m[vite][22m[39m server restarted.
+[2m07:57:03[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m07:57:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m08:01:53[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m08:01:53[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:01:59[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:01:59[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:02:07[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:02:07[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:02:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m

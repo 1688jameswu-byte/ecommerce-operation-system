@@ -46,6 +46,7 @@ const OperatorSalaryStatisticsPage = lazy(() => import('./salary/OperatorSalaryS
 const SalaryDetailsPage = lazy(() => import('./salary/SalaryDetailsPage'));
 const SalaryPlanPage = lazy(() => import('./salary/SalaryPlanPage'));
 const AccountManagementPage = lazy(() => import('./account-management/AccountManagementPage'));
+const WorkbenchPage = lazy(() => import('./workbench/WorkbenchPage'));
 
 const roleLabels: Record<UserRole, string> = {
   admin: '管理员',
@@ -808,7 +809,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
           ) : isPlaceholderPage ? (
             <PlaceholderPage title={activeRoute.label} description={activeRoute.description} />
           ) : (
-          <AdminHome currentUser={currentUser} visibleStoreIds={visibleStores.storeIds} visibleStoreNames={visibleStoreNames} />
+          <WorkbenchPage currentUser={currentUser} visibleStoreIds={visibleStores.storeIds} visibleStoreNames={visibleStoreNames} />
         )}
           </Suspense>
         </section>

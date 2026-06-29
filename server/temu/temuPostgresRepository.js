@@ -976,3 +976,140 @@ export async function readEffectiveListingsFromPostgres() {
     updatedAt: row.updated_at?.toISOString?.() || '',
   }));
 }
+
+async function resolveWorkbenchTargetRefs(target) {
+  const legacyStoreId = text(target?.storeId);
+  const storeName = text(target?.storeName);
+  const legacyOperatorId = text(target?.operatorId);
+  const operatorName = text(target?.operatorName);
+  const storeResult = legacyStoreId || storeName
+    ? await queryTemuDatabase(
+        `SELECT id, legacy_id, store_name
+         FROM temu_stores
+         WHERE legacy_id = $1 OR store_name = $1 OR legacy_id = $2 OR store_name = $2
+         LIMIT 1`,
+        [legacyStoreId, storeName],
+      )
+    : { rows: [] };
+  const operatorResult = legacyOperatorId || operatorName
+    ? await queryTemuDatabase(
+        `SELECT id, legacy_id, operator_name
+         FROM temu_operators
+         WHERE legacy_id = $1 OR operator_name = $1 OR legacy_id = $2 OR operator_name = $2
+         LIMIT 1`,
+        [legacyOperatorId, operatorName],
+      )
+    : { rows: [] };
+  const store = storeResult.rows[0];
+  const operator = operatorResult.rows[0];
+
+  return {
+    storeId: store?.id || null,
+    legacyStoreId: legacyStoreId || store?.legacy_id || null,
+    storeName: storeName || store?.store_name || '',
+    operatorId: operator?.id || null,
+    legacyOperatorId: legacyOperatorId || operator?.legacy_id || null,
+    operatorName: operatorName || operator?.operator_name || '',
+  };
+}
+
+function toWorkbenchTarget(row) {
+  return {
+    id: row.legacy_id,
+    period: row.period || '',
+    operatorId: row.legacy_operator_id || '',
+    operatorName: row.operator_name || '',
+    storeId: row.legacy_store_id || '',
+    storeName: row.store_name || '',
+    salesTarget: numberValue(row.sales_target),
+    effectiveListingTarget: numberValue(row.effective_listing_target),
+    firstOrderProductTarget: numberValue(row.first_order_product_target),
+    expenseRatioTarget: numberValue(row.expense_ratio_target),
+    enabled: row.enabled !== false,
+    remark: row.remark || '',
+    createdAt: row.created_at?.toISOString?.() || '',
+    updatedAt: row.updated_at?.toISOString?.() || '',
+  };
+}
+
+export async function readWorkbenchKpiTargetsFromPostgres() {
+  const result = await queryTemuDatabase(
+    `SELECT legacy_id, period, legacy_operator_id, operator_name, legacy_store_id, store_name,
+            sales_target, effective_listing_target, first_order_product_target, expense_ratio_target,
+            enabled, remark, created_at, updated_at
+     FROM temu_operation_workbench_kpi_targets
+     ORDER BY period DESC, operator_name, store_name, updated_at DESC`,
+  );
+  return result.rows.map(toWorkbenchTarget);
+}
+
+export async function upsertWorkbenchKpiTargetToPostgres(target) {
+  const refs = await resolveWorkbenchTargetRefs(target);
+  const period = text(target?.period);
+  const scopeResult = await queryTemuDatabase(
+    `SELECT legacy_id
+     FROM temu_operation_workbench_kpi_targets
+     WHERE enabled = TRUE
+       AND period = $1
+       AND COALESCE(legacy_operator_id, '') = COALESCE($2, '')
+       AND COALESCE(legacy_store_id, '') = COALESCE($3, '')
+       AND COALESCE(operator_name, '') = COALESCE($4, '')
+       AND COALESCE(store_name, '') = COALESCE($5, '')
+     ORDER BY updated_at DESC
+     LIMIT 1`,
+    [period, refs.legacyOperatorId, refs.legacyStoreId, refs.operatorName, refs.storeName],
+  );
+  const legacyId = text(
+    scopeResult.rows[0]?.legacy_id ||
+    target?.id ||
+    `operation-kpi-target-${target?.period || ''}-${target?.operatorId || target?.operatorName || 'all'}-${target?.storeId || target?.storeName || 'all'}`,
+  );
+  const result = await queryTemuDatabase(
+    `INSERT INTO temu_operation_workbench_kpi_targets (
+       legacy_id, period, operator_id, legacy_operator_id, operator_name, store_id, legacy_store_id, store_name,
+       sales_target, effective_listing_target, first_order_product_target, expense_ratio_target,
+       enabled, remark, raw_data, created_at, updated_at
+     )
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb,COALESCE($16::timestamptz,NOW()),NOW())
+     ON CONFLICT (legacy_id)
+     DO UPDATE SET
+       period = EXCLUDED.period,
+       operator_id = EXCLUDED.operator_id,
+       legacy_operator_id = EXCLUDED.legacy_operator_id,
+       operator_name = EXCLUDED.operator_name,
+       store_id = EXCLUDED.store_id,
+       legacy_store_id = EXCLUDED.legacy_store_id,
+       store_name = EXCLUDED.store_name,
+       sales_target = EXCLUDED.sales_target,
+       effective_listing_target = EXCLUDED.effective_listing_target,
+       first_order_product_target = EXCLUDED.first_order_product_target,
+       expense_ratio_target = EXCLUDED.expense_ratio_target,
+       enabled = EXCLUDED.enabled,
+       remark = EXCLUDED.remark,
+       raw_data = EXCLUDED.raw_data,
+       updated_at = NOW()
+     RETURNING legacy_id, period, legacy_operator_id, operator_name, legacy_store_id, store_name,
+       sales_target, effective_listing_target, first_order_product_target, expense_ratio_target,
+       enabled, remark, created_at, updated_at`,
+    [
+      legacyId,
+      period,
+      refs.operatorId,
+      refs.legacyOperatorId,
+      refs.operatorName,
+      refs.storeId,
+      refs.legacyStoreId,
+      refs.storeName,
+      numberValue(target?.salesTarget),
+      numberValue(target?.effectiveListingTarget),
+      numberValue(target?.firstOrderProductTarget),
+      numberValue(target?.expenseRatioTarget),
+      target?.enabled !== false,
+      nullableText(target?.remark),
+      json(target),
+      timestampValue(target?.createdAt),
+    ],
+  );
+
+  return toWorkbenchTarget(result.rows[0]);
+}

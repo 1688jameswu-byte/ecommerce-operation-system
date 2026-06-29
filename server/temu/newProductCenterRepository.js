@@ -2050,6 +2050,47 @@ export async function getProductImportOverview(params = {}) {
   };
 }
 
+export async function getProductImportRankingSummary(params = {}) {
+  await runTemuMigrations();
+  await backfillTemuImportBatchStores();
+  const month = String(params.month || '').match(/^\d{4}-\d{2}$/)?.[0] || new Date().toISOString().slice(0, 7);
+  const startDate = `${month}-01`;
+  const [year, monthNumber] = month.split('-').map(Number);
+  const endDate = new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
+  const filter = createWhereBuilder(1);
+  appendStoreScope(filter, 'product_rows', params);
+  filter.push('product_rows.created_time::date >= ?::date', startDate);
+  filter.push('product_rows.created_time::date <= ?::date', endDate);
+  const condition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : '';
+  const skuCreatedTimeFromRaw = `CASE WHEN NULLIF(s.raw_data ->> '创建时间', '') ~ '^\\d{4}-\\d{1,2}-\\d{1,2}' THEN NULLIF(s.raw_data ->> '创建时间', '')::timestamptz ELSE NULL END`;
+  const productCreatedTimeFromRaw = `CASE WHEN NULLIF(p.raw_data ->> '创建时间', '') ~ '^\\d{4}-\\d{1,2}-\\d{1,2}' THEN NULLIF(p.raw_data ->> '创建时间', '')::timestamptz ELSE NULL END`;
+  const result = await queryTemuDatabase(
+    `WITH product_rows AS (
+       SELECT COALESCE(s.product_id, p.id) AS product_id,
+              s.store_id,
+              s.store_name,
+              COALESCE(s.created_time, ${skuCreatedTimeFromRaw}, p.created_time, ${productCreatedTimeFromRaw}, p.first_online_at) AS created_time
+       FROM temu_product_skus s
+       LEFT JOIN temu_products p ON p.id = s.product_id
+     )
+     SELECT store_id, store_name, COUNT(DISTINCT product_id)::int AS product_count
+     FROM product_rows
+     ${condition}
+     GROUP BY store_id, store_name
+     ORDER BY product_count DESC, store_name ASC`,
+    filter.values,
+  );
+
+  return {
+    month,
+    records: result.rows.map((row) => ({
+      storeId: row.store_id || '',
+      storeName: row.store_name || '',
+      productCount: Number(row.product_count || 0),
+    })),
+  };
+}
+
 const AD_IMPORT_SORT_FIELDS = {
   adSpend: 'a.ad_spend',
   netAdSpend: 'a.net_ad_spend',

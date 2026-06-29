@@ -143,3 +143,7 @@ F:/项目/TEMU运营数据大屏/src/data-source/trafficConversionDataSource.ts:
   914 |          let content = '未触发风险或增长机会';
   915 |  
   [39m
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m17:58:50[22m [31m[1m[vite][22m[39m Parse failure: await isn't allowed in non-async function
+At file: F:\项目\TEMU运营数据大屏\vite.config.js:5975:27
+[2m17:58:50[22m [31m[1m[vite][22m[39m server restart failed

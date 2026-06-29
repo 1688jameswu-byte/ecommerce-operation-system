@@ -1,6 +1,5 @@
 import { dashboardDataSource } from '../data-source';
 import type { DashboardData, GrowthOpportunityItem, RankingItem, WarningItem, WarningLevel } from '../types/dashboard';
-import type { EffectiveNewListingRecord } from '../types/effectiveNewListing';
 import type { SalesOrderRecord } from '../types/fact';
 import type { OperatorRecord } from '../types/operator';
 import type { TemuOrderDetail, TemuOrderImportResult, TemuOrderImportStore } from '../types/order';
@@ -24,6 +23,17 @@ interface OrderOwnerContext {
   matcher: ReturnType<typeof createStoreMatcher>;
   relations: StoreOperatorRelation[];
   operatorById: Map<string, OperatorRecord>;
+}
+
+interface ProductImportRankingRecord {
+  storeId: string;
+  storeName: string;
+  productCount: number;
+}
+
+interface ProductImportRankingSummary {
+  month: string;
+  records: ProductImportRankingRecord[];
 }
 
 async function fetchCompanyJson<T>(path: string, fallback: T): Promise<T> {
@@ -154,44 +164,42 @@ function getCurrentMonthKey() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-async function loadEffectiveNewListings(): Promise<EffectiveNewListingRecord[]> {
-  return fetchCompanyJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []);
+async function loadProductImportRankingSummary(month = getCurrentMonthKey()): Promise<ProductImportRankingSummary> {
+  return fetchCompanyJson<ProductImportRankingSummary>(
+    `/api/data-import/temu-product-info/ranking-summary?month=${encodeURIComponent(month)}`,
+    { month, records: [] },
+  );
 }
 
-function buildEffectiveNewListingRanking(
-  items: EffectiveNewListingRecord[],
+function buildProductImportNewListingRanking(
+  items: ProductImportRankingRecord[],
   context: OrderOwnerContext,
   month = getCurrentMonthKey(),
 ): RankingItem[] {
-  const grouped = new Map<string, { name: string; skcs: Set<string> }>();
+  const grouped = new Map<string, { name: string; value: number }>();
   const storeIds = new Set(context.stores.map((store) => store.id).filter(Boolean));
   const storeNames = new Set(context.stores.map((store) => store.storeName).filter(Boolean));
 
   for (const operator of getVisibleOperators(context.operators)) {
     const key = getOperatorRankingKey(operator.id, operator.operatorName);
-    grouped.set(key, { name: normalizeOperatorName(operator.operatorName) || operator.id, skcs: new Set<string>() });
+    grouped.set(key, { name: normalizeOperatorName(operator.operatorName) || operator.id, value: 0 });
   }
 
   items
-    .filter((item) =>
-      item.siteJoinDate.slice(0, 7) === month &&
-      (storeIds.has(item.storeId) || storeNames.has(item.storeName || '')),
-    )
+    .filter((item) => storeIds.has(item.storeId) || storeNames.has(item.storeName || ''))
     .forEach((item) => {
-      const owner = resolveEffectiveListingOwner(context, item);
-      const skc = item.skc.trim();
+      const owner = resolvePrimaryOwner(context, item.storeId, item.storeName, `${month}-01`);
       const key = getOperatorRankingKey(owner.operatorId, owner.operatorName);
-      if (!key || !skc) {
+      if (!key) {
         return;
       }
 
-      const current = grouped.get(key) ?? { name: normalizeOperatorName(owner.operatorName) || owner.operatorId || '-', skcs: new Set<string>() };
-      current.skcs.add(skc.toLowerCase());
+      const current = grouped.get(key) ?? { name: normalizeOperatorName(owner.operatorName) || owner.operatorId || '-', value: 0 };
+      current.value += Number(item.productCount) || 0;
       grouped.set(key, current);
     });
 
   return Array.from(grouped.values())
-    .map((item) => ({ name: item.name, value: item.skcs.size }))
     .sort((first, second) => second.value - first.value || first.name.localeCompare(second.name))
     .map((item, index) => ({
       rank: index + 1,
@@ -289,30 +297,6 @@ function resolvePrimaryOwner(
   };
 }
 
-function resolveEffectiveListingOwner(
-  context: OrderOwnerContext,
-  item: EffectiveNewListingRecord,
-) {
-  const date = item.siteJoinDate || `${getCurrentMonthKey()}-01`;
-  const relation = context.relations.find((relation) =>
-    relationActiveOnDate(relation, date) &&
-    (relation.storeId === item.storeId || relation.storeName === item.storeName),
-  );
-  const operator = relation ? context.operatorById.get(relation.operatorId) : undefined;
-
-  if (relation || operator) {
-    return {
-      operatorId: relation?.operatorId || operator?.id || '',
-      operatorName: operator?.operatorName || relation?.operatorName || relation?.operatorId || '',
-    };
-  }
-
-  return {
-    operatorId: item.createdBy || item.operatorId || '',
-    operatorName: item.createdByName || item.operatorName || item.createdBy || '未绑定运营',
-  };
-}
-
 function toSalesOrder(order: TemuOrderDetail & { batchId?: string }, context: OrderOwnerContext): SalesOrderRecord {
   const date = String(order.orderDate || order.orderTime || '').slice(0, 10);
   const storeIdentity = context.matcher.match(order.storeName);
@@ -360,14 +344,14 @@ async function buildDashboardData(): Promise<DashboardData> {
     return companyDashboardData;
   }
 
-  const [trafficWarnings, growthOpportunities, effectiveNewListings, orderStore, ownerContext] = await Promise.all([
+  const [trafficWarnings, growthOpportunities, productImportRankingSummary, orderStore, ownerContext] = await Promise.all([
     safeTrafficWarnings(),
     safeGrowthOpportunities(),
-    loadEffectiveNewListings(),
+    loadProductImportRankingSummary(),
     loadCompanyOrderStore(),
     buildOrderOwnerContext(),
   ]);
-  const newProductRanking = buildEffectiveNewListingRanking(effectiveNewListings, ownerContext);
+  const newProductRanking = buildProductImportNewListingRanking(productImportRankingSummary.records, ownerContext, productImportRankingSummary.month);
 
   try {
     // Dashboard aggregates need the full imported order history. Keep raw orders
