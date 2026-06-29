@@ -475,7 +475,7 @@ function TargetEditor({
             <h2>KPI 目标配置</h2>
             <span>{form.period || data.filters.period} · {form.operatorName || '全部运营'} · {form.storeName || '全部店铺'}</span>
           </div>
-          <button type="button" className="workbench-modal-close" onClick={onClose}>关闭</button>
+          <button type="button" className="workbench-modal-close" onClick={onClose} aria-label="关闭 KPI 目标配置">关闭</button>
         </header>
         <section className="operator-form-grid">
           <label>月份<input type="month" value={form.period} onChange={(event) => setForm({ ...form, period: event.target.value })} /></label>
@@ -509,8 +509,8 @@ function TargetEditor({
           <label className="operator-form-wide">备注<input value={form.remark} onChange={(event) => setForm({ ...form, remark: event.target.value })} /></label>
         </section>
         <div className="workbench-modal-actions">
-          <button type="button" className="import-secondary-button" onClick={onClose}>取消</button>
-          <button type="button" className="import-primary-button" onClick={save}>保存目标</button>
+          <button type="button" className="workbench-modal-button workbench-modal-button-secondary" onClick={onClose}>取消</button>
+          <button type="button" className="workbench-modal-button workbench-modal-button-primary" onClick={save}>保存目标</button>
         </div>
         {message && <div className="excel-import-error">{message}</div>}
       </article>
