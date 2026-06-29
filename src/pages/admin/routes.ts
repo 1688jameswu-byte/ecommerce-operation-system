@@ -57,15 +57,6 @@ export const adminRoutes: AdminRoute[] = [
     description: '导入 TEMU 商品推广报表，写入 PostgreSQL 广告日报表。',
   },
   {
-    path: '/admin/effective-new-listings',
-    menuKey: menuKeys.effectiveNewListings,
-    parentMenuKey: menuKeys.dataCenter,
-    label: '有效上新录入',
-    group: '数据',
-    menuSection: '数据导入',
-    description: '手动登记店铺有效上新 SKC，用于运营分析和历史核对。',
-  },
-  {
     path: '/admin/data',
     menuKey: menuKeys.dataManagement,
     parentMenuKey: menuKeys.dataCenter,

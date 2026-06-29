@@ -2,7 +2,6 @@ export const menuKeys = {
   dashboard: 'dashboard',
   dataCenter: 'data-center',
   orderSalesImport: 'order-sales-import',
-  effectiveNewListings: 'effective-new-listings',
   trafficConversionImport: 'traffic-conversion-import',
   dataManagement: 'data-management',
   dataBackup: 'data-backup',
@@ -67,7 +66,6 @@ export const menuGroups: { key: MenuKey; label: string; children: { key: MenuKey
     label: '数据中心',
     children: [
       { key: menuKeys.orderSalesImport, label: '订单数据导入' },
-      { key: menuKeys.effectiveNewListings, label: '有效上新录入' },
       { key: menuKeys.trafficConversionImport, label: '流量转化导入' },
       { key: menuKeys.temuProductInfoImport, label: '商品信息导入' },
       { key: menuKeys.temuAdReportImport, label: '广告数据导入' },

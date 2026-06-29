@@ -15,7 +15,6 @@ const TEMU_ORDER_IMPORT_STORAGE_KEY = 'temuOrderImportResult';
 const TEMU_ORDER_IMPORT_STORAGE_EVENT = 'temu-order-import-storage-change';
 const TEMU_ORDER_IMPORT_BROADCAST_CHANNEL = 'temu-order-import-storage';
 const TRAFFIC_CONVERSION_CHANGE_EVENT = 'traffic-conversion-data-change';
-const EFFECTIVE_LISTING_CHANGE_EVENT = 'effective-new-listings-change';
 
 const SalesTrendChart = lazy(() => import('../../components/dashboard/SalesTrendChart'));
 
@@ -55,15 +54,6 @@ function subscribeTrafficConversionChange(callback: () => void) {
   return () => window.removeEventListener(TRAFFIC_CONVERSION_CHANGE_EVENT, callback);
 }
 
-function subscribeEffectiveListingChange(callback: () => void) {
-  window.addEventListener(EFFECTIVE_LISTING_CHANGE_EVENT, callback);
-  window.addEventListener('focus', callback);
-  return () => {
-    window.removeEventListener(EFFECTIVE_LISTING_CHANGE_EVENT, callback);
-    window.removeEventListener('focus', callback);
-  };
-}
-
 function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [shouldRenderChart, setShouldRenderChart] = useState(false);
@@ -82,11 +72,9 @@ function DashboardPage() {
     refreshDashboardData();
     const unsubscribeOrder = subscribeOrderImportStorageChange(() => refreshDashboardData(true));
     const unsubscribeTraffic = subscribeTrafficConversionChange(() => refreshDashboardData(true));
-    const unsubscribeEffectiveListing = subscribeEffectiveListingChange(() => refreshDashboardData(true));
     return () => {
       unsubscribeOrder();
       unsubscribeTraffic();
-      unsubscribeEffectiveListing();
     };
   }, []);
 

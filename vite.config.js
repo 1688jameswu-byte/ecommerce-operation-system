@@ -5,14 +5,12 @@ import fs from 'fs';
 import path from 'path';
 import { handleAlibaba1688Api } from './server/alibaba1688/api/alibaba1688ApiHandler.js';
 import {
-  readEffectiveListingsFromPostgres,
   readOrderImportStoreFromPostgres,
   readTemuCollectionFromPostgres,
   readTrafficConversionStoreFromPostgres,
   readWorkbenchKpiTargetsFromPostgres,
   replaceOrderStoreInPostgres,
   replaceTrafficStoreInPostgres,
-  syncEffectiveListingsToPostgres,
   syncOrderStoreToPostgres,
   syncTemuReferenceJsonToPostgres,
   syncTrafficStoreToPostgres,
@@ -44,6 +42,7 @@ import {
   importAdRows,
   importProductRows,
   parseExcelDataUrl,
+  readEffectiveListingsFromProductImport,
   rebuildNewProductSnapshots,
 } from './server/temu/newProductCenterRepository.js';
 
@@ -458,7 +457,6 @@ const roleDefinitions = {
     allowedMenuKeys: [
       menuKeys.dashboard,
       menuKeys.orderSalesImport,
-      menuKeys.effectiveNewListings,
       menuKeys.trafficConversionImport,
       menuKeys.temuProductInfoImport,
       menuKeys.temuAdReportImport,
@@ -3214,56 +3212,6 @@ function writePersistentResponseCache(key, value) {
   });
 }
 
-function normalizeEffectiveListingPayload(payload, current) {
-  const time = nowIso();
-  const platform = String(payload.platform ?? current?.platform ?? 'TEMU').trim() || 'TEMU';
-  const storeId = String(payload.storeId ?? current?.storeId ?? '').trim();
-  const siteJoinDate = String(payload.siteJoinDate ?? current?.siteJoinDate ?? '').trim().slice(0, 10);
-  const skc = String(payload.skc ?? current?.skc ?? '').trim();
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(siteJoinDate)) {
-    throw new Error('siteJoinDate 必填，格式为 YYYY-MM-DD');
-  }
-
-  if (!skc) {
-    throw new Error('skc 必填');
-  }
-
-  if (!storeId) {
-    throw new Error('storeId 必填');
-  }
-
-  return {
-    id: current?.id ?? payload.id ?? createId('effective-listing'),
-    platform,
-    storeId,
-    siteJoinDate,
-    skc,
-    remark: String(payload.remark ?? current?.remark ?? '').trim(),
-    createdBy: current?.createdBy ?? payload.createdBy ?? '',
-    createdByName: current?.createdByName ?? payload.createdByName ?? '',
-    createdAt: current?.createdAt ?? payload.createdAt ?? time,
-    updatedAt: time,
-  };
-}
-
-function getEffectiveListingDuplicateKey(item) {
-  return [
-    String(item?.platform ?? '').trim().toLowerCase(),
-    String(item?.storeId ?? '').trim().toLowerCase(),
-    String(item?.skc ?? '').trim().toLowerCase(),
-  ].join('|');
-}
-
-function assertUniqueEffectiveListing(items, next) {
-  const key = getEffectiveListingDuplicateKey(next);
-  const duplicated = items.some((item) => item?.id !== next.id && getEffectiveListingDuplicateKey(item) === key);
-
-  if (duplicated) {
-    throw new Error('同一个 platform + store + skc 不要重复录入');
-  }
-}
-
 function filterEffectiveListingsForUser(items, currentUser) {
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin' || !currentUser) {
     return sanitizeSensitiveFields(items, currentUser);
@@ -3276,28 +3224,21 @@ function filterEffectiveListingsForUser(items, currentUser) {
   );
 }
 
-function canWriteEffectiveListing(item, currentUser) {
-  return String(currentUser?.role ?? '').toLowerCase() === 'admin' ||
-    (itemMatchesPlatform(item, currentUser) && getVisibleStoreKeys(currentUser).has(String(item?.storeId ?? '').trim()));
-}
-
 async function handleEffectiveNewListingsApi(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
 
   try {
-    const pathname = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
-    const id = decodeURIComponent(pathname);
     const currentUser = readCurrentUser(req);
     const items = Array.isArray(readJsonFile('effectiveNewListings')) ? readJsonFile('effectiveNewListings') : [];
 
     if (req.method === 'GET') {
       let data = items;
       try {
-        const postgresItems = await readEffectiveListingsFromPostgres();
-        data = postgresItems.length > 0 ? postgresItems : items;
+        const productInfoItems = await readEffectiveListingsFromProductImport();
+        data = productInfoItems.length > 0 ? productInfoItems : items;
       } catch (error) {
-        console.warn('[TEMU PostgreSQL] effective new listings read fallback to JSON:', error instanceof Error ? error.message : error);
+        console.warn('[TEMU PostgreSQL] effective listings from product import fallback to JSON:', error instanceof Error ? error.message : error);
       }
       res.end(JSON.stringify(isCompanyDashboardRead(req) ? data : filterEffectiveListingsForUser(data, currentUser)));
       return;
@@ -3310,77 +3251,20 @@ async function handleEffectiveNewListingsApi(req, res) {
     }
 
     if (req.method === 'POST') {
-      if (!requireOperation(res, currentUser, 'create', '当前账号无权新增有效上新')) {
-        return;
-      }
-
-      const body = JSON.parse((await readBody(req)) || '{}');
-      const next = {
-        ...normalizeEffectiveListingPayload(body),
-        createdBy: currentUser.userId || currentUser.operatorId || currentUser.username || '',
-        createdByName: currentUser.displayName || currentUser.operatorName || currentUser.username || '',
-      };
-      if (!canWriteEffectiveListing(next, currentUser)) {
-        res.statusCode = 403;
-        res.end(JSON.stringify({ ok: false, success: false, message: '当前账号无权修改该店铺数据' }));
-        return;
-      }
-      assertUniqueEffectiveListing(items, next);
-      const nextItems = [...items, next];
-      writeJsonFile('effectiveNewListings', nextItems);
-      await syncEffectiveListingsToPostgres(nextItems).catch((error) => {
-        console.warn('[TEMU PostgreSQL] effective new listings sync skipped:', error instanceof Error ? error.message : error);
-      });
-      res.end(JSON.stringify(next));
-      return;
-    }
-
-    const current = items.find((item) => item.id === id);
-    if (!current) {
-      res.statusCode = 404;
-      res.end(JSON.stringify({ ok: false, message: 'Not found' }));
-      return;
-    }
-
-    if (!canWriteEffectiveListing(current, currentUser)) {
-      res.statusCode = 403;
-      res.end(JSON.stringify({ ok: false, success: false, message: '当前账号无权修改该店铺数据' }));
+      res.statusCode = 410;
+      res.end(JSON.stringify({ ok: false, success: false, message: '有效上新录入页面已下线，请使用商品信息导入。' }));
       return;
     }
 
     if (req.method === 'PUT') {
-      if (!requireOperation(res, currentUser, 'edit', '当前账号无权编辑有效上新')) {
-        return;
-      }
-
-      const body = JSON.parse((await readBody(req)) || '{}');
-      const next = normalizeEffectiveListingPayload(body, current);
-      if (!canWriteEffectiveListing(next, currentUser)) {
-        res.statusCode = 403;
-        res.end(JSON.stringify({ ok: false, success: false, message: '当前账号无权修改该店铺数据' }));
-        return;
-      }
-      assertUniqueEffectiveListing(items, next);
-      const nextItems = items.map((item) => item.id === id ? next : item);
-      writeJsonFile('effectiveNewListings', nextItems);
-      await syncEffectiveListingsToPostgres(nextItems).catch((error) => {
-        console.warn('[TEMU PostgreSQL] effective new listings sync skipped:', error instanceof Error ? error.message : error);
-      });
-      res.end(JSON.stringify(next));
+      res.statusCode = 410;
+      res.end(JSON.stringify({ ok: false, success: false, message: '有效上新录入页面已下线，请使用商品信息导入。' }));
       return;
     }
 
     if (req.method === 'DELETE') {
-      if (!requireOperation(res, currentUser, 'delete', '当前账号无权删除有效上新')) {
-        return;
-      }
-
-      const nextItems = items.filter((item) => item.id !== id);
-      writeJsonFile('effectiveNewListings', nextItems);
-      await syncEffectiveListingsToPostgres(nextItems).catch((error) => {
-        console.warn('[TEMU PostgreSQL] effective new listings sync skipped:', error instanceof Error ? error.message : error);
-      });
-      res.end(JSON.stringify({ ok: true }));
+      res.statusCode = 410;
+      res.end(JSON.stringify({ ok: false, success: false, message: '有效上新录入页面已下线，请使用商品信息导入。' }));
       return;
     }
 
@@ -4126,12 +4010,19 @@ function buildDashboardRanking(entries, unit, limit = 10) {
     }));
 }
 
-function buildCompanyDashboardData() {
+async function buildCompanyDashboardData() {
   const orderStore = readJsonFile('orderImportStore');
   const allStores = Array.isArray(readJsonFile('stores')) ? readJsonFile('stores') : [];
   const allRelations = Array.isArray(readJsonFile('storeOperatorRelations')) ? readJsonFile('storeOperatorRelations') : [];
   const allOperators = Array.isArray(readJsonFile('operators')) ? readJsonFile('operators') : [];
-  const effectiveListings = Array.isArray(readJsonFile('effectiveNewListings')) ? readJsonFile('effectiveNewListings') : [];
+  const legacyEffectiveListings = Array.isArray(readJsonFile('effectiveNewListings')) ? readJsonFile('effectiveNewListings') : [];
+  let effectiveListings = legacyEffectiveListings;
+  try {
+    const productInfoListings = await readEffectiveListingsFromProductImport();
+    effectiveListings = productInfoListings.length > 0 ? productInfoListings : legacyEffectiveListings;
+  } catch (error) {
+    console.warn('[TEMU PostgreSQL] dashboard effective listings from product import fallback to JSON:', error instanceof Error ? error.message : error);
+  }
   const riskStore = readJsonFile('riskResults') || { items: [] };
   const growthStore = readJsonFile('growthOpportunities') || { items: [] };
   const stores = allStores.filter((store) => store?.platform === 'TEMU');
@@ -4273,7 +4164,7 @@ function buildCompanyDashboardData() {
   };
 }
 
-function getCompanyDashboardDataCached(force = false) {
+async function getCompanyDashboardDataCached(force = false) {
   const now = Date.now();
   if (!force && dashboardSummaryCache && dashboardSummaryCache.expiresAt > now) {
     return {
@@ -4286,7 +4177,7 @@ function getCompanyDashboardDataCached(force = false) {
     };
   }
 
-  const data = buildCompanyDashboardData();
+  const data = await buildCompanyDashboardData();
   dashboardSummaryCache = {
     data,
     generatedAt: nowIso(),
@@ -4303,7 +4194,7 @@ function getCompanyDashboardDataCached(force = false) {
   };
 }
 
-function handleCompanyDashboardApi(req, res) {
+async function handleCompanyDashboardApi(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'private, max-age=30');
 
@@ -4316,7 +4207,7 @@ function handleCompanyDashboardApi(req, res) {
   try {
     const requestUrl = new URL(req.url ?? '/', 'http://local');
     const force = requestUrl.searchParams.get('refresh') === 'true' || requestUrl.searchParams.get('force') === 'true';
-    res.end(JSON.stringify(getCompanyDashboardDataCached(force)));
+    res.end(JSON.stringify(await getCompanyDashboardDataCached(force)));
   } catch (error) {
     res.statusCode = 500;
     res.end(JSON.stringify({
@@ -5800,17 +5691,6 @@ async function readWorkbenchOrderStore() {
   return readPersistentDataForApi('orderImportStore', ensureDataFile('orderImportStore'));
 }
 
-async function readWorkbenchEffectiveListings() {
-  const jsonItems = Array.isArray(readJsonFile('effectiveNewListings')) ? readJsonFile('effectiveNewListings') : [];
-  try {
-    const postgresItems = await readEffectiveListingsFromPostgres();
-    return postgresItems.length > 0 ? postgresItems : jsonItems;
-  } catch (error) {
-    console.warn('[TEMU PostgreSQL] workbench effective listings read fallback to JSON:', error instanceof Error ? error.message : error);
-    return jsonItems;
-  }
-}
-
 async function readWorkbenchKpiTargets() {
   const jsonTargets = readCollectionCached('operationWorkbenchKpiTargets').map((target) => normalizeWorkbenchTarget(target));
   try {
@@ -6032,8 +5912,8 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       title: `有效上新还差 ${remainingListing} 款，今天建议至少完成 ${todaySuggestedListing ?? 0} 款`,
       kpi: '上新商品数',
       impact: '影响可控动作产出和后续新品转化',
-      actionLabel: '去录入有效上新',
-      actionHref: '/admin/effective-new-listings',
+      actionLabel: '去导入商品信息',
+      actionHref: '/admin/temu-product-info-import',
     });
   }
   if (shouldShowProgressActions && over7NoFirstOrder > 0) {

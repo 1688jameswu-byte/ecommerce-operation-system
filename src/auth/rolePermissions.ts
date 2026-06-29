@@ -61,7 +61,6 @@ const operatorMenus = [
 
 const leadMenus = [
   ...operatorMenus,
-  menuKeys.effectiveNewListings,
   menuKeys.temuProductInfoImport,
   menuKeys.temuAdReportImport,
   menuKeys.newProductBossDashboard,

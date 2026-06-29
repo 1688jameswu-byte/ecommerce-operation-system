@@ -278,8 +278,8 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
         ['今日建议', formatNumber(data.listingKpi.todaySuggested, '款')],
         ['还差', formatNumber(data.listingKpi.remaining, '款')],
       ],
-      actionLabel: '去录入有效上新',
-      actionHref: '/admin/effective-new-listings',
+      actionLabel: '去导入商品信息',
+      actionHref: '/admin/temu-product-info-import',
     },
     {
       key: 'firstOrder',
@@ -468,6 +468,8 @@ function ProductFollowUpTable({ rows }: { rows: ProductFollowUp[] }) {
 }
 
 function DataIntegrityPanel({ data }: { data: WorkbenchData }) {
+  if (!data.filters.canManage) return null;
+
   return (
     <article className="excel-record-panel workbench-panel">
       <header><h2>数据完整性提醒</h2><span>{data.dataIntegrityStatus}</span></header>

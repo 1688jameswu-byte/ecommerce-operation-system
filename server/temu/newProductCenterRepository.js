@@ -2091,6 +2091,83 @@ export async function getProductImportRankingSummary(params = {}) {
   };
 }
 
+export async function readEffectiveListingsFromProductImport(params = {}) {
+  await runTemuMigrations();
+  await backfillTemuImportBatchStores();
+  const filter = createWhereBuilder(1);
+  appendStoreScope(filter, 'product_rows', params);
+  const condition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : '';
+  const skuCreatedTimeFromRaw = `CASE WHEN NULLIF(s.raw_data ->> '创建时间', '') ~ '^\\d{4}-\\d{1,2}-\\d{1,2}' THEN NULLIF(s.raw_data ->> '创建时间', '')::timestamptz ELSE NULL END`;
+  const productCreatedTimeFromRaw = `CASE WHEN NULLIF(p.raw_data ->> '创建时间', '') ~ '^\\d{4}-\\d{1,2}-\\d{1,2}' THEN NULLIF(p.raw_data ->> '创建时间', '')::timestamptz ELSE NULL END`;
+  const result = await queryTemuDatabase(
+    `WITH raw_sku_rows AS (
+       SELECT
+         COALESCE(s.product_id::text, NULLIF(s.temu_spu_id, ''), NULLIF(s.temu_product_id, ''), NULLIF(s.raw_data ->> 'SPU ID', ''), NULLIF(s.raw_data ->> '商品ID', ''), s.id::text) AS product_key,
+         COALESCE(s.product_id, p.id) AS product_uuid,
+         s.store_id,
+         s.store_name,
+         COALESCE(NULLIF(s.skc_id, ''), NULLIF(s.temu_skc_id, ''), NULLIF(s.raw_data ->> 'SKC ID', ''), NULLIF(p.skc_id, ''), NULLIF(p.temu_skc_id, ''), NULLIF(p.raw_data ->> 'SKC ID', '')) AS skc_id,
+         COALESCE(NULLIF(s.skc_code, ''), NULLIF(s.raw_data ->> 'SKC货号', ''), NULLIF(p.skc_code, ''), NULLIF(p.raw_data ->> 'SKC货号', '')) AS skc_code,
+         COALESCE(p.operator_id, NULL) AS product_operator_id,
+         COALESCE(NULLIF(p.operator_name, ''), NULL) AS product_operator_name,
+         COALESCE(s.created_time, ${skuCreatedTimeFromRaw}, p.created_time, ${productCreatedTimeFromRaw}, p.first_online_at) AS created_time,
+         GREATEST(COALESCE(s.updated_at, '-infinity'::timestamptz), COALESCE(p.updated_at, '-infinity'::timestamptz)) AS updated_at
+       FROM temu_product_skus s
+       LEFT JOIN temu_products p ON p.id = s.product_id
+     ),
+     product_rows AS (
+       SELECT
+         r.product_key,
+         (ARRAY_AGG(r.product_uuid ORDER BY r.product_uuid IS NULL))[1] AS product_id,
+         (ARRAY_AGG(r.store_id ORDER BY r.store_id IS NULL))[1] AS store_id,
+         (ARRAY_AGG(r.store_name ORDER BY r.store_name IS NULL, r.store_name))[1] AS store_name,
+         (ARRAY_AGG(COALESCE(NULLIF(r.skc_id, ''), NULLIF(r.skc_code, ''), r.product_key) ORDER BY COALESCE(NULLIF(r.skc_id, ''), NULLIF(r.skc_code, ''), r.product_key)))[1] AS skc,
+         (ARRAY_AGG(COALESCE(r.product_operator_id, relation.operator_id) ORDER BY COALESCE(r.product_operator_id, relation.operator_id) IS NULL))[1] AS operator_id,
+         (ARRAY_AGG(COALESCE(r.product_operator_name, relation.operator_name) ORDER BY COALESCE(r.product_operator_name, relation.operator_name) IS NULL))[1] AS operator_name,
+         MIN(r.created_time) AS created_time,
+         MAX(r.updated_at) AS updated_at
+       FROM raw_sku_rows r
+       LEFT JOIN LATERAL (
+         SELECT rel.operator_id, rel.operator_name
+         FROM temu_store_operator_relations rel
+         WHERE rel.status <> 'inactive'
+           AND (
+             rel.store_id = r.store_id
+             OR (NULLIF(rel.store_name, '') IS NOT NULL AND rel.store_name = r.store_name)
+           )
+           AND (rel.start_date IS NULL OR rel.start_date <= COALESCE(r.created_time::date, CURRENT_DATE))
+           AND (rel.end_date IS NULL OR rel.end_date >= COALESCE(r.created_time::date, CURRENT_DATE))
+         ORDER BY CASE WHEN rel.role = 'primary' THEN 0 ELSE 1 END, rel.updated_at DESC
+         LIMIT 1
+       ) relation ON TRUE
+       WHERE r.created_time IS NOT NULL
+       GROUP BY r.product_key
+     )
+     SELECT product_key, product_id, store_id, store_name, skc, operator_id, operator_name,
+            created_time::date AS site_join_date, updated_at
+     FROM product_rows
+     ${condition}
+     ORDER BY site_join_date DESC, store_name ASC, skc ASC`,
+    filter.values,
+  );
+
+  return result.rows.map((row) => ({
+    id: `product-info-${row.product_key}`,
+    platform: 'TEMU',
+    storeId: row.store_id || '',
+    storeName: row.store_name || '',
+    operatorId: row.operator_id || '',
+    operatorName: row.operator_name || '',
+    siteJoinDate: dateText(row.site_join_date),
+    skc: row.skc || row.product_id || row.product_key || '',
+    remark: '来自商品信息导入',
+    createdBy: '',
+    createdByName: '商品信息导入',
+    createdAt: dateText(row.site_join_date),
+    updatedAt: row.updated_at,
+  }));
+}
+
 export async function calculateNewProductFirstOrderStats(params = {}) {
   await runTemuMigrations();
   await backfillTemuImportBatchStores();
