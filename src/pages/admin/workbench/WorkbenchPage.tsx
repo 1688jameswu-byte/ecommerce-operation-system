@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CurrentUser } from '../../../types/auth';
 import type { StoreRecord } from '../../../types/store';
 import type { OperatorRecord } from '../../../types/operator';
@@ -26,6 +26,8 @@ type WorkbenchAction = {
 
 type ProductFollowUp = {
   skc: string;
+  spuId?: string;
+  skuId?: string;
   productName?: string;
   storeName: string;
   operatorName: string;
@@ -144,14 +146,16 @@ function currentPeriod() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-async function fetchJson<T>(url: string, fallback: T): Promise<T> {
+async function fetchJson<T>(url: string, fallback: T, options: RequestInit = {}): Promise<T> {
   try {
     const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`, {
       credentials: 'include',
       cache: 'no-store',
+      ...options,
     });
     return response.ok ? await response.json() as T : fallback;
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error;
     return fallback;
   }
 }
@@ -336,7 +340,10 @@ function ProductFollowUpTable({ rows }: { rows: ProductFollowUp[] }) {
         <table className="import-record-table">
           <thead>
             <tr>
-              <th>商品</th>
+              <th className="workbench-follow-title-col">标题</th>
+              <th>SKC ID</th>
+              <th>SPU ID</th>
+              <th>SKU ID</th>
               <th>店铺</th>
               <th>运营</th>
               <th>上新日期</th>
@@ -349,8 +356,13 @@ function ProductFollowUpTable({ rows }: { rows: ProductFollowUp[] }) {
           </thead>
           <tbody>
             {visibleRows.map((row) => (
-              <tr key={`${row.skc}-${row.storeName}-${row.siteJoinDate}`}>
-                <td><strong>{row.productName || row.skc || '-'}</strong></td>
+              <tr key={`${row.skc}-${row.spuId || ''}-${row.skuId || ''}-${row.storeName}-${row.siteJoinDate}`}>
+                <td className="workbench-follow-title-col" title={row.productName || row.skc || '-'}>
+                  <strong>{row.productName || '-'}</strong>
+                </td>
+                <td className="workbench-id-cell" title={row.skc || '-'}>{row.skc || '-'}</td>
+                <td className="workbench-id-cell" title={row.spuId || '-'}>{row.spuId || '-'}</td>
+                <td className="workbench-id-cell" title={row.skuId || '-'}>{row.skuId || '-'}</td>
                 <td>{row.storeName || '-'}</td>
                 <td>{row.operatorName || '-'}</td>
                 <td>{row.siteJoinDate || '-'}</td>
@@ -361,7 +373,7 @@ function ProductFollowUpTable({ rows }: { rows: ProductFollowUp[] }) {
                 <td>{row.suggestedAction}</td>
               </tr>
             ))}
-            {visibleRows.length === 0 && <tr><td colSpan={9}>暂无符合条件的商品。</td></tr>}
+            {visibleRows.length === 0 && <tr><td colSpan={12}>暂无符合条件的商品。</td></tr>}
           </tbody>
         </table>
       </div>
@@ -396,17 +408,40 @@ function DataIntegrityPanel({ data }: { data: WorkbenchData }) {
   );
 }
 
-function TargetEditor({ data, onSaved }: { data: WorkbenchData; onSaved: () => void }) {
+function TargetEditor({
+  data,
+  target,
+  onSaved,
+  onClose,
+}: {
+  data: WorkbenchData;
+  target: KpiTarget | null;
+  onSaved: () => void;
+  onClose: () => void;
+}) {
   const [form, setForm] = useState<KpiTarget>({ ...defaultTarget, period: data.filters.period });
   const [firstOrderRateTarget, setFirstOrderRateTarget] = useState(0);
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (!target) return;
+    const nextForm = { ...defaultTarget, ...target, period: target.period || data.filters.period };
+    setForm(nextForm);
+    setFirstOrderRateTarget(
+      nextForm.effectiveListingTarget > 0
+        ? Number(((nextForm.firstOrderProductTarget / nextForm.effectiveListingTarget) * 100).toFixed(1))
+        : 0,
+    );
+    setMessage('');
+  }, [data.filters.period, target]);
+
   const storeOptions = useMemo(() => {
     if (!form.operatorId) return data.filters.stores;
     const allowedStoreKeys = new Set(data.filters.operatorStoreMap?.[form.operatorId] ?? []);
     return data.filters.stores.filter((store) => allowedStoreKeys.has(store.id) || allowedStoreKeys.has(store.storeName));
   }, [data.filters.operatorStoreMap, data.filters.stores, form.operatorId]);
 
-  if (!data.filters.canManage) return null;
+  if (!data.filters.canManage || !target) return null;
 
   const save = async () => {
     setMessage('');
@@ -427,49 +462,71 @@ function TargetEditor({ data, onSaved }: { data: WorkbenchData; onSaved: () => v
     }
     setMessage('目标已保存');
     onSaved();
+    onClose();
   };
 
   return (
-    <article className="excel-record-panel workbench-panel workbench-target-editor">
-      <header><h2>KPI 目标配置</h2><span>管理员 / 主管可编辑</span></header>
-      <section className="operator-form-grid">
-        <label>月份<input type="month" value={form.period} onChange={(event) => setForm({ ...form, period: event.target.value })} /></label>
-        <label>运营<select value={form.operatorId} onChange={(event) => {
-          const operator = data.filters.operators.find((item) => item.id === event.target.value);
-          setForm({ ...form, operatorId: event.target.value, operatorName: operator?.operatorName || '', storeId: '', storeName: '' });
-        }}><option value="">全部运营</option>{data.filters.operators.map((item) => <option value={item.id} key={item.id}>{item.operatorName}</option>)}</select></label>
-        <label>店铺<select value={form.storeId} onChange={(event) => {
-          const store = storeOptions.find((item) => item.id === event.target.value);
-          setForm({ ...form, storeId: event.target.value, storeName: store?.storeName || '' });
-        }}><option value="">全部店铺</option>{storeOptions.map((item) => <option value={item.id} key={item.id}>{item.storeName}</option>)}</select></label>
-        <label>销售额目标<input type="number" value={form.salesTarget} onChange={(event) => setForm({ ...form, salesTarget: Number(event.target.value) })} /></label>
-        <label>有效上新目标<input type="number" value={form.effectiveListingTarget} onChange={(event) => {
-          const effectiveListingTarget = Number(event.target.value);
-          setForm({
-            ...form,
-            effectiveListingTarget,
-            firstOrderProductTarget: calculateFirstOrderProductTarget(effectiveListingTarget, firstOrderRateTarget),
-          });
-        }} /></label>
-        <label>首单率目标(%)<input type="number" min="0" max="100" step="0.1" value={firstOrderRateTarget} onChange={(event) => {
-          const rateTarget = Number(event.target.value);
-          setFirstOrderRateTarget(rateTarget);
-          setForm({
-            ...form,
-            firstOrderProductTarget: calculateFirstOrderProductTarget(form.effectiveListingTarget, rateTarget),
-          });
-        }} /></label>
-        <label>首单商品目标<input type="number" value={form.firstOrderProductTarget} readOnly /></label>
-        <label>费用占比目标<input type="number" step="0.001" value={form.expenseRatioTarget} onChange={(event) => setForm({ ...form, expenseRatioTarget: Number(event.target.value) })} /></label>
-        <label className="operator-form-wide">备注<input value={form.remark} onChange={(event) => setForm({ ...form, remark: event.target.value })} /></label>
-      </section>
-      <button type="button" className="import-primary-button" onClick={save}>保存目标</button>
-      {message && <div className="excel-import-error">{message}</div>}
-    </article>
+    <div className="workbench-modal-backdrop" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}>
+      <article className="excel-record-panel workbench-panel workbench-target-editor workbench-target-modal" role="dialog" aria-modal="true">
+        <header>
+          <div>
+            <h2>KPI 目标配置</h2>
+            <span>{form.period || data.filters.period} · {form.operatorName || '全部运营'} · {form.storeName || '全部店铺'}</span>
+          </div>
+          <button type="button" className="workbench-modal-close" onClick={onClose}>关闭</button>
+        </header>
+        <section className="operator-form-grid">
+          <label>月份<input type="month" value={form.period} onChange={(event) => setForm({ ...form, period: event.target.value })} /></label>
+          <label>运营<select value={form.operatorId} onChange={(event) => {
+            const operator = data.filters.operators.find((item) => item.id === event.target.value);
+            setForm({ ...form, operatorId: event.target.value, operatorName: operator?.operatorName || '', storeId: '', storeName: '' });
+          }}><option value="">全部运营</option>{data.filters.operators.map((item) => <option value={item.id} key={item.id}>{item.operatorName}</option>)}</select></label>
+          <label>店铺<select value={form.storeId} onChange={(event) => {
+            const store = storeOptions.find((item) => item.id === event.target.value);
+            setForm({ ...form, storeId: event.target.value, storeName: store?.storeName || '' });
+          }}><option value="">全部店铺</option>{storeOptions.map((item) => <option value={item.id} key={item.id}>{item.storeName}</option>)}</select></label>
+          <label>销售额目标<input type="number" value={form.salesTarget} onChange={(event) => setForm({ ...form, salesTarget: Number(event.target.value) })} /></label>
+          <label>有效上新目标<input type="number" value={form.effectiveListingTarget} onChange={(event) => {
+            const effectiveListingTarget = Number(event.target.value);
+            setForm({
+              ...form,
+              effectiveListingTarget,
+              firstOrderProductTarget: calculateFirstOrderProductTarget(effectiveListingTarget, firstOrderRateTarget),
+            });
+          }} /></label>
+          <label>首单率目标(%)<input type="number" min="0" max="100" step="0.1" value={firstOrderRateTarget} onChange={(event) => {
+            const rateTarget = Number(event.target.value);
+            setFirstOrderRateTarget(rateTarget);
+            setForm({
+              ...form,
+              firstOrderProductTarget: calculateFirstOrderProductTarget(form.effectiveListingTarget, rateTarget),
+            });
+          }} /></label>
+          <label>首单商品目标<input type="number" value={form.firstOrderProductTarget} readOnly /></label>
+          <label>费用占比目标<input type="number" step="0.001" value={form.expenseRatioTarget} onChange={(event) => setForm({ ...form, expenseRatioTarget: Number(event.target.value) })} /></label>
+          <label className="operator-form-wide">备注<input value={form.remark} onChange={(event) => setForm({ ...form, remark: event.target.value })} /></label>
+        </section>
+        <div className="workbench-modal-actions">
+          <button type="button" className="import-secondary-button" onClick={onClose}>取消</button>
+          <button type="button" className="import-primary-button" onClick={save}>保存目标</button>
+        </div>
+        {message && <div className="excel-import-error">{message}</div>}
+      </article>
+    </div>
   );
 }
 
-function KpiTargetLedger({ data, refreshKey }: { data: WorkbenchData; refreshKey: number }) {
+function KpiTargetLedger({
+  data,
+  refreshKey,
+  onConfigure,
+}: {
+  data: WorkbenchData;
+  refreshKey: number;
+  onConfigure: (target: KpiTarget) => void;
+}) {
   const [targets, setTargets] = useState<KpiTarget[]>([]);
   const [loading, setLoading] = useState(true);
   const [ledgerPeriod, setLedgerPeriod] = useState(data.filters.period);
@@ -488,15 +545,17 @@ function KpiTargetLedger({ data, refreshKey }: { data: WorkbenchData; refreshKey
   if (!data.filters.canManage) return null;
 
   const operatorNameById = new Map(data.filters.operators.map((operator) => [String(operator.id), operator.operatorName]));
-  const operatorNamesByStoreKey = new Map<string, string[]>();
+  const operatorRefsByStoreKey = new Map<string, Array<{ id: string; name: string }>>();
   for (const operator of data.filters.operators) {
     const storeKeys = data.filters.operatorStoreMap?.[operator.id] ?? [];
     for (const storeKey of storeKeys) {
       const key = normalizeKey(storeKey);
       if (!key) continue;
-      const names = operatorNamesByStoreKey.get(key) ?? [];
-      if (!names.includes(operator.operatorName)) names.push(operator.operatorName);
-      operatorNamesByStoreKey.set(key, names);
+      const refs = operatorRefsByStoreKey.get(key) ?? [];
+      if (!refs.some((ref) => ref.id === operator.id || ref.name === operator.operatorName)) {
+        refs.push({ id: operator.id, name: operator.operatorName });
+      }
+      operatorRefsByStoreKey.set(key, refs);
     }
   }
 
@@ -516,14 +575,35 @@ function KpiTargetLedger({ data, refreshKey }: { data: WorkbenchData; refreshKey
     const firstOrderRate = matched?.effectiveListingTarget
       ? matched.firstOrderProductTarget / matched.effectiveListingTarget
       : null;
+    const relatedOperators = [
+      ...(operatorRefsByStoreKey.get(normalizeKey(store.id)) ?? []),
+      ...(operatorRefsByStoreKey.get(normalizeKey(store.storeName)) ?? []),
+    ].filter((operator, index, list) => list.findIndex((item) => item.id === operator.id || item.name === operator.name) === index);
+    const selectedOperator = data.filters.selectedOperatorId
+      ? data.filters.operators.find((operator) => operator.id === data.filters.selectedOperatorId)
+      : undefined;
+    const primaryOperator = matched
+      ? { id: matched.operatorId, name: matched.operatorName }
+      : selectedOperator
+        ? { id: selectedOperator.id, name: selectedOperator.operatorName }
+        : relatedOperators[0] ?? { id: '', name: '' };
+    const targetForEdit: KpiTarget = matched ?? {
+      ...defaultTarget,
+      period: ledgerPeriod,
+      operatorId: primaryOperator.id,
+      operatorName: primaryOperator.name,
+      storeId: store.id,
+      storeName: store.storeName || store.id,
+    };
     const operatorNames = matched?.operatorName
       ? [matched.operatorName]
-      : uniqueText([...(operatorNamesByStoreKey.get(normalizeKey(store.id)) ?? []), ...(operatorNamesByStoreKey.get(normalizeKey(store.storeName)) ?? [])]);
+      : uniqueText(relatedOperators.map((operator) => operator.name));
 
     return {
       storeName: store.storeName || store.id,
       operatorName: operatorNames.join('、') || '-',
       target: matched,
+      targetForEdit,
       firstOrderRate,
     };
   });
@@ -559,7 +639,15 @@ function KpiTargetLedger({ data, refreshKey }: { data: WorkbenchData; refreshKey
                 <td>{ledgerPeriod}</td>
                 <td><strong>{row.storeName}</strong></td>
                 <td>{row.operatorName}</td>
-                <td><span className={`workbench-table-status ${row.target ? 'ok' : 'warning'}`}>{row.target ? '已配置' : '未配置'}</span></td>
+                <td>
+                  <button
+                    type="button"
+                    className={`workbench-config-link ${row.target ? 'ok' : 'warning'}`}
+                    onClick={() => onConfigure(row.targetForEdit)}
+                  >
+                    {row.target ? '已配置' : '未配置'}
+                  </button>
+                </td>
                 <td>{formatAmount(row.target?.salesTarget)}</td>
                 <td>{formatNumber(row.target?.effectiveListingTarget, '款')}</td>
                 <td>{formatPercent(row.firstOrderRate)}</td>
@@ -587,18 +675,37 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
   const [data, setData] = useState<WorkbenchData | null>(null);
   const [loading, setLoading] = useState(true);
   const [targetRefreshKey, setTargetRefreshKey] = useState(0);
+  const [editingTarget, setEditingTarget] = useState<KpiTarget | null>(null);
+  const requestIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   const loadData = () => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     const params = new URLSearchParams({ period });
     if (operatorId) params.set('operatorId', operatorId);
     if (storeId) params.set('storeId', storeId);
-    void fetchJson<WorkbenchData | null>(`/api/operation-workbench/kpi-dashboard?${params.toString()}`, null)
-      .then(setData)
-      .finally(() => setLoading(false));
+    void fetchJson<WorkbenchData | null>(`/api/operation-workbench/kpi-dashboard?${params.toString()}`, null, { signal: controller.signal })
+      .then((nextData) => {
+        if (requestIdRef.current === requestId) setData(nextData);
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        if (requestIdRef.current === requestId) setData(null);
+      })
+      .finally(() => {
+        if (requestIdRef.current === requestId) setLoading(false);
+      });
   };
 
-  useEffect(loadData, [period, operatorId, storeId]);
+  useEffect(() => {
+    loadData();
+    return () => abortRef.current?.abort();
+  }, [period, operatorId, storeId]);
 
   const canManage = data?.filters.canManage ?? currentUser.role !== 'operator';
 
@@ -623,7 +730,7 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
         <span>完整性<strong>{data?.dataIntegrityStatus ?? '-'}</strong></span>
       </section>
 
-      {loading && <div className="admin-route-loading">加载 KPI 工作台...</div>}
+      {loading && !data && <div className="admin-route-loading">加载 KPI 工作台...</div>}
       {!loading && !data && <section className="excel-record-panel admin-permission-empty">工作台数据读取失败，请稍后重试。</section>}
       {data && (
         <>
@@ -632,8 +739,8 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
           <DetailPanels data={data} />
           <ProductFollowUpTable rows={data.productFollowUps} />
           <DataIntegrityPanel data={data} />
-          <KpiTargetLedger data={data} refreshKey={targetRefreshKey} />
-          <TargetEditor data={data} onSaved={() => {
+          <KpiTargetLedger data={data} refreshKey={targetRefreshKey} onConfigure={setEditingTarget} />
+          <TargetEditor data={data} target={editingTarget} onClose={() => setEditingTarget(null)} onSaved={() => {
             setTargetRefreshKey((value) => value + 1);
             loadData();
           }} />

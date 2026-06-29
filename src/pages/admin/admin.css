@@ -11904,6 +11904,60 @@
   color: #991b1b;
 }
 
+.workbench-follow-title-col {
+  width: 64px;
+  min-width: 64px;
+  max-width: 64px;
+}
+
+td.workbench-follow-title-col strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workbench-id-cell {
+  min-width: 120px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.workbench-config-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.workbench-config-link:hover {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  transform: translateY(-1px);
+}
+
+.workbench-config-link.ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.workbench-config-link.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .workbench-warning-list {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   margin-bottom: 14px;
@@ -11928,6 +11982,59 @@
 
 .workbench-target-editor {
   background: #fbfdff;
+}
+
+.workbench-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.36);
+}
+
+.workbench-target-modal {
+  width: min(1040px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  background: #ffffff;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.24);
+}
+
+.workbench-target-modal > header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #ffffff;
+}
+
+.workbench-target-modal > header div {
+  display: grid;
+  gap: 4px;
+}
+
+.workbench-modal-close {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 7px 12px;
+  background: #ffffff;
+  color: #1f2937;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.workbench-modal-close:hover {
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
+.workbench-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .workbench-target-editor .operator-form-grid {

@@ -5765,43 +5765,96 @@ async function readWorkbenchKpiTargets() {
   }
 }
 
+const operationWorkbenchDashboardCache = new Map();
+const OPERATION_WORKBENCH_DASHBOARD_CACHE_TTL_MS = 60_000;
+
+function clearOperationWorkbenchDashboardCache() {
+  operationWorkbenchDashboardCache.clear();
+}
+
+function getOperationWorkbenchDashboardCacheKey(searchParams, currentUser) {
+  const params = Array.from(searchParams.entries())
+    .filter(([key]) => key !== 't')
+    .sort(([firstKey], [secondKey]) => firstKey.localeCompare(secondKey))
+    .map(([key, value]) => `${key}=${value}`)
+    .join('&');
+  return [
+    String(currentUser?.userId ?? currentUser?.id ?? currentUser?.username ?? ''),
+    String(currentUser?.role ?? ''),
+    String(currentUser?.operatorId ?? ''),
+    params,
+  ].join('|');
+}
+
 async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
+  const cacheKey = getOperationWorkbenchDashboardCacheKey(searchParams, currentUser);
+  const cached = operationWorkbenchDashboardCache.get(cacheKey);
+  const now = Date.now();
+  if (cached && cached.expiresAt > now) {
+    if (cached.promise) return cached.promise;
+    return cached.value;
+  }
+
+  const promise = buildOperationWorkbenchDashboardUncached(searchParams, currentUser)
+    .then((value) => {
+      operationWorkbenchDashboardCache.set(cacheKey, {
+        value,
+        expiresAt: Date.now() + OPERATION_WORKBENCH_DASHBOARD_CACHE_TTL_MS,
+      });
+      return value;
+    })
+    .catch((error) => {
+      operationWorkbenchDashboardCache.delete(cacheKey);
+      throw error;
+    });
+  operationWorkbenchDashboardCache.set(cacheKey, {
+    promise,
+    expiresAt: now + OPERATION_WORKBENCH_DASHBOARD_CACHE_TTL_MS,
+  });
+  return promise;
+}
+
+async function buildOperationWorkbenchDashboardUncached(searchParams, currentUser) {
   const range = getWorkbenchMonthRange(String(searchParams.get('period') ?? ''));
   const scope = getWorkbenchScope(currentUser, searchParams);
   const stores = scope.stores;
   const storeByName = new Map(stores.map((store) => [normalizeOrderImportStoreName(store.storeName || store.id), store]));
-  const targets = await readWorkbenchKpiTargets();
-  const target = pickWorkbenchTarget(targets, scope, range.period);
-  const orderStore = await readWorkbenchOrderStore();
-  const allOrders = (orderStore?.batches ?? []).flatMap((batch) =>
-    (batch.orders ?? []).map((order) => ({ ...order, importedAt: batch.importedAt, batchId: batch.batchId })),
-  );
-  const scopedOrders = allOrders.filter((order) => {
-    const date = getOrderDateKey(order);
-    return date && date >= range.start && date <= range.end && itemMatchesWorkbenchScope(order, scope);
+  const targetsPromise = readWorkbenchKpiTargets();
+  const orderStorePromise = readWorkbenchOrderStore();
+  const newProductFirstOrderStatsPromise = calculateNewProductFirstOrderStats({
+    periodStart: range.start,
+    periodEnd: range.end,
+    today: range.today,
+    observeDays: 30,
+    storeNames: stores.map((store) => String(store?.storeName || store?.id || '').trim()).filter(Boolean),
   });
-  const salesAmount = Number(scopedOrders.reduce((total, order) => total + getDashboardOrderSalesAmount(order), 0).toFixed(2));
-  const orderCount = scopedOrders.length;
-  const quantity = scopedOrders.reduce((total, order) => total + (Number(order?.quantity) || 0), 0);
+  const [targets, orderStore] = await Promise.all([targetsPromise, orderStorePromise]);
+  const target = pickWorkbenchTarget(targets, scope, range.period);
+  let salesAmountRaw = 0;
+  let orderCount = 0;
+  let quantity = 0;
   const storeSalesMap = new Map();
-  for (const order of scopedOrders) {
-    const storeName = normalizeOrderImportStoreName(order?.storeName);
-    const current = storeSalesMap.get(storeName) ?? { storeName, salesAmount: 0, orderCount: 0 };
-    current.salesAmount += getDashboardOrderSalesAmount(order);
-    current.orderCount += 1;
-    storeSalesMap.set(storeName, current);
+  for (const batch of orderStore?.batches ?? []) {
+    for (const order of batch?.orders ?? []) {
+      const date = getOrderDateKey(order);
+      if (!date || date < range.start || date > range.end || !itemMatchesWorkbenchScope(order, scope)) continue;
+      const orderSalesAmount = getDashboardOrderSalesAmount(order);
+      salesAmountRaw += orderSalesAmount;
+      orderCount += 1;
+      quantity += Number(order?.quantity) || 0;
+      const storeName = normalizeOrderImportStoreName(order?.storeName);
+      const current = storeSalesMap.get(storeName) ?? { storeName, salesAmount: 0, orderCount: 0 };
+      current.salesAmount += orderSalesAmount;
+      current.orderCount += 1;
+      storeSalesMap.set(storeName, current);
+    }
   }
+  const salesAmount = Number(salesAmountRaw.toFixed(2));
 
   let newProductFirstOrderStats;
   let newProductStatsError = '';
   try {
-    newProductFirstOrderStats = await calculateNewProductFirstOrderStats({
-      periodStart: range.start,
-      periodEnd: range.end,
-      today: range.today,
-      observeDays: 30,
-      storeNames: stores.map((store) => String(store?.storeName || store?.id || '').trim()).filter(Boolean),
-    });
+    newProductFirstOrderStats = await newProductFirstOrderStatsPromise;
   } catch (error) {
     newProductStatsError = error instanceof Error ? error.message : String(error);
     console.warn('[TEMU PostgreSQL] workbench first-order stats failed:', newProductStatsError);
@@ -5828,7 +5881,9 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
         ? '已超过30天未首单，复盘标题、主图、价格、曝光和投放'
         : '仍在30天观察期内，暂不计入首单率分母';
     return {
-      skc: item.productId || item.productKey || '',
+      skc: item.skcId || item.productKey || '',
+      spuId: item.spuId || '',
+      skuId: item.skuId || '',
       productName: item.productName || '',
       storeId: item.storeId || '',
       storeName: item.storeName || storeByName.get(normalizeOrderImportStoreName(item?.storeName))?.storeName || item.storeId || '',
@@ -6055,6 +6110,7 @@ async function handleOperationWorkbenchKpiTargetsApi(req, res) {
       const current = existingTargets.find((item) => String(item?.id ?? '') === String(payload?.id ?? ''));
       const next = normalizeWorkbenchTarget(payload, current);
       const record = await upsertWorkbenchKpiTargetToPostgres(next);
+      clearOperationWorkbenchDashboardCache();
       res.end(JSON.stringify({ ok: true, record }));
     } catch (error) {
       res.statusCode = 400;
