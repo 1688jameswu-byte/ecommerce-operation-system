@@ -182,6 +182,17 @@ export default function TemuAdReportImportPage() {
   const [sortField, setSortField] = useState('adSpend');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
+  const refreshStorageStatus = async () => {
+    try {
+      const status = await newProductCenterDataSource.getTemuStorageStatus();
+      setStorageStatus(status);
+      setStorageError(status.ok ? '' : (status.message || 'PostgreSQL 未连接'));
+    } catch (error) {
+      setStorageStatus(null);
+      setStorageError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   const refreshOverview = async (page = recordsPage) => {
     if (!storeName || !reportDate) {
       setOverview({ batches: [], records: [] });
@@ -208,6 +219,10 @@ export default function TemuAdReportImportPage() {
       setOverview({ batches: [], records: [] });
     }
   };
+
+  useEffect(() => {
+    void refreshStorageStatus();
+  }, []);
 
   useEffect(() => {
     newProductCenterDataSource.getVisibleStores().then(async (data) => {

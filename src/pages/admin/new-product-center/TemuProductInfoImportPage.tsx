@@ -85,6 +85,17 @@ export default function TemuProductInfoImportPage() {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const overviewRequestSeq = useRef(0);
 
+  const refreshStorageStatus = async () => {
+    try {
+      const status = await newProductCenterDataSource.getTemuStorageStatus();
+      setStorageStatus(status);
+      setStorageError(status.ok ? '' : (status.message || 'PostgreSQL 未连接'));
+    } catch (error) {
+      setStorageStatus(null);
+      setStorageError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   const refreshOverview = async (page = recordsPage, nextStoreName = storeName, nextFilters = filters) => {
     const requestSeq = ++overviewRequestSeq.current;
     if (!nextStoreName) {
@@ -112,6 +123,10 @@ export default function TemuProductInfoImportPage() {
       setOverview({ batches: [], records: [] });
     }
   };
+
+  useEffect(() => {
+    void refreshStorageStatus();
+  }, []);
 
   useEffect(() => {
     newProductCenterDataSource.getVisibleStores().then(async (data) => {
