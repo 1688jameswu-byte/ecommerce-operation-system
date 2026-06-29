@@ -12349,6 +12349,196 @@ td.workbench-follow-title-col strong {
   grid-template-columns: 38px minmax(220px, 1fr) minmax(96px, auto) minmax(108px, auto);
 }
 
+.workbench-page {
+  padding-bottom: 28px;
+}
+
+.workbench-page .excel-record-panel,
+.workbench-panel,
+.workbench-filter-bar,
+.workbench-kpi-card {
+  border: 1px solid #dfe7f2;
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.workbench-filter-bar {
+  padding: 18px;
+}
+
+.workbench-overview-header {
+  margin-top: 4px;
+}
+
+.workbench-overview-header h2 {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.workbench-overview-header span {
+  display: block;
+  color: #44546a;
+}
+
+.workbench-overview-header span strong {
+  color: #2563eb;
+}
+
+.workbench-kpi-card {
+  position: relative;
+  min-height: 300px;
+  padding: 18px;
+  overflow: hidden;
+}
+
+.workbench-kpi-card header span {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.workbench-kpi-main {
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.workbench-kpi-card-sales .workbench-progress i {
+  background: #15935f;
+}
+
+.workbench-kpi-card-listing .workbench-progress i {
+  background: #2563eb;
+}
+
+.workbench-kpi-card-firstOrder .workbench-progress i {
+  background: #8b5cf6;
+}
+
+.workbench-kpi-card-expense .workbench-progress i {
+  background: #f59e0b;
+}
+
+.workbench-status.ok {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.workbench-status.warning {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+.workbench-status.danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.workbench-store-breakdown {
+  margin-top: 16px;
+}
+
+.workbench-store-breakdown > header {
+  align-items: flex-start;
+}
+
+.workbench-store-breakdown > header p {
+  margin: 5px 0 0;
+  color: #607089;
+  font-size: 13px;
+}
+
+.workbench-breakdown-table {
+  min-width: 1080px;
+}
+
+.workbench-breakdown-table th,
+.workbench-breakdown-table td {
+  text-align: center;
+}
+
+.workbench-breakdown-table th:first-child,
+.workbench-breakdown-table td:first-child {
+  text-align: left;
+}
+
+.workbench-breakdown-table tbody tr.breakdown-row.danger {
+  background: #fff1f2;
+}
+
+.workbench-breakdown-table tbody tr.breakdown-row.warning {
+  background: #fff7ed;
+}
+
+.workbench-breakdown-table tbody tr.breakdown-row.ok {
+  background: #ffffff;
+}
+
+.workbench-breakdown-table td.ok {
+  color: #047857;
+  font-weight: 800;
+}
+
+.workbench-breakdown-table td.warning {
+  color: #ea580c;
+  font-weight: 800;
+}
+
+.workbench-breakdown-table td.danger {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+.workbench-breakdown-table td.muted {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.workbench-problem {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.workbench-problem.ok {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.workbench-problem.warning {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+.workbench-problem.danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.workbench-row-action {
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 5px 14px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.workbench-row-action:hover {
+  border-color: #60a5fa;
+  background: #dbeafe;
+}
+
+.workbench-action-row .workbench-row-action {
+  justify-self: end;
+  border-radius: 6px;
+  padding: 8px 11px;
+}
+
 @media (max-width: 900px) {
   .workbench-overview-header {
     display: grid;
@@ -13534,6 +13724,296 @@ td.workbench-follow-title-col strong {
   letter-spacing: 0;
 }
 
+.npc-workbench-page .npc-health-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.npc-workbench-page .npc-health-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  min-height: 86px;
+  border: 1px solid #dfe7f2;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 14px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.npc-workbench-page .npc-health-card .npc-circle-icon {
+  grid-row: 1 / 3;
+}
+
+.npc-workbench-page .npc-health-card em {
+  color: #64748b;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.npc-workbench-page .npc-health-card strong {
+  margin-top: 6px;
+  color: #0f172a;
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+  line-height: 1.05;
+}
+
+.npc-circle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  flex: 0 0 auto;
+}
+
+.npc-circle-icon svg {
+  width: 21px;
+  height: 21px;
+  overflow: visible;
+}
+
+.npc-health-green .npc-circle-icon,
+.npc-overview-card-green .npc-circle-icon {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.npc-health-purple .npc-circle-icon,
+.npc-overview-card-purple .npc-circle-icon,
+.npc-secondary-purple .npc-circle-icon {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.npc-health-orange .npc-circle-icon,
+.npc-overview-card-orange .npc-circle-icon,
+.npc-secondary-orange .npc-circle-icon {
+  background: #ffedd5;
+  color: #f97316;
+}
+
+.npc-health-cyan .npc-circle-icon {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.npc-overview-section {
+  padding: 18px;
+}
+
+.npc-overview-section > h2 {
+  margin: 0 0 12px;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 850;
+}
+
+.npc-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.npc-overview-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 194px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  padding: 18px 18px 10px;
+}
+
+.npc-overview-card-green {
+  border-color: #86efac;
+  background: linear-gradient(180deg, #ffffff 0%, #f3fff8 100%);
+}
+
+.npc-overview-card-orange {
+  border-color: #fdba74;
+  background: linear-gradient(180deg, #ffffff 0%, #fff8f1 100%);
+}
+
+.npc-overview-card-purple {
+  border-color: #c4b5fd;
+  background: linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%);
+}
+
+.npc-overview-card header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.npc-overview-card h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 850;
+}
+
+.npc-overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.npc-overview-metrics span {
+  min-width: 0;
+  border-right: 1px dashed #dbe4ef;
+  padding-right: 12px;
+}
+
+.npc-overview-metrics span:last-child {
+  border-right: 0;
+}
+
+.npc-overview-metrics small {
+  display: block;
+  min-height: 18px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.npc-overview-metrics strong {
+  display: block;
+  margin-top: 10px;
+  color: #0f172a;
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.npc-sparkline {
+  display: block;
+  width: calc(100% + 36px);
+  height: 54px;
+  margin: 14px -18px -10px;
+}
+
+.npc-sparkline-line {
+  fill: none;
+  stroke: #3b82f6;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.npc-sparkline-area {
+  fill: rgba(59, 130, 246, 0.14);
+}
+
+.npc-sparkline-green .npc-sparkline-line {
+  stroke: #22c55e;
+}
+
+.npc-sparkline-green .npc-sparkline-area {
+  fill: rgba(34, 197, 94, 0.14);
+}
+
+.npc-sparkline-orange .npc-sparkline-line {
+  stroke: #f97316;
+}
+
+.npc-sparkline-orange .npc-sparkline-area {
+  fill: rgba(249, 115, 22, 0.14);
+}
+
+.npc-sparkline-purple .npc-sparkline-line {
+  stroke: #8b5cf6;
+}
+
+.npc-sparkline-purple .npc-sparkline-area {
+  fill: rgba(139, 92, 246, 0.14);
+}
+
+.npc-ad-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  margin-top: 24px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.npc-ad-status-bar i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #16a34a;
+}
+
+.npc-secondary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.npc-secondary-item {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto 16px;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  border: 1px solid #dfe7f2;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 12px 16px;
+  color: #0f172a;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.npc-secondary-item:hover {
+  border-color: #93c5fd;
+  background: #f8fbff;
+}
+
+.npc-secondary-item b {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.npc-secondary-item strong {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+}
+
+.npc-secondary-item em {
+  color: #64748b;
+  font-size: 24px;
+  font-style: normal;
+  line-height: 1;
+}
+
+.npc-secondary-red .npc-circle-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .npc-task-board {
   overflow: visible;
 }
@@ -13681,6 +14161,107 @@ td.workbench-follow-title-col strong {
 .npc-task-groups section:nth-child(3) button strong {
   background: #ecfdf5;
   color: #16a34a;
+}
+
+.npc-workbench-page .npc-task-groups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.npc-workbench-page .npc-task-card {
+  display: grid;
+  gap: 16px;
+  min-height: 122px;
+  padding: 16px 18px;
+}
+
+.npc-workbench-page .npc-task-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-left: 2px;
+}
+
+.npc-workbench-page .npc-task-groups .npc-task-card h3 {
+  margin: 0;
+  padding: 0;
+  font-size: 18px;
+}
+
+.npc-workbench-page .npc-task-groups .npc-task-card h3::after {
+  content: none;
+}
+
+.npc-workbench-page .npc-task-card b {
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.npc-workbench-page .npc-task-red b {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.npc-workbench-page .npc-task-orange b {
+  background: #ffedd5;
+  color: #f97316;
+}
+
+.npc-workbench-page .npc-task-green b {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.npc-workbench-page .npc-task-groups .npc-task-card button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 16px;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 0;
+  color: #334155;
+  cursor: pointer;
+}
+
+.npc-workbench-page .npc-task-groups .npc-task-card button:hover {
+  background: transparent;
+  color: #1d4ed8;
+}
+
+.npc-workbench-page .npc-task-groups .npc-task-card button span {
+  display: block;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.npc-workbench-page .npc-task-groups .npc-task-card button span::after {
+  content: none;
+}
+
+.npc-workbench-page .npc-task-groups .npc-task-card small {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.npc-workbench-page .npc-task-groups .npc-task-card button strong {
+  min-width: 38px;
+  padding: 6px 10px;
+  text-align: center;
+}
+
+.npc-workbench-page .npc-task-groups .npc-task-card button em {
+  color: #64748b;
+  font-size: 22px;
+  font-style: normal;
 }
 
 .npc-workbench-page .npc-two-columns {
@@ -13863,11 +14444,24 @@ td.workbench-follow-title-col strong {
   .npc-workbench-page > .npc-workbench-toolbar {
     grid-template-columns: repeat(4, minmax(150px, 1fr));
   }
+
+  .npc-workbench-page .npc-health-grid,
+  .npc-overview-grid,
+  .npc-secondary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 980px) {
   .npc-task-groups,
   .npc-workbench-page > .npc-workbench-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .npc-workbench-page .npc-health-grid,
+  .npc-overview-grid,
+  .npc-secondary-strip,
+  .npc-workbench-page .npc-task-groups {
     grid-template-columns: 1fr;
   }
 }

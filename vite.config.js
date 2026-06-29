@@ -5828,7 +5828,7 @@ function filterWorkbenchKpiTargetsForScope(targets, currentUser, searchParams = 
   const scopeParams = new URLSearchParams();
   if (explicitOperatorId) scopeParams.set('operatorId', explicitOperatorId);
   if (explicitStoreId) scopeParams.set('storeId', explicitStoreId);
-  const scope = getWorkbenchScope(scopeParams, currentUser);
+  const scope = getWorkbenchScope(currentUser, scopeParams);
   const visibleStoreKeys = new Set(scope.stores.flatMap((store) => [
     String(store?.id ?? '').trim(),
     String(store?.storeName ?? '').trim(),
@@ -6041,6 +6041,117 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const afterSaleRatio = expenseSalesBase > 0 ? estimatedAfterSaleAmount / expenseSalesBase : null;
   const hasExpenseData = adExpenseAmount > 0 || lastMonthAfterSaleAmount > 0;
 
+  const adSpendByStore = new Map((adSpendSummary.stores ?? []).map((item) => [
+    normalizeOrderImportStoreName(item?.storeName),
+    toFiniteNumber(item?.adSpend),
+  ]));
+  const afterSaleByStore = new Map();
+  for (const record of previousFinanceRecords) {
+    const amount = toFiniteNumber(record?.afterSaleIssueAmount);
+    for (const name of record?.storeNames ?? []) {
+      const key = normalizeOrderImportStoreName(name);
+      if (key) afterSaleByStore.set(key, (afterSaleByStore.get(key) ?? 0) + amount);
+    }
+  }
+
+  const buildStoreTargetScope = (store) => {
+    const storeId = String(store?.id ?? '').trim();
+    const storeName = normalizeOrderImportStoreName(store?.storeName || store?.id);
+    return {
+      ...scope,
+      stores: [store],
+      selectedStoreId: storeId,
+      storeKeys: new Set([storeId, String(store?.storeName ?? '').trim(), storeName].filter(Boolean)),
+      storeNames: new Set([storeName].filter(Boolean)),
+    };
+  };
+
+  const completionLabel = (value) => value === null || value === undefined || !Number.isFinite(value) ? '-' : `${(value * 100).toFixed(1)}%`;
+  const buildStoreProblem = (row) => {
+    if (row.targetStatus !== 'ok') return row.targetStatus === 'missing' ? '目标未配置' : '部分目标缺失';
+    const salesBad = row.salesCompletionRate !== null && row.salesCompletionRate < Math.max(range.timeProgress - 0.2, 0);
+    const listingBad = row.listingCompletionRate !== null && row.listingCompletionRate < 0.6;
+    const firstOrderBad = row.firstOrderCompletionRate !== null && row.firstOrderCompletionRate < 0.6;
+    const expenseBad = row.expenseRatio !== null && row.expenseTargetRatio !== null && row.expenseRatio > row.expenseTargetRatio;
+    if (salesBad && expenseBad) return '销售与费用异常';
+    if (listingBad && firstOrderBad) return '上新与新品转化异常';
+    if ([salesBad, listingBad, firstOrderBad, expenseBad].filter(Boolean).length > 1) return '多项指标落后';
+    if (listingBad) return '上新严重落后';
+    if (firstOrderBad) return '新品转化偏低';
+    if (salesBad) return '销售进度落后';
+    if (expenseBad) return '费用超标';
+    return '表现正常';
+  };
+  const buildStoreStatus = (score, targetStatus) => {
+    if (targetStatus !== 'ok' || score === null) return '数据缺失';
+    if (score >= 85) return '正常';
+    if (score >= 70) return '轻微落后';
+    if (score >= 60) return '落后';
+    return '严重落后';
+  };
+  const storeBreakdown = stores.map((store) => {
+    const storeId = String(store?.id ?? '').trim();
+    const storeName = String(store?.storeName || storeId).trim();
+    const storeKey = normalizeOrderImportStoreName(storeName || storeId);
+    const storeScope = buildStoreTargetScope(store);
+    const storeTarget = pickWorkbenchTarget(targets, storeScope, range.period);
+    const storeMissingFields = new Set(Array.isArray(storeTarget?.missingTargetFields) ? storeTarget.missingTargetFields : []);
+    const storeFieldComplete = (field) => Boolean(storeTarget && toFiniteNumber(storeTarget?.[field]) > 0 && !storeMissingFields.has(field));
+    const salesActual = toFiniteNumber(storeSalesMap.get(storeKey)?.salesAmount);
+    const listingActual = newProductListingStats.products.filter((item) => normalizeOrderImportStoreName(item?.storeName || item?.storeId) === storeKey).length;
+    const firstOrderActual = newProductFirstOrderStats.products.filter((item) => normalizeOrderImportStoreName(item?.storeName || item?.storeId) === storeKey && item.status === 'FIRST_ORDER_SUCCESS').length;
+    const expiredNoFirstOrder = newProductFirstOrderStats.products.filter((item) => normalizeOrderImportStoreName(item?.storeName || item?.storeId) === storeKey && item.status === 'EXPIRED_NO_FIRST_ORDER').length;
+    const observingCount = newProductListingStats.products.filter((item) => normalizeOrderImportStoreName(item?.storeName || item?.storeId) === storeKey && item.status === 'OBSERVING').length +
+      newProductFirstOrderStats.products.filter((item) => normalizeOrderImportStoreName(item?.storeName || item?.storeId) === storeKey && item.status === 'OBSERVING').length;
+    const storeAdExpense = toFiniteNumber(adSpendByStore.get(storeKey));
+    const storeAfterSaleExpense = Number(((toFiniteNumber(afterSaleByStore.get(storeKey)) / 30) * expenseElapsedDays).toFixed(2));
+    const storeTotalExpense = Number((storeAdExpense + storeAfterSaleExpense).toFixed(2));
+    const storeExpenseRatio = salesActual > 0 ? storeTotalExpense / salesActual : null;
+    const salesCompletionRate = storeFieldComplete('salesTarget') ? salesActual / storeTarget.salesTarget : null;
+    const listingCompletionRate = storeFieldComplete('effectiveListingTarget') ? listingActual / storeTarget.effectiveListingTarget : null;
+    const firstOrderCompletionRate = storeFieldComplete('firstOrderProductTarget') ? firstOrderActual / storeTarget.firstOrderProductTarget : null;
+    const salesStoreScore = storeFieldComplete('salesTarget') ? scoreProgress(salesActual, storeTarget.salesTarget, 30) : null;
+    const listingStoreScore = storeFieldComplete('effectiveListingTarget') ? scoreProgress(listingActual, storeTarget.effectiveListingTarget, 30) : null;
+    const firstOrderStoreScore = storeFieldComplete('firstOrderProductTarget') ? scoreProgress(firstOrderActual, storeTarget.firstOrderProductTarget, 20) : null;
+    const expenseStoreScore = storeFieldComplete('expenseRatioTarget') ? scoreExpenseRatio(storeExpenseRatio, storeTarget.expenseRatioTarget, 20) : null;
+    const targetStatus = !storeTarget ? 'missing' : ['salesTarget', 'effectiveListingTarget', 'firstOrderProductTarget', 'expenseRatioTarget'].every(storeFieldComplete) ? 'ok' : 'partial';
+    const total = targetStatus === 'ok'
+      ? Number([salesStoreScore, listingStoreScore, firstOrderStoreScore, expenseStoreScore].reduce((sum, value) => sum + (value ?? 0), 0).toFixed(1))
+      : null;
+    const row = {
+      storeId,
+      storeName,
+      operatorName: scope.operatorName || '',
+      totalScore: total,
+      scoreText: total === null ? (targetStatus === 'missing' ? '目标未配置' : '部分目标缺失') : `${total.toFixed(1)}分`,
+      salesCompletionRate,
+      listingCompletionRate,
+      firstOrderCompletionRate,
+      expenseRatio: storeExpenseRatio,
+      expenseTargetRatio: storeTarget?.expenseRatioTarget ?? null,
+      targetStatus,
+      status: buildStoreStatus(total, targetStatus),
+      kpis: {
+        sales: { target: storeTarget?.salesTarget ?? null, actual: salesActual, completionRate: salesCompletionRate, score: salesStoreScore },
+        listing: { target: storeTarget?.effectiveListingTarget ?? null, actual: listingActual, completionRate: listingCompletionRate, score: listingStoreScore },
+        firstOrder: {
+          target: storeTarget?.firstOrderProductTarget ?? null,
+          actual: firstOrderActual,
+          completionRate: firstOrderCompletionRate,
+          score: firstOrderStoreScore,
+          expiredNoFirstOrder,
+          observingCount,
+        },
+        expense: { targetRatio: storeTarget?.expenseRatioTarget ?? null, actualRatio: storeExpenseRatio, totalExpense: storeTotalExpense, score: expenseStoreScore },
+      },
+    };
+    return { ...row, mainProblem: buildStoreProblem(row) };
+  }).sort((first, second) => {
+    const firstScore = first.totalScore ?? -1;
+    const secondScore = second.totalScore ?? -1;
+    return firstScore - secondScore || first.storeName.localeCompare(second.storeName, 'zh-CN');
+  });
+
   const missingTargetFields = new Set(Array.isArray(target?.missingTargetFields) ? target.missingTargetFields : []);
   const targetFieldComplete = (field) => Boolean(target && toFiniteNumber(target?.[field]) > 0 && !missingTargetFields.has(field));
   const targetIncompleteStatus = (field) => {
@@ -6105,7 +6216,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   if (totalObservingCount > 0) warnings.push(`还有 ${totalObservingCount} 个新品处于30天观察期内，暂不计入首单率分母`);
   if (stores.length === 0) warnings.push('当前账号未绑定 TEMU 可见店铺');
 
-  const todayActions = [];
+  let todayActions = [];
   const shouldShowProgressActions = range.timeProgress > 0;
   if (shouldShowProgressActions && completion.sales !== null && completion.sales < range.timeProgress) {
     todayActions.push({
@@ -6147,6 +6258,62 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       actionHref: '/admin/operator-analysis',
     });
   }
+  if (!scope.selectedStoreId && storeBreakdown.length > 1) {
+    const storeActions = [];
+    for (const store of storeBreakdown) {
+      const listingRemaining = Math.max((store.kpis.listing.target ?? 0) - store.kpis.listing.actual, 0);
+      if (store.targetStatus === 'missing' || store.targetStatus === 'partial') {
+        storeActions.push({
+          priority: '高',
+          title: `${store.storeName} KPI目标未配置完整，请先补齐目标`,
+          kpi: '目标配置',
+          impact: '目标缺失会影响综合KPI判定和工资核算公平性',
+          actionLabel: '查看店铺',
+          actionHref: '#store-breakdown',
+          storeId: store.storeId,
+        });
+        continue;
+      }
+      if (store.listingCompletionRate !== null && store.listingCompletionRate < Math.max(range.timeProgress - 0.2, 0) && listingRemaining > 0) {
+        storeActions.push({
+          priority: '高',
+          title: `${store.storeName} 上新还差 ${listingRemaining} 款，请优先补齐商品信息`,
+          kpi: '上新效率',
+          impact: '该店铺上新进度正在拖累当前范围KPI',
+          actionLabel: '查看店铺',
+          actionHref: '#store-breakdown',
+          storeId: store.storeId,
+        });
+        continue;
+      }
+      if (store.kpis.firstOrder.expiredNoFirstOrder > 0) {
+        storeActions.push({
+          priority: '中',
+          title: `${store.storeName} 有 ${store.kpis.firstOrder.expiredNoFirstOrder} 款观察期到期商品仍未首单`,
+          kpi: '新品转化',
+          impact: '建议优先复盘主图、价格和流量承接',
+          actionLabel: '查看店铺',
+          actionHref: '#store-breakdown',
+          storeId: store.storeId,
+        });
+        continue;
+      }
+      if (store.expenseRatio !== null && store.expenseTargetRatio !== null && store.expenseRatio > store.expenseTargetRatio) {
+        storeActions.push({
+          priority: '中',
+          title: `${store.storeName} 费用占比 ${((store.expenseRatio || 0) * 100).toFixed(1)}%，高于目标 ${((store.expenseTargetRatio || 0) * 100).toFixed(1)}%`,
+          kpi: '费用控制',
+          impact: '请检查广告投放和售后费用',
+          actionLabel: '查看店铺',
+          actionHref: '#store-breakdown',
+          storeId: store.storeId,
+        });
+      }
+    }
+    if (storeActions.length > 0) {
+      todayActions = storeActions.slice(0, 5);
+    }
+  }
 
   return {
     filters: {
@@ -6177,6 +6344,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
         { key: 'expense', name: '费用占比', weight: 20, targetValue: target?.expenseRatioTarget ?? null, currentValue: expenseRatio, completionRate: expenseRatio, score: expenseScore, status: targetIncompleteStatus('expenseRatioTarget') || getKpiStatus(expenseScore, 20, expenseRatio, range.timeProgress, true), unit: '%' },
       ],
     },
+    storeBreakdown: scope.selectedStoreId || storeBreakdown.length <= 1 ? [] : storeBreakdown,
     todayActions,
     salesKpi: {
       salesTarget: target?.salesTarget ?? null,

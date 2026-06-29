@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { newProductCenterDataSource, type AdStrategyConfig, type AdStrategyExecutionRecord, type AdStrategyReviewRecord, type AdStrategySuggestion, type DashboardResponse, type OperatorOption, type ProductDetailResponse, type ProductSnapshot, type RecommendationRecord, type StoreScopeOption, type TemuStorageStatus } from '../../../data-source/newProductCenterDataSource';
 import type { CurrentUser } from '../../../types/auth';
 
@@ -102,25 +102,131 @@ function buildQuery(params: Record<string, string>) {
   return query ? `?${query}` : '';
 }
 
-function MetricCards({ summary }: { summary: Record<string, number | null> }) {
+function IconSymbol({ name }: { name: string }) {
+  const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  const icons: Record<string, ReactNode> = {
+    calendar: <><rect x="4" y="5" width="16" height="15" rx="2" {...common} /><path d="M8 3v4M16 3v4M4 10h16" {...common} /></>,
+    briefcase: <><rect x="4" y="7" width="16" height="12" rx="2" {...common} /><path d="M9 7V5h6v2M9 13h6" {...common} /></>,
+    cube: <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" {...common} /><path d="m4 7.5 8 4.5 8-4.5M12 12v9" {...common} /></>,
+    bars: <><path d="M6 19V9M12 19V5M18 19v-7" {...common} /><rect x="4" y="9" width="4" height="10" rx="1" {...common} /><rect x="10" y="5" width="4" height="14" rx="1" {...common} /><rect x="16" y="12" width="4" height="7" rx="1" {...common} /></>,
+    filter: <><path d="M4 5h16l-6 7v5l-4 2v-7L4 5Z" {...common} /></>,
+    trend: <><path d="M4 17 9 12l4 4 7-9" {...common} /><path d="M15 7h5v5" {...common} /></>,
+    line: <><path d="M4 16c3-8 6 2 9-5 2-5 4-2 7-6" {...common} /></>,
+    megaphone: <><path d="M4 13h3l9 4V7l-9 4H4v2Z" {...common} /><path d="M7 13v5M18 9c1 1 1 5 0 6" {...common} /></>,
+    diamond: <><path d="M12 3 21 9l-9 12L3 9l9-6Z" {...common} /><path d="M3 9h18M9 9l3 12 3-12M8 3l-5 6M16 3l5 6" {...common} /></>,
+    flame: <><path d="M12 21c4 0 7-3 7-7 0-3-2-5-4-7 0 3-2 4-3 5 0-4-2-7-5-9 1 5-2 7-2 11 0 4 3 7 7 7Z" {...common} /></>,
+    message: <><path d="M5 5h14v10H8l-3 4V5Z" {...common} /><path d="M8 9h8M8 12h5" {...common} /></>,
+    database: <><ellipse cx="12" cy="5" rx="7" ry="3" {...common} /><path d="M5 5v14c0 1.7 3.1 3 7 3s7-1.3 7-3V5M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" {...common} /></>,
+    box: <><path d="M4 8 12 3l8 5v8l-8 5-8-5V8Z" {...common} /><path d="m4 8 8 5 8-5M12 13v8" {...common} /></>,
+  };
+  return <svg viewBox="0 0 24 24" aria-hidden="true">{icons[name] || icons.box}</svg>;
+}
+
+function MiniTrendSparkline({ data = [], color = 'blue', height = 54, showArea = true }: { data?: number[]; color?: 'blue' | 'green' | 'orange' | 'purple'; height?: number; showArea?: boolean }) {
+  const values = data.filter((value) => Number.isFinite(value));
+  const width = 240;
+  const path = values.length > 1
+    ? values.map((value, index) => {
+      const max = Math.max(...values);
+      const min = Math.min(...values);
+      const range = max - min || 1;
+      const x = (index / (values.length - 1)) * width;
+      const y = height - 8 - ((value - min) / range) * (height - 18);
+      return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ')
+    : `M0,${height - 12} C40,${height - 18} 55,${height - 2} 92,${height - 12} S150,${height - 30} 188,${height - 18} S220,${height - 14} ${width},${height - 34}`;
+  const areaPath = `${path} L${width},${height} L0,${height} Z`;
+  return (
+    <svg className={`npc-sparkline npc-sparkline-${color}`} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img" aria-label="趋势展示（视觉辅助）">
+      <title>趋势展示（视觉辅助）</title>
+      {showArea && <path className="npc-sparkline-area" d={areaPath} />}
+      <path className="npc-sparkline-line" d={path} />
+    </svg>
+  );
+}
+
+function OverviewMetricCard({ tone, icon, title, metrics, footer }: { tone: 'blue' | 'green' | 'orange' | 'purple'; icon: string; title: string; metrics: Array<[string, ReactNode]>; footer?: ReactNode }) {
+  return (
+    <article className={`npc-overview-card npc-overview-card-${tone}`}>
+      <header>
+        <span className="npc-circle-icon"><IconSymbol name={icon} /></span>
+        <h3>{title}</h3>
+      </header>
+      <div className="npc-overview-metrics">
+        {metrics.map(([label, value]) => (
+          <span key={label}>
+            <small>{label}</small>
+            <strong>{value ?? 0}</strong>
+          </span>
+        ))}
+      </div>
+      {footer || <MiniTrendSparkline color={tone} />}
+    </article>
+  );
+}
+
+function NewProductOverviewSection({ summary }: { summary: Record<string, number | null> }) {
+  return (
+    <article className="excel-record-panel npc-panel npc-overview-section">
+      <h2>新品表现总览</h2>
+      <div className="npc-overview-grid">
+        <OverviewMetricCard
+          tone="blue"
+          icon="box"
+          title="新品规模"
+          metrics={[['今日新品', summary.todayNewCount ?? 0], ['近7天新品', summary.recent7NewCount ?? 0]]}
+        />
+        <OverviewMetricCard
+          tone="green"
+          icon="trend"
+          title="30天表现"
+          metrics={[['近30天新品', summary.recent30NewCount ?? 0], ['近30天出单数', summary.recent30OrderedCount ?? 0], ['近30天出单率', formatRatio(summary.recent30OrderedRate)]]}
+        />
+        <OverviewMetricCard
+          tone="orange"
+          icon="line"
+          title="60天表现"
+          metrics={[['近60天出单数', summary.recent60OrderedCount ?? 0], ['近60天出单率', formatRatio(summary.recent60OrderedRate)]]}
+        />
+        <OverviewMetricCard
+          tone="purple"
+          icon="megaphone"
+          title="广告表现"
+          metrics={[['广告花费', formatMoney(summary.adSpend)], ['广告销售额', formatMoney(summary.adSalesAmount)], ['ROAS', summary.roas === null ? '-' : formatRoas(summary.roas)]]}
+          footer={<div className="npc-ad-status-bar"><i />当前广告数据正常</div>}
+        />
+      </div>
+    </article>
+  );
+}
+
+function SecondaryMetricStrip({ summary, onSelect }: { summary: Record<string, number | null>; onSelect: (tag: string) => void }) {
   const items = [
-    ['今日新品', summary.todayNewCount],
-    ['近7天新品', summary.recent7NewCount],
-    ['近7天出单率', formatRatio(summary.recent7OrderedRate)],
-    ['近30天新品', summary.recent30NewCount],
-    ['近30天出单数', summary.recent30OrderedCount ?? 0],
-    ['近30天出单率', formatRatio(summary.recent30OrderedRate)],
-    ['近60天出单数', summary.recent60OrderedCount ?? 0],
-    ['近60天出单率', formatRatio(summary.recent60OrderedRate)],
-    ['广告花费', formatMoney(summary.adSpend)],
-    ['广告销售额', formatMoney(summary.adSalesAmount)],
-    ['ROAS', summary.roas === null ? '-' : Number(summary.roas).toFixed(2)],
-    ['高潜新品', summary.highPotentialCount],
-    ['烧钱无单', summary.lossNewCount],
-    ['待处理建议', summary.pendingRecommendationCount ?? 0],
-    ['数据未匹配', summary.unmatchedCount ?? 0],
+    { label: '高潜新品', value: summary.highPotentialCount ?? 0, icon: 'diamond', tone: 'blue', tag: '高潜新品' },
+    { label: '烧钱无单', value: summary.lossNewCount ?? 0, icon: 'flame', tone: 'red', tag: '烧钱无单' },
+    { label: '待处理建议', value: summary.pendingRecommendationCount ?? 0, icon: 'message', tone: 'orange', tag: '' },
+    { label: '数据未匹配', value: summary.unmatchedCount ?? 0, icon: 'database', tone: 'purple', tag: '数据未匹配' },
   ];
-  return <div className="npc-metric-grid">{items.map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</div>;
+  return (
+    <div className="npc-secondary-strip">
+      {items.map((item) => (
+        <button
+          type="button"
+          key={item.label}
+          className={`npc-secondary-item npc-secondary-${item.tone}`}
+          onClick={() => {
+            if (item.tag) onSelect(item.tag);
+            else window.location.href = '/new-product-center/ad-recommendations';
+          }}
+        >
+          <span className="npc-circle-icon"><IconSymbol name={item.icon} /></span>
+          <b>{item.label}</b>
+          <strong>{item.value}</strong>
+          <em>›</em>
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function RankingTable({ title, rows }: { title: string; rows: Array<Record<string, unknown>> }) {
@@ -170,7 +276,7 @@ function DashboardView() {
         <button type="button" disabled={!displayedDate} onClick={() => newProductCenterDataSource.rebuildSnapshot(displayedDate).then(() => window.location.reload())}>重算快照</button>
       </div>
       {message && <div className="excel-import-error">{message}</div>}
-      {data && <MetricCards summary={data.summary} />}
+      {data && <NewProductOverviewSection summary={data.summary} />}
       <div className="npc-two-columns">
         <RankingTable title="运营排名" rows={data?.operatorRanking ?? []} />
         <RankingTable title="店铺排名" rows={data?.storeRanking ?? []} />
@@ -181,10 +287,16 @@ function DashboardView() {
 
 function DataHealthPanel({ snapshotDate, dataCutoffDate, storageStatus, productTotal, healthCounts }: { snapshotDate: string; dataCutoffDate?: string; storageStatus: TemuStorageStatus | null; productTotal: number; healthCounts?: Record<string, number | null> }) {
   const isLate = Boolean(snapshotDate && dataCutoffDate && snapshotDate > dataCutoffDate);
-  const showDataCutoffDate = Boolean(dataCutoffDate && dataCutoffDate !== snapshotDate);
   const productCount = healthCounts?.baseProductCount ?? storageStatus?.counts?.products ?? 0;
   const skuCount = healthCounts?.baseSkuCount ?? storageStatus?.counts?.skus ?? 0;
   const adCount = healthCounts?.baseAdCount ?? storageStatus?.counts?.ads ?? 0;
+  const cards = [
+    { label: '统计日期', value: snapshotDate || dataCutoffDate || '-', icon: 'calendar', tone: 'blue' },
+    { label: '商品数', value: productCount, icon: 'briefcase', tone: 'green' },
+    { label: 'SKU 数据', value: skuCount, icon: 'cube', tone: 'purple' },
+    { label: '广告日报', value: adCount, icon: 'bars', tone: 'orange' },
+    { label: '当前筛选新品', value: productTotal, icon: 'filter', tone: 'cyan' },
+  ];
   return (
     <article className={`excel-record-panel npc-panel npc-health-panel ${isLate ? 'is-warning' : ''}`}>
       <header className="npc-panel-header">
@@ -192,12 +304,13 @@ function DataHealthPanel({ snapshotDate, dataCutoffDate, storageStatus, productT
         <span>{isLate ? '统计日期晚于数据截止日' : '数据上下文正常'}</span>
       </header>
       <div className="npc-health-grid">
-        <span>统计日期<strong>{snapshotDate || dataCutoffDate || '-'}</strong></span>
-        {showDataCutoffDate && <span>数据截止日期<strong>{dataCutoffDate || '-'}</strong></span>}
-        <span>商品数<strong>{productCount}</strong></span>
-        <span>SKU 数据<strong>{skuCount}</strong></span>
-        <span>广告日报<strong>{adCount}</strong></span>
-        <span>当前筛选新品<strong>{productTotal}</strong></span>
+        {cards.map((card) => (
+          <span key={card.label} className={`npc-health-card npc-health-${card.tone}`}>
+            <i className="npc-circle-icon"><IconSymbol name={card.icon} /></i>
+            <em>{card.label}</em>
+            <strong>{card.value}</strong>
+          </span>
+        ))}
       </div>
       {isLate && <p>当前统计日期晚于数据截止日期，部分订单/广告数据可能为空，建议切换到数据截止日期。</p>}
     </article>
@@ -205,10 +318,10 @@ function DataHealthPanel({ snapshotDate, dataCutoffDate, storageStatus, productT
 }
 
 function TaskBoard({ counts }: { counts: Record<string, number>; onSelect: (key: string) => void }) {
-  const groups: Array<[string, string[]]> = [
-    ['高优先级', ['投放过激进', '应调至竞争力弱', '应调至自定义12', '烧钱无单']],
-    ['中优先级', ['投放过保守', '应调至竞争力中', '有流量无转化', '加购未成交']],
-    ['机会商品', ['高潜新品', '低曝光新品']],
+  const groups = [
+    { title: '高优先级', label: '风险', metric: '投放过激进', note: '进入广告策略中心处理', tone: 'red', count: counts['投放过激进'] ?? 0 },
+    { title: '中优先级', label: '观察', metric: '投放过保守', note: '进入广告策略中心处理', tone: 'orange', count: counts['投放过保守'] ?? 0 },
+    { title: '机会商品', label: '机会', metric: '高潜新品', note: '进入广告策略中心处理', tone: 'green', count: counts['高潜新品'] ?? 0 },
   ];
   const openStrategy = (type: string) => {
     window.location.href = `/new-product-center/ad-recommendations?type=${encodeURIComponent(type)}`;
@@ -217,14 +330,17 @@ function TaskBoard({ counts }: { counts: Record<string, number>; onSelect: (key:
     <article className="excel-record-panel npc-panel npc-task-board">
       <header className="npc-panel-header"><h2>今日待处理任务</h2><span>点击任务进入广告策略中心</span></header>
       <div className="npc-task-groups">
-        {groups.map(([title, tags]) => (
-          <section key={title}>
-            <h3>{title}</h3>
-            {(tags as string[]).map((tag) => (
-              <button type="button" key={tag} onClick={() => openStrategy(tag)}>
-                <span>{tag}</span><strong>{counts[tag] ?? 0}</strong>
-              </button>
-            ))}
+        {groups.map((group) => (
+          <section key={group.title} className={`npc-task-card npc-task-${group.tone}`}>
+            <header>
+              <h3>{group.title}</h3>
+              <b>{group.label}</b>
+            </header>
+            <button type="button" onClick={() => openStrategy(group.metric)}>
+              <span>{group.metric}<small>{group.note}</small></span>
+              <strong>{group.count}</strong>
+              <em>›</em>
+            </button>
           </section>
         ))}
       </div>
@@ -528,7 +644,8 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
       </div>
       {message && <div className="excel-import-error">{message}</div>}
       <DataHealthPanel snapshotDate={displayedDate} dataCutoffDate={dashboard?.dataCutoffDate || products.dataCutoffDate} storageStatus={storageStatus} productTotal={products.total} healthCounts={dashboard?.summary} />
-      {dashboard && <MetricCards summary={dashboard.summary} />}
+      {dashboard && <NewProductOverviewSection summary={dashboard.summary} />}
+      {dashboard && <SecondaryMetricStrip summary={dashboard.summary} onSelect={selectTag} />}
       <TaskBoard counts={counts} onSelect={selectTag} />
       <div className="npc-two-columns">
         <StorePerformance rows={dashboard?.storeRanking ?? []} />

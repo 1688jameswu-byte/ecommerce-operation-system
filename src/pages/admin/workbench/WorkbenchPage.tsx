@@ -22,6 +22,36 @@ type WorkbenchAction = {
   impact: string;
   actionLabel: string;
   actionHref: string;
+  storeId?: string;
+};
+
+type StoreKpiBreakdown = {
+  storeId: string;
+  storeName: string;
+  operatorName?: string;
+  totalScore: number | null;
+  scoreText: string;
+  salesCompletionRate: number | null;
+  listingCompletionRate: number | null;
+  firstOrderCompletionRate: number | null;
+  expenseRatio: number | null;
+  expenseTargetRatio: number | null;
+  mainProblem: string;
+  status: string;
+  targetStatus: 'ok' | 'missing' | 'partial';
+  kpis: {
+    sales: { target: number | null; actual: number; completionRate: number | null; score: number | null };
+    listing: { target: number | null; actual: number; completionRate: number | null; score: number | null };
+    firstOrder: {
+      target: number | null;
+      actual: number;
+      completionRate: number | null;
+      score: number | null;
+      expiredNoFirstOrder: number;
+      observingCount: number;
+    };
+    expense: { targetRatio: number | null; actualRatio: number | null; totalExpense: number; score: number | null };
+  };
 };
 
 type ProductFollowUp = {
@@ -72,6 +102,7 @@ type WorkbenchData = {
   dataIntegrityStatus: string;
   dataSourceMapping: Array<{ kpi: string; source: string; endpoint: string; confirmed: string }>;
   kpiSummary: { totalScore: number | null; scoreText: string; cards: KpiCard[] };
+  storeBreakdown?: StoreKpiBreakdown[];
   todayActions: WorkbenchAction[];
   salesKpi: {
     salesTarget: number | null;
@@ -197,6 +228,26 @@ function statusClass(status: string) {
   if (status.includes('严重')) return 'danger';
   if (status.includes('落后') || status.includes('超标') || status.includes('未设置')) return 'warning';
   return 'ok';
+}
+
+function metricClass(value: number | null | undefined, inverse = false, target?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return 'muted';
+  if (inverse) {
+    if (target !== null && target !== undefined && Number.isFinite(target)) {
+      return value > target ? 'danger' : 'ok';
+    }
+    return 'muted';
+  }
+  if (value >= 0.85) return 'ok';
+  if (value >= 0.6) return 'warning';
+  return 'danger';
+}
+
+function scoreClass(score: number | null | undefined) {
+  if (score === null || score === undefined || !Number.isFinite(score)) return 'muted';
+  if (score >= 85) return 'ok';
+  if (score >= 60) return 'warning';
+  return 'danger';
 }
 
 type IntegratedKpiCardModel = {
@@ -341,12 +392,25 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
 
 function KpiOverviewSection({ data }: { data: WorkbenchData }) {
   const cards = useMemo(() => buildIntegratedKpiCards(data), [data]);
+  const selectedOperator = data.filters.operators.find((item) => item.id === data.filters.selectedOperatorId);
+  const selectedStore = (data.filters.storeOptions ?? data.filters.stores).find((item) => item.id === data.filters.selectedStoreId || item.storeName === data.filters.selectedStoreId);
+  const storeNames = data.filters.stores.map((store) => store.storeName).filter(Boolean).join('、') || '全部店铺';
+  const title = data.filters.selectedStoreId
+    ? '店铺KPI'
+    : data.filters.selectedOperatorId
+      ? '运营综合KPI'
+      : '公司综合KPI';
+  const subtitle = data.filters.selectedStoreId
+    ? `当前运营：${selectedOperator?.operatorName || '当前范围'} ｜ 当前店铺：${selectedStore?.storeName || data.filters.selectedStoreId} ｜ 本月KPI：${data.kpiSummary.scoreText}`
+    : data.filters.selectedOperatorId
+      ? `当前运营：${selectedOperator?.operatorName || '当前运营'} ｜ 负责店铺：${storeNames} ｜ 本月综合KPI：${data.kpiSummary.scoreText}`
+      : `当前范围：全部运营 ｜ ${storeNames} ｜ 本月综合KPI：${data.kpiSummary.scoreText}`;
   return (
     <section className="workbench-overview">
       <header className="workbench-overview-header">
         <div>
-          <h2>KPI总览</h2>
-          <span>本月综合 KPI：<strong>{data.kpiSummary.scoreText}</strong></span>
+          <h2>{title}</h2>
+          <span>{subtitle}</span>
         </div>
         <p>四项核心指标按经营结果、上新效率、新品转化、费用控制加权展示。</p>
       </header>
@@ -354,6 +418,52 @@ function KpiOverviewSection({ data }: { data: WorkbenchData }) {
         {cards.map((card) => <IntegratedKpiCard card={card} key={card.key} />)}
       </section>
     </section>
+  );
+}
+
+function StoreKpiBreakdownTable({ rows, onSelectStore }: { rows: StoreKpiBreakdown[]; onSelectStore: (storeId: string) => void }) {
+  if (rows.length === 0) return null;
+
+  return (
+    <article className="excel-record-panel workbench-panel workbench-store-breakdown" id="store-breakdown">
+      <header>
+        <div>
+          <h2>各店铺KPI拆解</h2>
+          <p>店铺=全部店铺时，展示当前范围内店铺拆解，用于定位拖后腿店铺。</p>
+        </div>
+        <span>{rows.length} 个店铺</span>
+      </header>
+      <div className="import-record-table-wrap">
+        <table className="import-record-table workbench-breakdown-table">
+          <thead>
+            <tr>
+              <th>店铺</th>
+              <th>综合得分</th>
+              <th>销售完成率</th>
+              <th>上新完成率</th>
+              <th>30天首单完成率</th>
+              <th>费用占比</th>
+              <th>主要问题</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr className={`breakdown-row ${scoreClass(row.totalScore)}`} key={row.storeId || row.storeName}>
+                <td><strong>{row.storeName}</strong></td>
+                <td className={scoreClass(row.totalScore)}>{row.scoreText}</td>
+                <td className={metricClass(row.salesCompletionRate)}>{formatPercent(row.salesCompletionRate)}</td>
+                <td className={metricClass(row.listingCompletionRate)}>{formatPercent(row.listingCompletionRate)}</td>
+                <td className={metricClass(row.firstOrderCompletionRate)}>{formatPercent(row.firstOrderCompletionRate)}</td>
+                <td className={metricClass(row.expenseRatio, true, row.expenseTargetRatio)}>{formatPercent(row.expenseRatio)}</td>
+                <td><span className={`workbench-problem ${statusClass(row.status)}`}>{row.mainProblem}</span></td>
+                <td><button type="button" className="workbench-row-action" onClick={() => onSelectStore(row.storeId || row.storeName)}>查看</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </article>
   );
 }
 
@@ -386,7 +496,7 @@ function IntegratedKpiCard({ card }: { card: IntegratedKpiCardModel }) {
   );
 }
 
-function TodayKpiActions({ actions }: { actions: WorkbenchAction[] }) {
+function TodayKpiActions({ actions, onSelectStore }: { actions: WorkbenchAction[]; onSelectStore: (storeId: string) => void }) {
   return (
     <article className="excel-record-panel workbench-panel">
       <header><h2>今日重点工作</h2><span>{actions.length} 项</span></header>
@@ -399,7 +509,11 @@ function TodayKpiActions({ actions }: { actions: WorkbenchAction[] }) {
               <span>{item.impact}</span>
             </div>
             <em>{item.kpi}</em>
-            <a href={item.actionHref}>{item.actionLabel}</a>
+            {item.storeId ? (
+              <button type="button" className="workbench-row-action" onClick={() => onSelectStore(item.storeId || '')}>{item.actionLabel}</button>
+            ) : (
+              <a href={item.actionHref}>{item.actionLabel}</a>
+            )}
           </section>
         ))}
         {actions.length === 0 && <div className="admin-home-empty">当前 KPI 没有明显落后项，继续保持日常节奏。</div>}
@@ -807,6 +921,11 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
   }, [period, operatorId, storeId]);
 
   const canManage = data?.filters.canManage ?? currentUser.role !== 'operator';
+  const selectStore = (nextStoreId: string) => {
+    if (!nextStoreId) return;
+    setStoreId(nextStoreId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <section className="workbench-page">
@@ -834,7 +953,8 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
       {data && (
         <>
           <KpiOverviewSection data={data} />
-          <TodayKpiActions actions={data.todayActions} />
+          <StoreKpiBreakdownTable rows={data.storeBreakdown ?? []} onSelectStore={selectStore} />
+          <TodayKpiActions actions={data.todayActions} onSelectStore={selectStore} />
           <ProductFollowUpTable rows={data.productFollowUps} />
           <DataIntegrityPanel data={data} />
           <KpiTargetLedger data={data} refreshKey={targetRefreshKey} onConfigure={setEditingTarget} />
