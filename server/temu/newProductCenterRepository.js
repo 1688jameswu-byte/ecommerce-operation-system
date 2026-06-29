@@ -1885,7 +1885,7 @@ function createWhereBuilder(startIndex = 1) {
     values.push(value);
     where.push(sql.replace(/\?/g, `$${startIndex + values.length - 1}`));
   };
-  return { values, where, push };
+  return { values, where, push, startIndex };
 }
 
 function appendStoreScope(whereBuilder, alias, params = {}) {
@@ -1896,7 +1896,7 @@ function appendStoreScope(whereBuilder, alias, params = {}) {
       whereBuilder.where.push('1 = 0');
     } else {
       whereBuilder.values.push(params.storeIds);
-      whereBuilder.where.push(`${alias}.store_id = ANY($${whereBuilder.values.length}::uuid[])`);
+      whereBuilder.where.push(`${alias}.store_id = ANY($${whereBuilder.startIndex + whereBuilder.values.length - 1}::uuid[])`);
     }
   }
   if (Array.isArray(params.storeNames)) {
@@ -1904,7 +1904,7 @@ function appendStoreScope(whereBuilder, alias, params = {}) {
       whereBuilder.where.push('1 = 0');
     } else {
       whereBuilder.values.push(params.storeNames);
-      whereBuilder.where.push(`${alias}.store_name = ANY($${whereBuilder.values.length}::text[])`);
+      whereBuilder.where.push(`${alias}.store_name = ANY($${whereBuilder.startIndex + whereBuilder.values.length - 1}::text[])`);
     }
   }
 }

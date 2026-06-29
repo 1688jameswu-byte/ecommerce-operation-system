@@ -5801,8 +5801,6 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
       today: range.today,
       observeDays: 30,
       storeNames: stores.map((store) => String(store?.storeName || store?.id || '').trim()).filter(Boolean),
-      operatorId: scope.operatorId,
-      operatorName: scope.operatorName,
     });
   } catch (error) {
     newProductStatsError = error instanceof Error ? error.message : String(error);
