@@ -185,47 +185,196 @@ function normalizeKey(value: string | undefined) {
   return String(value ?? '').trim().replace(/\s+/g, '').toLowerCase();
 }
 
-function formatCardValue(card: KpiCard, value: number | null) {
-  if (card.unit === '¥') return formatAmount(value);
-  if (card.unit === '%') return formatPercent(value);
-  return formatNumber(value, card.unit);
-}
-
 function statusClass(status: string) {
-  if (status.includes('严重') || status.includes('缺失')) return 'danger';
+  if (status.includes('缺失')) return 'muted';
+  if (status.includes('严重')) return 'danger';
   if (status.includes('落后') || status.includes('超标') || status.includes('未设置')) return 'warning';
   return 'ok';
 }
 
-function KpiSummaryCards({ data }: { data: WorkbenchData }) {
+type IntegratedKpiCardModel = {
+  key: string;
+  title: string;
+  subtitle: string;
+  weight: number;
+  status: string;
+  statusClassName: string;
+  mainValue: string;
+  progress: number | null;
+  summaryRows: Array<[string, string]>;
+  detailRows: Array<[string, string]>;
+  actionLabel: string;
+  actionHref: string;
+};
+
+function scoreText(card: KpiCard | undefined) {
+  if (!card || card.score === null || !Number.isFinite(card.score)) return '-';
+  return `${card.score.toFixed(1)} / ${card.weight}`;
+}
+
+function cardProgress(card: KpiCard | undefined) {
+  if (!card) return null;
+  if (card.key === 'expense') {
+    return card.score === null || !Number.isFinite(card.score) ? null : card.score / card.weight;
+  }
+  return card.completionRate;
+}
+
+function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] {
+  const cardByKey = new Map(data.kpiSummary.cards.map((card) => [card.key, card]));
+  const salesCard = cardByKey.get('sales');
+  const listingCard = cardByKey.get('listing');
+  const firstOrderCard = cardByKey.get('firstOrder');
+  const expenseCard = cardByKey.get('expense');
+  const expenseMainValue = data.expenseKpi.hasExpenseData
+    ? (data.expenseKpi.expenseRatio === null ? '费用占比无法计算' : formatPercent(data.expenseKpi.expenseRatio))
+    : '暂无费用数据';
+  const expenseRatioLabel = data.expenseKpi.hasExpenseData
+    ? formatPercent(data.expenseKpi.expenseRatio)
+    : data.expenseKpi.salesAmount <= 0
+      ? '暂无销售额，费用占比无法计算'
+      : '暂无费用数据，费用占比无法计算';
+
+  return [
+    {
+      key: 'sales',
+      title: '经营结果',
+      subtitle: '销售额目标完成率',
+      weight: 30,
+      status: salesCard?.status ?? '数据缺失',
+      statusClassName: statusClass(salesCard?.status ?? '数据缺失'),
+      mainValue: formatAmount(data.salesKpi.salesAmount),
+      progress: cardProgress(salesCard),
+      summaryRows: [
+        ['目标', formatAmount(data.salesKpi.salesTarget)],
+        ['完成率', formatPercent(data.salesKpi.completionRate)],
+        ['得分', scoreText(salesCard)],
+      ],
+      detailRows: [
+        ['时间进度', formatPercent(data.salesKpi.timeProgress)],
+        ['进度差距', formatPercent(data.salesKpi.progressGap)],
+        ['剩余目标', formatAmount(data.salesKpi.remainingSales)],
+        ['剩余日均需完成', formatAmount(data.salesKpi.requiredDailySales)],
+      ],
+      actionLabel: '查看销售明细',
+      actionHref: '/admin/store-business',
+    },
+    {
+      key: 'listing',
+      title: '上新效率',
+      subtitle: '有效上新数',
+      weight: 30,
+      status: listingCard?.status ?? '数据缺失',
+      statusClassName: statusClass(listingCard?.status ?? '数据缺失'),
+      mainValue: formatNumber(data.listingKpi.completed, '款'),
+      progress: cardProgress(listingCard),
+      summaryRows: [
+        ['目标', formatNumber(data.listingKpi.target, '款')],
+        ['完成率', formatPercent(data.listingKpi.completionRate)],
+        ['得分', scoreText(listingCard)],
+      ],
+      detailRows: [
+        ['今日已完成', formatNumber(data.listingKpi.todayCompleted, '款')],
+        ['今日建议', formatNumber(data.listingKpi.todaySuggested, '款')],
+        ['还差', formatNumber(data.listingKpi.remaining, '款')],
+      ],
+      actionLabel: '去录入有效上新',
+      actionHref: '/admin/effective-new-listings',
+    },
+    {
+      key: 'firstOrder',
+      title: '新品转化',
+      subtitle: '30天首单达成',
+      weight: 20,
+      status: firstOrderCard?.status ?? '数据缺失',
+      statusClassName: statusClass(firstOrderCard?.status ?? '数据缺失'),
+      mainValue: formatNumber(data.firstOrderKpi.firstOrderWithin30DaysCount ?? data.firstOrderKpi.completed, '款'),
+      progress: cardProgress(firstOrderCard),
+      summaryRows: [
+        ['目标', formatNumber(data.firstOrderKpi.target, '款')],
+        ['完成率', formatPercent(data.firstOrderKpi.completionRate)],
+        ['得分', scoreText(firstOrderCard)],
+      ],
+      detailRows: [
+        ['本月可判定新品', formatNumber(data.firstOrderKpi.decidableCount, '款')],
+        ['观察中新品', formatNumber(data.firstOrderKpi.observingCount, '款')],
+        ['到期未首单', formatNumber(data.firstOrderKpi.expiredNoFirstOrderCount, '款')],
+        ['30天首单率', formatFirstOrderRate(data.firstOrderKpi.firstOrderRate)],
+      ],
+      actionLabel: '查看未首单商品',
+      actionHref: '#product-follow-ups',
+    },
+    {
+      key: 'expense',
+      title: '费用控制',
+      subtitle: '售后 + 广告支出占比',
+      weight: 20,
+      status: data.expenseKpi.hasExpenseData ? (expenseCard?.status ?? '数据缺失') : '数据缺失',
+      statusClassName: data.expenseKpi.hasExpenseData ? statusClass(expenseCard?.status ?? '数据缺失') : 'muted',
+      mainValue: expenseMainValue,
+      progress: data.expenseKpi.hasExpenseData ? cardProgress(expenseCard) : null,
+      summaryRows: [
+        ['目标费用占比', formatPercent(data.expenseKpi.targetRatio)],
+        ['当前占比', expenseRatioLabel],
+        ['得分', data.expenseKpi.hasExpenseData ? scoreText(expenseCard) : '-'],
+      ],
+      detailRows: [
+        ['销售额 / 流入', formatAmount(data.expenseKpi.salesAmount)],
+        ['广告 / 推广费', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.adExpense) : '暂无费用数据'],
+        ['售后费用', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.afterSaleExpense) : '暂无费用数据'],
+        ['总费用', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.totalExpense) : '暂无费用数据'],
+        ['超标比例', data.expenseKpi.hasExpenseData ? formatPercent(data.expenseKpi.overTargetRatio) : '-'],
+      ],
+      actionLabel: '查看费用明细',
+      actionHref: '/admin/operator-analysis',
+    },
+  ];
+}
+
+function KpiOverviewSection({ data }: { data: WorkbenchData }) {
+  const cards = useMemo(() => buildIntegratedKpiCards(data), [data]);
   return (
-    <section className="workbench-summary">
-      <article className="workbench-score">
-        <span>本月综合 KPI</span>
-        <strong>{data.kpiSummary.scoreText}</strong>
-        <small>按本月销售额、上新商品数、30天内首单成功数、费用占比四项加权计算</small>
-      </article>
-      {data.kpiSummary.cards.map((card) => (
-        <article className="workbench-kpi-card" key={card.key}>
-          <header>
-            <div>
-              <span>{card.name}</span>
-              <small>权重 {card.weight}%</small>
-            </div>
-            <b className={`workbench-status ${statusClass(card.status)}`}>{card.status}</b>
-          </header>
-          <strong className="workbench-kpi-main">{formatCardValue(card, card.currentValue)}</strong>
-          <div className="workbench-progress" aria-label={`${card.name}完成进度`}>
-            <i style={{ width: `${Math.min(Math.max((card.completionRate ?? 0) * 100, 0), 100)}%` }} />
-          </div>
-          <div className="workbench-kpi-values">
-            <span>目标<strong>{formatCardValue(card, card.targetValue)}</strong></span>
-            <span>完成率<strong>{formatPercent(card.completionRate)}</strong></span>
-            <span>得分<strong>{card.score === null ? '-' : `${card.score.toFixed(1)} / ${card.weight}`}</strong></span>
-          </div>
-        </article>
-      ))}
+    <section className="workbench-overview">
+      <header className="workbench-overview-header">
+        <div>
+          <h2>KPI总览</h2>
+          <span>本月综合 KPI：<strong>{data.kpiSummary.scoreText}</strong></span>
+        </div>
+        <p>四项核心指标按经营结果、上新效率、新品转化、费用控制加权展示。</p>
+      </header>
+      <section className="workbench-summary">
+        {cards.map((card) => <IntegratedKpiCard card={card} key={card.key} />)}
+      </section>
     </section>
+  );
+}
+
+function IntegratedKpiCard({ card }: { card: IntegratedKpiCardModel }) {
+  const progressWidth = card.progress === null || !Number.isFinite(card.progress)
+    ? 0
+    : Math.min(Math.max(card.progress * 100, 0), 100);
+
+  return (
+    <article className={`workbench-kpi-card workbench-kpi-card-${card.key}`}>
+      <header>
+        <div>
+          <span>{card.title}</span>
+          <small>权重 {card.weight}% · {card.subtitle}</small>
+        </div>
+        <b className={`workbench-status ${card.statusClassName}`}>{card.status}</b>
+      </header>
+      <strong className="workbench-kpi-main">{card.mainValue}</strong>
+      <div className="workbench-progress" aria-label={`${card.title}完成进度`}>
+        <i style={{ width: `${progressWidth}%` }} />
+      </div>
+      <div className="workbench-kpi-values">
+        {card.summaryRows.map(([label, value]) => <span key={label}>{label}<strong>{value}</strong></span>)}
+      </div>
+      <div className="workbench-kpi-detail-list">
+        {card.detailRows.map(([label, value]) => <span key={label}>{label}<strong>{value}</strong></span>)}
+      </div>
+      <a className="workbench-kpi-action" href={card.actionHref}>{card.actionLabel}</a>
+    </article>
   );
 }
 
@@ -248,70 +397,6 @@ function TodayKpiActions({ actions }: { actions: WorkbenchAction[] }) {
         {actions.length === 0 && <div className="admin-home-empty">当前 KPI 没有明显落后项，继续保持日常节奏。</div>}
       </div>
     </article>
-  );
-}
-
-function DetailPanels({ data }: { data: WorkbenchData }) {
-  const panels = [
-    {
-      title: '本月销售额',
-      rows: [
-        ['本月动态销售目标', formatAmount(data.salesKpi.salesTarget)],
-        ['当前实际销售额', formatAmount(data.salesKpi.salesAmount)],
-        ['完成率', formatPercent(data.salesKpi.completionRate)],
-        ['时间进度', formatPercent(data.salesKpi.timeProgress)],
-        ['进度差距', formatPercent(data.salesKpi.progressGap)],
-        ['剩余目标', formatAmount(data.salesKpi.remainingSales)],
-        ['剩余日均需完成', formatAmount(data.salesKpi.requiredDailySales)],
-      ],
-    },
-    {
-      title: '上新商品数',
-      rows: [
-        ['本月有效上新目标', formatNumber(data.listingKpi.target, '款')],
-        ['已完成有效上新数', formatNumber(data.listingKpi.completed, '款')],
-        ['今日已完成', formatNumber(data.listingKpi.todayCompleted, '款')],
-        ['还差', formatNumber(data.listingKpi.remaining, '款')],
-        ['今日建议上新数', formatNumber(data.listingKpi.todaySuggested, '款')],
-      ],
-    },
-    {
-      title: '新品30天首单率',
-      rows: [
-        ['本月首单商品目标', formatNumber(data.firstOrderKpi.target, '款')],
-        ['本月上新商品数', formatNumber(data.firstOrderKpi.effectiveListingCount, '款')],
-        ['30天内首单成功数', formatNumber(data.firstOrderKpi.firstOrderWithin30DaysCount ?? data.firstOrderKpi.completed, '款')],
-        ['观察期结束未首单数', formatNumber(data.firstOrderKpi.expiredNoFirstOrderCount, '款')],
-        ['观察中新品数', formatNumber(data.firstOrderKpi.observingCount, '款')],
-        ['可判定新品数', formatNumber(data.firstOrderKpi.decidableCount, '款')],
-        ['30天首单率', formatFirstOrderRate(data.firstOrderKpi.firstOrderRate)],
-      ],
-    },
-    {
-      title: '费用占比',
-      rows: [
-        ['销售额 / 流入金额', formatAmount(data.expenseKpi.salesAmount)],
-        ['广告 / 推广费', formatAmount(data.expenseKpi.adExpense)],
-        ['售后费用', formatAmount(data.expenseKpi.afterSaleExpense)],
-        ['总费用', formatAmount(data.expenseKpi.totalExpense)],
-        ['当前费用占比', data.expenseKpi.hasExpenseData ? formatPercent(data.expenseKpi.expenseRatio) : '暂无费用数据'],
-        ['目标费用占比', formatPercent(data.expenseKpi.targetRatio)],
-        ['超标比例', formatPercent(data.expenseKpi.overTargetRatio)],
-      ],
-    },
-  ];
-
-  return (
-    <section className="workbench-detail-grid">
-      {panels.map((panel) => (
-        <article className="excel-record-panel workbench-panel workbench-metric-panel" key={panel.title}>
-          <header><h2>{panel.title}</h2></header>
-          <div className="workbench-detail-list">
-            {panel.rows.map(([label, value]) => <span key={label}>{label}<strong>{value}</strong></span>)}
-          </div>
-        </article>
-      ))}
-    </section>
   );
 }
 
@@ -736,9 +821,8 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
       {!loading && !data && <section className="excel-record-panel admin-permission-empty">工作台数据读取失败，请稍后重试。</section>}
       {data && (
         <>
-          <KpiSummaryCards data={data} />
+          <KpiOverviewSection data={data} />
           <TodayKpiActions actions={data.todayActions} />
-          <DetailPanels data={data} />
           <ProductFollowUpTable rows={data.productFollowUps} />
           <DataIntegrityPanel data={data} />
           <KpiTargetLedger data={data} refreshKey={targetRefreshKey} onConfigure={setEditingTarget} />
