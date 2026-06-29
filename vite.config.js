@@ -5601,16 +5601,19 @@ function getWorkbenchScope(currentUser, searchParams) {
   let operatorId = role === 'operator' ? String(currentUser?.operatorId ?? '').trim() : requestedOperatorId;
   let operatorName = '';
 
-  if (requestedStoreId) {
-    stores = stores.filter((store) => String(store?.id ?? '') === requestedStoreId || String(store?.storeName ?? '') === requestedStoreId);
+  const storeMatchesOperator = (store) => !operatorId || relations.some((relation) =>
+    String(relation?.operatorId ?? '') === operatorId &&
+    (String(relation?.storeId ?? '') === String(store?.id ?? '') ||
+      normalizeOrderImportStoreName(relation?.storeName) === normalizeOrderImportStoreName(store?.storeName))
+  );
+  if (operatorId && role !== 'operator') {
+    stores = stores.filter(storeMatchesOperator);
   }
 
-  if (operatorId && role !== 'operator') {
-    stores = stores.filter((store) => relations.some((relation) =>
-      String(relation?.operatorId ?? '') === operatorId &&
-      (String(relation?.storeId ?? '') === String(store?.id ?? '') ||
-        normalizeOrderImportStoreName(relation?.storeName) === normalizeOrderImportStoreName(store?.storeName))
-    ));
+  const storeOptions = stores;
+
+  if (requestedStoreId) {
+    stores = stores.filter((store) => String(store?.id ?? '') === requestedStoreId || String(store?.storeName ?? '') === requestedStoreId);
   }
 
   if (operatorId) {
@@ -5623,6 +5626,7 @@ function getWorkbenchScope(currentUser, searchParams) {
     operatorId,
     operatorName,
     stores,
+    storeOptions,
     storeKeys: new Set(stores.flatMap((store) => [String(store?.id ?? ''), String(store?.storeName ?? '')].filter(Boolean))),
     storeNames: new Set(stores.map((store) => normalizeOrderImportStoreName(store?.storeName || store?.id)).filter(Boolean)),
     relations,
@@ -5711,7 +5715,7 @@ function pickWorkbenchTarget(targets, scope, period) {
 }
 
 function buildWorkbenchOperatorStoreMap(scope) {
-  const visibleStoreKeys = new Set(scope.stores.flatMap((store) => [
+  const visibleStoreKeys = new Set((scope.storeOptions ?? scope.stores).flatMap((store) => [
     String(store?.id ?? ''),
     String(store?.storeName ?? ''),
     normalizeOrderImportStoreName(store?.storeName),
@@ -6006,6 +6010,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       canManage: scope.canManage,
       operators: scope.canManage ? scope.operators : [],
       stores,
+      storeOptions: scope.storeOptions ?? stores,
       operatorStoreMap: buildWorkbenchOperatorStoreMap(scope),
       selectedOperatorId: scope.operatorId,
       selectedStoreId: String(searchParams.get('storeId') ?? ''),

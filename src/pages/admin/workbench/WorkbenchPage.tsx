@@ -63,6 +63,7 @@ type WorkbenchData = {
     canManage: boolean;
     operators: OperatorRecord[];
     stores: StoreRecord[];
+    storeOptions?: StoreRecord[];
     operatorStoreMap: Record<string, string[]>;
     selectedOperatorId: string;
     selectedStoreId: string;
@@ -436,10 +437,11 @@ function TargetEditor({
   }, [data.filters.period, target]);
 
   const storeOptions = useMemo(() => {
-    if (!form.operatorId) return data.filters.stores;
+    const allStoreOptions = data.filters.storeOptions ?? data.filters.stores;
+    if (!form.operatorId) return allStoreOptions;
     const allowedStoreKeys = new Set(data.filters.operatorStoreMap?.[form.operatorId] ?? []);
-    return data.filters.stores.filter((store) => allowedStoreKeys.has(store.id) || allowedStoreKeys.has(store.storeName));
-  }, [data.filters.operatorStoreMap, data.filters.stores, form.operatorId]);
+    return allStoreOptions.filter((store) => allowedStoreKeys.has(store.id) || allowedStoreKeys.has(store.storeName));
+  }, [data.filters.operatorStoreMap, data.filters.storeOptions, data.filters.stores, form.operatorId]);
 
   if (!data.filters.canManage || !target) return null;
 
@@ -724,7 +726,7 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
         )}
         <label>店铺<select value={storeId} onChange={(event) => setStoreId(event.target.value)}>
           <option value="">全部店铺</option>
-          {(data?.filters.stores ?? []).map((item) => <option key={item.id} value={item.id}>{item.storeName}</option>)}
+          {(data?.filters.storeOptions ?? data?.filters.stores ?? []).map((item) => <option key={item.id} value={item.id}>{item.storeName}</option>)}
         </select></label>
         <span>数据更新时间<strong>{data?.dataUpdatedAt ? data.dataUpdatedAt.replace('T', ' ').slice(0, 19) : '-'}</strong></span>
         <span>完整性<strong>{data?.dataIntegrityStatus ?? '-'}</strong></span>
