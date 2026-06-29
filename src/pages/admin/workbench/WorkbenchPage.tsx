@@ -26,11 +26,14 @@ type WorkbenchAction = {
 
 type ProductFollowUp = {
   skc: string;
+  productName?: string;
   storeName: string;
   operatorName: string;
   siteJoinDate: string;
+  observeEndAt?: string;
   daysOnline: number;
   firstOrderStatus: string;
+  firstOrderStatusCode?: 'FIRST_ORDER_SUCCESS' | 'OBSERVING' | 'EXPIRED_NO_FIRST_ORDER';
   firstOrderDate: string;
   salesQuantity: number;
   suggestedAction: string;
@@ -92,6 +95,10 @@ type WorkbenchData = {
     completed: number;
     completionRate: number | null;
     effectiveListingCount: number;
+    firstOrderWithin30DaysCount: number;
+    expiredNoFirstOrderCount: number;
+    observingCount: number;
+    decidableCount: number;
     firstOrderRate: number | null;
     over7NoFirstOrder: number;
   };
@@ -164,6 +171,11 @@ function formatPercent(value: number | null | undefined) {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+function formatFirstOrderRate(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '暂无可判定新品';
+  return formatPercent(value);
+}
+
 function normalizeKey(value: string | undefined) {
   return String(value ?? '').trim().replace(/\s+/g, '').toLowerCase();
 }
@@ -186,7 +198,7 @@ function KpiSummaryCards({ data }: { data: WorkbenchData }) {
       <article className="workbench-score">
         <span>本月综合 KPI</span>
         <strong>{data.kpiSummary.scoreText}</strong>
-        <small>按本月销售额、上新商品数、首单商品数、费用占比四项加权计算</small>
+        <small>按本月销售额、上新商品数、30天内首单成功数、费用占比四项加权计算</small>
       </article>
       {data.kpiSummary.cards.map((card) => (
         <article className="workbench-kpi-card" key={card.key}>
@@ -259,14 +271,15 @@ function DetailPanels({ data }: { data: WorkbenchData }) {
       ],
     },
     {
-      title: '首单商品数',
+      title: '新品30天首单率',
       rows: [
         ['本月首单商品目标', formatNumber(data.firstOrderKpi.target, '款')],
-        ['当前首单商品数', formatNumber(data.firstOrderKpi.completed, '款')],
-        ['首单完成率', formatPercent(data.firstOrderKpi.completionRate)],
-        ['本月有效上新数', formatNumber(data.firstOrderKpi.effectiveListingCount, '款')],
-        ['首单率', formatPercent(data.firstOrderKpi.firstOrderRate)],
-        ['超过7天未首单', formatNumber(data.firstOrderKpi.over7NoFirstOrder, '款')],
+        ['本月上新商品数', formatNumber(data.firstOrderKpi.effectiveListingCount, '款')],
+        ['30天内首单成功数', formatNumber(data.firstOrderKpi.firstOrderWithin30DaysCount ?? data.firstOrderKpi.completed, '款')],
+        ['观察期结束未首单数', formatNumber(data.firstOrderKpi.expiredNoFirstOrderCount, '款')],
+        ['观察中新品数', formatNumber(data.firstOrderKpi.observingCount, '款')],
+        ['可判定新品数', formatNumber(data.firstOrderKpi.decidableCount, '款')],
+        ['30天首单率', formatFirstOrderRate(data.firstOrderKpi.firstOrderRate)],
       ],
     },
     {
@@ -300,8 +313,9 @@ function DetailPanels({ data }: { data: WorkbenchData }) {
 function ProductFollowUpTable({ rows }: { rows: ProductFollowUp[] }) {
   const [filter, setFilter] = useState('all');
   const visibleRows = useMemo(() => rows.filter((row) => {
-    if (filter === 'over7') return row.firstOrderStatus === '未首单' && row.daysOnline > 7;
-    if (filter === 'firstOrder') return row.firstOrderStatus === '已首单';
+    if (filter === 'expired') return row.firstOrderStatusCode === 'EXPIRED_NO_FIRST_ORDER';
+    if (filter === 'observing') return row.firstOrderStatusCode === 'OBSERVING';
+    if (filter === 'firstOrder') return row.firstOrderStatusCode === 'FIRST_ORDER_SUCCESS';
     if (filter === 'new') return row.daysOnline <= 31;
     return true;
   }), [filter, rows]);
@@ -312,8 +326,9 @@ function ProductFollowUpTable({ rows }: { rows: ProductFollowUp[] }) {
         <h2>重点商品跟进</h2>
         <select value={filter} onChange={(event) => setFilter(event.target.value)}>
           <option value="all">全部</option>
-          <option value="over7">超过7天未首单</option>
-          <option value="firstOrder">已首单</option>
+          <option value="expired">已超过30天未首单</option>
+          <option value="observing">观察中</option>
+          <option value="firstOrder">30天内已首单</option>
           <option value="new">本月新上</option>
         </select>
       </header>
@@ -321,28 +336,28 @@ function ProductFollowUpTable({ rows }: { rows: ProductFollowUp[] }) {
         <table className="import-record-table">
           <thead>
             <tr>
-              <th>SKC</th>
+              <th>商品</th>
               <th>店铺</th>
               <th>运营</th>
-              <th>加入站点时间</th>
+              <th>上新日期</th>
+              <th>观察截止</th>
               <th>上站天数</th>
               <th>首单状态</th>
               <th>首单日期</th>
-              <th>销售件数</th>
               <th>建议动作</th>
             </tr>
           </thead>
           <tbody>
             {visibleRows.map((row) => (
               <tr key={`${row.skc}-${row.storeName}-${row.siteJoinDate}`}>
-                <td><strong>{row.skc || '-'}</strong></td>
+                <td><strong>{row.productName || row.skc || '-'}</strong></td>
                 <td>{row.storeName || '-'}</td>
                 <td>{row.operatorName || '-'}</td>
                 <td>{row.siteJoinDate || '-'}</td>
+                <td>{row.observeEndAt || '-'}</td>
                 <td>{row.daysOnline}</td>
-                <td><span className={`workbench-table-status ${row.firstOrderStatus === '已首单' ? 'ok' : row.daysOnline > 7 ? 'danger' : 'warning'}`}>{row.firstOrderStatus}</span></td>
+                <td><span className={`workbench-table-status ${row.firstOrderStatusCode === 'FIRST_ORDER_SUCCESS' ? 'ok' : row.firstOrderStatusCode === 'EXPIRED_NO_FIRST_ORDER' ? 'danger' : 'warning'}`}>{row.firstOrderStatus}</span></td>
                 <td>{row.firstOrderDate || '-'}</td>
-                <td>{row.salesQuantity}</td>
                 <td>{row.suggestedAction}</td>
               </tr>
             ))}

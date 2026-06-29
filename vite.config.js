@@ -23,6 +23,7 @@ import { isTemuPostgresConfigured } from './server/temu/postgresDatabase.js';
 import {
   assertImportFileShape,
   buildImportPreview,
+  calculateNewProductFirstOrderStats,
   getAdStrategyConfig,
   getAdStrategyCounts,
   getAdStrategyExecution,
@@ -242,6 +243,12 @@ function readJsonFile(name) {
 const jsonReadCache = new Map();
 const persistentResponseCache = new Map();
 const persistentResponseCacheTtlMs = 2 * 60 * 1000;
+const dashboardSummaryCacheTtlMs = 5 * 60 * 1000;
+let dashboardSummaryCache = null;
+
+function clearDashboardSummaryCache() {
+  dashboardSummaryCache = null;
+}
 
 function readJsonFileCached(name) {
   const filePath = ensureDataFile(name);
@@ -330,6 +337,7 @@ function writeJsonFile(name, value) {
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2), 'utf-8');
   jsonReadCache.delete(name);
   persistentResponseCache.clear();
+  clearDashboardSummaryCache();
 }
 
 function nowIso() {
@@ -4241,6 +4249,7 @@ function buildCompanyDashboardData() {
 
   return {
     updatedAt: String(latestImportedAt).replace('T', ' ').slice(0, 19),
+    dataUpdatedAt: String(latestImportedAt).replace('T', ' ').slice(0, 19),
     dataSource: '真实数据',
     statisticsPeriod: currentMonth,
     metrics: [
@@ -4264,9 +4273,39 @@ function buildCompanyDashboardData() {
   };
 }
 
+function getCompanyDashboardDataCached(force = false) {
+  const now = Date.now();
+  if (!force && dashboardSummaryCache && dashboardSummaryCache.expiresAt > now) {
+    return {
+      ...dashboardSummaryCache.data,
+      cache: {
+        hit: true,
+        generatedAt: dashboardSummaryCache.generatedAt,
+        ttlSeconds: Math.round((dashboardSummaryCache.expiresAt - now) / 1000),
+      },
+    };
+  }
+
+  const data = buildCompanyDashboardData();
+  dashboardSummaryCache = {
+    data,
+    generatedAt: nowIso(),
+    expiresAt: now + dashboardSummaryCacheTtlMs,
+  };
+
+  return {
+    ...data,
+    cache: {
+      hit: false,
+      generatedAt: dashboardSummaryCache.generatedAt,
+      ttlSeconds: Math.round(dashboardSummaryCacheTtlMs / 1000),
+    },
+  };
+}
+
 function handleCompanyDashboardApi(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Cache-Control', 'private, max-age=30');
 
   if (req.method !== 'GET') {
     res.statusCode = 405;
@@ -4275,7 +4314,9 @@ function handleCompanyDashboardApi(req, res) {
   }
 
   try {
-    res.end(JSON.stringify(buildCompanyDashboardData()));
+    const requestUrl = new URL(req.url ?? '/', 'http://local');
+    const force = requestUrl.searchParams.get('refresh') === 'true' || requestUrl.searchParams.get('force') === 'true';
+    res.end(JSON.stringify(getCompanyDashboardDataCached(force)));
   } catch (error) {
     res.statusCode = 500;
     res.end(JSON.stringify({
@@ -5751,61 +5792,61 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
     storeSalesMap.set(storeName, current);
   }
 
-  const effectiveListings = (await readWorkbenchEffectiveListings())
-    .filter((item) => String(item?.platform ?? 'TEMU').toUpperCase() === 'TEMU')
-    .filter((item) => String(item?.siteJoinDate ?? '').slice(0, 10) >= range.start && String(item?.siteJoinDate ?? '').slice(0, 10) <= range.end)
-    .filter((item) => itemMatchesWorkbenchScope(item, scope));
-  const listingSkcs = new Set(effectiveListings.map((item) => normalizeWorkbenchSkc(item?.skc)).filter(Boolean));
-  const todayListingCount = effectiveListings.filter((item) => String(item?.siteJoinDate ?? '').slice(0, 10) === range.today).length;
-
-  const firstOrderBySkc = new Map();
-  for (const order of allOrders) {
-    const skc = getWorkbenchOrderSkc(order);
-    const date = getOrderDateKey(order);
-    if (!skc || !date || !itemMatchesWorkbenchScope(order, scope)) continue;
-    const current = firstOrderBySkc.get(skc);
-    if (!current || date < current.firstOrderDate) {
-      firstOrderBySkc.set(skc, {
-        skc,
-        firstOrderDate: date,
-        storeName: normalizeOrderImportStoreName(order?.storeName),
-        salesQuantity: Number(order?.quantity) || 0,
-      });
-    } else if (current.firstOrderDate === date) {
-      current.salesQuantity += Number(order?.quantity) || 0;
-    }
+  let newProductFirstOrderStats;
+  let newProductStatsError = '';
+  try {
+    newProductFirstOrderStats = await calculateNewProductFirstOrderStats({
+      periodStart: range.start,
+      periodEnd: range.end,
+      today: range.today,
+      observeDays: 30,
+      storeNames: stores.map((store) => String(store?.storeName || store?.id || '').trim()).filter(Boolean),
+      operatorId: scope.operatorId,
+      operatorName: scope.operatorName,
+    });
+  } catch (error) {
+    newProductStatsError = error instanceof Error ? error.message : String(error);
+    console.warn('[TEMU PostgreSQL] workbench first-order stats failed:', newProductStatsError);
+    newProductFirstOrderStats = {
+      newProductCount: 0,
+      firstOrderWithin30DaysCount: 0,
+      expiredNoFirstOrderCount: 0,
+      observingCount: 0,
+      decidableCount: 0,
+      firstOrderRate: null,
+      products: [],
+      dataUpdatedAt: '',
+    };
   }
-  const firstOrderProducts = Array.from(firstOrderBySkc.values()).filter((item) => item.firstOrderDate >= range.start && item.firstOrderDate <= range.end);
-  const firstOrderSkcs = new Set(firstOrderBySkc.keys());
-  const productFollowUps = effectiveListings.map((item) => {
-    const skc = normalizeWorkbenchSkc(item?.skc);
-    const siteJoinDate = String(item?.siteJoinDate ?? '').slice(0, 10);
-    const firstOrder = firstOrderBySkc.get(skc);
+  const listingProductCount = newProductFirstOrderStats.newProductCount;
+  const todayListingCount = newProductFirstOrderStats.products.filter((item) => String(item?.listedAt ?? '').slice(0, 10) === range.today).length;
+  const firstOrderProductCount = newProductFirstOrderStats.firstOrderWithin30DaysCount;
+  const productFollowUps = newProductFirstOrderStats.products.map((item) => {
+    const siteJoinDate = String(item?.listedAt ?? '').slice(0, 10);
     const daysOnline = siteJoinDate ? Math.max(0, Math.floor((Date.parse(`${range.today}T00:00:00`) - Date.parse(`${siteJoinDate}T00:00:00`)) / 86400000) + 1) : 0;
-    const hasFirstOrder = Boolean(firstOrder);
-    const action = hasFirstOrder
-      ? '已首单，继续观察复购和加推空间'
-      : daysOnline > 7
-        ? '重点优化主图、标题、价格或考虑下架/替换'
-        : daysOnline >= 4
-          ? '检查标题、主图、价格和活动'
-          : '继续观察曝光和点击';
+    const action = item.status === 'FIRST_ORDER_SUCCESS'
+      ? '30天内已首单，继续观察复购和加推空间'
+      : item.status === 'EXPIRED_NO_FIRST_ORDER'
+        ? '已超过30天未首单，复盘标题、主图、价格、曝光和投放'
+        : '仍在30天观察期内，暂不计入首单率分母';
     return {
-      skc,
-      storeId: item?.storeId || '',
-      storeName: item?.storeName || storeByName.get(normalizeOrderImportStoreName(item?.storeName))?.storeName || item?.storeId || '',
-      operatorName: item?.operatorName || '',
+      skc: item.productId || item.productKey || '',
+      productName: item.productName || '',
+      storeId: item.storeId || '',
+      storeName: item.storeName || storeByName.get(normalizeOrderImportStoreName(item?.storeName))?.storeName || item.storeId || '',
+      operatorName: item.operatorName || '',
       siteJoinDate,
+      observeEndAt: item.observeEndAt || '',
       daysOnline,
-      firstOrderStatus: hasFirstOrder ? '已首单' : '未首单',
-      firstOrderDate: firstOrder?.firstOrderDate || '',
-      salesQuantity: firstOrder?.salesQuantity || 0,
+      firstOrderStatus: item.status === 'FIRST_ORDER_SUCCESS' ? '30天内已首单' : item.status === 'EXPIRED_NO_FIRST_ORDER' ? '已超过30天未首单' : `观察中，剩余 ${item.remainingObserveDays ?? 0} 天`,
+      firstOrderStatusCode: item.status,
+      firstOrderDate: item.firstOrderAt || '',
+      salesQuantity: item.status === 'FIRST_ORDER_SUCCESS' ? 1 : 0,
       suggestedAction: action,
     };
   }).sort((first, second) => {
-    const firstRank = first.firstOrderStatus === '未首单' && first.daysOnline > 7 ? 0 : first.firstOrderStatus === '未首单' ? 1 : 2;
-    const secondRank = second.firstOrderStatus === '未首单' && second.daysOnline > 7 ? 0 : second.firstOrderStatus === '未首单' ? 1 : 2;
-    return firstRank - secondRank || second.daysOnline - first.daysOnline || first.skc.localeCompare(second.skc);
+    const rank = (item) => item.firstOrderStatusCode === 'EXPIRED_NO_FIRST_ORDER' ? 0 : item.firstOrderStatusCode === 'OBSERVING' ? 1 : 2;
+    return rank(first) - rank(second) || second.daysOnline - first.daysOnline || first.skc.localeCompare(second.skc);
   }).slice(0, 20);
 
   const financeParams = new URLSearchParams({ period: range.period });
@@ -5826,8 +5867,8 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
   const afterSaleRatio = expenseSalesBase > 0 ? expense.afterSaleIssueAmount / expenseSalesBase : null;
 
   const salesScore = scoreProgress(salesAmount, target?.salesTarget, 30);
-  const listingScore = scoreProgress(listingSkcs.size, target?.effectiveListingTarget, 30);
-  const firstOrderScore = scoreProgress(firstOrderProducts.length, target?.firstOrderProductTarget, 20);
+  const listingScore = scoreProgress(listingProductCount, target?.effectiveListingTarget, 30);
+  const firstOrderScore = scoreProgress(firstOrderProductCount, target?.firstOrderProductTarget, 20);
   const expenseScore = scoreExpenseRatio(expenseRatio, target?.expenseRatioTarget, 20);
   const scoreParts = [salesScore, listingScore, firstOrderScore, expenseScore];
   const hasConfiguredTarget = Boolean(
@@ -5841,26 +5882,26 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
     : null;
   const completion = {
     sales: target?.salesTarget > 0 ? salesAmount / target.salesTarget : null,
-    listing: target?.effectiveListingTarget > 0 ? listingSkcs.size / target.effectiveListingTarget : null,
-    firstOrder: target?.firstOrderProductTarget > 0 ? firstOrderProducts.length / target.firstOrderProductTarget : null,
+    listing: target?.effectiveListingTarget > 0 ? listingProductCount / target.effectiveListingTarget : null,
+    firstOrder: target?.firstOrderProductTarget > 0 ? firstOrderProductCount / target.firstOrderProductTarget : null,
     expense: expenseRatio,
   };
-  const over7NoFirstOrder = productFollowUps.filter((item) => item.firstOrderStatus === '未首单' && item.daysOnline > 7).length;
-  const remainingListing = Math.max((target?.effectiveListingTarget || 0) - listingSkcs.size, 0);
+  const over7NoFirstOrder = newProductFirstOrderStats.expiredNoFirstOrderCount;
+  const remainingListing = Math.max((target?.effectiveListingTarget || 0) - listingProductCount, 0);
   const todaySuggestedListing = target?.effectiveListingTarget > 0 && range.timeProgress > 0 ? Math.ceil(remainingListing / range.remainingDays) : null;
   const dataUpdatedAt = [
     ...(orderStore?.batches ?? []).map((batch) => batch.importedAt),
-    ...effectiveListings.map((item) => item.updatedAt || item.createdAt),
+    newProductFirstOrderStats.dataUpdatedAt,
   ].filter(Boolean).sort().at(-1) || '';
   const warnings = [];
   if (!target?.salesTarget) warnings.push('本月未配置销售额目标');
   if (!target?.effectiveListingTarget) warnings.push('本月未配置有效上新目标');
   if (!target?.firstOrderProductTarget) warnings.push('本月未配置首单商品目标');
   if (!target?.expenseRatioTarget) warnings.push('本月未配置费用占比目标');
+  if (newProductStatsError) warnings.push(`新品30天首单统计读取失败：${newProductStatsError}`);
   if (financeRecords.length === 0) warnings.push('未找到费用数据源或当前范围暂无费用数据');
   if (salesAmount <= 0) warnings.push('本月暂无订单销售额，费用占比无法用订单销售额校验');
-  const unmatchedListingCount = effectiveListings.filter((item) => !firstOrderSkcs.has(normalizeWorkbenchSkc(item?.skc))).length;
-  if (unmatchedListingCount > 0) warnings.push(`有 ${unmatchedListingCount} 个有效上新 SKC 暂未在订单数据中匹配到首单`);
+  if (newProductFirstOrderStats.observingCount > 0) warnings.push(`还有 ${newProductFirstOrderStats.observingCount} 个新品处于30天观察期内，暂不计入首单率分母`);
   if (stores.length === 0) warnings.push('当前账号未绑定 TEMU 可见店铺');
 
   const todayActions = [];
@@ -5888,9 +5929,9 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
   if (shouldShowProgressActions && over7NoFirstOrder > 0) {
     todayActions.push({
       priority: '高',
-      title: `${over7NoFirstOrder} 款商品上站超过 7 天仍未首单`,
-      kpi: '首单商品数',
-      impact: '影响首单商品数和新品质量判断',
+      title: `${over7NoFirstOrder} 款新品已超过30天仍未首单`,
+      kpi: '新品30天首单率',
+      impact: '影响已判定新品的30天首单率',
       actionLabel: '查看未首单商品',
       actionHref: '#product-follow-ups',
     });
@@ -5920,8 +5961,8 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
     dataIntegrityStatus: warnings.length === 0 ? '数据完整' : '存在提醒',
     dataSourceMapping: [
       { kpi: '销售额目标完成率', source: '订单销售导入 + KPI目标配置', endpoint: '/api/persistent-data/orderImportStore, /api/operation-workbench/kpi-targets', confirmed: '已确认' },
-      { kpi: '有效上新数', source: '有效上线录入', endpoint: '/api/effective-new-listings', confirmed: '已确认' },
-      { kpi: '首单商品数', source: '订单销售数据按 SKC 自动计算', endpoint: '/api/persistent-data/orderImportStore', confirmed: '已确认' },
+      { kpi: '上新商品数', source: '商品信息导入表按创建时间统计', endpoint: '/api/data-import/temu-product-info', confirmed: newProductStatsError ? '读取失败' : '已确认' },
+      { kpi: '新品30天首单率', source: '商品信息导入表 + 订单明细按商品/SKU最早订单日期统计', endpoint: '/api/data-import/temu-product-info, temu_order_items', confirmed: newProductStatsError ? '读取失败' : '已确认' },
       { kpi: '费用占比', source: '薪资财务明细聚合后的推广费 + 售后费', endpoint: '/api/salary/operator-analysis-store-financials', confirmed: financeRecords.length > 0 ? '已确认' : '未找到可靠数据源' },
     ],
     kpiSummary: {
@@ -5929,8 +5970,8 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
       scoreText: totalScore === null ? '待配置' : `${totalScore.toFixed(1)} 分`,
       cards: [
         { key: 'sales', name: '本月销售额', weight: 30, targetValue: target?.salesTarget ?? null, currentValue: salesAmount, completionRate: completion.sales, score: salesScore, status: getKpiStatus(salesScore, 30, completion.sales ?? 0, range.timeProgress), unit: '¥' },
-        { key: 'listing', name: '上新商品数', weight: 30, targetValue: target?.effectiveListingTarget ?? null, currentValue: listingSkcs.size, completionRate: completion.listing, score: listingScore, status: getKpiStatus(listingScore, 30, completion.listing ?? 0, range.timeProgress), unit: '款' },
-        { key: 'firstOrder', name: '首单商品数', weight: 20, targetValue: target?.firstOrderProductTarget ?? null, currentValue: firstOrderProducts.length, completionRate: completion.firstOrder, score: firstOrderScore, status: getKpiStatus(firstOrderScore, 20, completion.firstOrder ?? 0, range.timeProgress), unit: '款' },
+        { key: 'listing', name: '上新商品数', weight: 30, targetValue: target?.effectiveListingTarget ?? null, currentValue: listingProductCount, completionRate: completion.listing, score: listingScore, status: getKpiStatus(listingScore, 30, completion.listing ?? 0, range.timeProgress), unit: '款' },
+        { key: 'firstOrder', name: '30天内首单成功数', weight: 20, targetValue: target?.firstOrderProductTarget ?? null, currentValue: firstOrderProductCount, completionRate: completion.firstOrder, score: firstOrderScore, status: getKpiStatus(firstOrderScore, 20, completion.firstOrder ?? 0, range.timeProgress), unit: '款' },
         { key: 'expense', name: '费用占比', weight: 20, targetValue: target?.expenseRatioTarget ?? null, currentValue: expenseRatio, completionRate: expenseRatio, score: expenseScore, status: getKpiStatus(expenseScore, 20, expenseRatio, range.timeProgress, true), unit: '%' },
       ],
     },
@@ -5949,18 +5990,22 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
     },
     listingKpi: {
       target: target?.effectiveListingTarget ?? null,
-      completed: listingSkcs.size,
+      completed: listingProductCount,
       todayCompleted: todayListingCount,
-      remaining: target?.effectiveListingTarget ? Math.max(target.effectiveListingTarget - listingSkcs.size, 0) : null,
+      remaining: target?.effectiveListingTarget ? Math.max(target.effectiveListingTarget - listingProductCount, 0) : null,
       todaySuggested: todaySuggestedListing,
       completionRate: completion.listing,
     },
     firstOrderKpi: {
       target: target?.firstOrderProductTarget ?? null,
-      completed: firstOrderProducts.length,
+      completed: firstOrderProductCount,
       completionRate: completion.firstOrder,
-      effectiveListingCount: listingSkcs.size,
-      firstOrderRate: listingSkcs.size > 0 ? firstOrderProducts.length / listingSkcs.size : null,
+      effectiveListingCount: listingProductCount,
+      firstOrderWithin30DaysCount: firstOrderProductCount,
+      expiredNoFirstOrderCount: newProductFirstOrderStats.expiredNoFirstOrderCount,
+      observingCount: newProductFirstOrderStats.observingCount,
+      decidableCount: newProductFirstOrderStats.decidableCount,
+      firstOrderRate: newProductFirstOrderStats.firstOrderRate,
       over7NoFirstOrder,
     },
     expenseKpi: {
@@ -6450,6 +6495,7 @@ function localDataPlugin() {
       });
 
       server.middlewares.use('/api/auth/visible-stores', handleVisibleStoresApi);
+      server.middlewares.use('/api/dashboard/bigscreen-summary', handleCompanyDashboardApi);
       server.middlewares.use('/api/dashboard/company', handleCompanyDashboardApi);
       server.middlewares.use('/api/operation-workbench/kpi-dashboard', handleOperationWorkbenchKpiDashboardApi);
       server.middlewares.use('/api/operation-workbench/kpi-targets', handleOperationWorkbenchKpiTargetsApi);
@@ -6596,6 +6642,9 @@ function localDataPlugin() {
               const nextData = isOrderImportDelete ? parsed : mergeOrderImportAppendWithExisting(currentData, parsed);
               const deleteAfter = isOrderImportDelete ? summarizeOrderImportStore(nextData) : null;
               fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
+              jsonReadCache.delete(name);
+              persistentResponseCache.clear();
+              clearDashboardSummaryCache();
               const deleteSummary = isOrderImportDelete && deleteBefore && deleteAfter
                 ? {
                   user: currentUser?.username ?? currentUser?.userId ?? '',
@@ -6644,6 +6693,9 @@ function localDataPlugin() {
                   ? (trafficAppendBatch = trafficAppendResult?.batch ?? null, trafficAppendResult?.data)
                   : mergeTrafficConversionImportWithExisting(currentData, parsed);
               fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
+              jsonReadCache.delete(name);
+              persistentResponseCache.clear();
+              clearDashboardSummaryCache();
               let mirrorWarning = null;
               try {
                 await replaceTrafficStoreInPostgres(nextData);
@@ -6683,6 +6735,9 @@ function localDataPlugin() {
             const deleteAfter = isOrderImportDelete ? summarizeOrderImportStore(nextData) : null;
             const previousFileText = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : null;
             fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
+            jsonReadCache.delete(name);
+            persistentResponseCache.clear();
+            clearDashboardSummaryCache();
             const deleteSummary = isOrderImportDelete && deleteBefore && deleteAfter
               ? {
                 user: currentUser?.username ?? currentUser?.userId ?? '',
@@ -6746,5 +6801,24 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5176,
     strictPort: true,
+  },
+  build: {
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/echarts')) {
+            return 'echarts-dashboard';
+          }
+          if (id.includes('node_modules/xlsx')) {
+            return 'xlsx';
+          }
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'react-vendor';
+          }
+          return undefined;
+        },
+      },
+    },
   },
 });

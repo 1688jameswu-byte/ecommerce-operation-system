@@ -5,6 +5,7 @@ import { rankingRules } from '../../config/rankingRules';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import MetricCard from '../../components/dashboard/MetricCard';
 import Panel from '../../components/dashboard/Panel';
+import RankingPanel from '../../components/dashboard/RankingPanel';
 import GrowthOpportunityList from '../../components/dashboard/GrowthOpportunityList';
 import WarningList from '../../components/dashboard/WarningList';
 import type { DashboardData } from '../../types/dashboard';
@@ -16,7 +17,6 @@ const TEMU_ORDER_IMPORT_BROADCAST_CHANNEL = 'temu-order-import-storage';
 const TRAFFIC_CONVERSION_CHANGE_EVENT = 'traffic-conversion-data-change';
 const EFFECTIVE_LISTING_CHANGE_EVENT = 'effective-new-listings-change';
 
-const RankingPanel = lazy(() => import('../../components/dashboard/RankingPanel'));
 const SalesTrendChart = lazy(() => import('../../components/dashboard/SalesTrendChart'));
 
 const rankingPanelConfigs = [
@@ -66,6 +66,7 @@ function subscribeEffectiveListingChange(callback: () => void) {
 
 function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [shouldRenderChart, setShouldRenderChart] = useState(false);
   const { scale, offsetX, offsetY } = useDashboardScale({
     width: dashboardConfig.designWidth,
     height: dashboardConfig.designHeight,
@@ -87,6 +88,11 @@ function DashboardPage() {
       unsubscribeTraffic();
       unsubscribeEffectiveListing();
     };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShouldRenderChart(true), 400);
+    return () => window.clearTimeout(timer);
   }, []);
 
   return (
@@ -114,28 +120,24 @@ function DashboardPage() {
           {(() => {
             const rule = rankingRules.find((item) => item.id === rankingPanelConfigs[0].ruleId);
             return rule ? (
-              <Suspense fallback={null}>
-                <RankingPanel
-                  title={rule.title}
-                  period={rule.period}
-                  items={dashboardData?.newProductRanking ?? []}
-                  emptyText="暂无本月有效上新数据"
-                  showTopThreeBadge={rule.showTopThreeBadge}
-                  showGrowth={rule.showGrowth}
-                />
-              </Suspense>
+              <RankingPanel
+                title={rule.title}
+                period={rule.period}
+                items={dashboardData?.newProductRanking ?? []}
+                emptyText="暂无本月有效上新数据"
+                showTopThreeBadge={rule.showTopThreeBadge}
+                showGrowth={rule.showGrowth}
+              />
             ) : null;
           })()}
-          <Suspense fallback={null}>
-            <RankingPanel
-              title="首单商品数排名"
-              period="本月"
-              items={dashboardData?.firstOrderRanking ?? []}
-              emptyText="暂无本月首单商品数据"
-              showTopThreeBadge
-              showGrowth={false}
-            />
-          </Suspense>
+          <RankingPanel
+            title="首单商品数排名"
+            period="本月"
+            items={dashboardData?.firstOrderRanking ?? []}
+            emptyText="暂无本月首单商品数数据"
+            showTopThreeBadge
+            showGrowth={false}
+          />
           {rankingPanelConfigs.slice(1).map(({ ruleId, dataKey }) => {
             const rule = rankingRules.find((item) => item.id === ruleId);
 
@@ -144,24 +146,27 @@ function DashboardPage() {
             }
 
             return (
-              <Suspense key={ruleId} fallback={null}>
-                <RankingPanel
-                  title={rule.title}
-                  period={rule.period}
-                  items={dashboardData?.[dataKey] ?? []}
-                  showTopThreeBadge={rule.showTopThreeBadge}
-                  showGrowth={rule.showGrowth}
-                  autoScroll={ruleId === 'storeSalesRanking'}
-                  visibleRows={8}
-                  compactSalesLayout
-                />
-              </Suspense>
+              <RankingPanel
+                key={ruleId}
+                title={rule.title}
+                period={rule.period}
+                items={dashboardData?.[dataKey] ?? []}
+                showTopThreeBadge={rule.showTopThreeBadge}
+                showGrowth={rule.showGrowth}
+                autoScroll={ruleId === 'storeSalesRanking'}
+                visibleRows={8}
+                compactSalesLayout
+              />
             );
           })}
           <Panel title="销售趋势" extra={<span>近30天</span>} className="sales-trend-panel">
-            <Suspense fallback={null}>
-              <SalesTrendChart data={dashboardData?.salesTrend30Days ?? []} />
-            </Suspense>
+            {shouldRenderChart ? (
+              <Suspense fallback={<div className="dashboard-chart-loading">图表加载中...</div>}>
+                <SalesTrendChart data={dashboardData?.salesTrend30Days ?? []} />
+              </Suspense>
+            ) : (
+              <div className="dashboard-chart-loading">图表加载中...</div>
+            )}
           </Panel>
           <Panel title="今日预警提醒" extra={<span>{dashboardData?.warnings.length ?? 0} 条</span>} className="warning-list-panel">
             <WarningList warnings={dashboardData?.warnings ?? []} />

@@ -85,6 +85,7 @@ export interface GrowthOpportunityItem {
 
 export interface DashboardData {
   updatedAt: string;
+  dataUpdatedAt?: string;
   dataSource: string;
   statisticsPeriod: string;
   metrics: MetricItem[];

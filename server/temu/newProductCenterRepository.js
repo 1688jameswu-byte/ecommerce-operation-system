@@ -2091,6 +2091,163 @@ export async function getProductImportRankingSummary(params = {}) {
   };
 }
 
+export async function calculateNewProductFirstOrderStats(params = {}) {
+  await runTemuMigrations();
+  await backfillTemuImportBatchStores();
+  const observeDays = Math.max(1, Number(params.observeDays || 30));
+  const periodStart = dateText(params.periodStart) || `${new Date().toISOString().slice(0, 7)}-01`;
+  const periodEnd = dateText(params.periodEnd) || periodStart;
+  const today = dateText(params.today) || new Date().toISOString().slice(0, 10);
+  const filter = createWhereBuilder(3);
+  appendStoreScope(filter, 'product_rows', params);
+  filter.push('product_rows.listed_at::date >= ?::date', periodStart);
+  filter.push('product_rows.listed_at::date <= ?::date', periodEnd);
+  if (params.operatorId) {
+    filter.push('(product_rows.operator_id::text = ? OR product_rows.legacy_operator_id = ?)', String(params.operatorId));
+  }
+  if (params.operatorName) {
+    filter.push('product_rows.operator_name = ?', String(params.operatorName));
+  }
+  const condition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : '';
+  const skuCreatedTimeFromRaw = `CASE WHEN NULLIF(s.raw_data ->> '创建时间', '') ~ '^\\d{4}-\\d{1,2}-\\d{1,2}' THEN NULLIF(s.raw_data ->> '创建时间', '')::timestamptz ELSE NULL END`;
+  const productCreatedTimeFromRaw = `CASE WHEN NULLIF(p.raw_data ->> '创建时间', '') ~ '^\\d{4}-\\d{1,2}-\\d{1,2}' THEN NULLIF(p.raw_data ->> '创建时间', '')::timestamptz ELSE NULL END`;
+  const result = await queryTemuDatabase(
+    `WITH raw_sku_rows AS (
+       SELECT
+         COALESCE(s.product_id::text, NULLIF(s.temu_spu_id, ''), NULLIF(s.temu_product_id, ''), NULLIF(s.raw_data ->> 'SPU ID', ''), NULLIF(s.raw_data ->> '商品ID', ''), s.id::text) AS product_key,
+         COALESCE(s.product_id, p.id) AS product_uuid,
+         s.id AS sku_row_id,
+         s.store_id,
+         s.store_name,
+         COALESCE(NULLIF(s.product_title, ''), NULLIF(s.raw_data ->> '商品标题', ''), NULLIF(p.product_title, ''), NULLIF(p.raw_data ->> '商品标题', ''), p.product_name) AS product_name,
+         COALESCE(NULLIF(s.sku_id, ''), NULLIF(s.raw_data ->> 'SKU ID', '')) AS sku_id,
+         COALESCE(NULLIF(s.sku_code, ''), NULLIF(s.raw_data ->> 'SKU货号', '')) AS sku_code,
+         COALESCE(p.operator_id, NULL) AS product_operator_id,
+         COALESCE(NULLIF(p.operator_name, ''), NULL) AS product_operator_name,
+         COALESCE(s.created_time, ${skuCreatedTimeFromRaw}, p.created_time, ${productCreatedTimeFromRaw}, p.first_online_at) AS listed_at,
+         GREATEST(COALESCE(s.updated_at, '-infinity'::timestamptz), COALESCE(p.updated_at, '-infinity'::timestamptz)) AS updated_at
+       FROM temu_product_skus s
+       LEFT JOIN temu_products p ON p.id = s.product_id
+     ),
+     sku_rows AS (
+       SELECT
+         r.*,
+         COALESCE(r.product_operator_id, relation.operator_id) AS operator_id,
+         COALESCE(r.product_operator_name, relation.operator_name) AS operator_name,
+         relation.legacy_operator_id
+       FROM raw_sku_rows r
+       LEFT JOIN LATERAL (
+         SELECT rel.operator_id, rel.operator_name, rel.legacy_operator_id
+         FROM temu_store_operator_relations rel
+         WHERE rel.status <> 'inactive'
+           AND (
+             rel.store_id = r.store_id
+             OR (NULLIF(rel.store_name, '') IS NOT NULL AND rel.store_name = r.store_name)
+           )
+           AND (rel.start_date IS NULL OR rel.start_date <= COALESCE(r.listed_at::date, CURRENT_DATE))
+           AND (rel.end_date IS NULL OR rel.end_date >= COALESCE(r.listed_at::date, CURRENT_DATE))
+         ORDER BY CASE WHEN rel.role = 'primary' THEN 0 ELSE 1 END, rel.updated_at DESC
+         LIMIT 1
+       ) relation ON TRUE
+       WHERE r.listed_at IS NOT NULL
+     ),
+     product_rows AS (
+       SELECT
+         product_key,
+         (ARRAY_AGG(product_uuid ORDER BY product_uuid IS NULL))[1] AS product_id,
+         (ARRAY_AGG(store_id ORDER BY store_id IS NULL))[1] AS store_id,
+         (ARRAY_AGG(store_name ORDER BY store_name IS NULL, store_name))[1] AS store_name,
+         (ARRAY_AGG(operator_id ORDER BY operator_id IS NULL))[1] AS operator_id,
+         (ARRAY_AGG(operator_name ORDER BY operator_name IS NULL, operator_name))[1] AS operator_name,
+         (ARRAY_AGG(legacy_operator_id ORDER BY legacy_operator_id IS NULL))[1] AS legacy_operator_id,
+         (ARRAY_AGG(product_name ORDER BY product_name IS NULL, product_name))[1] AS product_name,
+         MIN(listed_at) AS listed_at,
+         MAX(updated_at) AS updated_at
+       FROM sku_rows
+       GROUP BY product_key
+     ),
+     first_orders AS (
+       SELECT p.product_key, MIN(o.order_date)::date AS first_order_at
+       FROM product_rows p
+       JOIN sku_rows sr ON sr.product_key = p.product_key
+       JOIN temu_order_items o ON o.is_valid_order = TRUE
+        AND o.is_cancelled = FALSE
+        AND o.order_date IS NOT NULL
+        AND o.order_date >= p.listed_at::date
+        AND (
+          (o.product_id IS NOT NULL AND o.product_id = sr.product_uuid)
+          OR (o.product_sku_id IS NOT NULL AND o.product_sku_id = sr.sku_row_id)
+          OR (
+            o.store_id = sr.store_id
+            AND (
+              (NULLIF(o.sku_id, '') IS NOT NULL AND o.sku_id = sr.sku_id)
+              OR (NULLIF(o.sku_code, '') IS NOT NULL AND o.sku_code = sr.sku_code)
+            )
+          )
+        )
+       GROUP BY p.product_key
+     )
+     SELECT
+       product_rows.product_key,
+       product_rows.product_id,
+       product_rows.product_name,
+       product_rows.store_id,
+       product_rows.store_name,
+       product_rows.operator_id,
+       product_rows.operator_name,
+       product_rows.listed_at::date AS listed_at,
+       (product_rows.listed_at::date + ($1::int * INTERVAL '1 day'))::date AS observe_end_at,
+       first_orders.first_order_at,
+       CASE
+         WHEN first_orders.first_order_at IS NOT NULL
+          AND first_orders.first_order_at <= (product_rows.listed_at::date + ($1::int * INTERVAL '1 day'))::date
+           THEN 'FIRST_ORDER_SUCCESS'
+         WHEN $2::date > (product_rows.listed_at::date + ($1::int * INTERVAL '1 day'))::date
+           THEN 'EXPIRED_NO_FIRST_ORDER'
+         ELSE 'OBSERVING'
+       END AS status,
+       GREATEST(((product_rows.listed_at::date + ($1::int * INTERVAL '1 day'))::date - $2::date), 0)::int AS remaining_observe_days,
+       product_rows.updated_at
+     FROM product_rows
+     LEFT JOIN first_orders ON first_orders.product_key = product_rows.product_key
+     ${condition}
+     ORDER BY product_rows.listed_at DESC, product_rows.store_name ASC, product_rows.product_name ASC`,
+    [observeDays, today, ...filter.values],
+  );
+  const products = result.rows.map((row) => ({
+    productId: row.product_id || row.product_key || '',
+    productKey: row.product_key || '',
+    productName: row.product_name || '',
+    operatorId: row.operator_id || '',
+    operatorName: row.operator_name || '',
+    storeId: row.store_id || '',
+    storeName: row.store_name || '',
+    listedAt: dateText(row.listed_at),
+    observeEndAt: dateText(row.observe_end_at),
+    firstOrderAt: dateText(row.first_order_at),
+    status: row.status,
+    remainingObserveDays: Number(row.remaining_observe_days || 0),
+    updatedAt: row.updated_at,
+  }));
+  const firstOrderWithin30DaysCount = products.filter((item) => item.status === 'FIRST_ORDER_SUCCESS').length;
+  const expiredNoFirstOrderCount = products.filter((item) => item.status === 'EXPIRED_NO_FIRST_ORDER').length;
+  const observingCount = products.filter((item) => item.status === 'OBSERVING').length;
+  const decidableCount = firstOrderWithin30DaysCount + expiredNoFirstOrderCount;
+  return {
+    periodStart,
+    periodEnd,
+    observeDays,
+    newProductCount: products.length,
+    firstOrderWithin30DaysCount,
+    expiredNoFirstOrderCount,
+    observingCount,
+    decidableCount,
+    firstOrderRate: decidableCount > 0 ? firstOrderWithin30DaysCount / decidableCount : null,
+    products,
+    dataUpdatedAt: products.map((item) => item.updatedAt).filter(Boolean).sort().at(-1) || '',
+  };
+}
+
 const AD_IMPORT_SORT_FIELDS = {
   adSpend: 'a.ad_spend',
   netAdSpend: 'a.net_ad_spend',

@@ -29,6 +29,7 @@ function formatDateTime(date: Date) {
 function DashboardHeader({ title, subtitle, dashboardData }: DashboardHeaderProps) {
   const [now, setNow] = useState(() => new Date());
   const current = formatDateTime(now);
+  const dataUpdatedAt = dashboardData?.dataUpdatedAt || dashboardData?.updatedAt || '-';
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -55,7 +56,7 @@ function DashboardHeader({ title, subtitle, dashboardData }: DashboardHeaderProp
         </div>
         <div className="dashboard-clock-meta">
           <span>{current.weekday}</span>
-          <span>最后更新：{dashboardData?.updatedAt ?? '-'}</span>
+          <span>数据更新时间：{dataUpdatedAt}</span>
           <span>数据来源：{dashboardData?.dataSource ?? '-'}</span>
           <span>统计周期：{dashboardData?.statisticsPeriod ?? '-'}</span>
         </div>

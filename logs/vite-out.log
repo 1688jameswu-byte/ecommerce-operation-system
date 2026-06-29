@@ -505,3 +505,45 @@
 [2m08:02:07[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
 [2m08:02:07[22m [36m[1m[vite][22m[39m server restarted.
 [2m08:02:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m08:16:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx, /src/pages/dashboard/DashboardPage.tsx[22m
+[2m08:17:17[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx, /src/pages/dashboard/DashboardPage.tsx[22m
+[2m08:17:36[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/SalesTrendChart.tsx[22m
+[2m08:18:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/SalesTrendChart.tsx[22m
+[2m08:19:01[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard/DashboardPage.tsx[22m
+[2m08:19:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard/DashboardPage.tsx[22m
+[2m08:19:52[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard/DashboardPage.tsx[22m
+[2m08:20:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard/DashboardPage.tsx[22m
+[2m08:21:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/DashboardHeader.tsx[22m
+[2m08:21:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/DashboardHeader.tsx[22m
+[2m08:22:40[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:22:40[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:22:42[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:22:42[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:24:03[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:24:03[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:24:34[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:24:34[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:25:04[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:25:04[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:25:30[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:25:30[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:26:47[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:26:48[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:27:59[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:27:59[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:43:32[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m08:43:32[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:43:46[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:43:46[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:44:34[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:44:34[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:44:50[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:44:51[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:45:01[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m08:45:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m08:45:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m08:45:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m08:45:41[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m08:45:42[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:47:02[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:47:02[22m [36m[1m[vite][22m[39m server restarted.

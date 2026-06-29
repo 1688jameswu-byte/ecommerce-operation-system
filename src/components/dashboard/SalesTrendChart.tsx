@@ -1,6 +1,12 @@
-import ReactECharts from 'echarts-for-react';
-import type { EChartsOption } from 'echarts';
+import { useEffect, useMemo, useRef } from 'react';
+import { LineChart } from 'echarts/charts';
+import { GridComponent, TooltipComponent } from 'echarts/components';
+import { init, use } from 'echarts/core';
+import type { ECharts, EChartsCoreOption } from 'echarts/core';
+import { CanvasRenderer } from 'echarts/renderers';
 import type { SalesTrendItem } from '../../types/dashboard';
+
+use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
 interface SalesTrendChartProps {
   data: SalesTrendItem[];
@@ -14,7 +20,9 @@ function formatCurrency(value: number) {
 }
 
 function SalesTrendChart({ data }: SalesTrendChartProps) {
-  const option: EChartsOption = {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<ECharts | null>(null);
+  const option = useMemo<EChartsCoreOption>(() => ({
     backgroundColor: 'transparent',
     color: ['#1f8fff'],
     tooltip: {
@@ -34,7 +42,7 @@ function SalesTrendChart({ data }: SalesTrendChartProps) {
           width: 1,
         },
       },
-      valueFormatter: (value) => `¥ ${formatCurrency(Number(value))}`,
+      valueFormatter: (value: unknown) => `￥ ${formatCurrency(Number(value))}`,
     },
     grid: {
       left: 54,
@@ -111,13 +119,31 @@ function SalesTrendChart({ data }: SalesTrendChartProps) {
         data: data.map((item) => item.salesAmount),
       },
     ],
-  };
+  }), [data]);
 
-  return (
-    <div className="sales-trend-chart">
-      <ReactECharts option={option} notMerge lazyUpdate style={{ width: '100%', height: '100%' }} />
-    </div>
-  );
+  useEffect(() => {
+    if (!containerRef.current) {
+      return undefined;
+    }
+
+    const chart = chartRef.current ?? init(containerRef.current);
+    chartRef.current = chart;
+    chart.setOption(option, true);
+
+    const handleResize = () => chart.resize();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [option]);
+
+  useEffect(() => () => {
+    chartRef.current?.dispose();
+    chartRef.current = null;
+  }, []);
+
+  return <div ref={containerRef} className="sales-trend-chart" />;
 }
 
 export default SalesTrendChart;

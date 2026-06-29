@@ -38,12 +38,16 @@ const isWindows = process.platform === 'win32';
 const viteBin = isWindows
   ? pathFromRoot('node_modules/.bin/vite.cmd')
   : pathFromRoot('node_modules/.bin/vite');
+const distIndex = pathFromRoot('dist/index.html');
 
-// The app keeps its API handlers in vite.config.js middleware. `vite preview`
-// can serve the built frontend without those handlers in production, causing
-// /api/* requests to fall through to index.html. Run the Vite server so the
-// middleware remains active on the cloud host.
-const serverArgs = ['--host', '0.0.0.0', '--port', port, '--configLoader', 'runner'];
+if (!fs.existsSync(distIndex)) {
+  throw new Error('dist/index.html not found. Run npm run build before npm run start.');
+}
+
+// Production serves the built dist assets. API middleware is registered from
+// vite.config.js via configurePreviewServer, so /api/* remains available while
+// the browser no longer downloads source .tsx modules.
+const serverArgs = ['preview', '--host', '0.0.0.0', '--port', port, '--configLoader', 'runner'];
 const child = isWindows
   ? spawn('cmd.exe', ['/d', '/c', viteBin, ...serverArgs], { stdio: 'inherit', shell: false })
   : spawn(viteBin, serverArgs, { stdio: 'inherit', shell: false });
