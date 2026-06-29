@@ -5627,6 +5627,7 @@ function getWorkbenchScope(currentUser, searchParams) {
     operatorName,
     stores,
     storeOptions,
+    selectedStoreId: requestedStoreId,
     storeKeys: new Set(stores.flatMap((store) => [String(store?.id ?? ''), String(store?.storeName ?? '')].filter(Boolean))),
     storeNames: new Set(stores.map((store) => normalizeOrderImportStoreName(store?.storeName || store?.id)).filter(Boolean)),
     relations,
@@ -5701,15 +5702,54 @@ function pickWorkbenchTarget(targets, scope, period) {
     .sort((first, second) => Date.parse(second?.updatedAt || '') - Date.parse(first?.updatedAt || ''));
   const storeIds = new Set(scope.stores.map((store) => String(store?.id ?? '').trim()).filter(Boolean));
   const storeNames = new Set(scope.stores.map((store) => normalizeOrderImportStoreName(store?.storeName || store?.id)).filter(Boolean));
-  const matchesStore = (target) => {
+  const matchesStoreSet = (target) => {
     const targetStoreId = String(target?.storeId ?? '').trim();
     const targetStoreName = normalizeOrderImportStoreName(target?.storeName || target?.storeId);
     return (targetStoreId && storeIds.has(targetStoreId)) || (targetStoreName && storeNames.has(targetStoreName));
   };
+  const matchesSingleStore = (target, store) => {
+    const targetStoreId = String(target?.storeId ?? '').trim();
+    const targetStoreName = normalizeOrderImportStoreName(target?.storeName || target?.storeId);
+    const storeId = String(store?.id ?? '').trim();
+    const storeName = normalizeOrderImportStoreName(store?.storeName || store?.id);
+    return (targetStoreId && targetStoreId === storeId) || (targetStoreName && targetStoreName === storeName);
+  };
+  const matchesOperator = (target) => target?.operatorId && target.operatorId === scope.operatorId;
 
-  return enabledTargets.find((target) => target.operatorId && target.operatorId === scope.operatorId && matchesStore(target)) ||
+  if (scope.operatorId && !scope.selectedStoreId && scope.stores.length > 1) {
+    const storeTargets = scope.stores
+      .map((store) => enabledTargets.find((target) => matchesOperator(target) && matchesSingleStore(target, store)))
+      .filter(Boolean);
+
+    if (storeTargets.length > 0) {
+      const expenseRatioTargets = storeTargets
+        .map((target) => toFiniteNumber(target?.expenseRatioTarget))
+        .filter((value) => Number.isFinite(value));
+
+      return {
+        id: `aggregate-${scope.operatorId}-${period}`,
+        period,
+        operatorId: scope.operatorId,
+        operatorName: scope.operatorName,
+        storeId: '',
+        storeName: '',
+        salesTarget: Number(storeTargets.reduce((total, target) => total + toFiniteNumber(target?.salesTarget), 0).toFixed(2)),
+        effectiveListingTarget: storeTargets.reduce((total, target) => total + toFiniteNumber(target?.effectiveListingTarget), 0),
+        firstOrderProductTarget: storeTargets.reduce((total, target) => total + toFiniteNumber(target?.firstOrderProductTarget), 0),
+        expenseRatioTarget: expenseRatioTargets.length > 0
+          ? Number((expenseRatioTargets.reduce((total, value) => total + value, 0) / expenseRatioTargets.length).toFixed(4))
+          : 0,
+        enabled: true,
+        remark: '全部店铺自动汇总目标',
+        createdAt: '',
+        updatedAt: storeTargets.map((target) => target?.updatedAt || '').filter(Boolean).sort().at(-1) || '',
+      };
+    }
+  }
+
+  return enabledTargets.find((target) => target.operatorId && target.operatorId === scope.operatorId && matchesStoreSet(target)) ||
     enabledTargets.find((target) => target.operatorId && target.operatorId === scope.operatorId && !target.storeId && !target.storeName) ||
-    enabledTargets.find((target) => matchesStore(target)) ||
+    enabledTargets.find((target) => matchesStoreSet(target)) ||
     enabledTargets.find((target) => !target.operatorId && !target.storeId && !target.storeName) ||
     null;
 }
