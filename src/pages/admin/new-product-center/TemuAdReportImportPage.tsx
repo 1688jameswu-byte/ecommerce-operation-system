@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { type ImportOverview, type ImportPreview, type ImportResult, type TemuStorageStatus, newProductCenterDataSource } from '../../../data-source/newProductCenterDataSource';
+import type { CurrentUser } from '../../../types/auth';
+import ConfirmDeleteModal from '../ConfirmDeleteModal';
 
 const fieldLabels: Record<string, string> = {
   storeName: '店铺',
@@ -28,6 +30,7 @@ const fieldLabels: Record<string, string> = {
 
 const AD_RECORD_PAGE_SIZE = 50;
 type StoreOption = { id?: string; storeName?: string; platform?: string; status?: string };
+type ImportBatchRow = Record<string, any>;
 
 const AD_RECORD_COLUMNS = [
   '商品名称',
@@ -152,17 +155,22 @@ function inferStoreNameFromFileName(fileName: string) {
 }
 
 function getMissingAdMappings(mapping: Record<string, string>) {
-  return [
+  const missing = [
     ['productName', '商品名称'],
     ['temuProductId', '商品ID'],
     ['temuSpuId', 'SPU ID'],
     ['adSpend', '总花费'],
-    ['promoSubOrderCount', '子订单数（推广）'],
-    ['promoClicks', '点击（推广）'],
   ].filter(([field]) => !mapping[field]).map(([, label]) => label);
+  if (!mapping.promoSalesAmount && !mapping.globalSalesAmount) {
+    missing.push('销售额（推广或全域）');
+  }
+  if (!mapping.promoImpressions && !mapping.globalImpressions && !mapping.promoClicks && !mapping.globalClicks) {
+    missing.push('曝光或点击（推广或全域）');
+  }
+  return missing;
 }
 
-export default function TemuAdReportImportPage() {
+export default function TemuAdReportImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const [reportDate, setReportDate] = useState('');
   const [importReportDate, setImportReportDate] = useState('');
   const [storeName, setStoreName] = useState('');
@@ -181,6 +189,9 @@ export default function TemuAdReportImportPage() {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortField, setSortField] = useState('adSpend');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [deleteBatch, setDeleteBatch] = useState<ImportBatchRow | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const isAdmin = currentUser.role === 'admin';
 
   const refreshStorageStatus = async () => {
     try {
@@ -295,7 +306,7 @@ export default function TemuAdReportImportPage() {
   const importAdPreview = async (nextPreview: ImportPreview, nextMapping: Record<string, string>, nextStoreName: string) => {
     const missingAdMappings = getMissingAdMappings(nextMapping);
     if (missingAdMappings.length) {
-      setMessage('当前文件不像 TEMU 广告报表：必须映射商品ID。商品基础信息请使用“商品信息导入”。');
+      setMessage(`当前广告报表字段映射不完整，请检查：${missingAdMappings.join('、')}。如果这是商品基础资料表，再使用“商品信息导入”。`);
       return;
     }
     if (!nextMapping.storeName && !nextStoreName.trim()) {
@@ -342,6 +353,23 @@ export default function TemuAdReportImportPage() {
     if (!preview) return;
     setMessage('正在按当前字段映射重新导入 PostgreSQL...');
     await importAdPreview(preview, mapping, importStoreName || storeName);
+  };
+
+  const deleteSelectedBatch = async () => {
+    if (!deleteBatch) return;
+    setIsDeleting(true);
+    try {
+      const result = await newProductCenterDataSource.deleteAdImportBatch(String(deleteBatch.id));
+      setMessage(result.message || `删除完成：广告日报 ${result.deletedAds ?? 0} 条。`);
+      setDeleteBatch(null);
+      setRecordsPage(1);
+      await refreshOverview(1);
+      await refreshStorageStatus();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const isStorageReady = Boolean(storageStatus?.ok && !storageError);
@@ -578,7 +606,14 @@ export default function TemuAdReportImportPage() {
                   <td>{String(row.uploadedByName || row.uploadedBy || '-')}</td>
                   <td>{formatShanghaiTime(row.finishedAt || row.createdAt)}</td>
                   <td>{String(row.status || '-')}</td>
-                  <td><button type="button" onClick={() => window.alert(`批次 ${String(row.id)}\\n文件：${String(row.fileName || '-')}`)}>查看明细</button><button type="button" onClick={() => window.alert(row.errorRows ? '未匹配/失败数据已在上方区域展示。' : '该批次无失败行。')}>查看失败行</button><button type="button" disabled={!reportDate} onClick={() => void newProductCenterDataSource.rebuildSnapshot(reportDate).then(() => refreshOverview(recordsPage))}>重建快照</button></td>
+                  <td>
+                    <div className="temu-import-batch-actions">
+                      <button type="button" onClick={() => window.alert(`批次 ${String(row.id)}\\n文件：${String(row.fileName || '-')}`)}>查看明细</button>
+                      <button type="button" onClick={() => window.alert(row.errorRows ? '未匹配/失败数据已在上方区域展示。' : '该批次无失败行。')}>查看失败行</button>
+                      <button type="button" disabled={!reportDate} onClick={() => void newProductCenterDataSource.rebuildSnapshot(reportDate).then(() => refreshOverview(recordsPage))}>重建快照</button>
+                      {isAdmin && <button type="button" className="batch-delete-button" onClick={() => setDeleteBatch(row)}>删除</button>}
+                    </div>
+                  </td>
                 </tr>
               ))}
               {overview.batches.length === 0 && <tr><td colSpan={14}>暂无广告导入批次</td></tr>}
@@ -586,6 +621,21 @@ export default function TemuAdReportImportPage() {
           </table>
         </div>
       </article>
+      {deleteBatch && (
+        <ConfirmDeleteModal
+          title="确认删除该广告数据导入批次吗？"
+          description="删除后，该批次对应的广告日报会从 PostgreSQL 删除，并重新计算相关新品快照。"
+          isBusy={isDeleting}
+          onCancel={() => setDeleteBatch(null)}
+          onConfirm={deleteSelectedBatch}
+        >
+          <span>文件名：{String(deleteBatch.fileName || '-')}</span>
+          <span>店铺：{String(deleteBatch.storeName || storeName || '-')}</span>
+          <span>广告日期：{String(deleteBatch.reportDate || reportDate || '-').slice(0, 10)}</span>
+          <span>成功行数：{String(deleteBatch.successRows ?? 0)}</span>
+          <span>导入时间：{formatShanghaiTime(deleteBatch.finishedAt || deleteBatch.createdAt)}</span>
+        </ConfirmDeleteModal>
+      )}
     </section>
   );
 }

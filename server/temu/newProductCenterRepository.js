@@ -895,6 +895,132 @@ export async function importAdRows({ rows = [], mapping = {}, fileName = '', rep
   return { ok: true, totalRows: rows.length, successRows: rows.length - errors.length, errorRows: errors.length, errors };
 }
 
+export async function deleteProductImportBatch(batchId) {
+  await runTemuMigrations();
+  const client = await getAlibaba1688Pool().connect();
+  try {
+    await client.query('BEGIN');
+    const batchResult = await client.query(
+      `SELECT id, import_type, file_name, store_name
+       FROM temu_import_batches
+       WHERE id = $1::uuid AND import_type = 'product_info'
+       FOR UPDATE`,
+      [batchId],
+    );
+    const batch = batchResult.rows[0];
+    if (!batch) {
+      await client.query('ROLLBACK');
+      return { ok: false, deleted: false, message: '未找到商品信息导入批次。' };
+    }
+    const productIdsResult = await client.query(
+      `SELECT id
+       FROM temu_products
+       WHERE source_id LIKE $1`,
+      [`${batch.id}-%`],
+    );
+    const productIds = productIdsResult.rows.map((row) => row.id);
+    let deletedProducts = 0;
+    let deletedSkus = 0;
+    if (productIds.length) {
+      const skuResult = await client.query(
+        `DELETE FROM temu_product_skus
+         WHERE product_id = ANY($1::uuid[])
+         RETURNING id`,
+        [productIds],
+      );
+      deletedSkus = skuResult.rowCount || 0;
+      const productResult = await client.query(
+        `DELETE FROM temu_products
+         WHERE id = ANY($1::uuid[])
+         RETURNING id`,
+        [productIds],
+      );
+      deletedProducts = productResult.rowCount || 0;
+    }
+    await client.query(
+      `DELETE FROM temu_product_timeline
+       WHERE source_type = 'product_import' AND source_id = $1`,
+      [String(batch.id)],
+    );
+    await client.query('DELETE FROM temu_import_batches WHERE id = $1::uuid', [batch.id]);
+    await client.query('COMMIT');
+    return {
+      ok: true,
+      deleted: true,
+      batchId: String(batch.id),
+      fileName: batch.file_name || '',
+      storeName: batch.store_name || '',
+      deletedProducts,
+      deletedSkus,
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function deleteAdImportBatch(batchId) {
+  await runTemuMigrations();
+  const client = await getAlibaba1688Pool().connect();
+  let snapshotDate = null;
+  let productIds = [];
+  try {
+    await client.query('BEGIN');
+    const batchResult = await client.query(
+      `SELECT id, import_type, file_name, store_name, report_date
+       FROM temu_import_batches
+       WHERE id = $1::uuid AND import_type = 'ad_product_daily'
+       FOR UPDATE`,
+      [batchId],
+    );
+    const batch = batchResult.rows[0];
+    if (!batch) {
+      await client.query('ROLLBACK');
+      return { ok: false, deleted: false, message: '未找到广告数据导入批次。' };
+    }
+    snapshotDate = dateText(batch.report_date);
+    const productResult = await client.query(
+      `SELECT DISTINCT product_id
+       FROM temu_ad_product_daily
+       WHERE import_batch_id = $1::uuid AND product_id IS NOT NULL`,
+      [batch.id],
+    );
+    productIds = productResult.rows.map((row) => row.product_id).filter(Boolean);
+    const adResult = await client.query(
+      `DELETE FROM temu_ad_product_daily
+       WHERE import_batch_id = $1::uuid
+       RETURNING id`,
+      [batch.id],
+    );
+    await client.query(
+      `DELETE FROM temu_product_timeline
+       WHERE source_type = 'ad_import' AND source_id = $1`,
+      [String(batch.id)],
+    );
+    await client.query('DELETE FROM temu_import_batches WHERE id = $1::uuid', [batch.id]);
+    await client.query('COMMIT');
+    if (snapshotDate) {
+      await rebuildNewProductSnapshots({ snapshotDate, productIds });
+    }
+    return {
+      ok: true,
+      deleted: true,
+      batchId: String(batch.id),
+      fileName: batch.file_name || '',
+      storeName: batch.store_name || '',
+      reportDate: snapshotDate,
+      deletedAds: adResult.rowCount || 0,
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 function stageForDays(days) {
   if (days <= 3) return 'COLD_START';
   if (days <= 7) return 'TESTING';

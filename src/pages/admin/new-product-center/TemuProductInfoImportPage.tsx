@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { type ImportOverview, type ImportPreview, type ImportResult, type TemuStorageStatus, newProductCenterDataSource } from '../../../data-source/newProductCenterDataSource';
+import type { CurrentUser } from '../../../types/auth';
+import ConfirmDeleteModal from '../ConfirmDeleteModal';
 
 const fieldLabels: Record<string, string> = {
   productTitle: '商品标题',
@@ -19,6 +21,7 @@ const fieldLabels: Record<string, string> = {
 
 const PRODUCT_RECORD_PAGE_SIZE = 50;
 type StoreOption = { id?: string; storeName?: string; platform?: string; status?: string };
+type ImportBatchRow = Record<string, any>;
 
 function formatShanghaiTime(value: unknown) {
   if (!value) return '-';
@@ -68,7 +71,7 @@ function getMissingProductMappings(mapping: Record<string, string>) {
   ].filter(([field]) => !mapping[field]).map(([, label]) => label);
 }
 
-export default function TemuProductInfoImportPage() {
+export default function TemuProductInfoImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [overview, setOverview] = useState<ImportOverview>({ batches: [], records: [] });
   const [mapping, setMapping] = useState<Record<string, string>>({});
@@ -83,7 +86,10 @@ export default function TemuProductInfoImportPage() {
   const [recordsPage, setRecordsPage] = useState(1);
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
+  const [deleteBatch, setDeleteBatch] = useState<ImportBatchRow | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const overviewRequestSeq = useRef(0);
+  const isAdmin = currentUser.role === 'admin';
 
   const refreshStorageStatus = async () => {
     try {
@@ -208,6 +214,23 @@ export default function TemuProductInfoImportPage() {
     if (!preview) return;
     setMessage('正在按当前字段映射重新导入 PostgreSQL...');
     await importProductPreview(preview, mapping, importStoreName || storeName);
+  };
+
+  const deleteSelectedBatch = async () => {
+    if (!deleteBatch) return;
+    setIsDeleting(true);
+    try {
+      const result = await newProductCenterDataSource.deleteProductImportBatch(String(deleteBatch.id));
+      setMessage(result.message || `删除完成：商品 ${result.deletedProducts ?? 0} 个，SKU ${result.deletedSkus ?? 0} 个。`);
+      setDeleteBatch(null);
+      setRecordsPage(1);
+      await refreshOverview(1, storeName, filters);
+      await refreshStorageStatus();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const isStorageReady = Boolean(storageStatus?.ok && !storageError);
@@ -413,6 +436,7 @@ export default function TemuProductInfoImportPage() {
                       <button type="button" onClick={() => window.alert(`批次 ${String(row.id)}\\n文件：${String(row.fileName || '-')}`)}>明细</button>
                       <button type="button" onClick={() => window.alert(row.errorRows ? '失败行已在上方失败行区域展示最近一次导入结果。' : '该批次无失败行。')}>失败行</button>
                       <button type="button" onClick={() => void newProductCenterDataSource.rebuildSnapshot(new Date().toISOString().slice(0, 10)).then(() => refreshOverview(recordsPage))}>重建快照</button>
+                      {isAdmin && <button type="button" className="batch-delete-button" onClick={() => setDeleteBatch(row)}>删除</button>}
                     </div>
                   </td>
                 </tr>
@@ -422,6 +446,20 @@ export default function TemuProductInfoImportPage() {
           </table>
         </div>
       </article>
+      {deleteBatch && (
+        <ConfirmDeleteModal
+          title="确认删除该商品信息导入批次吗？"
+          description="删除后，该批次导入或更新的商品信息和 SKU 会从 PostgreSQL 删除，相关商品快照也会同步失效。"
+          isBusy={isDeleting}
+          onCancel={() => setDeleteBatch(null)}
+          onConfirm={deleteSelectedBatch}
+        >
+          <span>文件名：{String(deleteBatch.fileName || '-')}</span>
+          <span>店铺：{String(deleteBatch.storeName || storeName || '-')}</span>
+          <span>成功行数：{String(deleteBatch.successRows ?? 0)}</span>
+          <span>导入时间：{formatShanghaiTime(deleteBatch.finishedAt || deleteBatch.createdAt)}</span>
+        </ConfirmDeleteModal>
+      )}
     </section>
   );
 }

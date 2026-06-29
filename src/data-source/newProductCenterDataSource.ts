@@ -66,6 +66,12 @@ export const newProductCenterDataSource = {
     return request<ImportOverview>(`/api/data-import/temu-product-info/records?${params.toString()}`);
   },
 
+  deleteProductImportBatch(batchId: string) {
+    return request<DeleteImportBatchResult>(`/api/data-import/temu-product-info/batches/${encodeURIComponent(batchId)}`, {
+      method: 'DELETE',
+    });
+  },
+
   getVisibleStores() {
     return request<{ success: boolean; stores: Array<{ id?: string; dbId?: string; storeName?: string; platform?: string; status?: string }>; message?: string }>('/api/auth/visible-stores');
   },
@@ -94,6 +100,12 @@ export const newProductCenterDataSource = {
       if (value) params.set(key, value);
     });
     return request<ImportOverview>(`/api/data-import/temu-ad-report/records?${params.toString()}`);
+  },
+
+  deleteAdImportBatch(batchId: string) {
+    return request<DeleteImportBatchResult>(`/api/data-import/temu-ad-report/batches/${encodeURIComponent(batchId)}`, {
+      method: 'DELETE',
+    });
   },
 
   getBossDashboard(params = '') {
@@ -184,6 +196,19 @@ export interface ImportResult {
   successRows: number;
   errorRows: number;
   errors: Array<{ rowNumber: number; errorReason: string; rawData: Record<string, unknown> }>;
+}
+
+export interface DeleteImportBatchResult {
+  ok: boolean;
+  deleted?: boolean;
+  message?: string;
+  batchId?: string;
+  fileName?: string;
+  storeName?: string;
+  reportDate?: string | null;
+  deletedProducts?: number;
+  deletedSkus?: number;
+  deletedAds?: number;
 }
 
 export interface ImportOverview {

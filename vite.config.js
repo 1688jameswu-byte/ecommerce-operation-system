@@ -22,6 +22,8 @@ import {
   assertImportFileShape,
   buildImportPreview,
   calculateNewProductFirstOrderStats,
+  deleteAdImportBatch,
+  deleteProductImportBatch,
   getAdStrategyConfig,
   getAdStrategyCounts,
   getAdStrategyExecution,
@@ -3354,6 +3356,16 @@ async function handleTemuProductInfoImportApi(req, res) {
       })));
       return;
     }
+    if (req.method === 'DELETE' && action.startsWith('batches/')) {
+      if (String(currentUser.role || '').toLowerCase() !== 'admin') {
+        res.statusCode = 403;
+        res.end(JSON.stringify({ ok: false, message: '仅管理员可删除商品信息导入批次。' }));
+        return;
+      }
+      const batchId = decodeURIComponent(action.replace(/^batches\//, ''));
+      res.end(JSON.stringify(await deleteProductImportBatch(batchId)));
+      return;
+    }
     if (req.method !== 'POST') {
       res.statusCode = 405;
       res.end('Method not allowed');
@@ -3449,6 +3461,16 @@ async function handleTemuAdReportImportApi(req, res) {
         ...Object.fromEntries(requestUrl.searchParams.entries()),
         ...scope,
       })));
+      return;
+    }
+    if (req.method === 'DELETE' && action.startsWith('batches/')) {
+      if (String(currentUser.role || '').toLowerCase() !== 'admin') {
+        res.statusCode = 403;
+        res.end(JSON.stringify({ ok: false, message: '仅管理员可删除广告数据导入批次。' }));
+        return;
+      }
+      const batchId = decodeURIComponent(action.replace(/^batches\//, ''));
+      res.end(JSON.stringify(await deleteAdImportBatch(batchId)));
       return;
     }
     if (req.method !== 'POST') {

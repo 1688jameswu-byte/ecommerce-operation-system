@@ -745,9 +745,9 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
           ) : isTrafficImportPage ? (
             <TrafficImportPage currentUser={currentUser} visibleStoreNames={visibleStoreNames} />
           ) : isTemuProductInfoImportPage ? (
-            <TemuProductInfoImportPage />
+            <TemuProductInfoImportPage currentUser={currentUser} />
           ) : isTemuAdReportImportPage ? (
-            <TemuAdReportImportPage />
+            <TemuAdReportImportPage currentUser={currentUser} />
           ) : isNewProductCenterPage ? (
             <NewProductCenterPage currentUser={currentUser} />
           ) : isWarningRulesPage ? (
