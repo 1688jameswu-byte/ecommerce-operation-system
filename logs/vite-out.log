@@ -991,3 +991,63 @@
 [workbench-kpi] dataIntegrity 0ms
 [workbench-kpi] todayActions 0ms
 [workbench-kpi] total 328ms
+[2m22:41:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:22:09[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m23:22:10[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 4ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 13ms
+[workbench-kpi] targets 57ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=3
+[workbench-kpi] sales 1ms
+[workbench-kpi] firstOrder 247ms
+[workbench-kpi] listing 248ms
+[workbench-kpi] adExpense 5ms
+[workbench-kpi] afterSaleExpense 48ms
+[workbench-kpi] expense 53ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 2ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 321ms
+[2m23:22:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:22:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:24:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:24:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:25:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:26:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:27:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:27:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:28:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:28:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:28:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:29:18[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:29:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:29:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:30:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:30:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:30:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:31:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:31:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 2ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 1ms
+[workbench-kpi] targets 51ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=3
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 213ms
+[workbench-kpi] firstOrder 218ms
+[workbench-kpi] adExpense 4ms
+[workbench-kpi] afterSaleExpense 15ms
+[workbench-kpi] expense 19ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 0ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 241ms

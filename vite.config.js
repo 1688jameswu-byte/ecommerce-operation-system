@@ -6064,11 +6064,22 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   }
   const listingProductCount = newProductListingStats.newProductCount;
   const todayListingCount = newProductListingStats.products.filter((item) => String(item?.listedAt ?? '').slice(0, 10) === range.today).length;
+  const listingReferenceDate = range.today >= range.start && range.today <= range.end ? range.today : range.end;
+  const listingLast7Start = formatOrderDateKey(new Date(Date.parse(`${listingReferenceDate}T00:00:00`) - 6 * 86400000));
+  const last7DaysListingCount = newProductListingStats.products.filter((item) => {
+    const listedAt = String(item?.listedAt ?? '').slice(0, 10);
+    return listedAt && listedAt >= listingLast7Start && listedAt <= listingReferenceDate;
+  }).length;
   const firstOrderProductCount = newProductFirstOrderStats.firstOrderWithin30DaysCount;
   const productFollowUpSource = Array.from(new Map([
     ...newProductFirstOrderStats.products,
     ...newProductListingStats.products.filter((item) => item.status === 'OBSERVING'),
   ].map((item) => [item.productKey || item.productId || `${item.storeName}-${item.skcId}-${item.skuId}`, item])).values());
+  const dueIn7DaysCount = productFollowUpSource.filter((item) => (
+    item.status === 'OBSERVING' &&
+    Number(item.remainingObserveDays ?? 0) > 0 &&
+    Number(item.remainingObserveDays ?? 0) <= 7
+  )).length;
   const productFollowUps = productFollowUpSource.map((item) => {
     const siteJoinDate = String(item?.listedAt ?? '').slice(0, 10);
     const daysOnline = siteJoinDate ? Math.max(0, Math.floor((Date.parse(`${range.today}T00:00:00`) - Date.parse(`${siteJoinDate}T00:00:00`)) / 86400000) + 1) : 0;
@@ -6136,6 +6147,14 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const adRatio = expenseSalesBase > 0 ? adExpenseAmount / expenseSalesBase : null;
   const afterSaleRatio = expenseSalesBase > 0 ? estimatedAfterSaleAmount / expenseSalesBase : null;
   const hasExpenseData = adExpenseAmount > 0 || lastMonthAfterSaleAmount > 0;
+  const expenseGapToTarget = expenseRatio !== null && target?.expenseRatioTarget ? target.expenseRatioTarget - expenseRatio : null;
+  const mainExpenseSource = !hasExpenseData
+    ? ''
+    : Math.abs(adExpenseAmount - estimatedAfterSaleAmount) <= Math.max(totalExpenseAmount * 0.1, 1)
+      ? '均衡'
+      : adExpenseAmount > estimatedAfterSaleAmount
+        ? '推广'
+        : '售后';
 
   const adSpendByStore = new Map((adSpendSummary.stores ?? []).map((item) => [
     normalizeOrderImportStoreName(item?.storeName),
@@ -6293,6 +6312,29 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     firstOrder: firstOrderTargetComplete ? firstOrderProductCount / target.firstOrderProductTarget : null,
     expense: expenseRatio,
   };
+  const buildProgressMetric = (currentValue, targetValue) => {
+    if (!targetValue || targetValue <= 0) {
+      return {
+        currentValue,
+        targetValue: targetValue ?? null,
+        expectedByTime: null,
+        progressGapValue: null,
+        remainingToTarget: null,
+        exceededTarget: null,
+      };
+    }
+    const expectedByTime = Number((targetValue * range.timeProgress).toFixed(2));
+    return {
+      currentValue,
+      targetValue,
+      expectedByTime,
+      progressGapValue: Number((currentValue - expectedByTime).toFixed(2)),
+      remainingToTarget: Number(Math.max(targetValue - currentValue, 0).toFixed(2)),
+      exceededTarget: Number(Math.max(currentValue - targetValue, 0).toFixed(2)),
+    };
+  };
+  const salesProgressMetric = buildProgressMetric(salesAmount, target?.salesTarget ?? null);
+  const listingProgressMetric = buildProgressMetric(listingProductCount, target?.effectiveListingTarget ?? null);
   const over7NoFirstOrder = newProductFirstOrderStats.expiredNoFirstOrderCount;
   const remainingListing = Math.max((target?.effectiveListingTarget || 0) - listingProductCount, 0);
   const todaySuggestedListing = target?.effectiveListingTarget > 0 && range.timeProgress > 0 ? Math.ceil(remainingListing / range.remainingDays) : null;
@@ -6346,9 +6388,10 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     });
   }
   if (shouldShowProgressActions && completion.listing !== null && completion.listing < range.timeProgress) {
+    const listingLag = listingProgressMetric.progressGapValue !== null ? Math.abs(Math.floor(listingProgressMetric.progressGapValue)) : remainingListing;
     todayActions.push({
       priority: '高',
-      title: `有效上新还差 ${remainingListing} 款，今天建议至少完成 ${todaySuggestedListing ?? 0} 款`,
+      title: `上新进度严重落后，当前按时间进度落后 ${listingLag} 款，请优先补充重点店铺新品`,
       kpi: '上新商品数',
       impact: '影响可控动作产出和后续新品转化',
       actionLabel: '去导入商品信息',
@@ -6467,6 +6510,13 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     storeBreakdown: scope.selectedStoreId || storeBreakdown.length <= 1 ? [] : storeBreakdown,
     todayActions,
     salesKpi: {
+      currentValue: salesProgressMetric.currentValue,
+      targetValue: salesProgressMetric.targetValue,
+      score: salesScore,
+      expectedByTime: salesProgressMetric.expectedByTime,
+      progressGapValue: salesProgressMetric.progressGapValue,
+      remainingToTarget: salesProgressMetric.remainingToTarget,
+      exceededTarget: salesProgressMetric.exceededTarget,
       salesTarget: target?.salesTarget ?? null,
       salesAmount,
       completionRate: completion.sales,
@@ -6479,6 +6529,15 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       storeBreakdown: Array.from(storeSalesMap.values()).map((item) => ({ ...item, salesAmount: Number(item.salesAmount.toFixed(2)) })).sort((first, second) => second.salesAmount - first.salesAmount),
     },
     listingKpi: {
+      currentValue: listingProgressMetric.currentValue,
+      targetValue: listingProgressMetric.targetValue,
+      score: listingScore,
+      timeProgress: range.timeProgress,
+      expectedByTime: listingProgressMetric.expectedByTime,
+      progressGapValue: listingProgressMetric.progressGapValue,
+      remainingToTarget: listingProgressMetric.remainingToTarget,
+      exceededTarget: listingProgressMetric.exceededTarget,
+      last7DaysCompleted: last7DaysListingCount,
       target: target?.effectiveListingTarget ?? null,
       completed: listingProductCount,
       todayCompleted: todayListingCount,
@@ -6487,6 +6546,14 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       completionRate: completion.listing,
     },
     firstOrderKpi: {
+      currentValue: firstOrderProductCount,
+      targetValue: target?.firstOrderProductTarget ?? null,
+      targetCompletionRate: completion.firstOrder,
+      score: firstOrderScore,
+      observationDueCount: newProductFirstOrderStats.decidableCount,
+      dueProductFirstOrderRate: newProductFirstOrderStats.firstOrderRate,
+      remainingToTarget: target?.firstOrderProductTarget ? Math.max(target.firstOrderProductTarget - firstOrderProductCount, 0) : null,
+      dueIn7DaysCount,
       target: target?.firstOrderProductTarget ?? null,
       completed: firstOrderProductCount,
       completionRate: completion.firstOrder,
@@ -6500,6 +6567,16 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       over7NoFirstOrder,
     },
     expenseKpi: {
+      currentExpenseRatio: expenseRatio,
+      targetExpenseRatio: target?.expenseRatioTarget ?? null,
+      score: expenseScore,
+      promotionExpense: adExpenseAmount,
+      promotionExpenseRatio: adRatio,
+      afterSalesAccrual: estimatedAfterSaleAmount,
+      afterSalesAccrualRatio: afterSaleRatio,
+      accrualBasisLabel: previousFinancePeriod ? `按${previousFinancePeriod}售后费用` : '按上月售后费用',
+      gapToTarget: expenseGapToTarget,
+      mainExpenseSource,
       salesAmount: expenseSalesBase,
       adExpense: adExpenseAmount,
       afterSaleExpense: estimatedAfterSaleAmount,

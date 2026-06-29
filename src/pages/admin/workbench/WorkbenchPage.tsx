@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CurrentUser } from '../../../types/auth';
 import type { StoreRecord } from '../../../types/store';
 import type { OperatorRecord } from '../../../types/operator';
@@ -105,6 +105,13 @@ type WorkbenchData = {
   storeBreakdown?: StoreKpiBreakdown[];
   todayActions: WorkbenchAction[];
   salesKpi: {
+    currentValue?: number;
+    targetValue?: number | null;
+    score?: number | null;
+    expectedByTime?: number | null;
+    progressGapValue?: number | null;
+    remainingToTarget?: number | null;
+    exceededTarget?: number | null;
     salesTarget: number | null;
     salesAmount: number;
     completionRate: number | null;
@@ -117,6 +124,15 @@ type WorkbenchData = {
     storeBreakdown: Array<{ storeName: string; salesAmount: number; orderCount: number }>;
   };
   listingKpi: {
+    currentValue?: number;
+    targetValue?: number | null;
+    score?: number | null;
+    timeProgress?: number;
+    expectedByTime?: number | null;
+    progressGapValue?: number | null;
+    remainingToTarget?: number | null;
+    exceededTarget?: number | null;
+    last7DaysCompleted?: number;
     target: number | null;
     completed: number;
     todayCompleted: number;
@@ -125,6 +141,14 @@ type WorkbenchData = {
     completionRate: number | null;
   };
   firstOrderKpi: {
+    currentValue?: number;
+    targetValue?: number | null;
+    targetCompletionRate?: number | null;
+    score?: number | null;
+    observationDueCount?: number;
+    dueProductFirstOrderRate?: number | null;
+    remainingToTarget?: number | null;
+    dueIn7DaysCount?: number;
     target: number | null;
     completed: number;
     completionRate: number | null;
@@ -138,6 +162,16 @@ type WorkbenchData = {
     over7NoFirstOrder: number;
   };
   expenseKpi: {
+    currentExpenseRatio?: number | null;
+    targetExpenseRatio?: number | null;
+    score?: number | null;
+    promotionExpense?: number;
+    promotionExpenseRatio?: number | null;
+    afterSalesAccrual?: number;
+    afterSalesAccrualRatio?: number | null;
+    accrualBasisLabel?: string;
+    gapToTarget?: number | null;
+    mainExpenseSource?: string;
     salesAmount: number;
     adExpense: number;
     afterSaleExpense: number;
@@ -263,8 +297,8 @@ type IntegratedKpiCardModel = {
   statusClassName: string;
   mainValue: string;
   progress: number | null;
-  summaryRows: Array<[string, string]>;
-  detailRows: Array<[string, string]>;
+  summaryRows: Array<[string, string, string?]>;
+  detailRows: Array<[string, string, string?]>;
   actionLabel: string;
   actionHref: string;
 };
@@ -289,6 +323,29 @@ function salesProgressGapRow(data: WorkbenchData): [string, string] {
   return ['进度落后', formatPercent(Math.abs(gap))];
 }
 
+function progressGapRow(gap: number | null | undefined, formatter: (value: number) => string): [string, string, string?] {
+  if (gap === null || gap === undefined || !Number.isFinite(gap)) return ['进度差距', '-'];
+  if (gap >= 0) return ['进度差距', `领先 ${formatter(Math.abs(gap))}`, 'ok'];
+  return ['进度差距', `落后 ${formatter(Math.abs(gap))}`, 'warning'];
+}
+
+function remainingOrExceededRow(remaining: number | null | undefined, exceeded: number | null | undefined, formatter: (value: number) => string): [string, string, string?] {
+  if (exceeded !== null && exceeded !== undefined && Number.isFinite(exceeded) && exceeded > 0) {
+    return ['已超目标', formatter(exceeded), 'ok'];
+  }
+  if (remaining !== null && remaining !== undefined && Number.isFinite(remaining)) {
+    return ['剩余目标', formatter(remaining)];
+  }
+  return ['剩余目标', '-'];
+}
+
+function expenseGapRow(gap: number | null | undefined): [string, string, string?] {
+  if (gap === null || gap === undefined || !Number.isFinite(gap)) return ['距目标空间', '-'];
+  const points = `${Math.abs(gap * 100).toFixed(1)}个百分点`;
+  if (gap >= 0) return ['低于目标', points, 'ok'];
+  return ['高于目标', points, 'danger'];
+}
+
 function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] {
   const cardByKey = new Map(data.kpiSummary.cards.map((card) => [card.key, card]));
   const salesCard = cardByKey.get('sales');
@@ -303,6 +360,25 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
     : data.expenseKpi.salesAmount <= 0
       ? '暂无销售额，费用占比无法计算'
       : '暂无费用数据，费用占比无法计算';
+  const salesTarget = data.salesKpi.targetValue ?? data.salesKpi.salesTarget;
+  const listingTarget = data.listingKpi.targetValue ?? data.listingKpi.target;
+  const firstOrderTarget = data.firstOrderKpi.targetValue ?? data.firstOrderKpi.target;
+  const salesExpectedByTime = data.salesKpi.expectedByTime ?? (salesTarget ? salesTarget * data.salesKpi.timeProgress : null);
+  const listingTimeProgress = data.listingKpi.timeProgress ?? data.salesKpi.timeProgress;
+  const listingExpectedByTime = data.listingKpi.expectedByTime ?? (listingTarget ? listingTarget * listingTimeProgress : null);
+  const firstOrderCurrent = data.firstOrderKpi.currentValue ?? data.firstOrderKpi.firstOrderWithin30DaysCount ?? data.firstOrderKpi.completed;
+  const firstOrderCompletionRate = data.firstOrderKpi.targetCompletionRate ?? data.firstOrderKpi.completionRate;
+  const firstOrderDueCount = data.firstOrderKpi.observationDueCount ?? data.firstOrderKpi.decidableCount;
+  const firstOrderRate = data.firstOrderKpi.dueProductFirstOrderRate ?? data.firstOrderKpi.firstOrderRate;
+  const firstOrderRemaining = data.firstOrderKpi.remainingToTarget ?? (firstOrderTarget ? Math.max(firstOrderTarget - firstOrderCurrent, 0) : null);
+  const expenseTargetRatio = data.expenseKpi.targetExpenseRatio ?? data.expenseKpi.targetRatio;
+  const expenseCurrentRatio = data.expenseKpi.currentExpenseRatio ?? data.expenseKpi.expenseRatio;
+  const promotionExpense = data.expenseKpi.promotionExpense ?? data.expenseKpi.adExpense;
+  const promotionExpenseRatio = data.expenseKpi.promotionExpenseRatio ?? data.expenseKpi.adRatio;
+  const afterSalesAccrual = data.expenseKpi.afterSalesAccrual ?? data.expenseKpi.afterSaleExpense;
+  const afterSalesAccrualRatio = data.expenseKpi.afterSalesAccrualRatio ?? data.expenseKpi.afterSaleRatio;
+  const expenseGap = data.expenseKpi.gapToTarget ?? (expenseCurrentRatio !== null && expenseTargetRatio ? expenseTargetRatio - expenseCurrentRatio : null);
+  const mainExpenseSource = data.expenseKpi.mainExpenseSource || '-';
 
   return [
     {
@@ -315,15 +391,15 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
       mainValue: formatAmount(data.salesKpi.salesAmount),
       progress: cardProgress(salesCard),
       summaryRows: [
-        ['目标', formatAmount(data.salesKpi.salesTarget)],
+        ['目标', formatAmount(salesTarget)],
         ['完成率', formatPercent(data.salesKpi.completionRate)],
         ['得分', scoreText(salesCard)],
       ],
       detailRows: [
         ['时间进度', formatPercent(data.salesKpi.timeProgress)],
-        salesProgressGapRow(data),
-        ['剩余目标', formatAmount(data.salesKpi.remainingSales)],
-        ['剩余日均需完成', formatAmount(data.salesKpi.requiredDailySales)],
+        ['按时间应完成', formatAmount(salesExpectedByTime)],
+        progressGapRow(data.salesKpi.progressGapValue ?? null, formatAmount),
+        remainingOrExceededRow(data.salesKpi.remainingToTarget ?? data.salesKpi.remainingSales, data.salesKpi.exceededTarget, formatAmount),
       ],
       actionLabel: '查看销售明细',
       actionHref: '/admin/store-business',
@@ -338,14 +414,17 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
       mainValue: formatNumber(data.listingKpi.completed, '款'),
       progress: cardProgress(listingCard),
       summaryRows: [
-        ['目标', formatNumber(data.listingKpi.target, '款')],
+        ['目标', formatNumber(listingTarget, '款')],
         ['完成率', formatPercent(data.listingKpi.completionRate)],
         ['得分', scoreText(listingCard)],
       ],
       detailRows: [
+        ['时间进度', formatPercent(listingTimeProgress)],
+        ['按时间应完成', formatNumber(listingExpectedByTime, '款')],
+        progressGapRow(data.listingKpi.progressGapValue ?? null, (value) => formatNumber(value, '款')),
+        remainingOrExceededRow(data.listingKpi.remainingToTarget ?? data.listingKpi.remaining, data.listingKpi.exceededTarget, (value) => formatNumber(value, '款')),
         ['今日已完成', formatNumber(data.listingKpi.todayCompleted, '款')],
-        ['今日建议', formatNumber(data.listingKpi.todaySuggested, '款')],
-        ['还差', formatNumber(data.listingKpi.remaining, '款')],
+        ['近7天完成', formatNumber(data.listingKpi.last7DaysCompleted ?? 0, '款')],
       ],
       actionLabel: '去导入商品信息',
       actionHref: '/admin/temu-product-info-import',
@@ -357,19 +436,20 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
       weight: 20,
       status: firstOrderCard?.status ?? '数据缺失',
       statusClassName: statusClass(firstOrderCard?.status ?? '数据缺失'),
-      mainValue: formatNumber(data.firstOrderKpi.firstOrderWithin30DaysCount ?? data.firstOrderKpi.completed, '款'),
+      mainValue: formatNumber(firstOrderCurrent, '款'),
       progress: cardProgress(firstOrderCard),
       summaryRows: [
-        ['目标', formatNumber(data.firstOrderKpi.target, '款')],
-        ['完成率', formatPercent(data.firstOrderKpi.completionRate)],
+        ['目标', formatNumber(firstOrderTarget, '款')],
+        ['目标完成率', formatPercent(firstOrderCompletionRate)],
         ['得分', scoreText(firstOrderCard)],
       ],
       detailRows: [
-        ['本月观察期到期', formatNumber(data.firstOrderKpi.decidableCount, '款')],
-        ['观察中新品', formatNumber(data.firstOrderKpi.observingCount, '款')],
+        ['本月观察期到期', formatNumber(firstOrderDueCount, '款')],
+        ['30天内首单', formatNumber(data.firstOrderKpi.firstOrderWithin30DaysCount, '款')],
         ['到期未首单', formatNumber(data.firstOrderKpi.expiredNoFirstOrderCount, '款')],
-        ['延迟首单', formatNumber(data.firstOrderKpi.delayedFirstOrderCount ?? 0, '款')],
-        ['30天首单率', formatFirstOrderRate(data.firstOrderKpi.firstOrderRate)],
+        ['到期商品首单率', formatFirstOrderRate(firstOrderRate)],
+        ['距离目标还差', formatNumber(firstOrderRemaining, '款')],
+        ['7天内即将到期', formatNumber(data.firstOrderKpi.dueIn7DaysCount ?? 0, '款')],
       ],
       actionLabel: '查看未首单商品',
       actionHref: '#product-follow-ups',
@@ -377,23 +457,27 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
     {
       key: 'expense',
       title: '费用控制',
-      subtitle: '推广费 + 预估售后占销售额',
+      subtitle: '推广费 + 售后费用计提占销售额',
       weight: 20,
       status: data.expenseKpi.hasExpenseData ? (expenseCard?.status ?? '数据缺失') : '数据缺失',
       statusClassName: data.expenseKpi.hasExpenseData ? statusClass(expenseCard?.status ?? '数据缺失') : 'muted',
       mainValue: expenseMainValue,
       progress: data.expenseKpi.hasExpenseData ? cardProgress(expenseCard) : null,
       summaryRows: [
-        ['加权目标费用占比', formatPercent(data.expenseKpi.targetRatio)],
-        ['当前占比', expenseRatioLabel],
+        ['目标费用占比', formatPercent(expenseTargetRatio)],
+        ['当前费用占比', data.expenseKpi.hasExpenseData ? formatPercent(expenseCurrentRatio) : expenseRatioLabel],
         ['得分', data.expenseKpi.hasExpenseData ? scoreText(expenseCard) : '-'],
       ],
       detailRows: [
         ['销售额', formatAmount(data.expenseKpi.salesAmount)],
-        ['推广费', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.adExpense) : '暂无费用数据'],
-        [`售后费用预估${formatPeriodMonth(data.expenseKpi.afterSaleExpensePeriod) ? `（${formatPeriodMonth(data.expenseKpi.afterSaleExpensePeriod)}日均）` : ''}`, data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.afterSaleExpense) : '暂无费用数据'],
         ['总费用', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.totalExpense) : '暂无费用数据'],
-        ['超标比例', data.expenseKpi.hasExpenseData ? formatPercent(data.expenseKpi.overTargetRatio) : '-'],
+        ['本月推广费', data.expenseKpi.hasExpenseData ? formatAmount(promotionExpense) : '暂无费用数据'],
+        ['推广费占比', data.expenseKpi.hasExpenseData ? formatPercent(promotionExpenseRatio) : '-'],
+        ['售后费用计提', data.expenseKpi.hasExpenseData ? formatAmount(afterSalesAccrual) : '暂无费用数据'],
+        ['售后计提占比', data.expenseKpi.hasExpenseData ? formatPercent(afterSalesAccrualRatio) : '-'],
+        ['计提口径', data.expenseKpi.accrualBasisLabel || '按上月售后费用'],
+        expenseGapRow(expenseGap),
+        ['主要费用来源', data.expenseKpi.hasExpenseData ? mainExpenseSource : '-'],
       ],
       actionLabel: '查看费用明细',
       actionHref: '/admin/operator-analysis',
@@ -497,10 +581,10 @@ function IntegratedKpiCard({ card }: { card: IntegratedKpiCardModel }) {
         <i style={{ width: `${progressWidth}%` }} />
       </div>
       <div className="workbench-kpi-values">
-        {card.summaryRows.map(([label, value]) => <span key={label}>{label}<strong>{value}</strong></span>)}
+        {card.summaryRows.map(([label, value, tone]) => <span key={label}>{label}<strong className={tone}>{value}</strong></span>)}
       </div>
       <div className="workbench-kpi-detail-list">
-        {card.detailRows.map(([label, value]) => <span key={label}>{label}<strong>{value}</strong></span>)}
+        {card.detailRows.map(([label, value, tone]) => <span key={label}>{label}<strong className={tone}>{value}</strong></span>)}
       </div>
       <a className="workbench-kpi-action" href={card.actionHref}>{card.actionLabel}</a>
     </article>

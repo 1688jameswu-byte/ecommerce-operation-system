@@ -12288,6 +12288,21 @@ td.workbench-follow-title-col strong {
   text-align: right;
 }
 
+.workbench-kpi-values strong.ok,
+.workbench-kpi-detail-list strong.ok {
+  color: #059669;
+}
+
+.workbench-kpi-values strong.warning,
+.workbench-kpi-detail-list strong.warning {
+  color: #f97316;
+}
+
+.workbench-kpi-values strong.danger,
+.workbench-kpi-detail-list strong.danger {
+  color: #dc2626;
+}
+
 .workbench-kpi-action {
   align-self: flex-start;
   margin-top: auto;
