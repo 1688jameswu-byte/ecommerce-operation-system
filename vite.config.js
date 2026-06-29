@@ -5511,13 +5511,73 @@ function getPreviousWorkbenchPeriod(period) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function normalizeWorkbenchOperatorName(name) {
+  const normalized = String(name ?? '').trim();
+  if (normalized === '曾佳宏') return '曾佳弘';
+  return normalized;
+}
+
+function isRelationInStoreScope(relation, stores) {
+  const storeKeys = new Set(stores.flatMap((store) => [
+    String(store?.id ?? '').trim(),
+    String(store?.storeName ?? '').trim(),
+    normalizeOrderImportStoreName(store?.storeName || store?.id),
+  ].filter(Boolean)));
+  return storeKeys.has(String(relation?.storeId ?? '').trim()) ||
+    storeKeys.has(String(relation?.storeName ?? '').trim()) ||
+    storeKeys.has(normalizeOrderImportStoreName(relation?.storeName));
+}
+
+function getWorkbenchOperatorsForScope(allOperators, relations, stores) {
+  const scopedRelations = relations.filter((relation) => isRelationInStoreScope(relation, stores));
+  const activeOperatorIds = new Set(scopedRelations.map((relation) => String(relation?.operatorId ?? '').trim()).filter(Boolean));
+  const activeOperatorNames = new Set(scopedRelations.map((relation) => normalizeWorkbenchOperatorName(relation?.operatorName)).filter(Boolean));
+  const seen = new Set();
+  const result = [];
+
+  for (const operator of allOperators) {
+    const operatorId = String(operator?.id ?? '').trim();
+    const operatorName = normalizeWorkbenchOperatorName(operator?.operatorName);
+    if (!operatorId && !operatorName) continue;
+    if (!activeOperatorIds.has(operatorId) && !activeOperatorNames.has(operatorName)) continue;
+
+    const key = operatorId || operatorName;
+    if (seen.has(key) || seen.has(operatorName)) continue;
+    seen.add(key);
+    if (operatorName) seen.add(operatorName);
+    result.push({ ...operator, operatorName });
+  }
+
+  for (const relation of scopedRelations) {
+    const operatorId = String(relation?.operatorId ?? '').trim();
+    const operatorName = normalizeWorkbenchOperatorName(relation?.operatorName);
+    const key = operatorId || operatorName;
+    if (!key || seen.has(key) || seen.has(operatorName)) continue;
+    seen.add(key);
+    if (operatorName) seen.add(operatorName);
+    result.push({
+      id: operatorId || `operator-${operatorName}`,
+      operatorName,
+      groupName: '',
+      level: '',
+      status: 'active',
+      remark: '',
+    });
+  }
+
+  return result;
+}
+
 function getWorkbenchScope(currentUser, searchParams) {
   const visibleStores = getTemuVisibleStores(currentUser);
   const role = String(currentUser?.role ?? '').toLowerCase();
   const requestedOperatorId = String(searchParams.get('operatorId') ?? '').trim();
   const requestedStoreId = String(searchParams.get('storeId') ?? '').trim();
-  const relations = readCollection('storeOperatorRelations').filter((relation) => relation?.status !== 'inactive');
-  const operators = getOperators();
+  const relations = readCollection('storeOperatorRelations')
+    .filter((relation) => relation?.status !== 'inactive')
+    .map((relation) => ({ ...relation, operatorName: normalizeWorkbenchOperatorName(relation?.operatorName) }));
+  const allOperators = getOperators().map((operator) => ({ ...operator, operatorName: normalizeWorkbenchOperatorName(operator?.operatorName) }));
+  const operators = getWorkbenchOperatorsForScope(allOperators, relations, visibleStores);
   const operatorById = new Map(operators.map((operator) => [String(operator?.id ?? '').trim(), operator]));
   let stores = visibleStores;
   let operatorId = role === 'operator' ? String(currentUser?.operatorId ?? '').trim() : requestedOperatorId;
@@ -5539,7 +5599,7 @@ function getWorkbenchScope(currentUser, searchParams) {
   }
 
   if (operatorId) {
-    operatorName = operatorById.get(operatorId)?.operatorName || relations.find((relation) => String(relation?.operatorId ?? '') === operatorId)?.operatorName || '';
+    operatorName = normalizeWorkbenchOperatorName(operatorById.get(operatorId)?.operatorName || relations.find((relation) => String(relation?.operatorId ?? '') === operatorId)?.operatorName || '');
   }
 
   return {
