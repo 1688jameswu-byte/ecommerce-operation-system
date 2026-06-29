@@ -2166,14 +2166,20 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
        FROM sku_rows
        GROUP BY product_key
      ),
+     scoped_products AS (
+       SELECT *
+       FROM product_rows
+       ${condition}
+     ),
      first_orders AS (
        SELECT p.product_key, MIN(o.order_date)::date AS first_order_at
-       FROM product_rows p
+       FROM scoped_products p
        JOIN sku_rows sr ON sr.product_key = p.product_key
        JOIN temu_order_items o ON o.is_valid_order = TRUE
         AND o.is_cancelled = FALSE
         AND o.order_date IS NOT NULL
         AND o.order_date >= p.listed_at::date
+        AND o.order_date <= (p.listed_at::date + ($1::int * INTERVAL '1 day'))::date
         AND (
           (o.product_id IS NOT NULL AND o.product_id = sr.product_uuid)
           OR (o.product_sku_id IS NOT NULL AND o.product_sku_id = sr.sku_row_id)
@@ -2188,30 +2194,29 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
        GROUP BY p.product_key
      )
      SELECT
-       product_rows.product_key,
-       product_rows.product_id,
-       product_rows.product_name,
-       product_rows.store_id,
-       product_rows.store_name,
-       product_rows.operator_id,
-       product_rows.operator_name,
-       product_rows.listed_at::date AS listed_at,
-       (product_rows.listed_at::date + ($1::int * INTERVAL '1 day'))::date AS observe_end_at,
+       scoped_products.product_key,
+       scoped_products.product_id,
+       scoped_products.product_name,
+       scoped_products.store_id,
+       scoped_products.store_name,
+       scoped_products.operator_id,
+       scoped_products.operator_name,
+       scoped_products.listed_at::date AS listed_at,
+       (scoped_products.listed_at::date + ($1::int * INTERVAL '1 day'))::date AS observe_end_at,
        first_orders.first_order_at,
        CASE
          WHEN first_orders.first_order_at IS NOT NULL
-          AND first_orders.first_order_at <= (product_rows.listed_at::date + ($1::int * INTERVAL '1 day'))::date
+          AND first_orders.first_order_at <= (scoped_products.listed_at::date + ($1::int * INTERVAL '1 day'))::date
            THEN 'FIRST_ORDER_SUCCESS'
-         WHEN $2::date > (product_rows.listed_at::date + ($1::int * INTERVAL '1 day'))::date
+         WHEN $2::date > (scoped_products.listed_at::date + ($1::int * INTERVAL '1 day'))::date
            THEN 'EXPIRED_NO_FIRST_ORDER'
          ELSE 'OBSERVING'
        END AS status,
-       GREATEST(((product_rows.listed_at::date + ($1::int * INTERVAL '1 day'))::date - $2::date), 0)::int AS remaining_observe_days,
-       product_rows.updated_at
-     FROM product_rows
-     LEFT JOIN first_orders ON first_orders.product_key = product_rows.product_key
-     ${condition}
-     ORDER BY product_rows.listed_at DESC, product_rows.store_name ASC, product_rows.product_name ASC`,
+       GREATEST(((scoped_products.listed_at::date + ($1::int * INTERVAL '1 day'))::date - $2::date), 0)::int AS remaining_observe_days,
+       scoped_products.updated_at
+     FROM scoped_products
+     LEFT JOIN first_orders ON first_orders.product_key = scoped_products.product_key
+     ORDER BY scoped_products.listed_at DESC, scoped_products.store_name ASC, scoped_products.product_name ASC`,
     [observeDays, today, ...filter.values],
   );
   const products = result.rows.map((row) => ({
