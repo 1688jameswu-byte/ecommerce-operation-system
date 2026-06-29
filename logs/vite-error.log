@@ -561,3 +561,316 @@ At file: F:\项目\TEMU运营数据大屏\vite.config.js:5975:27
       at normalizeFile.next (<anonymous>)
       at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
       at run.next (<anonymous>)
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:04:11[22m [31m[1m[vite][22m[39m EBUSY: resource busy or locked, open 'F:\项目\TEMU运营数据大屏\vite.config.js'
+[2m21:04:11[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:04:30[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:04:30[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:04:39[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:04:39[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:04:56[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:04:56[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:05:14[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:05:14[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:05:34[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:05:34[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:05:53[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:05:53[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:06:14[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:06:14[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:06:23[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:06:23[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:06:33[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:06:33[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:06:52[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:06:52[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:07:00[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:07:00[22m [31m[1m[vite][22m[39m server restart failed
+[2m21:08:00[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\workbench\WorkbenchPage.tsx: Unexpected token, expected ";" (19:19)
+
+[0m [90m 17 |[31m
+ [90m 18 |[31m type [33mWorkbenchAction[31m [33m=[31m {
+[31m[1m>[22m[31m[90m 19 |[31m   priority[33m:[31m [32m'楂? | '[31m涓[33m?[31m [33m|[31m [32m'浣?;[31m
+ [90m    |[31m                    [31m[1m^[22m[31m
+ [90m 20 |[31m   title[33m:[31m string[33m;[31m
+ [90m 21 |[31m   kpi[33m:[31m string[33m;[31m
+ [90m 22 |[31m   impact[33m:[31m string[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/workbench/WorkbenchPage.tsx[39m:19:19
+[33m  18 |  type WorkbenchAction = {
+  19 |    priority: '楂? | '涓? | '浣?;
+  20 |    title: string;
+     |          ^
+  21 |    kpi: string;
+  22 |    impact: string;[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.expect (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6916:12)
+      at TypeScriptParserMixin.tsParseTypeMemberSemicolon (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8124:12)
+      at TypeScriptParserMixin.tsParsePropertyOrMethodSignature (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8203:12)
+      at TypeScriptParserMixin.tsParseTypeMember (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8238:17)
+      at TypeScriptParserMixin.tsParseList (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7895:19)
+      at TypeScriptParserMixin.tsParseObjectTypeMembers (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8247:26)
+      at TypeScriptParserMixin.tsParseTypeLiteral (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8242:25)
+      at TypeScriptParserMixin.tsParseNonArrayType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8457:106)
+      at TypeScriptParserMixin.tsParseArrayTypeOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8487:21)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8543:158
+      at TypeScriptParserMixin.tsInAllowConditionalTypesContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8832:14)
+      at TypeScriptParserMixin.tsParseTypeOperatorOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8543:114)
+      at TypeScriptParserMixin.tsParseUnionOrIntersectionType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8550:18)
+      at TypeScriptParserMixin.tsParseIntersectionTypeOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8559:17)
+      at TypeScriptParserMixin.tsParseUnionOrIntersectionType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8550:18)
+      at TypeScriptParserMixin.tsParseUnionTypeOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8562:17)
+      at TypeScriptParserMixin.tsParseNonConditionalType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8729:17)
+      at TypeScriptParserMixin.tsParseType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8704:23)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8792:19
+      at TypeScriptParserMixin.tsInType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8814:14)
+      at TypeScriptParserMixin.tsParseTypeAliasDeclaration (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8784:32)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9519:27)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:113:33
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:287:14)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+[2m21:08:21[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\workbench\WorkbenchPage.tsx: Unexpected token, expected ";" (19:19)
+
+[0m [90m 17 |[31m
+ [90m 18 |[31m type [33mWorkbenchAction[31m [33m=[31m {
+[31m[1m>[22m[31m[90m 19 |[31m   priority[33m:[31m [32m'楂? | '[31m涓[33m?[31m [33m|[31m [32m'浣?;[31m
+ [90m    |[31m                    [31m[1m^[22m[31m
+ [90m 20 |[31m   title[33m:[31m string[33m;[31m
+ [90m 21 |[31m   kpi[33m:[31m string[33m;[31m
+ [90m 22 |[31m   impact[33m:[31m string[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/workbench/WorkbenchPage.tsx[39m:19:19
+[33m  18 |  type WorkbenchAction = {
+  19 |    priority: '楂? | '涓? | '浣?;
+  20 |    title: string;
+     |          ^
+  21 |    kpi: string;
+  22 |    impact: string;[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.expect (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6916:12)
+      at TypeScriptParserMixin.tsParseTypeMemberSemicolon (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8124:12)
+      at TypeScriptParserMixin.tsParsePropertyOrMethodSignature (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8203:12)
+      at TypeScriptParserMixin.tsParseTypeMember (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8238:17)
+      at TypeScriptParserMixin.tsParseList (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7895:19)
+      at TypeScriptParserMixin.tsParseObjectTypeMembers (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8247:26)
+      at TypeScriptParserMixin.tsParseTypeLiteral (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8242:25)
+      at TypeScriptParserMixin.tsParseNonArrayType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8457:106)
+      at TypeScriptParserMixin.tsParseArrayTypeOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8487:21)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8543:158
+      at TypeScriptParserMixin.tsInAllowConditionalTypesContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8832:14)
+      at TypeScriptParserMixin.tsParseTypeOperatorOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8543:114)
+      at TypeScriptParserMixin.tsParseUnionOrIntersectionType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8550:18)
+      at TypeScriptParserMixin.tsParseIntersectionTypeOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8559:17)
+      at TypeScriptParserMixin.tsParseUnionOrIntersectionType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8550:18)
+      at TypeScriptParserMixin.tsParseUnionTypeOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8562:17)
+      at TypeScriptParserMixin.tsParseNonConditionalType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8729:17)
+      at TypeScriptParserMixin.tsParseType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8704:23)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8792:19
+      at TypeScriptParserMixin.tsInType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8814:14)
+      at TypeScriptParserMixin.tsParseTypeAliasDeclaration (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8784:32)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9519:27)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:113:33
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:287:14)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+[2m21:08:31[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\workbench\WorkbenchPage.tsx: Unexpected token, expected ";" (19:19)
+
+[0m [90m 17 |[31m
+ [90m 18 |[31m type [33mWorkbenchAction[31m [33m=[31m {
+[31m[1m>[22m[31m[90m 19 |[31m   priority[33m:[31m [32m'楂? | '[31m涓[33m?[31m [33m|[31m [32m'浣?;[31m
+ [90m    |[31m                    [31m[1m^[22m[31m
+ [90m 20 |[31m   title[33m:[31m string[33m;[31m
+ [90m 21 |[31m   kpi[33m:[31m string[33m;[31m
+ [90m 22 |[31m   impact[33m:[31m string[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/workbench/WorkbenchPage.tsx[39m:19:19
+[33m  18 |  type WorkbenchAction = {
+  19 |    priority: '楂? | '涓? | '浣?;
+  20 |    title: string;
+     |          ^
+  21 |    kpi: string;
+  22 |    impact: string;[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.expect (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6916:12)
+      at TypeScriptParserMixin.tsParseTypeMemberSemicolon (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8124:12)
+      at TypeScriptParserMixin.tsParsePropertyOrMethodSignature (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8203:12)
+      at TypeScriptParserMixin.tsParseTypeMember (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8238:17)
+      at TypeScriptParserMixin.tsParseList (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7895:19)
+      at TypeScriptParserMixin.tsParseObjectTypeMembers (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8247:26)
+      at TypeScriptParserMixin.tsParseTypeLiteral (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8242:25)
+      at TypeScriptParserMixin.tsParseNonArrayType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8457:106)
+      at TypeScriptParserMixin.tsParseArrayTypeOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8487:21)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8543:158
+      at TypeScriptParserMixin.tsInAllowConditionalTypesContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8832:14)
+      at TypeScriptParserMixin.tsParseTypeOperatorOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8543:114)
+      at TypeScriptParserMixin.tsParseUnionOrIntersectionType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8550:18)
+      at TypeScriptParserMixin.tsParseIntersectionTypeOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8559:17)
+      at TypeScriptParserMixin.tsParseUnionOrIntersectionType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8550:18)
+      at TypeScriptParserMixin.tsParseUnionTypeOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8562:17)
+      at TypeScriptParserMixin.tsParseNonConditionalType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8729:17)
+      at TypeScriptParserMixin.tsParseType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8704:23)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8792:19
+      at TypeScriptParserMixin.tsInType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8814:14)
+      at TypeScriptParserMixin.tsParseTypeAliasDeclaration (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8784:32)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9519:27)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:113:33
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:287:14)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+[2m21:08:58[22m [31m[1m[vite][22m[39m [31mInternal server error: F:\项目\TEMU运营数据大屏\src\pages\admin\workbench\WorkbenchPage.tsx: Unexpected token, expected ";" (19:19)
+
+[0m [90m 17 |[31m
+ [90m 18 |[31m type [33mWorkbenchAction[31m [33m=[31m {
+[31m[1m>[22m[31m[90m 19 |[31m   priority[33m:[31m [32m'楂? | '[31m涓[33m?[31m [33m|[31m [32m'浣?;[31m
+ [90m    |[31m                    [31m[1m^[22m[31m
+ [90m 20 |[31m   title[33m:[31m string[33m;[31m
+ [90m 21 |[31m   kpi[33m:[31m string[33m;[31m
+ [90m 22 |[31m   impact[33m:[31m string[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/workbench/WorkbenchPage.tsx[39m:19:19
+[33m  18 |  type WorkbenchAction = {
+  19 |    priority: '楂? | '涓? | '浣?;
+  20 |    title: string;
+     |          ^
+  21 |    kpi: string;
+  22 |    impact: string;[39m
+      at constructor (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.expect (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:6916:12)
+      at TypeScriptParserMixin.tsParseTypeMemberSemicolon (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8124:12)
+      at TypeScriptParserMixin.tsParsePropertyOrMethodSignature (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8203:12)
+      at TypeScriptParserMixin.tsParseTypeMember (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8238:17)
+      at TypeScriptParserMixin.tsParseList (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:7895:19)
+      at TypeScriptParserMixin.tsParseObjectTypeMembers (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8247:26)
+      at TypeScriptParserMixin.tsParseTypeLiteral (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8242:25)
+      at TypeScriptParserMixin.tsParseNonArrayType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8457:106)
+      at TypeScriptParserMixin.tsParseArrayTypeOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8487:21)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8543:158
+      at TypeScriptParserMixin.tsInAllowConditionalTypesContext (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8832:14)
+      at TypeScriptParserMixin.tsParseTypeOperatorOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8543:114)
+      at TypeScriptParserMixin.tsParseUnionOrIntersectionType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8550:18)
+      at TypeScriptParserMixin.tsParseIntersectionTypeOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8559:17)
+      at TypeScriptParserMixin.tsParseUnionOrIntersectionType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8550:18)
+      at TypeScriptParserMixin.tsParseUnionTypeOrHigher (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8562:17)
+      at TypeScriptParserMixin.tsParseNonConditionalType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8729:17)
+      at TypeScriptParserMixin.tsParseType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8704:23)
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8792:19
+      at TypeScriptParserMixin.tsInType (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8814:14)
+      at TypeScriptParserMixin.tsParseTypeAliasDeclaration (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:8784:32)
+      at TypeScriptParserMixin.parseStatementContent (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:9519:27)
+      at TypeScriptParserMixin.parseStatementLike (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:261:32)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:223:11)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:189:28
+      at F:\项目\TEMU运营数据大屏\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:113:33
+      at step (F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:287:14)
+      at F:\项目\TEMU运营数据大屏\node_modules\gensync\index.js:273:13
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:09:30[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:09:30[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:09:44[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:09:44[22m [31m[1m[vite][22m[39m server restart failed
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m21:12:00[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m21:12:00[22m [31m[1m[vite][22m[39m server restart failed

@@ -35,7 +35,7 @@ type ProductFollowUp = {
   observeEndAt?: string;
   daysOnline: number;
   firstOrderStatus: string;
-  firstOrderStatusCode?: 'FIRST_ORDER_SUCCESS' | 'OBSERVING' | 'EXPIRED_NO_FIRST_ORDER';
+  firstOrderStatusCode?: 'FIRST_ORDER_SUCCESS' | 'OBSERVING' | 'EXPIRED_NO_FIRST_ORDER' | 'DELAYED_FIRST_ORDER';
   firstOrderDate: string;
   salesQuantity: number;
   suggestedAction: string;
@@ -100,6 +100,7 @@ type WorkbenchData = {
     effectiveListingCount: number;
     firstOrderWithin30DaysCount: number;
     expiredNoFirstOrderCount: number;
+    delayedFirstOrderCount?: number;
     observingCount: number;
     decidableCount: number;
     firstOrderRate: number | null;
@@ -120,7 +121,7 @@ type WorkbenchData = {
     hasExpenseData: boolean;
   };
   productFollowUps: ProductFollowUp[];
-  dataIntegrityWarnings: string[];
+  dataIntegrityWarnings: Array<string | { type?: string; level?: string; message: string }>;
 };
 
 const defaultTarget: KpiTarget = {
@@ -192,7 +193,7 @@ function normalizeKey(value: string | undefined) {
 }
 
 function statusClass(status: string) {
-  if (status.includes('缺失')) return 'muted';
+  if (status.includes('缺失') || status.includes('未配置')) return 'warning';
   if (status.includes('严重')) return 'danger';
   if (status.includes('落后') || status.includes('超标') || status.includes('未设置')) return 'warning';
   return 'ok';
@@ -302,9 +303,10 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
         ['得分', scoreText(firstOrderCard)],
       ],
       detailRows: [
-        ['本月可判定新品', formatNumber(data.firstOrderKpi.decidableCount, '款')],
+        ['本月观察期到期', formatNumber(data.firstOrderKpi.decidableCount, '款')],
         ['观察中新品', formatNumber(data.firstOrderKpi.observingCount, '款')],
         ['到期未首单', formatNumber(data.firstOrderKpi.expiredNoFirstOrderCount, '款')],
+        ['延迟首单', formatNumber(data.firstOrderKpi.delayedFirstOrderCount ?? 0, '款')],
         ['30天首单率', formatFirstOrderRate(data.firstOrderKpi.firstOrderRate)],
       ],
       actionLabel: '查看未首单商品',
@@ -320,14 +322,14 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
       mainValue: expenseMainValue,
       progress: data.expenseKpi.hasExpenseData ? cardProgress(expenseCard) : null,
       summaryRows: [
-        ['目标费用占比', formatPercent(data.expenseKpi.targetRatio)],
+        ['加权目标费用占比', formatPercent(data.expenseKpi.targetRatio)],
         ['当前占比', expenseRatioLabel],
         ['得分', data.expenseKpi.hasExpenseData ? scoreText(expenseCard) : '-'],
       ],
       detailRows: [
         ['销售额', formatAmount(data.expenseKpi.salesAmount)],
         ['推广费', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.adExpense) : '暂无费用数据'],
-        [`售后费用${formatPeriodMonth(data.expenseKpi.afterSaleExpensePeriod) ? `（${formatPeriodMonth(data.expenseKpi.afterSaleExpensePeriod)}）` : ''}`, data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.afterSaleExpense) : '暂无费用数据'],
+        [`售后费用预估${formatPeriodMonth(data.expenseKpi.afterSaleExpensePeriod) ? `（${formatPeriodMonth(data.expenseKpi.afterSaleExpensePeriod)}日均）` : ''}`, data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.afterSaleExpense) : '暂无费用数据'],
         ['总费用', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.totalExpense) : '暂无费用数据'],
         ['超标比例', data.expenseKpi.hasExpenseData ? formatPercent(data.expenseKpi.overTargetRatio) : '-'],
       ],
@@ -475,12 +477,14 @@ function ProductFollowUpTable({ rows }: { rows: ProductFollowUp[] }) {
 
 function DataIntegrityPanel({ data }: { data: WorkbenchData }) {
   if (!data.filters.canManage) return null;
+  const warningText = (item: WorkbenchData['dataIntegrityWarnings'][number]) => typeof item === 'string' ? item : item.message;
+  const warningKey = (item: WorkbenchData['dataIntegrityWarnings'][number], index: number) => typeof item === 'string' ? item : `${item.type || 'warning'}-${item.message}-${index}`;
 
   return (
     <article className="excel-record-panel workbench-panel">
       <header><h2>数据完整性提醒</h2><span>{data.dataIntegrityStatus}</span></header>
       <div className="workbench-warning-list">
-        {data.dataIntegrityWarnings.map((item) => <span className="warning" key={item}>{item}</span>)}
+        {data.dataIntegrityWarnings.map((item, index) => <span className="warning" key={warningKey(item, index)}>{warningText(item)}</span>)}
         {data.dataIntegrityWarnings.length === 0 && <span className="ok">订单、有效上新、费用和目标配置均已识别。</span>}
       </div>
       <div className="import-record-table-wrap">

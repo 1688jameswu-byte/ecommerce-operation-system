@@ -2301,10 +2301,16 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
   const periodStart = dateText(params.periodStart) || `${new Date().toISOString().slice(0, 7)}-01`;
   const periodEnd = dateText(params.periodEnd) || periodStart;
   const today = dateText(params.today) || new Date().toISOString().slice(0, 10);
+  const dateMode = params.dateMode === 'observeEnd' ? 'observeEnd' : 'listedAt';
   const filter = createWhereBuilder(3);
   appendStoreScope(filter, 'product_rows', params);
-  filter.push('product_rows.listed_at::date >= ?::date', periodStart);
-  filter.push('product_rows.listed_at::date <= ?::date', periodEnd);
+  if (dateMode === 'observeEnd') {
+    filter.push(`(product_rows.listed_at::date + ($1::int * INTERVAL '1 day'))::date >= ?::date`, periodStart);
+    filter.push(`(product_rows.listed_at::date + ($1::int * INTERVAL '1 day'))::date <= ?::date`, periodEnd);
+  } else {
+    filter.push('product_rows.listed_at::date >= ?::date', periodStart);
+    filter.push('product_rows.listed_at::date <= ?::date', periodEnd);
+  }
   if (params.operatorId) {
     filter.push('(product_rows.operator_id::text = ? OR product_rows.legacy_operator_id = ?)', String(params.operatorId));
   }
@@ -2387,7 +2393,6 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
         AND o.is_cancelled = FALSE
         AND o.order_date IS NOT NULL
         AND o.order_date >= p.listed_at::date
-        AND o.order_date <= (p.listed_at::date + ($1::int * INTERVAL '1 day'))::date
         AND (
           (o.product_id IS NOT NULL AND o.product_id = sr.product_uuid)
           OR (o.product_sku_id IS NOT NULL AND o.product_sku_id = sr.sku_row_id)
@@ -2419,6 +2424,9 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
          WHEN first_orders.first_order_at IS NOT NULL
           AND first_orders.first_order_at <= (scoped_products.listed_at::date + ($1::int * INTERVAL '1 day'))::date
            THEN 'FIRST_ORDER_SUCCESS'
+         WHEN first_orders.first_order_at IS NOT NULL
+          AND first_orders.first_order_at > (scoped_products.listed_at::date + ($1::int * INTERVAL '1 day'))::date
+           THEN 'DELAYED_FIRST_ORDER'
          WHEN $2::date > (scoped_products.listed_at::date + ($1::int * INTERVAL '1 day'))::date
            THEN 'EXPIRED_NO_FIRST_ORDER'
          ELSE 'OBSERVING'
@@ -2450,15 +2458,18 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
   }));
   const firstOrderWithin30DaysCount = products.filter((item) => item.status === 'FIRST_ORDER_SUCCESS').length;
   const expiredNoFirstOrderCount = products.filter((item) => item.status === 'EXPIRED_NO_FIRST_ORDER').length;
+  const delayedFirstOrderCount = products.filter((item) => item.status === 'DELAYED_FIRST_ORDER').length;
   const observingCount = products.filter((item) => item.status === 'OBSERVING').length;
-  const decidableCount = firstOrderWithin30DaysCount + expiredNoFirstOrderCount;
+  const decidableCount = firstOrderWithin30DaysCount + expiredNoFirstOrderCount + delayedFirstOrderCount;
   return {
     periodStart,
     periodEnd,
     observeDays,
+    dateMode,
     newProductCount: products.length,
     firstOrderWithin30DaysCount,
     expiredNoFirstOrderCount,
+    delayedFirstOrderCount,
     observingCount,
     decidableCount,
     firstOrderRate: decidableCount > 0 ? firstOrderWithin30DaysCount / decidableCount : null,
