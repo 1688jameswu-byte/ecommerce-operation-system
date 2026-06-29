@@ -3391,6 +3391,309 @@
   white-space: pre-wrap;
 }
 
+.task-center-page {
+  border-radius: 16px;
+  background: #f5f7fb;
+  padding: 18px;
+  color: #334155;
+}
+
+.task-center-page .excel-record-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #334155;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.task-center-page .excel-record-panel > header {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 14px;
+}
+
+.task-center-page .excel-record-panel h2,
+.task-center-page .task-status-group h3,
+.task-center-page .task-backlog-sections h3 {
+  color: #0f172a;
+}
+
+.task-center-page .excel-record-panel p,
+.task-center-page .excel-record-panel header span,
+.task-center-page .task-overview-section h3,
+.task-center-page .task-report-toolbar label,
+.task-center-page .task-form-grid label,
+.task-center-page .task-template-form label {
+  color: #64748b;
+}
+
+.task-center-page .task-overview-grid article,
+.task-center-page .task-report-summary article,
+.task-center-page .task-analysis-row,
+.task-center-page .task-status-group,
+.task-center-page .task-daily-card,
+.task-center-page .task-work-card,
+.task-center-page .task-template-preview,
+.task-center-page .task-template-list button {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+.task-center-page .task-overview-grid article:hover,
+.task-center-page .task-overview-grid .task-overview-active,
+.task-center-page .task-report-summary article:hover,
+.task-center-page .task-clickable-row:hover,
+.task-center-page .task-analysis-active,
+.task-center-page .task-template-list button.active,
+.task-center-page .task-template-list button:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.task-center-page .task-overview-grid article span,
+.task-center-page .task-report-summary span,
+.task-center-page .task-analysis-row span,
+.task-center-page .task-daily-meta span,
+.task-center-page .task-daily-actions span,
+.task-center-page .task-daily-actions b,
+.task-center-page .task-card-meta span,
+.task-center-page .task-status-group > header span,
+.task-center-page .task-template-list span,
+.task-center-page .task-template-preview span {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.task-center-page .task-overview-grid article strong,
+.task-center-page .task-report-summary strong,
+.task-center-page .task-analysis-row strong,
+.task-center-page .task-work-card strong,
+.task-center-page .task-daily-card strong,
+.task-center-page .task-template-list strong,
+.task-center-page .task-template-preview strong {
+  color: #0f172a;
+}
+
+.task-center-page .task-analysis-row .task-stat-danger,
+.task-center-page .task-card-meta .task-due-overdue,
+.task-center-page .task-card-meta .task-quality-missing,
+.task-center-page .task-card-meta .task-review-not_improved,
+.task-center-page .task-priority-high,
+.task-center-page .task-status-todo {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.task-center-page .task-analysis-row .task-stat-warning,
+.task-center-page .task-card-meta .task-due-today,
+.task-center-page .task-card-meta .task-quality-waiting,
+.task-center-page .task-card-meta .task-review-watching,
+.task-center-page .task-priority-medium {
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.task-center-page .task-card-meta .task-quality-good,
+.task-center-page .task-card-meta .task-review-improved,
+.task-center-page .task-card-meta .task-source-ai,
+.task-center-page .task-priority-low,
+.task-center-page .task-status-done {
+  border: 1px solid #bbf7d0;
+  background: #ecfdf5;
+  color: #16a34a;
+}
+
+.task-center-page .task-card-meta .task-quality-progress,
+.task-center-page .task-card-meta .task-review-unknown,
+.task-center-page .task-status-doing {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.task-center-page .task-card-meta .task-quality-closed,
+.task-center-page .task-status-closed {
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.task-center-page .task-daily-card-high,
+.task-center-page .task-work-card-high {
+  border-color: #fecaca;
+  box-shadow: inset 3px 0 0 #dc2626, 0 8px 20px rgba(220, 38, 38, 0.06);
+}
+
+.task-center-page .task-daily-card-medium,
+.task-center-page .task-work-card-medium {
+  border-color: #fde68a;
+  box-shadow: inset 3px 0 0 #d97706, 0 8px 20px rgba(217, 119, 6, 0.06);
+}
+
+.task-center-page .task-daily-card-low,
+.task-center-page .task-work-card-low {
+  border-color: #bfdbfe;
+  box-shadow: inset 3px 0 0 #2563eb, 0 8px 20px rgba(37, 99, 235, 0.05);
+}
+
+.task-center-page .task-work-card-highlighted {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12), inset 3px 0 0 #16a34a;
+}
+
+.task-center-page .task-work-card p,
+.task-center-page .task-daily-card header span,
+.task-center-page .task-daily-card p,
+.task-center-page .task-card-suggestion p,
+.task-center-page .task-template-preview p,
+.task-center-page .task-work-card footer > span,
+.task-center-page .task-source-content {
+  color: #64748b;
+}
+
+.task-center-page .task-card-suggestion,
+.task-center-page .task-card-review {
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #eff6ff;
+}
+
+.task-center-page .task-card-suggestion strong {
+  color: #2563eb;
+}
+
+.task-center-page .task-card-review {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+}
+
+.task-center-page .task-card-review strong {
+  color: #16a34a;
+}
+
+.task-center-page .task-analysis-empty,
+.task-center-page .task-group-empty {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.task-center-page .task-editor-backdrop {
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(5px);
+}
+
+.task-center-page .task-editor-modal {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 24px 68px rgba(15, 23, 42, 0.22);
+}
+
+.task-center-page .task-report-toolbar select,
+.task-center-page .task-form-grid input,
+.task-center-page .task-form-grid select,
+.task-center-page .task-form-grid textarea,
+.task-center-page .task-template-form input,
+.task-center-page .task-template-form select,
+.task-center-page .task-template-form textarea,
+.task-center-page .import-filter-bar input,
+.task-center-page .import-filter-bar select {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.task-center-page .task-report-toolbar select:focus,
+.task-center-page .task-form-grid input:focus,
+.task-center-page .task-form-grid select:focus,
+.task-center-page .task-form-grid textarea:focus,
+.task-center-page .task-template-form input:focus,
+.task-center-page .task-template-form select:focus,
+.task-center-page .task-template-form textarea:focus,
+.task-center-page .import-filter-bar input:focus,
+.task-center-page .import-filter-bar select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  outline: none;
+}
+
+.task-center-page .import-filter-bar {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.task-center-page .task-table-actions button,
+.task-center-page .task-workbench-header-actions button,
+.task-center-page .task-daily-card button,
+.task-center-page .task-result-modal button,
+.task-center-page .task-template-actions button {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.task-center-page .task-table-actions button:hover,
+.task-center-page .task-workbench-header-actions button:hover,
+.task-center-page .task-daily-card button:hover,
+.task-center-page .task-result-modal button:hover,
+.task-center-page .task-template-actions button:hover {
+  border-color: #2563eb;
+  background: #dbeafe;
+}
+
+.task-center-page .task-table-actions .danger-action-button {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.task-center-page .task-result-preview-button {
+  color: #2563eb;
+}
+
+.task-center-page .task-result-preview-button:hover {
+  color: #1d4ed8;
+}
+
+.task-center-page .task-result-modal {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.22);
+}
+
+.task-center-page .task-result-modal span {
+  color: #2563eb;
+}
+
+.task-center-page .task-result-modal h2 {
+  color: #0f172a;
+}
+
+.task-center-page .task-result-modal p {
+  color: #334155;
+}
+
+.task-center-page .task-daily-card-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.task-center-page .task-daily-card-list::-webkit-scrollbar-thumb {
+  border: 2px solid #ffffff;
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.task-center-page .task-daily-card-list::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 999px;
+}
+
 .import-record-table-wrap {
   max-height: 520px;
   overflow: auto;
@@ -8909,6 +9212,205 @@
   font-size: 12px;
 }
 
+.store-business-page {
+  border-radius: 16px;
+  background: #f5f7fb;
+  padding: 18px;
+  color: #334155;
+}
+
+.store-business-hero {
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.08);
+}
+
+.store-business-hero span {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.store-business-hero h2 {
+  color: #0f172a;
+}
+
+.store-business-hero strong {
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  background: #ecfdf5;
+  padding: 7px 12px;
+  color: #16a34a;
+}
+
+.store-business-card,
+.store-metric,
+.store-business-empty {
+  border-radius: 12px;
+}
+
+.store-business-card {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.store-card-identity {
+  border-bottom-color: #e2e8f0;
+  border-right-color: #e2e8f0;
+}
+
+.store-card-identity strong {
+  color: #0f172a;
+}
+
+.store-card-identity span,
+.store-card-identity em,
+.store-metric header span,
+.store-metric-meta span,
+.store-metric footer span {
+  color: #64748b;
+}
+
+.store-card-identity em {
+  width: fit-content;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  padding: 4px 9px;
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.store-metric {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.store-metric:hover {
+  border-color: #bfdbfe;
+  background: #ffffff;
+}
+
+.store-metric header .store-trend-card-title {
+  color: #0f172a;
+}
+
+.store-metric footer b {
+  color: #0f172a;
+}
+
+.store-sparkline {
+  color: #94a3b8;
+}
+
+.store-sparkline-area {
+  opacity: 0.12;
+}
+
+.store-trend-up {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.store-trend-up strong,
+.store-trend-up b,
+.store-sparkline-up {
+  color: #16a34a;
+}
+
+.store-trend-down {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.store-trend-down strong,
+.store-trend-down b,
+.store-sparkline-down {
+  color: #dc2626;
+}
+
+.store-trend-flat {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.store-trend-flat strong,
+.store-trend-flat b,
+.store-sparkline-flat {
+  color: #475569;
+}
+
+.store-business-empty {
+  border: 1px dashed #cbd5e1;
+  background: #ffffff;
+  color: #64748b;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
+}
+
+.store-detail-backdrop {
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(5px);
+}
+
+.store-detail-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.22);
+}
+
+.store-detail-card h3 {
+  color: #0f172a;
+}
+
+.store-detail-card span,
+.store-detail-card p {
+  color: #64748b;
+}
+
+.store-detail-chart-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.store-detail-chart {
+  color: #64748b;
+}
+
+.store-detail-chart-empty {
+  color: #64748b;
+}
+
+.store-detail-baseline {
+  stroke: rgba(100, 116, 139, 0.42);
+}
+
+.store-detail-point {
+  stroke: #ffffff;
+}
+
+.store-detail-chart-label,
+.store-detail-chart-value {
+  fill: #334155;
+}
+
+.store-detail-chart-date {
+  fill: #64748b;
+}
+
+.store-detail-daily-list strong {
+  color: #0f172a;
+}
+
+.store-detail-daily-list span {
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+}
+
 .store-metric-large {
   min-height: 220px;
 }
@@ -9727,6 +10229,509 @@
   color: #f8fafc;
   border-radius: 6px;
   padding: 0 10px;
+}
+
+.npc-ad-strategy-page {
+  gap: 16px;
+  border-radius: 16px;
+  background: #f5f7fb;
+  padding: 18px;
+  color: #334155;
+}
+
+.npc-ad-strategy-page .excel-record-panel,
+.npc-ad-strategy-page .npc-panel {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.npc-strategy-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  border: 1px solid #dbeafe;
+  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.08);
+}
+
+.npc-strategy-kicker {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.npc-strategy-hero h1 {
+  margin: 10px 0 6px;
+  color: #0f172a;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.npc-strategy-hero p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.npc-strategy-hero-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.npc-strategy-hero-steps span {
+  border: 1px solid #bfdbfe;
+  background: #ffffff;
+  color: #2563eb;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.npc-ad-strategy-page .npc-strategy-notice {
+  align-items: flex-start;
+  gap: 12px;
+  border-color: #bfdbfe;
+  border-left: 4px solid #2563eb;
+  background: #eff6ff;
+  color: #334155;
+  padding: 16px 18px;
+  box-shadow: none;
+}
+
+.npc-strategy-notice::before {
+  content: "i";
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: Georgia, serif;
+}
+
+.npc-ad-strategy-page .npc-strategy-notice strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.npc-ad-strategy-page .npc-strategy-notice span {
+  display: block;
+  color: #475569;
+  line-height: 1.75;
+}
+
+.npc-ad-strategy-page .npc-strategy-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+}
+
+.npc-ad-strategy-page .npc-strategy-tab {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.npc-ad-strategy-page .npc-strategy-tab:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  transform: translateY(-1px);
+}
+
+.npc-ad-strategy-page .npc-strategy-tab.is-active {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+}
+
+.npc-strategy-tab-index,
+.npc-strategy-tab-count {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.npc-strategy-tab-index {
+  width: 28px;
+  height: 28px;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.npc-strategy-tab-count {
+  min-width: 34px;
+  height: 26px;
+  padding: 0 9px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 12px;
+}
+
+.npc-strategy-tab.is-active .npc-strategy-tab-index,
+.npc-strategy-tab.is-active .npc-strategy-tab-count {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.npc-strategy-tab-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.npc-strategy-tab-copy strong {
+  color: inherit;
+  font-size: 15px;
+}
+
+.npc-strategy-tab-copy small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.npc-strategy-tab.is-active .npc-strategy-tab-copy small {
+  color: #dbeafe;
+}
+
+.npc-ad-strategy-page .npc-panel-header {
+  align-items: flex-start;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 14px;
+}
+
+.npc-ad-strategy-page .npc-panel-header h2 {
+  color: #0f172a;
+  font-size: 20px;
+}
+
+.npc-ad-strategy-page .npc-panel-header span {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-weight: 800;
+}
+
+.npc-ad-strategy-page .npc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin: 14px 0;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.npc-ad-strategy-page .npc-toolbar label,
+.npc-ad-strategy-page .npc-threshold-grid label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.npc-ad-strategy-page select,
+.npc-ad-strategy-page input {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 8px;
+}
+
+.npc-ad-strategy-page select:focus,
+.npc-ad-strategy-page input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  outline: none;
+}
+
+.npc-ad-strategy-page .npc-strategy-table-wrap {
+  max-height: 620px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 10px;
+  overflow: auto;
+}
+
+.npc-ad-strategy-page .npc-strategy-table-wrap::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.npc-ad-strategy-page .npc-strategy-table-wrap::-webkit-scrollbar-thumb {
+  border: 2px solid #ffffff;
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.npc-ad-strategy-page .npc-strategy-table-wrap::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 999px;
+}
+
+.npc-ad-strategy-page .npc-strategy-table-wrap table {
+  min-width: 1680px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.npc-ad-strategy-page .npc-strategy-table-wrap th,
+.npc-ad-strategy-page .npc-strategy-table-wrap td {
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  background: #ffffff;
+  padding: 11px 12px;
+  vertical-align: top;
+}
+
+.npc-ad-strategy-page .npc-strategy-table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f8fafc;
+  color: #475569;
+  box-shadow: inset 0 -1px 0 #e2e8f0;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.npc-ad-strategy-page .npc-strategy-table-wrap tbody tr:hover td {
+  background: rgba(239, 246, 255, 0.62);
+}
+
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(4),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(6),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(7),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(8),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(9),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(10),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(11),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(12),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(13),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(14),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(15) {
+  font-variant-numeric: tabular-nums;
+}
+
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(4),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(6),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(7),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(8),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(9),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(10),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(11),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(12) {
+  text-align: right;
+}
+
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(13),
+.npc-ad-strategy-page .npc-strategy-table-wrap td:nth-child(14) {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.55;
+}
+
+.npc-strategy-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.npc-strategy-status-success {
+  background: #ecfdf5;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.npc-strategy-status-warning {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.npc-strategy-status-muted {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.npc-ad-strategy-page .npc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 240px;
+}
+
+.npc-ad-strategy-page .npc-actions button,
+.npc-ad-strategy-page .npc-actions a,
+.npc-strategy-pagination button {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.npc-ad-strategy-page .npc-actions button:hover,
+.npc-ad-strategy-page .npc-actions a:hover,
+.npc-strategy-pagination button:hover:not(:disabled) {
+  border-color: #2563eb;
+  background: #dbeafe;
+}
+
+.npc-strategy-empty-row td {
+  padding: 0 !important;
+  background: #ffffff !important;
+}
+
+.npc-strategy-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 18px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 38px 20px;
+  text-align: center;
+}
+
+.npc-strategy-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 900;
+  font-family: Georgia, serif;
+}
+
+.npc-strategy-empty strong {
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.npc-strategy-empty p {
+  max-width: 560px;
+  margin: 0;
+  color: #64748b;
+  line-height: 1.65;
+}
+
+.npc-ad-strategy-page .npc-stage-card-grid section,
+.npc-ad-strategy-page .npc-threshold-grid label {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.npc-ad-strategy-page .npc-stage-card-grid section {
+  border-left: 4px solid #7c3aed;
+}
+
+.npc-ad-strategy-page .npc-stage-card-grid h3 {
+  color: #0f172a;
+}
+
+.npc-ad-strategy-page .npc-stage-card-grid strong {
+  color: #7c3aed;
+}
+
+.npc-ad-strategy-page .npc-stage-card-grid small {
+  color: #64748b;
+}
+
+.npc-ad-strategy-page .npc-threshold-grid input {
+  min-height: 38px;
+}
+
+.npc-strategy-pagination {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+}
+
+.npc-strategy-pagination span {
+  color: #475569;
+  font-weight: 800;
+}
+
+.npc-strategy-pagination button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1180px) {
+  .npc-ad-strategy-page .npc-strategy-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .npc-strategy-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 720px) {
+  .npc-ad-strategy-page .npc-strategy-tabs {
+    grid-template-columns: 1fr;
+  }
 }
 
 .npc-quick-filters {
@@ -10948,4 +11953,3002 @@
   .workbench-detail-list {
     grid-template-columns: 1fr;
   }
+}
+
+.admin-main:has(.workbench-page) {
+  background: #f3f6fb;
+}
+
+.admin-content:has(.workbench-page) {
+  overflow-x: hidden;
+}
+
+.workbench-page {
+  min-width: 0;
+  color: #172033;
+}
+
+.workbench-page .excel-record-panel,
+.workbench-panel,
+.workbench-filter-bar,
+.workbench-kpi-card,
+.workbench-metric-panel,
+.workbench-target-ledger,
+.workbench-target-editor {
+  background: #ffffff;
+  color: #172033;
+}
+
+.workbench-page :is(h2, h3, strong, td, th, label) {
+  color: #172033;
+}
+
+.workbench-page :is(span, small, p, em) {
+  color: #5f6f86;
+}
+
+.workbench-filter-bar {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.workbench-filter-bar span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.workbench-summary {
+  grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.workbench-score,
+.workbench-kpi-card {
+  min-width: 0;
+  min-height: 166px;
+  box-sizing: border-box;
+}
+
+.workbench-score {
+  background: linear-gradient(135deg, #0f4f69, #146c72);
+}
+
+.workbench-score :is(span, small, strong) {
+  color: #ffffff;
+}
+
+.workbench-kpi-card header {
+  align-items: flex-start;
+}
+
+.workbench-kpi-card header div,
+.workbench-kpi-card header span,
+.workbench-kpi-main {
+  min-width: 0;
+}
+
+.workbench-kpi-card header span {
+  overflow-wrap: anywhere;
+}
+
+.workbench-kpi-values span,
+.workbench-detail-list span {
+  color: #5f6f86;
+}
+
+.workbench-detail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  width: 100%;
+  min-width: 0;
+}
+
+.workbench-page .import-record-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  background: #ffffff;
+}
+
+.workbench-page .import-record-table {
+  min-width: 920px;
+  background: #ffffff;
+  color: #172033;
+}
+
+.workbench-page .import-record-table th {
+  background: #f1f5fb;
+  color: #38516d;
+}
+
+.workbench-page .import-record-table td {
+  border-color: #e6edf5;
+  color: #172033;
+}
+
+.workbench-page .admin-home-empty {
+  border-color: #d7e3f1;
+  background: #f8fbff;
+  color: #3b5f86;
+}
+
+.workbench-action-row {
+  grid-template-columns: 38px minmax(220px, 1fr) minmax(96px, auto) minmax(108px, auto);
+}
+
+@media (max-width: 900px) {
+  .workbench-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workbench-action-row {
+    grid-template-columns: 38px 1fr;
+  }
+}
+
+.admin-main:has(.operation-diagnosis-page) {
+  background: #f3f6fb;
+}
+
+.operation-diagnosis-page {
+  color: #172033;
+}
+
+.operation-diagnosis-page .excel-record-panel,
+.operation-diagnosis-guidance,
+.operation-diagnosis-status-note,
+.operation-diagnosis-card,
+.operation-diagnosis-summary-text,
+.operation-diagnosis-columns section,
+.operation-diagnosis-block,
+.operation-solution,
+.operation-decision {
+  border-color: #dbe5f0;
+  background: #ffffff;
+  color: #172033;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.operation-diagnosis-card-formal {
+  border-color: #f5d991;
+  box-shadow: inset 3px 0 0 #f59e0b, 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.operation-diagnosis-card-watch {
+  border-color: #bfdbfe;
+  box-shadow: inset 3px 0 0 #3b82f6, 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.operation-diagnosis-page :is(h2, h3, h4, strong, b, li) {
+  color: #172033;
+}
+
+.operation-diagnosis-page :is(p, span, small, em),
+.operation-muted,
+.operation-decision span,
+.operation-decision em,
+.operation-decision p,
+.operation-solution p,
+.operation-diagnosis-empty-audit p,
+.operation-diagnosis-guidance p {
+  color: #5f6f86;
+}
+
+.operation-diagnosis-empty {
+  border-color: #dbe5f0;
+  background: #ffffff;
+  color: #2563eb;
+}
+
+.operation-diagnosis-empty-audit {
+  color: #5f6f86;
+}
+
+.operation-diagnosis-empty-audit strong,
+.operation-diagnosis-guidance strong {
+  color: #1d4ed8;
+}
+
+.operation-diagnosis-page .operation-filter-panel {
+  border-color: #dbe5f0;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.operation-diagnosis-page .operation-task-filter-bar button {
+  border-color: #d7e3f1;
+  background: #f8fbff;
+  color: #475569;
+}
+
+.operation-diagnosis-page .operation-task-filter-bar button:hover,
+.operation-diagnosis-page .operation-task-filter-bar button.active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.operation-diagnosis-page .operation-secondary-filters label {
+  color: #5b6678;
+}
+
+.operation-diagnosis-page .operation-secondary-filters select {
+  border-color: #ccd7e3;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.operation-diagnosis-page .operation-secondary-filters select:focus {
+  border-color: #2563eb;
+  outline: 2px solid rgba(37, 99, 235, 0.14);
+}
+
+.operation-diagnosis-page .operation-secondary-filters > span {
+  color: #64748b;
+}
+
+.operation-diagnosis-page :is(
+  .analysis-maintenance-bar button,
+  .operation-ai-debug-panel,
+  .operation-ai-debug-panel summary
+) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.operation-diagnosis-page .analysis-maintenance-bar button:hover {
+  border-color: #60a5fa;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.operation-detail-meta span,
+.operation-decision-metrics span,
+.operation-cause-tags span {
+  background: #eef6ff;
+  color: #1d4ed8;
+}
+
+.operation-solution header span {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.operation-decision-matched {
+  border-color: #bbf7d0;
+  box-shadow: inset 3px 0 0 #22c55e, 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.operation-decision-matched span {
+  color: #047857;
+}
+
+.operation-decision-insufficientData,
+.operation-decision-unknown {
+  border-color: #fde68a;
+  background: #fffdf5;
+}
+
+.admin-main:has(.task-template-panel) {
+  background: #f3f6fb;
+}
+
+.admin-content:has(.task-template-panel) {
+  overflow-x: hidden;
+}
+
+.admin-content:has(.task-template-panel) .excel-import-page {
+  color: #172033;
+}
+
+.admin-content:has(.task-template-panel) .excel-record-panel,
+.task-template-panel,
+.task-template-preview,
+.task-template-list button {
+  border-color: #dbe5f0;
+  background: #ffffff;
+  color: #172033;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.admin-content:has(.task-template-panel) :is(h2, strong, label) {
+  color: #172033;
+}
+
+.admin-content:has(.task-template-panel) :is(p, span, small) {
+  color: #64748b;
+}
+
+.task-template-grid {
+  align-items: start;
+}
+
+.task-template-list button {
+  cursor: pointer;
+  padding: 12px;
+}
+
+.task-template-list button.active,
+.task-template-list button:hover {
+  border-color: #93c5fd;
+  background: #eef6ff;
+}
+
+.task-template-list button.active strong,
+.task-template-list button:hover strong {
+  color: #1d4ed8;
+}
+
+.task-template-list span {
+  color: #64748b;
+}
+
+.task-template-form label {
+  color: #475569;
+}
+
+.task-template-form input,
+.task-template-form select,
+.task-template-form textarea {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #172033;
+}
+
+.task-template-form input:focus,
+.task-template-form select:focus,
+.task-template-form textarea:focus {
+  outline: 2px solid rgba(37, 99, 235, 0.14);
+  border-color: #2563eb;
+}
+
+.task-template-preview {
+  box-shadow: none;
+}
+
+.task-template-preview header {
+  border-bottom: 1px solid #edf2f7;
+  padding-bottom: 8px;
+}
+
+.task-template-preview strong {
+  color: #172033;
+}
+
+.task-template-preview span {
+  background: #eef6ff;
+  color: #1d4ed8;
+}
+
+.task-template-preview p {
+  color: #475569;
+}
+
+@media (max-width: 900px) {
+  .task-template-grid,
+  .task-template-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Light office theme for regular admin pages. */
+.admin-shell {
+  background: #f3f6fb;
+  color: #172033;
+}
+
+.admin-main {
+  background: #f3f6fb;
+  color: #172033;
+}
+
+.admin-route-loading {
+  color: #5f6f86;
+}
+
+.admin-header {
+  border-bottom-color: #dce5ef;
+}
+
+.admin-header p {
+  color: #2563eb;
+}
+
+.admin-header h1 {
+  color: #172033;
+}
+
+.admin-user-bar span,
+.admin-user-bar strong,
+.admin-user-bar button {
+  border-color: #d7e3f1;
+  background: #ffffff;
+  color: #172033;
+}
+
+.admin-user-bar strong {
+  color: #1d4ed8;
+}
+
+.admin-user-bar button {
+  color: #b42318;
+}
+
+.admin-visible-stores {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-visible-store-popover {
+  border-color: #d7e3f1;
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+}
+
+.admin-visible-store-popover b {
+  background: #f1f5fb;
+  color: #172033;
+}
+
+.admin-visible-stores.empty {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.admin-data-source-status > button {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.admin-data-source-status > button:hover {
+  border-color: #22c55e;
+  background: #dcfce7;
+}
+
+.admin-data-source-popover {
+  border-color: #d7e3f1 !important;
+  background: #ffffff !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
+  color: #172033 !important;
+}
+
+.admin-data-source-head small,
+.admin-data-source-env span,
+.admin-data-source-row small {
+  color: #64748b;
+}
+
+.admin-data-source-group {
+  border-top-color: #e2e8f0;
+}
+
+.admin-data-source-group > strong,
+.admin-data-source-head b {
+  color: #172033;
+}
+
+.admin-data-source-row {
+  border-color: #dbe5f0 !important;
+  background: #f8fbff !important;
+}
+
+.admin-data-source-row .source-pg {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-data-source-row .source-json {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.admin-data-source-row .source-mixed {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.admin-placeholder-card,
+.admin-roadmap-grid article,
+.admin-home-metric,
+.admin-home-panel,
+.excel-upload-panel,
+.excel-record-panel,
+.excel-preview-card {
+  border-color: #dce5ef;
+  background: #ffffff;
+  color: #172033;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.admin-status {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-placeholder-card h2,
+.admin-roadmap-grid strong,
+.admin-home-title h2,
+.admin-home-metric strong,
+.admin-home-task-row strong,
+.admin-home-warning-row strong,
+.admin-home-system-info strong,
+.excel-upload-panel h2,
+.excel-record-panel h2,
+.excel-record-panel :is(h3, strong),
+.import-overview-grid strong,
+.import-missing-card section strong {
+  color: #172033;
+}
+
+.admin-placeholder-card p,
+.admin-roadmap-grid span,
+.admin-home-title p,
+.admin-home-metric span,
+.admin-home-task-row span,
+.admin-home-warning-row p,
+.admin-home-warning-row time,
+.admin-home-notices span,
+.admin-home-system-info span,
+.excel-upload-panel p,
+.excel-record-panel p,
+.excel-upload-box span,
+.import-file-name {
+  color: #64748b;
+}
+
+.admin-home-task-row,
+.admin-home-warning-row,
+.admin-home-notices span,
+.admin-home-system-info article,
+.import-overview-grid article {
+  border-color: #dce5ef;
+  background: #ffffff;
+}
+
+.admin-home-quick-links a {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-home-quick-links a:hover {
+  border-color: #60a5fa;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.admin-home-empty {
+  border-color: #d7e3f1;
+  background: #f8fbff;
+  color: #3b5f86;
+}
+
+.import-missing-card,
+.admin-no-menu {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.import-missing-card h2 {
+  color: #92400e;
+}
+
+.import-missing-card p {
+  color: #a16207;
+}
+
+.import-missing-card header > span,
+.import-missing-card section span,
+.admin-home-warning-row span {
+  border-color: #facc15;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.import-missing-card button {
+  border-color: #facc15;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.excel-upload-box {
+  border-color: #93c5fd;
+  background: #f8fbff;
+}
+
+.excel-upload-box strong {
+  color: #172033;
+}
+
+.excel-import-error,
+.temu-import-inline-message {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b42318;
+}
+
+.excel-clear-button,
+.danger-action-button,
+.import-record-table .batch-delete-button,
+.delete-confirm-button {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b42318;
+}
+
+.danger-action-button:hover,
+.batch-delete-button:hover,
+.delete-confirm-button:hover {
+  border-color: #fca5a5;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.import-danger-zone {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.import-danger-zone strong {
+  color: #b42318;
+}
+
+.import-danger-zone span {
+  color: #64748b;
+}
+
+.store-form-grid label,
+.import-filter-bar label,
+.traffic-store-input,
+.operator-form-grid label,
+.operator-filter-grid label,
+.npc-toolbar label,
+.npc-import-controls label,
+.npc-mapping-grid label {
+  color: #5b6678;
+}
+
+.store-form-grid input,
+.store-form-grid select,
+.store-form-grid textarea,
+.import-filter-bar select,
+.import-filter-bar input,
+.traffic-store-input input,
+.import-record-table input,
+.operator-form-grid input,
+.operator-form-grid select,
+.operator-filter-grid select,
+.npc-toolbar input,
+.npc-toolbar select,
+.npc-import-controls input,
+.npc-import-controls select,
+.npc-mapping-grid input,
+.npc-mapping-grid select {
+  border-color: #ccd7e3;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.store-form-grid input:focus,
+.store-form-grid select:focus,
+.store-form-grid textarea:focus,
+.import-filter-bar select:focus,
+.import-filter-bar input:focus,
+.traffic-store-input input:focus,
+.import-record-table input:focus,
+.operator-form-grid input:focus,
+.operator-form-grid select:focus,
+.operator-filter-grid select:focus,
+.npc-toolbar input:focus,
+.npc-toolbar select:focus,
+.npc-import-controls input:focus,
+.npc-import-controls select:focus,
+.npc-mapping-grid input:focus,
+.npc-mapping-grid select:focus {
+  border-color: #2563eb;
+  outline: 2px solid rgba(37, 99, 235, 0.14);
+}
+
+.npc-toolbar input[type="date"]::-webkit-calendar-picker-indicator,
+.npc-import-controls input[type="date"]::-webkit-calendar-picker-indicator,
+.npc-mapping-grid input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+
+.store-primary-button,
+.primary-action,
+.import-record-table .batch-view-button,
+.temu-import-card header button,
+.temu-import-batch-panel .temu-import-batch-actions button,
+.temu-product-record-pagination button,
+.temu-ad-sort-button {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.store-primary-button:hover,
+.primary-action:hover,
+.import-record-table .batch-view-button:hover,
+.temu-import-card header button:hover,
+.temu-import-batch-panel .temu-import-batch-actions button:hover,
+.temu-product-record-pagination button:hover,
+.temu-ad-sort-button:hover,
+.temu-ad-sort-button.is-active {
+  border-color: #60a5fa;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.store-table-actions button {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.excel-record-panel > header {
+  border-bottom-color: #edf2f7;
+}
+
+.excel-record-panel > header > span,
+.npc-date-badge {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.import-record-table-wrap,
+.npc-table-wrap {
+  border-color: #dce5ef;
+  background: #ffffff;
+}
+
+.import-date-group {
+  border-bottom-color: #e2e8f0;
+}
+
+.import-date-group summary {
+  background: #f1f5fb;
+}
+
+.import-date-group summary strong {
+  color: #172033;
+}
+
+.import-date-group summary span {
+  color: #64748b;
+}
+
+.import-record-table,
+.npc-table-wrap table,
+.excel-preview-table table {
+  background: #ffffff;
+  color: #172033;
+}
+
+.import-record-table th,
+.import-record-table td,
+.npc-table-wrap th,
+.npc-table-wrap td,
+.excel-preview-table th,
+.excel-preview-table td {
+  border-bottom-color: #e6edf5;
+  color: #172033;
+}
+
+.import-record-table th,
+.npc-table-wrap th,
+.excel-preview-table th,
+.temu-product-record-table thead th,
+.temu-ad-record-table thead th {
+  background: #f1f5fb;
+  color: #38516d;
+  box-shadow: 0 1px 0 #dbe5f0;
+}
+
+.import-record-table tbody tr:hover,
+.npc-table-wrap tbody tr:hover {
+  background: #f8fbff;
+}
+
+.import-record-table td strong,
+.npc-table-wrap td strong,
+.npc-product-cell strong {
+  color: #172033;
+}
+
+.import-record-table button {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.import-status-normal,
+.import-status-success,
+.temu-import-status-badge.status-success {
+  border-color: #86efac;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.import-status-missing,
+.import-status-duplicate,
+.import-status-covered,
+.temu-import-status-badge.status-partial_success {
+  border-color: #fde68a;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.import-status-abnormal,
+.temu-import-status-badge.status-failed {
+  border-color: #fecaca;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.import-status-closed,
+.temu-import-status-badge {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.import-record-empty {
+  color: #3b5f86;
+}
+
+.import-detail-panel {
+  background: #f8fbff;
+}
+
+.import-detail-toolbar,
+.import-pagination,
+.temu-product-record-pagination {
+  color: #64748b;
+}
+
+.import-detail-toolbar strong {
+  color: #172033;
+}
+
+.delete-modal {
+  border-color: #fecaca;
+  background: #ffffff;
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.18);
+}
+
+.delete-modal h2 {
+  color: #172033;
+}
+
+.delete-modal p {
+  color: #b42318;
+}
+
+.delete-modal-info {
+  border-color: #dce5ef;
+  background: #f8fbff;
+  color: #172033;
+}
+
+.delete-cancel-button {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #172033;
+}
+
+.temu-import-hero {
+  border-color: #dce5ef;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.temu-import-hero h2,
+.temu-import-card header h2 {
+  color: #172033;
+}
+
+.temu-import-hero p,
+.temu-import-rule-card p {
+  color: #64748b;
+}
+
+.temu-import-context-panel,
+.temu-import-card,
+.temu-import-metrics article,
+.npc-metric-grid article {
+  border-color: #dce5ef;
+  background: #ffffff;
+}
+
+.temu-import-metrics article.is-ok {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.temu-import-metrics article.is-warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.temu-import-metrics span,
+.temu-import-metrics small,
+.temu-import-card header span,
+.temu-import-step-label,
+.npc-metric-grid span,
+.npc-product-cell small,
+.npc-table-wrap small,
+.temu-import-batch-panel td small,
+.npc-empty-hint {
+  color: #64748b;
+}
+
+.temu-import-metrics strong,
+.npc-metric-grid strong,
+.temu-import-batch-panel td strong {
+  color: #172033;
+}
+
+.temu-import-rule-list span,
+.npc-tag,
+.npc-pill {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.npc-storage-status {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+/* Commercial new-product operations cockpit. */
+.admin-main:has(.npc-workbench-page) {
+  background: #f5f7fb;
+}
+
+.admin-main:has(.npc-workbench-page) .admin-header {
+  align-items: flex-start;
+}
+
+.admin-main:has(.npc-workbench-page) .admin-header h1 {
+  color: #0f172a;
+  font-size: 32px;
+  line-height: 1.15;
+}
+
+.admin-main:has(.npc-workbench-page) .admin-header h1::after {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+  content: "跟踪新品上新、出单、广告消耗与待处理任务。";
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.npc-workbench-page {
+  gap: 20px;
+  color: #0f172a;
+}
+
+.npc-workbench-page > .npc-workbench-toolbar,
+.npc-workbench-page > .excel-record-panel,
+.npc-workbench-page .npc-two-columns > .excel-record-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.npc-workbench-page > .npc-workbench-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.25fr) repeat(5, minmax(136px, 0.82fr)) auto auto auto;
+  align-items: end;
+  gap: 12px;
+  padding: 16px;
+}
+
+.npc-workbench-toolbar label {
+  min-width: 0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.npc-workbench-toolbar .npc-primary-filter {
+  min-width: 0;
+}
+
+.npc-workbench-toolbar input,
+.npc-workbench-toolbar select,
+.npc-workbench-toolbar .npc-readonly-filter {
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.npc-workbench-toolbar input:focus,
+.npc-workbench-toolbar select:focus {
+  border-color: #2563eb;
+  outline: 3px solid rgba(37, 99, 235, 0.14);
+}
+
+.npc-workbench-toolbar .npc-readonly-filter {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.npc-store-search-box {
+  min-width: 0;
+}
+
+.npc-store-search-box input {
+  min-height: 42px;
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: none;
+}
+
+.npc-store-clear-button {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.npc-store-search-button {
+  color: #2563eb;
+}
+
+.npc-store-clear-button:hover,
+.npc-store-search-button:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.npc-store-search-menu {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+}
+
+.npc-store-search-menu button {
+  color: #334155;
+}
+
+.npc-store-search-menu button:hover,
+.npc-store-search-menu button.is-active {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.npc-store-search-empty {
+  color: #64748b;
+}
+
+.npc-workbench-toolbar .npc-apply-filter-button,
+.npc-workbench-toolbar .npc-reset-filter-button {
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-weight: 800;
+}
+
+.npc-workbench-toolbar .npc-apply-filter-button {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.npc-workbench-toolbar .npc-apply-filter-button:hover {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+}
+
+.npc-workbench-toolbar .npc-apply-filter-button:disabled {
+  border-color: #bfdbfe;
+  background: #dbeafe;
+  color: #64748b;
+}
+
+.npc-workbench-toolbar .npc-reset-filter-button {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.npc-workbench-toolbar .npc-reset-filter-button:hover {
+  border-color: #94a3b8;
+  background: #e2e8f0;
+}
+
+.npc-workbench-toolbar .npc-date-badge {
+  min-height: 40px;
+  border-color: #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.npc-workbench-page .npc-panel-header {
+  align-items: center;
+  border-bottom: 1px solid #edf2f7;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+}
+
+.npc-workbench-page .npc-panel-header h2,
+.npc-workbench-page > .excel-record-panel > h2,
+.npc-workbench-page .npc-two-columns h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.npc-health-panel {
+  border-color: #bbf7d0;
+  background: linear-gradient(180deg, #ffffff, #f8fffb);
+}
+
+.npc-health-panel.is-warning {
+  border-color: #fde68a;
+  background: linear-gradient(180deg, #ffffff, #fffaf0);
+}
+
+.npc-health-panel .npc-panel-header span {
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  background: #ecfdf5;
+  padding: 6px 12px;
+  color: #16a34a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.npc-health-panel.is-warning .npc-panel-header span {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.npc-health-grid {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.npc-health-grid span {
+  position: relative;
+  min-height: 88px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 12px 14px;
+  color: #64748b;
+  box-shadow: inset 4px 0 0 #bfdbfe;
+}
+
+.npc-health-grid span:nth-child(3),
+.npc-health-grid span:nth-child(4),
+.npc-health-grid span:nth-child(5) {
+  box-shadow: inset 4px 0 0 #86efac;
+}
+
+.npc-health-grid span:nth-child(2) {
+  box-shadow: inset 4px 0 0 #facc15;
+}
+
+.npc-health-grid strong {
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 1.1;
+}
+
+.npc-health-panel p {
+  margin: 12px 0 0;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  background: #fffbeb;
+  padding: 10px 12px;
+  color: #92400e;
+}
+
+.npc-workbench-page > .npc-metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 14px;
+}
+
+.npc-workbench-page > .npc-metric-grid article {
+  position: relative;
+  min-height: 118px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 16px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.npc-workbench-page > .npc-metric-grid article::before {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #bfdbfe;
+  content: "";
+}
+
+.npc-workbench-page > .npc-metric-grid article:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.1);
+  transform: translateY(-1px);
+}
+
+.npc-workbench-page > .npc-metric-grid article:nth-child(-n + 6) {
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+}
+
+.npc-workbench-page > .npc-metric-grid article:nth-child(4),
+.npc-workbench-page > .npc-metric-grid article:nth-child(5),
+.npc-workbench-page > .npc-metric-grid article:nth-child(10),
+.npc-workbench-page > .npc-metric-grid article:nth-child(11),
+.npc-workbench-page > .npc-metric-grid article:nth-child(12) {
+  box-shadow: inset 4px 0 0 #2563eb, 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.npc-workbench-page > .npc-metric-grid article:nth-child(13),
+.npc-workbench-page > .npc-metric-grid article:nth-child(14),
+.npc-workbench-page > .npc-metric-grid article:nth-child(15) {
+  box-shadow: inset 4px 0 0 #dc2626, 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.npc-workbench-page > .npc-metric-grid article:nth-child(12)::before {
+  background: #22c55e;
+}
+
+.npc-workbench-page > .npc-metric-grid article:nth-child(13)::before,
+.npc-workbench-page > .npc-metric-grid article:nth-child(14)::before,
+.npc-workbench-page > .npc-metric-grid article:nth-child(15)::before {
+  background: #ef4444;
+}
+
+.npc-workbench-page > .npc-metric-grid span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.npc-workbench-page > .npc-metric-grid strong {
+  display: block;
+  margin-top: 12px;
+  color: #0f172a;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.npc-task-board {
+  overflow: visible;
+}
+
+.npc-task-board .npc-panel-header span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  padding: 0 12px;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.npc-task-groups {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.npc-task-groups section {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 14px 14px 8px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.npc-task-groups section::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  content: "";
+}
+
+.npc-task-groups section:nth-child(1)::before {
+  background: #dc2626;
+}
+
+.npc-task-groups section:nth-child(2)::before {
+  background: #d97706;
+}
+
+.npc-task-groups section:nth-child(3)::before {
+  background: #16a34a;
+}
+
+.npc-task-groups h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 8px;
+  padding-left: 4px;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 850;
+}
+
+.npc-task-groups h3::after {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.npc-task-groups section:nth-child(1) h3::after {
+  background: #fef2f2;
+  color: #dc2626;
+  content: "风险";
+}
+
+.npc-task-groups section:nth-child(2) h3::after {
+  background: #fffbeb;
+  color: #d97706;
+  content: "观察";
+}
+
+.npc-task-groups section:nth-child(3) h3::after {
+  background: #ecfdf5;
+  color: #16a34a;
+  content: "机会";
+}
+
+.npc-task-groups button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #edf2f7;
+  border-radius: 8px;
+  background: transparent;
+  padding: 10px 8px;
+  color: #334155;
+  text-align: left;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.npc-task-groups button:hover {
+  background: #f8fbff;
+  color: #1d4ed8;
+}
+
+.npc-task-groups button span {
+  min-width: 0;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.npc-task-groups button span::after {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  content: "进入广告策略中心处理";
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.npc-task-groups button strong {
+  align-self: start;
+  min-width: 34px;
+  border-radius: 999px;
+  background: #eff6ff;
+  padding: 4px 9px;
+  color: #1d4ed8;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.npc-task-groups section:nth-child(1) button strong {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.npc-task-groups section:nth-child(2) button strong {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.npc-task-groups section:nth-child(3) button strong {
+  background: #ecfdf5;
+  color: #16a34a;
+}
+
+.npc-workbench-page .npc-two-columns {
+  gap: 16px;
+}
+
+.npc-workbench-page .npc-mini-list {
+  display: grid;
+  gap: 10px;
+}
+
+.npc-workbench-page .npc-mini-list a,
+.npc-workbench-page .npc-mini-list > span {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 12px;
+  text-decoration: none;
+}
+
+.npc-workbench-page .npc-mini-list a:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.npc-workbench-page .npc-mini-list strong {
+  color: #0f172a;
+}
+
+.npc-workbench-page .npc-mini-list span {
+  color: #64748b;
+}
+
+.npc-workbench-page .npc-quick-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.npc-workbench-page .npc-quick-filters button {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 8px 12px;
+  color: #334155;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.npc-workbench-page .npc-quick-filters button:hover,
+.npc-workbench-page .npc-quick-filters button.is-active {
+  border-color: #60a5fa;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.npc-workbench-page .npc-quick-filters strong {
+  margin-left: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  padding: 2px 7px;
+  color: #475569;
+  font-size: 12px;
+}
+
+.npc-workbench-page .npc-quick-filters button.is-active strong {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.npc-workbench-page .npc-table-wrap {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.npc-workbench-page .npc-table-wrap th {
+  background: #f1f5fb;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.npc-workbench-page .npc-table-wrap td {
+  color: #334155;
+}
+
+.npc-workbench-page .npc-table-wrap tbody tr:hover {
+  background: #f8fbff;
+}
+
+.npc-workbench-page .npc-table-wrap td:nth-child(n + 2) {
+  font-variant-numeric: tabular-nums;
+}
+
+.npc-workbench-page .npc-product-list-table td:nth-child(6),
+.npc-workbench-page .npc-product-list-table td:nth-child(7),
+.npc-workbench-page .npc-product-list-table td:nth-child(8),
+.npc-workbench-page .npc-product-list-table td:nth-child(9),
+.npc-workbench-page .npc-product-list-table td:nth-child(10),
+.npc-workbench-page .npc-product-list-table td:nth-child(11),
+.npc-workbench-page .npc-product-list-table td:nth-child(12),
+.npc-workbench-page .npc-product-list-table td:nth-child(13),
+.npc-workbench-page .npc-product-list-table td:nth-child(15),
+.npc-workbench-page .npc-product-list-table td:nth-child(16),
+.npc-workbench-page .npc-product-list-table th:nth-child(6),
+.npc-workbench-page .npc-product-list-table th:nth-child(7),
+.npc-workbench-page .npc-product-list-table th:nth-child(8),
+.npc-workbench-page .npc-product-list-table th:nth-child(9),
+.npc-workbench-page .npc-product-list-table th:nth-child(10),
+.npc-workbench-page .npc-product-list-table th:nth-child(11),
+.npc-workbench-page .npc-product-list-table th:nth-child(12),
+.npc-workbench-page .npc-product-list-table th:nth-child(13),
+.npc-workbench-page .npc-product-list-table th:nth-child(15),
+.npc-workbench-page .npc-product-list-table th:nth-child(16) {
+  text-align: right;
+}
+
+.npc-workbench-page .npc-tag {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.npc-workbench-page .npc-priority {
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.npc-workbench-page .npc-priority.priority-高 {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.npc-workbench-page .npc-priority.priority-中 {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.npc-workbench-page .npc-priority.priority-机会 {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+  color: #16a34a;
+}
+
+.npc-workbench-page .npc-product-list-table a {
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  padding: 6px 10px;
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.npc-workbench-page .npc-product-list-table a:hover {
+  border-color: #60a5fa;
+  background: #dbeafe;
+}
+
+.npc-workbench-page .temu-product-record-pagination button {
+  min-height: 34px;
+  border-color: #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 700;
+}
+
+.npc-workbench-page .temu-product-record-pagination button:hover:not(:disabled) {
+  border-color: #60a5fa;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+@media (max-width: 1440px) {
+  .npc-workbench-page > .npc-workbench-toolbar {
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .npc-task-groups,
+  .npc-workbench-page > .npc-workbench-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
+.npc-workbench-page > .npc-workbench-toolbar {
+  grid-template-columns: minmax(260px, 1.35fr) repeat(5, minmax(136px, 0.82fr)) minmax(170px, auto);
+}
+
+.npc-workbench-page .npc-store-clear-button,
+.npc-workbench-page .npc-store-search-button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 800;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.npc-workbench-page .npc-store-clear-button {
+  right: 40px;
+  color: #64748b;
+}
+
+.npc-workbench-page .npc-store-search-button {
+  right: 6px;
+}
+
+.npc-workbench-page .npc-store-clear-button:hover,
+.npc-workbench-page .npc-store-search-button:hover {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.22);
+}
+
+/* Final cleanup for legacy dark/gray styles on regular admin pages. */
+.admin-main {
+  background: #f5f7fb;
+  color: #0f172a;
+}
+
+.admin-main :is(
+  .admin-placeholder-card,
+  .admin-roadmap-grid article,
+  .admin-home-metric,
+  .admin-home-panel,
+  .admin-home-task-row,
+  .admin-home-warning-row,
+  .admin-home-notices span,
+  .admin-home-system-info article,
+  .import-overview-grid article,
+  .excel-upload-panel,
+  .excel-record-panel,
+  .excel-preview-card,
+  .store-card,
+  .task-template-preview,
+  .import-detail-panel,
+  .employee-edit-modal,
+  .salary-detail-modal,
+  .delete-modal,
+  .npc-panel,
+  .npc-metric-grid article,
+  .temu-import-card,
+  .temu-import-metrics article
+) {
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.admin-main :is(
+  .admin-placeholder-card,
+  .admin-roadmap-grid,
+  .admin-home,
+  .excel-import-page,
+  .npc-page
+) :is(h2, h3, h4, strong, b, label) {
+  color: #0f172a;
+}
+
+.admin-main :is(
+  .admin-placeholder-card,
+  .admin-roadmap-grid,
+  .admin-home,
+  .excel-import-page,
+  .npc-page,
+  .task-template-preview
+) :is(p, span, small, em) {
+  color: #64748b;
+}
+
+.admin-main :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea
+) {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: none;
+}
+
+.admin-main :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea
+):focus {
+  border-color: #2563eb;
+  outline: 3px solid rgba(37, 99, 235, 0.14);
+}
+
+.admin-main :is(input, textarea)::placeholder {
+  color: #94a3b8;
+}
+
+.admin-main :is(
+  .import-record-table-wrap,
+  .npc-table-wrap,
+  .excel-preview-table,
+  .salary-stat-table-wrap,
+  .batch-detail-panel .import-record-table-wrap
+) {
+  border-color: #e2e8f0;
+  background: #ffffff;
+}
+
+.admin-main :is(
+  .import-record-table,
+  .npc-table-wrap table,
+  .excel-preview-table table,
+  .salary-expense-table,
+  .alibaba-product-table,
+  .alibaba-products-v1-table,
+  .alibaba-products-v1-sku-table,
+  .alibaba-products-v1-sku-preview-table
+) {
+  background: #ffffff;
+  color: #334155;
+}
+
+.admin-main :is(
+  .import-record-table,
+  .npc-table-wrap table,
+  .excel-preview-table table,
+  .salary-expense-table,
+  .alibaba-product-table,
+  .alibaba-products-v1-table,
+  .alibaba-products-v1-sku-table,
+  .alibaba-products-v1-sku-preview-table
+) :is(th, td) {
+  border-color: #e2e8f0;
+  color: #334155;
+}
+
+.admin-main :is(
+  .import-record-table,
+  .npc-table-wrap table,
+  .excel-preview-table table,
+  .salary-expense-table,
+  .alibaba-product-table,
+  .alibaba-products-v1-table,
+  .alibaba-products-v1-sku-table,
+  .alibaba-products-v1-sku-preview-table
+) th {
+  background: #f1f5fb;
+  color: #475569;
+  box-shadow: 0 1px 0 #dbe5f0;
+}
+
+.admin-main :is(
+  .import-record-table,
+  .npc-table-wrap table,
+  .excel-preview-table table,
+  .salary-expense-table,
+  .alibaba-product-table,
+  .alibaba-products-v1-table,
+  .alibaba-products-v1-sku-table,
+  .alibaba-products-v1-sku-preview-table
+) tbody tr:hover {
+  background: #f8fbff;
+}
+
+.admin-main :is(
+  .admin-home-empty,
+  .import-record-empty,
+  .npc-empty-hint,
+  .npc-store-search-empty
+) {
+  border-color: #dbe5f0;
+  background: #f8fbff;
+  color: #64748b;
+}
+
+.admin-main :is(
+  .admin-no-menu,
+  .import-missing-card,
+  .relation-warning
+) {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.admin-main :is(
+  .admin-status,
+  .npc-date-badge,
+  .npc-tag,
+  .npc-pill,
+  .import-record-table .batch-view-button,
+  .store-primary-button,
+  .primary-action
+) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-main :is(
+  .danger-action-button,
+  .excel-clear-button,
+  .import-record-table .batch-delete-button,
+  .delete-confirm-button
+) {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b42318;
+}
+
+.admin-main :is(
+  .import-status-normal,
+  .import-status-success,
+  .workbench-status.ok,
+  .workbench-table-status.ok
+) {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.admin-main :is(
+  .import-status-missing,
+  .import-status-duplicate,
+  .import-status-covered,
+  .workbench-status.warning,
+  .workbench-table-status.warning
+) {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.admin-main :is(
+  .import-status-abnormal,
+  .workbench-status.danger,
+  .workbench-table-status.danger
+) {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.admin-main :is(
+  .import-record-table-wrap,
+  .npc-table-wrap,
+  .admin-data-source-popover,
+  .admin-visible-store-popover
+)::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.admin-main :is(
+  .import-record-table-wrap,
+  .npc-table-wrap,
+  .admin-data-source-popover,
+  .admin-visible-store-popover
+)::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.admin-main :is(
+  .import-record-table-wrap,
+  .npc-table-wrap,
+  .admin-data-source-popover,
+  .admin-visible-store-popover
+)::-webkit-scrollbar-thumb {
+  border: 2px solid #f1f5f9;
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.account-page .account-form,
+.account-page > .excel-record-panel {
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.account-page .account-form-section {
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.03);
+}
+
+.account-page .account-form-section h3,
+.account-page .account-permission-card strong,
+.account-page .account-menu-group > strong {
+  color: #0f172a;
+}
+
+.account-page .account-basic-grid label,
+.account-page .account-permission-card span {
+  color: #64748b;
+}
+
+.account-page .account-basic-grid input,
+.account-page .account-basic-grid select {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.account-page .account-basic-grid input:disabled {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.account-page .account-permission-card {
+  border-color: #dbe5f0;
+  background: #f8fbff;
+  color: #0f172a;
+  box-shadow: none;
+}
+
+.account-page .account-checkbox-grid label {
+  border-color: #dbe5f0;
+  background: #ffffff;
+  color: #334155;
+}
+
+.account-page .account-checkbox-grid label:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.account-page .account-checkbox-grid label:has(input:checked) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.account-page .account-checkbox-grid label em {
+  color: #2563eb;
+}
+
+.account-page .account-menu-tree,
+.account-page .account-checkbox-grid.stores {
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.account-page .account-form-actions button,
+.account-page .account-edit-modal-actions button:last-child {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.account-page .account-form-actions button:hover,
+.account-page .account-edit-modal-actions button:last-child:hover {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+}
+
+.account-page .account-message {
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  padding: 10px 12px;
+  color: #1d4ed8;
+}
+
+/* Operator analysis center light cleanup. */
+.admin-main .excel-import-page:has(.operator-performance-panel) {
+  background: #f5f7fb;
+  color: #0f172a;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(
+  .excel-record-panel,
+  .operator-sku-section,
+  .operator-expense-ratio-subsection,
+  .operation-ai-debug-panel,
+  .fact-quality-summary article,
+  .fact-quality-fix-panel,
+  .analysis-card,
+  .task-analysis-panel,
+  .task-analysis-row,
+  .operator-kpi-grid article,
+  .operator-anomaly-grid article
+) {
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(
+  .operator-sku-section-risk,
+  .analysis-risk-critical
+) {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .analysis-risk-warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .analysis-growth {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(
+  h2,
+  h3,
+  h4,
+  strong,
+  b,
+  label,
+  .analysis-section-title,
+  .operator-sku-section-header h3,
+  .operator-expense-ratio-subsection h3,
+  .operator-expense-ratio-featured h3,
+  .operator-anomaly-section h3,
+  .analysis-card span,
+  .operator-kpi-grid strong,
+  .operator-anomaly-grid strong,
+  .operator-expense-ratio-table .numeric-cell strong,
+  .operator-expense-ratio-value,
+  .operator-expense-ratio-featured .operator-expense-ratio-value,
+  .task-analysis-row strong
+) {
+  color: #0f172a;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(
+  p,
+  small,
+  em,
+  .operator-sku-section-header p,
+  .operator-expense-ratio-subsection p,
+  .operator-expense-ratio-table .numeric-cell small,
+  .operator-kpi-grid span,
+  .operator-anomaly-grid span,
+  .operator-anomaly-grid p,
+  .analysis-card p,
+  .operator-store-names,
+  .fact-quality-fix-list p
+) {
+  color: #64748b;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .operator-expense-ratio-featured {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  box-shadow: inset 4px 0 0 #2563eb, 0 8px 18px rgba(37, 99, 235, 0.08);
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(
+  .analysis-maintenance-bar .ai-runtime-status,
+  .task-analysis-row span,
+  .operator-sku-section-header h3 span,
+  .store-match-tags span,
+  .fact-quality-samples span
+) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(
+  .analysis-maintenance-bar button,
+  .data-quality-check-header button,
+  .store-match-action,
+  .analysis-card-actions a,
+  .analysis-card-actions button
+) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(
+  .analysis-maintenance-bar button,
+  .data-quality-check-header button,
+  .store-match-action,
+  .analysis-card-actions a,
+  .analysis-card-actions button
+):hover {
+  border-color: #2563eb;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(
+  .operator-performance-table-wrap,
+  .import-record-table-wrap
+) {
+  border-color: #e2e8f0;
+  background: #ffffff;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .import-record-table th {
+  background: #f1f5fb;
+  color: #475569;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .import-record-table td {
+  background: #ffffff;
+  color: #334155;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .import-record-table tbody tr:hover td {
+  background: #f8fbff;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(
+  .analysis-result-risk,
+  .analysis-result-critical,
+  .analysis-result-medium_risk,
+  .task-analysis-row .task-stat-danger
+) {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(
+  .analysis-result-slight_fluctuation,
+  .analysis-result-insufficient,
+  .task-analysis-row .task-stat-warning,
+  .analysis-maintenance-bar .ai-runtime-status-mock
+) {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(
+  .analysis-result-opportunity,
+  .analysis-maintenance-bar .ai-runtime-status-openai,
+  .fact-quality-fix-list .is-ok
+) {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+  color: #16a34a;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .analysis-result-normal {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(
+  .task-clickable-row:hover,
+  .task-analysis-active
+) {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .task-analysis-empty {
+  border-color: #dbe5f0;
+  background: #f8fbff;
+  color: #64748b;
+}
+
+/* 1688 product library light cleanup. */
+.admin-main .alibaba-products-v1-page {
+  background: #f5f7fb;
+  color: #0f172a;
+}
+
+.admin-main .alibaba-products-v1-main {
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.admin-main .alibaba-products-v1-header h2,
+.admin-main .alibaba-products-v1-summary strong,
+.admin-main .alibaba-products-v1-product-cell strong,
+.admin-main .alibaba-products-v1-pagination strong,
+.admin-main .alibaba-products-v1-sku-preview-summary strong,
+.admin-main .alibaba-products-v1-sku-preview-summary dd,
+.admin-main .alibaba-products-v1-edit-modal h3,
+.admin-main .alibaba-products-v1-edit-modal h4,
+.admin-main .alibaba-products-v1-sku-preview-modal h3,
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-panel-header h4 {
+  color: #0f172a;
+}
+
+.admin-main .alibaba-products-v1-header p,
+.admin-main .alibaba-products-v1-summary span,
+.admin-main .alibaba-products-v1-product-cell span,
+.admin-main .alibaba-products-v1-product-cell em,
+.admin-main .alibaba-products-v1-bulk-toolbar span,
+.admin-main .alibaba-products-v1-pagination,
+.admin-main .alibaba-products-v1-edit-modal p,
+.admin-main .alibaba-products-v1-sku-preview-modal > header p,
+.admin-main .alibaba-products-v1-sku-preview-summary dt,
+.admin-main .alibaba-products-v1-sku-preview-remark,
+.admin-main .alibaba-products-v1-image-actions span,
+.admin-main .alibaba-products-v1-sku-image-cell small {
+  color: #64748b;
+}
+
+.admin-main .alibaba-products-v1-summary article,
+.admin-main .alibaba-products-v1-bulk-toolbar,
+.admin-main .alibaba-products-v1-pagination,
+.admin-main .alibaba-products-v1-sku-preview-summary,
+.admin-main .alibaba-products-v1-detail.open {
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.03);
+}
+
+.admin-main .alibaba-products-v1-summary article {
+  background: #f8fbff;
+}
+
+.admin-main .alibaba-products-v1-product-info-actions {
+  border-color: #dbeafe;
+  background: #eff6ff;
+  box-shadow: none;
+}
+
+.admin-main .alibaba-products-v1-toolbar input,
+.admin-main .alibaba-products-v1-toolbar select,
+.admin-main .alibaba-products-v1-toolbar button,
+.admin-main .alibaba-products-v1-bulk-toolbar select,
+.admin-main .alibaba-products-v1-bulk-toolbar button,
+.admin-main .alibaba-products-v1-price-input,
+.admin-main .alibaba-products-v1-supplier-select,
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-admin-form input,
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-admin-form select,
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-admin-form textarea,
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table input {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.admin-main .alibaba-products-v1-toolbar input::placeholder,
+.admin-main .alibaba-products-v1-price-input::placeholder,
+.admin-main .alibaba-products-v1-price-input.is-range-placeholder::placeholder {
+  color: #94a3b8;
+}
+
+.admin-main .alibaba-products-v1-toolbar input:focus,
+.admin-main .alibaba-products-v1-toolbar select:focus,
+.admin-main .alibaba-products-v1-bulk-toolbar select:focus,
+.admin-main .alibaba-products-v1-price-input:focus,
+.admin-main .alibaba-products-v1-supplier-select:focus,
+.admin-main .alibaba-products-v1-edit-modal :is(input, select, textarea):focus {
+  border-color: #2563eb;
+  outline: 3px solid rgba(37, 99, 235, 0.14);
+  box-shadow: none;
+}
+
+.admin-main .alibaba-products-v1-toolbar button,
+.admin-main .alibaba-products-v1-bulk-toolbar button,
+.admin-main .alibaba-products-v1-pagination button,
+.admin-main .alibaba-products-v1-save-price,
+.admin-main .alibaba-products-v1-edit,
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-admin-form button,
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-table button,
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-image-actions button,
+.admin-main .alibaba-products-v1-edit-modal > header button,
+.admin-main .alibaba-products-v1-sku-preview-modal > header button,
+.admin-main .alibaba-products-v1-image-actions label,
+.admin-main .alibaba-products-v1-sku-image-upload {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-main .alibaba-products-v1-toolbar button:hover:not(:disabled),
+.admin-main .alibaba-products-v1-bulk-toolbar button:hover:not(:disabled),
+.admin-main .alibaba-products-v1-pagination button:hover:not(:disabled),
+.admin-main .alibaba-products-v1-save-price:hover:not(:disabled),
+.admin-main .alibaba-products-v1-edit:hover:not(:disabled),
+.admin-main .alibaba-products-v1-edit-modal button:hover:not(:disabled),
+.admin-main .alibaba-products-v1-image-actions label:hover,
+.admin-main .alibaba-products-v1-sku-image-upload:hover {
+  border-color: #2563eb;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.admin-main .alibaba-products-v1-delete,
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-delete-button {
+  border-color: #fecaca !important;
+  background: #fef2f2 !important;
+  color: #b42318 !important;
+}
+
+.admin-main .alibaba-products-v1-delete:hover:not(:disabled),
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-delete-button:hover:not(:disabled) {
+  border-color: #fca5a5 !important;
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+}
+
+.admin-main .alibaba-products-v1-table-wrap,
+.admin-main .alibaba-products-v1-sku-table-wrap,
+.admin-main .alibaba-products-v1-sku-preview-table-wrap {
+  border-color: #e2e8f0;
+  background: #ffffff;
+}
+
+.admin-main .alibaba-products-v1-table,
+.admin-main .alibaba-products-v1-sku-table,
+.admin-main .alibaba-products-v1-sku-preview-table {
+  background: #ffffff;
+  color: #334155;
+}
+
+.admin-main .alibaba-products-v1-table th,
+.admin-main .alibaba-products-v1-table td,
+.admin-main .alibaba-products-v1-sku-table th,
+.admin-main .alibaba-products-v1-sku-table td,
+.admin-main .alibaba-products-v1-sku-preview-table th,
+.admin-main .alibaba-products-v1-sku-preview-table td {
+  border-bottom-color: #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+}
+
+.admin-main .alibaba-products-v1-table th,
+.admin-main .alibaba-products-v1-sku-table th,
+.admin-main .alibaba-products-v1-sku-preview-table th {
+  background: #f1f5fb;
+  color: #475569;
+}
+
+.admin-main .alibaba-products-v1-table tbody tr:hover,
+.admin-main .alibaba-products-v1-table tbody tr:hover td {
+  background: #f8fbff;
+}
+
+.admin-main .alibaba-products-v1-table tbody tr.alibaba-products-v1-clickable-row:focus-visible,
+.admin-main .alibaba-products-v1-table tbody tr.alibaba-products-v1-clickable-row.is-previewing,
+.admin-main .alibaba-products-v1-table tbody tr.alibaba-products-v1-clickable-row.is-previewing td {
+  background: #eff6ff;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+
+.admin-main .alibaba-products-v1-price-readonly {
+  color: #0f172a;
+}
+
+.admin-main .alibaba-products-v1-image-popover {
+  border-color: #bfdbfe;
+  background: #ffffff;
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.22);
+}
+
+.admin-main .alibaba-products-v1-modal-backdrop {
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(4px);
+}
+
+.admin-main .alibaba-products-v1-edit-modal,
+.admin-main .alibaba-products-v1-sku-preview-modal {
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+}
+
+.admin-main .alibaba-products-v1-edit-modal > header,
+.admin-main .alibaba-products-v1-sku-preview-modal > header,
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-panel {
+  border-color: #e2e8f0;
+}
+
+.admin-main .alibaba-products-v1-edit-image-panel,
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-sku-panel,
+.admin-main .alibaba-products-v1-sku-preview-summary {
+  background: #f8fbff;
+}
+
+.admin-main .alibaba-products-v1-edit-modal .alibaba-products-v1-admin-form label {
+  color: #475569;
+}
+
+.admin-main .alibaba-products-v1-toast {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+  color: #166534;
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.14);
+}
+
+.admin-main .alibaba-products-v1-toast.is-warning {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+/* Data import pages upload entrance alignment. */
+.admin-main .excel-import-page > .excel-upload-panel {
+  order: 0;
+}
+
+.admin-main .excel-import-page > .import-overview-grid {
+  order: 1;
+}
+
+.admin-main .excel-import-page > .import-missing-card {
+  order: 2;
+}
+
+.admin-main .excel-import-page > .analysis-maintenance-bar {
+  order: 3;
+}
+
+.admin-main .excel-import-page > .excel-record-panel {
+  order: 4;
+}
+
+.admin-main .excel-import-page > .excel-upload-panel,
+.admin-main .temu-import-hero {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.admin-main .excel-import-page > .excel-upload-panel {
+  display: grid;
+  grid-template-columns: 420px minmax(0, 1fr);
+  align-items: center;
+  gap: 20px 24px;
+  padding: 20px;
+}
+
+.admin-main .excel-import-page > .traffic-upload-panel {
+  grid-template-columns: 420px minmax(220px, 1fr);
+}
+
+.admin-main .excel-import-page > .excel-upload-panel > div:first-child {
+  order: 1;
+  min-width: 0;
+}
+
+.admin-main .excel-import-page > .excel-upload-panel > .traffic-store-input {
+  order: 2;
+  width: min(100%, 360px);
+}
+
+.admin-main .excel-import-page > .excel-upload-panel > .excel-import-error {
+  order: 3;
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+.admin-main .excel-import-page > .excel-upload-panel h2 {
+  margin: 8px 0 6px;
+  color: #0f172a;
+  font-size: 20px;
+}
+
+.admin-main .excel-import-page > .excel-upload-panel p {
+  color: #64748b;
+}
+
+.admin-main .excel-import-page > .excel-upload-panel .admin-status {
+  width: fit-content;
+}
+
+.admin-main .excel-import-page .excel-upload-box,
+.admin-main .temu-import-hero .temu-import-upload-box {
+  order: 0;
+  box-sizing: border-box;
+  width: 420px;
+  min-width: 420px;
+  max-width: 420px;
+  height: 96px;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px dashed #93c5fd;
+  border-radius: 12px;
+  background: rgba(239, 246, 255, 0.28);
+  padding: 14px 18px;
+  color: #0f172a;
+  text-align: center;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.admin-main .excel-import-page .excel-upload-box:hover,
+.admin-main .temu-import-hero .temu-import-upload-box:hover {
+  border-color: #60a5fa;
+  background: #eff6ff;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.08);
+}
+
+.admin-main .excel-import-page .excel-upload-box strong,
+.admin-main .temu-import-hero .temu-import-upload-box strong {
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.admin-main .excel-import-page .excel-upload-box span,
+.admin-main .temu-import-hero .temu-import-upload-box span {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.admin-main .excel-import-page .excel-upload-box:has(input:disabled),
+.admin-main .temu-import-hero .temu-import-upload-box:has(input:disabled) {
+  cursor: not-allowed;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.admin-main .temu-import-hero {
+  display: grid;
+  grid-template-columns: minmax(420px, 0.95fr) minmax(360px, 1.05fr);
+  align-items: start;
+  gap: 20px 24px;
+  padding: 20px;
+  color: #0f172a;
+}
+
+.admin-main .temu-import-hero-copy {
+  min-width: 0;
+}
+
+.admin-main .temu-import-hero-upload {
+  display: grid;
+  grid-template-columns: 420px minmax(220px, 1fr);
+  align-items: center;
+  gap: 16px 20px;
+  max-width: none;
+}
+
+.admin-main .temu-ad-hero-upload {
+  grid-template-columns: 420px minmax(300px, 1fr);
+}
+
+.admin-main .temu-import-hero .npc-import-controls,
+.admin-main .temu-import-hero .temu-import-store-control {
+  min-width: 0;
+}
+
+.admin-main .temu-import-hero .temu-import-store-control label {
+  width: min(100%, 360px);
+}
+
+.admin-main .temu-ad-hero-upload .temu-import-store-control {
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+}
+
+.admin-main .temu-import-metrics {
+  align-self: stretch;
+}
+
+.admin-main .temu-import-metrics article {
+  border-color: #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.03);
+}
+
+.admin-main .temu-import-metrics article.is-ok {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+}
+
+.admin-main .temu-import-metrics article.is-warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.admin-main .temu-import-metrics span,
+.admin-main .temu-import-metrics small {
+  color: #64748b;
+}
+
+.admin-main .temu-import-metrics strong {
+  color: #0f172a;
+}
+
+@media (max-width: 1180px) {
+  .admin-main .temu-import-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-main .temu-import-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .admin-main .excel-import-page > .excel-upload-panel,
+  .admin-main .excel-import-page > .traffic-upload-panel,
+  .admin-main .temu-import-hero-upload,
+  .admin-main .temu-ad-hero-upload,
+  .admin-main .temu-ad-hero-upload .temu-import-store-control {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-main .excel-import-page .excel-upload-box,
+  .admin-main .temu-import-hero .temu-import-upload-box {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .admin-main .temu-import-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Warning results center light cleanup. */
+.admin-main .warning-results-page {
+  background: #f5f7fb;
+  color: #0f172a;
+}
+
+.admin-main .warning-results-page :is(
+  .excel-record-panel,
+  .import-overview-grid article,
+  .store-match-check-body section,
+  .fact-quality-summary article,
+  .fact-quality-fix-panel,
+  .fact-quality-sample-panel,
+  .analysis-card
+) {
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.admin-main .warning-results-page :is(
+  h2,
+  h3,
+  strong,
+  b,
+  label,
+  .analysis-section-title,
+  .analysis-card span,
+  .store-match-check-body strong,
+  .fact-quality-fix-panel strong,
+  .import-overview-grid strong,
+  .fact-quality-summary strong
+) {
+  color: #0f172a;
+}
+
+.admin-main .warning-results-page :is(
+  p,
+  small,
+  em,
+  .excel-record-panel p,
+  .analysis-card p,
+  .import-overview-grid span,
+  .fact-quality-summary span,
+  .fact-quality-fix-list p,
+  .store-match-check-body p
+) {
+  color: #64748b;
+}
+
+.admin-main .warning-results-page :is(
+  .analysis-maintenance-bar button,
+  .data-quality-check-header button,
+  .store-match-action,
+  .analysis-card-actions a,
+  .analysis-card-actions button
+) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-main .warning-results-page :is(
+  .analysis-maintenance-bar button,
+  .data-quality-check-header button,
+  .store-match-action,
+  .analysis-card-actions a,
+  .analysis-card-actions button
+):hover {
+  border-color: #60a5fa;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.admin-main .warning-results-page .analysis-maintenance-bar span {
+  color: #16a34a;
+}
+
+.admin-main .warning-results-page .analysis-risk-critical {
+  border-color: #fecaca;
+  background: #fef2f2;
+  box-shadow: inset 3px 0 0 #ef4444, 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.admin-main .warning-results-page .analysis-risk-critical :is(strong, em) {
+  color: #dc2626;
+}
+
+.admin-main .warning-results-page .analysis-risk-warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+  box-shadow: inset 3px 0 0 #f59e0b, 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.admin-main .warning-results-page .analysis-risk-warning :is(strong, em) {
+  color: #d97706;
+}
+
+.admin-main .warning-results-page .analysis-growth {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+  box-shadow: inset 3px 0 0 #22c55e, 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.admin-main .warning-results-page .analysis-growth :is(strong, em) {
+  color: #16a34a;
+}
+
+.admin-main .warning-results-page :is(
+  .store-match-tags span,
+  .fact-quality-samples span,
+  .analysis-maintenance-bar .ai-runtime-status
+) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-main .warning-results-page :is(
+  .fact-quality-fix-list .need-fix,
+  .analysis-result-slight_fluctuation,
+  .analysis-result-insufficient,
+  .analysis-maintenance-bar .ai-runtime-status-mock
+) {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.admin-main .warning-results-page :is(
+  .fact-quality-fix-list .is-ok,
+  .analysis-result-opportunity,
+  .analysis-maintenance-bar .ai-runtime-status-openai
+) {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+  color: #16a34a;
+}
+
+.admin-main .warning-results-page :is(
+  .analysis-result-risk,
+  .analysis-result-critical,
+  .analysis-result-medium_risk
+) {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.admin-main .warning-results-page .analysis-result-normal {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.admin-main .warning-results-page :is(.import-record-table-wrap, .import-filter-bar) {
+  border-color: #e2e8f0;
+  background: #ffffff;
+}
+
+.admin-main .warning-results-page :is(.import-filter-bar select, .import-filter-bar input) {
+  border-color: #ccd7e3;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.admin-main .warning-results-page .import-record-table {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.admin-main .warning-results-page .import-record-table th {
+  background: #f1f5fb;
+  color: #475569;
+}
+
+.admin-main .warning-results-page .import-record-table td {
+  background: #ffffff;
+  color: #334155;
+}
+
+.admin-main .warning-results-page .import-record-table tbody tr:hover td {
+  background: #f8fbff;
+}
+
+.admin-main .warning-results-page .import-record-empty {
+  border-color: #e2e8f0;
+  background: #f8fbff;
+  color: #64748b;
+}
+
+/* 1688 设置页：后台浅色工作台风格。 */
+.admin-main .alibaba-settings-page {
+  color: #172033;
+}
+
+.admin-main .alibaba-settings-page .excel-record-panel {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #172033;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.admin-main .alibaba-settings-page .excel-record-panel > header {
+  border-bottom-color: #edf2f7;
+}
+
+.admin-main .alibaba-settings-page .excel-record-panel h2,
+.admin-main .alibaba-settings-page .alibaba-store-list strong,
+.admin-main .alibaba-settings-page .alibaba-setting-list b {
+  color: #0f172a;
+}
+
+.admin-main .alibaba-settings-page .excel-record-panel > header span {
+  border-color: #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-main .alibaba-settings-page .alibaba-store-form label,
+.admin-main .alibaba-settings-page .alibaba-store-list span,
+.admin-main .alibaba-settings-page .alibaba-store-list em,
+.admin-main .alibaba-settings-page .alibaba-setting-list em {
+  color: #64748b;
+}
+
+.admin-main .alibaba-settings-page .alibaba-store-form input,
+.admin-main .alibaba-settings-page .alibaba-store-form select,
+.admin-main .alibaba-settings-page .alibaba-setting-input input {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.admin-main .alibaba-settings-page .alibaba-store-form input::placeholder,
+.admin-main .alibaba-settings-page .alibaba-setting-input input::placeholder {
+  color: #94a3b8;
+}
+
+.admin-main .alibaba-settings-page .alibaba-store-form select {
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #64748b 50%),
+    linear-gradient(135deg, #64748b 50%, transparent 50%);
+}
+
+.admin-main .alibaba-settings-page .alibaba-store-form select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.admin-main .alibaba-settings-page .alibaba-store-form input:focus,
+.admin-main .alibaba-settings-page .alibaba-store-form select:focus,
+.admin-main .alibaba-settings-page .alibaba-setting-input input:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.admin-main .alibaba-settings-page .alibaba-form-actions button,
+.admin-main .alibaba-settings-page .alibaba-store-form button,
+.admin-main .alibaba-settings-page .alibaba-setting-input button,
+.admin-main .alibaba-settings-page .alibaba-store-list button,
+.admin-main .alibaba-settings-page .alibaba-setting-list button {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #1f2937;
+}
+
+.admin-main .alibaba-settings-page .store-primary-button {
+  border-color: #1d4ed8 !important;
+  background: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
+.admin-main .alibaba-settings-page .danger-action-button {
+  border-color: #fecaca !important;
+  background: #fff1f2 !important;
+  color: #dc2626 !important;
+}
+
+.admin-main .alibaba-settings-page .alibaba-store-list article {
+  border-color: #e2e8f0;
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.03);
+}
+
+.admin-main .alibaba-settings-page .alibaba-state-on {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.admin-main .alibaba-settings-page .alibaba-state-off {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.admin-main .alibaba-settings-page .alibaba-setting-list span {
+  border-color: #dbeafe;
+  background: #f8fbff;
+  color: #172033;
+}
+
+.admin-main .alibaba-settings-page .alibaba-setting-list span.disabled {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  opacity: 1;
+}
+
+.admin-main .alibaba-settings-page .alibaba-setting-list span.disabled b,
+.admin-main .alibaba-settings-page .alibaba-setting-list span.disabled em {
+  color: #94a3b8;
+}
+
+.admin-main .alibaba-settings-page .alibaba-setting-list span > em {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-main .alibaba-settings-page .alibaba-settings-error {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #b91c1c;
+}
+
+.admin-main .alibaba-settings-page .alibaba-settings-error strong {
+  color: #b91c1c;
+}
+
+.admin-main .alibaba-settings-page .alibaba-settings-message {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
 }

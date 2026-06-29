@@ -428,37 +428,6 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   const readonlyOperator = operatorOptions[0];
   const readonlyOperatorName = readonlyOperator?.operatorName || currentUser.displayName || currentUser.username || '-';
   const readonlyOperatorStoreCount = visibleStoreOptions.length || readonlyOperator?.storeCount || 0;
-  const hasPendingFilterChanges = snapshotDate !== appliedSnapshotDate ||
-    storeId !== appliedStoreId ||
-    operatorName !== appliedOperatorName ||
-    tag !== appliedTag ||
-    isAdEnabled !== appliedIsAdEnabled ||
-    isOrdered !== appliedIsOrdered;
-
-  const applyWorkbenchFilters = () => {
-    let nextStoreId = storeId;
-    const keyword = storeSearchText.trim();
-    if (!nextStoreId && keyword) {
-      const exact = visibleStoreOptions.find((store) => String(store.storeName || '').toLowerCase() === keyword.toLowerCase());
-      const target = exact || filteredStoreOptions[0];
-      if (target?.id) {
-        nextStoreId = target.id;
-        setStoreId(target.id);
-        setStoreSearchText(target.storeName || '');
-      } else {
-        setMessage(`未找到店铺：${keyword}`);
-        return;
-      }
-    }
-    setAppliedSnapshotDate(snapshotDate);
-    setAppliedStoreId(nextStoreId);
-    setAppliedOperatorName(operatorName);
-    setAppliedTag(tag);
-    setAppliedIsAdEnabled(isAdEnabled);
-    setAppliedIsOrdered(isOrdered);
-    setPage(1);
-  };
-
   const applyStoreFilter = (nextStoreId: string, nextStoreName = '') => {
     setStoreId(nextStoreId);
     setAppliedStoreId(nextStoreId);
@@ -488,24 +457,6 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
     } else {
       setStoreSearchOpen(true);
     }
-  };
-
-  const resetWorkbenchFilters = () => {
-    setSnapshotDate('');
-    setStoreId('');
-    setOperatorName('');
-    setTag('');
-    setIsAdEnabled('');
-    setIsOrdered('');
-    setAppliedSnapshotDate('');
-    setAppliedStoreId('');
-    setAppliedOperatorName('');
-    setAppliedTag('');
-    setAppliedIsAdEnabled('');
-    setAppliedIsOrdered('');
-    setStoreSearchText('');
-    setStoreSearchOpen(false);
-    setPage(1);
   };
 
   const selectTag = (nextTag: string) => {
@@ -564,17 +515,15 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
             )}
           </span>
         </label>
-        <label>统计日期<input type="date" value={snapshotDate || displayedDate} onChange={(event) => { setSnapshotDate(event.target.value); setPage(1); }} /></label>
+        <label>统计日期<input type="date" value={snapshotDate || displayedDate} onChange={(event) => { setSnapshotDate(event.target.value); setAppliedSnapshotDate(event.target.value); setPage(1); }} /></label>
         {isAdmin ? (
-          <label>运营<select value={operatorName} onChange={(event) => { setOperatorName(event.target.value); setPage(1); }}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorId || operator.operatorName} value={operator.operatorName}>{operator.operatorName}{storeId ? '' : `（${operator.storeCount || 0}店）`}</option>)}</select></label>
+          <label>运营<select value={operatorName} onChange={(event) => { const nextOperatorName = event.target.value; setOperatorName(nextOperatorName); setAppliedOperatorName(nextOperatorName); setStoreId(''); setAppliedStoreId(''); setStoreSearchText(''); setPage(1); }}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorId || operator.operatorName} value={operator.operatorName}>{operator.operatorName}{storeId ? '' : `（${operator.storeCount || 0}店）`}</option>)}</select></label>
         ) : (
           <label>运营<span className="npc-readonly-filter">{readonlyOperatorName}（{readonlyOperatorStoreCount}店）</span></label>
         )}
-        <label>商品标签<select value={tag} onChange={(event) => { setTag(event.target.value); setPage(1); }}><option value="">全部</option>{TAGS.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <label>广告<select value={isAdEnabled} onChange={(event) => { setIsAdEnabled(event.target.value); setPage(1); }}><option value="">全部</option><option value="true">已开广告</option><option value="false">未开广告</option></select></label>
-        <label>出单<select value={isOrdered} onChange={(event) => { setIsOrdered(event.target.value); setPage(1); }}><option value="">全部</option><option value="true">已出单</option><option value="false">未出单</option></select></label>
-        <button type="button" className="npc-apply-filter-button" disabled={!hasPendingFilterChanges} onClick={applyWorkbenchFilters}>确定筛选</button>
-        <button type="button" className="npc-reset-filter-button" onClick={resetWorkbenchFilters}>重置</button>
+        <label>商品标签<select value={tag} onChange={(event) => { setTag(event.target.value); setAppliedTag(event.target.value); setPage(1); }}><option value="">全部</option>{TAGS.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label>广告<select value={isAdEnabled} onChange={(event) => { setIsAdEnabled(event.target.value); setAppliedIsAdEnabled(event.target.value); setPage(1); }}><option value="">全部</option><option value="true">已开广告</option><option value="false">未开广告</option></select></label>
+        <label>出单<select value={isOrdered} onChange={(event) => { setIsOrdered(event.target.value); setAppliedIsOrdered(event.target.value); setPage(1); }}><option value="">全部</option><option value="true">已出单</option><option value="false">未出单</option></select></label>
         <span className="npc-date-badge">数据截止 {dashboard?.dataCutoffDate || products.dataCutoffDate || '-'}</span>
       </div>
       {message && <div className="excel-import-error">{message}</div>}
@@ -677,9 +626,31 @@ function ProductTable({ records, total, title = '新品诊断列表' }: { record
   );
 }
 
+type StrategyTabKey = 'pending' | 'config' | 'execution' | 'review';
+
+function StrategyStatusBadge({ value }: { value?: string }) {
+  const normalized = value || 'PENDING';
+  const tone = normalized === 'EXECUTED' || normalized === 'ACCEPTED'
+    ? 'success'
+    : normalized === 'IGNORED' || normalized === 'EXPIRED'
+      ? 'muted'
+      : 'warning';
+  return <span className={`npc-strategy-status npc-strategy-status-${tone}`}>{normalized}</span>;
+}
+
+function StrategyEmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="npc-strategy-empty">
+      <div className="npc-strategy-empty-icon">i</div>
+      <strong>{title}</strong>
+      <p>{description}</p>
+    </div>
+  );
+}
+
 function RecommendationsView() {
   const initialType = new URLSearchParams(window.location.search).get('type') || '';
-  const [activeTab, setActiveTab] = useState<'pending' | 'config' | 'execution' | 'review'>('pending');
+  const [activeTab, setActiveTab] = useState<StrategyTabKey>('pending');
   const [status, setStatus] = useState('PENDING');
   const [type, setType] = useState(initialType);
   const [page, setPage] = useState(1);
@@ -727,14 +698,51 @@ function RecommendationsView() {
     refreshPending();
   };
 
-  const tabButton = (key: typeof activeTab, label: string) => (
-    <button type="button" className={activeTab === key ? 'is-active' : ''} onClick={() => { setActiveTab(key); setPage(1); }}>{label}</button>
-  );
+  const tabItems: Array<{ key: StrategyTabKey; label: string; description: string; count: number; tone: string }> = [
+    { key: 'pending', label: '待处理建议', description: '系统发现广告问题', count: pending.total, tone: 'blue' },
+    { key: 'config', label: '阶段策略配置', description: '运营配置阶段策略', count: config?.stages?.length || 0, tone: 'violet' },
+    { key: 'execution', label: '阶段执行检查', description: '检查是否完成执行', count: execution.total, tone: 'amber' },
+    { key: 'review', label: '阶段效果复盘', description: '复盘阶段投放效果', count: review.total, tone: 'green' },
+  ];
+  const activeTotal = activeTab === 'pending' ? pending.total : activeTab === 'execution' ? execution.total : review.total;
+  const totalPages = Math.max(1, Math.ceil((activeTotal || 0) / 50));
+  const tabButton = (key: StrategyTabKey, label: string) => {
+    const item = tabItems.find((tab) => tab.key === key);
+    return (
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeTab === key}
+        className={`npc-strategy-tab npc-strategy-tab-${item?.tone || 'blue'}${activeTab === key ? ' is-active' : ''}`}
+        onClick={() => { setActiveTab(key); setPage(1); }}
+      >
+        <span className="npc-strategy-tab-index">{tabItems.findIndex((tab) => tab.key === key) + 1}</span>
+        <span className="npc-strategy-tab-copy">
+          <strong>{label}</strong>
+          <small>{item?.description}</small>
+        </span>
+        <span className="npc-strategy-tab-count">{item?.count ?? 0}</span>
+      </button>
+    );
+  };
 
   return (
     <section className="npc-page npc-ad-strategy-page">
+      <article className="npc-strategy-hero">
+        <div>
+          <span className="npc-strategy-kicker">广告策略闭环中心</span>
+          <h1>广告策略中心</h1>
+          <p>根据广告消耗、订单、ROAS 和出单表现，辅助运营完成广告策略调整闭环。</p>
+        </div>
+        <div className="npc-strategy-hero-steps" aria-label="广告策略闭环流程">
+          <span>发现问题</span>
+          <span>生成建议</span>
+          <span>人工执行</span>
+          <span>效果复盘</span>
+        </div>
+      </article>
       <article className="excel-record-panel npc-panel npc-strategy-notice">
-        <strong>广告策略中心</strong>
+        <strong>执行说明</strong>
         <span>系统不会自动修改 TEMU 后台广告设置，只生成建议和执行检查。运营仍需在 TEMU 后台手动调整目标ROAS；系统通过后续广告日报中的“自然周目标ROAS（推广）”字段验证是否已执行。</span>
       </article>
       <div className="npc-strategy-tabs">
@@ -772,7 +780,7 @@ function RecommendationsView() {
                     <td>{formatRoas(item.targetRoas)}</td>
                     <td title={item.reasonText || ''}>{item.reasonText || item.problemType || '-'}</td>
                     <td title={item.suggestedAction || ''}>{item.suggestedAction || item.recommendationText || '-'}</td>
-                    <td>{item.status || 'PENDING'}</td>
+                    <td><StrategyStatusBadge value={item.status} /></td>
                     <td className="npc-actions">
                       <button type="button" onClick={() => void handle(item, 'ACCEPTED')}>采纳</button>
                       <button type="button" onClick={() => void handle(item, 'IGNORED')}>忽略</button>
@@ -781,7 +789,16 @@ function RecommendationsView() {
                     </td>
                   </tr>
                 ))}
-                {pending.records.length === 0 && <tr><td colSpan={16}>暂无待处理建议。</td></tr>}
+                {pending.records.length === 0 && (
+                  <tr className="npc-strategy-empty-row">
+                    <td colSpan={16}>
+                      <StrategyEmptyState
+                        title="暂无待处理建议"
+                        description="当前筛选条件下没有需要处理的广告策略建议。你可以切换建议类型、状态，或确认广告日报数据是否已导入。"
+                      />
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -822,10 +839,16 @@ function RecommendationsView() {
               <tbody>
                 {execution.records.map((item) => (
                   <tr key={item.id}>
-                    <td>{item.productName || '-'}</td><td>{item.storeName || '-'}</td><td>{item.operatorName || '-'}</td><td>{item.daysOnline}</td><td>{item.currentStage || '-'}</td><td>{formatRoas(item.plannedTargetRoas)}</td><td>{formatRoas(item.actualTargetRoas)}</td><td>{item.executionStatus || '-'}</td><td>{item.stageEffect || '-'}</td><td>{item.nextAction || '-'}</td>
+                    <td>{item.productName || '-'}</td><td>{item.storeName || '-'}</td><td>{item.operatorName || '-'}</td><td>{item.daysOnline}</td><td>{item.currentStage || '-'}</td><td>{formatRoas(item.plannedTargetRoas)}</td><td>{formatRoas(item.actualTargetRoas)}</td><td><StrategyStatusBadge value={item.executionStatus} /></td><td>{item.stageEffect || '-'}</td><td>{item.nextAction || '-'}</td>
                   </tr>
                 ))}
-                {execution.records.length === 0 && <tr><td colSpan={10}>暂无阶段执行检查数据。</td></tr>}
+                {execution.records.length === 0 && (
+                  <tr className="npc-strategy-empty-row">
+                    <td colSpan={10}>
+                      <StrategyEmptyState title="暂无阶段执行检查数据" description="当前没有可检查的阶段执行记录，请确认广告日报数据和新品基础数据是否已导入。" />
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -839,11 +862,11 @@ function RecommendationsView() {
         </article>
       )}
       {activeTab !== 'config' && (
-        <div className="temu-product-record-pagination">
-          <span>第 {page}/{Math.max(1, Math.ceil(((activeTab === 'pending' ? pending.total : activeTab === 'execution' ? execution.total : review.total) || 0) / 50))} 页</span>
+        <div className="temu-product-record-pagination npc-strategy-pagination">
+          <span>第 {page}/{totalPages} 页</span>
           <div>
             <button type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>上一页</button>
-            <button type="button" disabled={page >= Math.max(1, Math.ceil(((activeTab === 'pending' ? pending.total : activeTab === 'execution' ? execution.total : review.total) || 0) / 50))} onClick={() => setPage((current) => current + 1)}>下一页</button>
+            <button type="button" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)}>下一页</button>
           </div>
         </div>
       )}
@@ -862,7 +885,13 @@ function StageReviewTable({ rows }: { rows: AdStrategyReviewRecord[] }) {
               <td>{item.productName || '-'}</td><td>{item.storeName || '-'}</td><td>{item.operatorName || '-'}</td><td>{item.stageName || '-'}</td><td>{item.stageDate || '-'}</td><td>{formatRoas(item.plannedTargetRoas)}</td><td>{formatRoas(item.actualTargetRoas)}</td><td>{formatMoney(item.adSpend)}</td><td>{formatMoney(item.adSalesAmount)}</td><td>{item.adOrderCount ?? 0}</td><td>{item.naturalOrderCount ?? 0}</td><td>{formatNumber(item.impressions)}</td><td>{formatNumber(item.clicks)}</td><td>{formatNumber(item.addToCartCount)}</td><td>{formatRoas(item.roas)}</td><td>{item.systemJudgement || '-'}</td><td>{item.operatorAction || '-'}</td>
             </tr>
           ))}
-          {rows.length === 0 && <tr><td colSpan={17}>暂无阶段效果复盘数据。</td></tr>}
+          {rows.length === 0 && (
+            <tr className="npc-strategy-empty-row">
+              <td colSpan={17}>
+                <StrategyEmptyState title="暂无阶段效果复盘数据" description="当前没有可复盘的阶段效果数据，请确认广告日报和订单数据是否已完整导入。" />
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

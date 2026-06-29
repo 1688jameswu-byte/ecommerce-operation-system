@@ -287,8 +287,8 @@ function TrafficImportPage({ currentUser, visibleStoreNames: layoutVisibleStoreN
         )}
         <label className="excel-upload-box traffic-upload-box">
           <input type="file" accept=".xlsx,.xls,.csv" multiple disabled={!canUpload || isParsing} onChange={handleFileChange} />
-          <strong>{isParsing ? '解析中...' : '选择 Excel'}</strong>
-          <span>{canUpload ? '支持批量上传' : '当前账号未配置可导入店铺，请联系管理员。'}</span>
+          <strong>{isParsing ? '解析中...' : '选择或拖入 Excel 文件'}</strong>
+          <span>{canUpload ? '支持 .xlsx / .xls / .csv' : '当前账号未配置可导入店铺，请联系管理员。'}</span>
         </label>
       </article>
 

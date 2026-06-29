@@ -461,7 +461,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
         <label className="excel-upload-box" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
           <input type="file" accept=".xlsx,.xls,.csv" multiple onChange={handleFileChange} />
           <strong>{isParsing ? '解析中...' : '选择或拖入 Excel 文件'}</strong>
-          <span>支持批量上传 .xlsx / .xls / .csv</span>
+          <span>支持 .xlsx / .xls / .csv</span>
         </label>
         {error && <div className="excel-import-error">{error}</div>}
       </article>

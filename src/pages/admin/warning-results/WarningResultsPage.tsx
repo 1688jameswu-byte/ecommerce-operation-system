@@ -691,7 +691,7 @@ function WarningResultsPage({ currentUser }: { currentUser: CurrentUser }) {
   }, [isAdmin, riskResults, suggestionTemplates, tasks]);
 
   return (
-    <section className="excel-import-page">
+    <section className="excel-import-page warning-results-page">
       <div className="analysis-maintenance-bar">
         {canRerunAnalysis && <button type="button" onClick={handleRegenerate}>重新生成分析结果</button>}
         {refreshMessage && <span>{refreshMessage}</span>}
