@@ -109,6 +109,7 @@ type WorkbenchData = {
     salesAmount: number;
     adExpense: number;
     afterSaleExpense: number;
+    afterSaleExpensePeriod?: string;
     totalExpense: number;
     expenseRatio: number | null;
     adRatio: number | null;
@@ -169,6 +170,11 @@ function formatAmount(value: number | null | undefined) {
 function formatNumber(value: number | null | undefined, unit = '') {
   if (value === null || value === undefined || !Number.isFinite(value)) return '-';
   return `${value.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}${unit}`;
+}
+
+function formatPeriodMonth(period?: string) {
+  const month = Number(String(period || '').split('-')[1]);
+  return Number.isFinite(month) && month > 0 ? `${month}月` : '';
 }
 
 function formatPercent(value: number | null | undefined) {
@@ -307,7 +313,7 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
     {
       key: 'expense',
       title: '费用控制',
-      subtitle: '售后 + 广告支出占比',
+      subtitle: '推广费 + 预估售后占销售额',
       weight: 20,
       status: data.expenseKpi.hasExpenseData ? (expenseCard?.status ?? '数据缺失') : '数据缺失',
       statusClassName: data.expenseKpi.hasExpenseData ? statusClass(expenseCard?.status ?? '数据缺失') : 'muted',
@@ -319,9 +325,9 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
         ['得分', data.expenseKpi.hasExpenseData ? scoreText(expenseCard) : '-'],
       ],
       detailRows: [
-        ['销售额 / 流入', formatAmount(data.expenseKpi.salesAmount)],
-        ['广告 / 推广费', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.adExpense) : '暂无费用数据'],
-        ['售后费用', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.afterSaleExpense) : '暂无费用数据'],
+        ['销售额', formatAmount(data.expenseKpi.salesAmount)],
+        ['推广费', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.adExpense) : '暂无费用数据'],
+        [`售后费用${formatPeriodMonth(data.expenseKpi.afterSaleExpensePeriod) ? `（${formatPeriodMonth(data.expenseKpi.afterSaleExpensePeriod)}）` : ''}`, data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.afterSaleExpense) : '暂无费用数据'],
         ['总费用', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.totalExpense) : '暂无费用数据'],
         ['超标比例', data.expenseKpi.hasExpenseData ? formatPercent(data.expenseKpi.overTargetRatio) : '-'],
       ],

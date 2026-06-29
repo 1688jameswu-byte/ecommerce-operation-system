@@ -31,6 +31,7 @@ import {
   getAdStrategyReview,
   getBossDashboard,
   getAdImportOverview,
+  getAdSpendSummary,
   getOperatorDashboard,
   getOperatorOptions,
   getProductDetail,
@@ -3532,6 +3533,7 @@ async function handleTemuAdReportImportApi(req, res) {
         successRows: result.successRows,
         errorRows: result.errorRows,
       });
+      clearOperationWorkbenchDashboardCache();
       res.end(JSON.stringify(result));
       return;
     }
@@ -5502,6 +5504,13 @@ function getWorkbenchMonthRange(period) {
   };
 }
 
+function getPreviousWorkbenchPeriod(period) {
+  const [year, month] = String(period || '').split('-').map((value) => Number(value));
+  if (!year || !month) return '';
+  const date = new Date(year, month - 2, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
 function getWorkbenchScope(currentUser, searchParams) {
   const visibleStores = getTemuVisibleStores(currentUser);
   const role = String(currentUser?.role ?? '').toLowerCase();
@@ -5861,22 +5870,35 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     return rank(first) - rank(second) || second.daysOnline - first.daysOnline || first.skc.localeCompare(second.skc);
   }).slice(0, 20);
 
-  const financeParams = new URLSearchParams({ period: range.period });
-  if (scope.operatorId) financeParams.set('operatorId', scope.operatorId);
-  if (searchParams.get('storeId')) financeParams.set('storeId', searchParams.get('storeId'));
-  const financeRecords = buildOperatorAnalysisStoreFinancialRecords(financeParams, currentUser)
+  const expenseEndDate = range.today >= range.start && range.today <= range.end ? range.today : range.end;
+  const expenseElapsedDays = Math.max(range.elapsedDays || 0, 1);
+  let adSpendSummary = { adSpend: 0, recordCount: 0, reportDayCount: 0, stores: [] };
+  let adSpendError = '';
+  try {
+    adSpendSummary = await getAdSpendSummary({
+      startDate: range.start,
+      endDate: expenseEndDate,
+      storeNames: stores.map((store) => String(store?.storeName || store?.id || '').trim()).filter(Boolean),
+    });
+  } catch (error) {
+    adSpendError = error instanceof Error ? error.message : String(error);
+    console.warn('[TEMU PostgreSQL] workbench ad spend summary failed:', adSpendError);
+  }
+  const previousFinancePeriod = getPreviousWorkbenchPeriod(range.period);
+  const previousFinanceParams = new URLSearchParams({ period: previousFinancePeriod });
+  if (scope.operatorId) previousFinanceParams.set('operatorId', scope.operatorId);
+  if (searchParams.get('storeId')) previousFinanceParams.set('storeId', searchParams.get('storeId'));
+  const previousFinanceRecords = buildOperatorAnalysisStoreFinancialRecords(previousFinanceParams, currentUser)
     .filter((record) => !searchParams.get('storeId') || record.storeNames?.includes(searchParams.get('storeId')) || record.storeNames?.some((name) => scope.storeNames.has(normalizeOrderImportStoreName(name))));
-  const expense = financeRecords.reduce((total, record) => {
-    total.inflowAmount += toFiniteNumber(record.inflowAmount);
-    total.promotionServiceFee += toFiniteNumber(record.promotionServiceFee);
-    total.afterSaleIssueAmount += toFiniteNumber(record.afterSaleIssueAmount);
-    total.operationExpenseAmount += toFiniteNumber(record.operationExpenseAmount);
-    return total;
-  }, { inflowAmount: 0, promotionServiceFee: 0, afterSaleIssueAmount: 0, operationExpenseAmount: 0 });
-  const expenseSalesBase = expense.inflowAmount > 0 ? expense.inflowAmount : salesAmount;
-  const expenseRatio = expenseSalesBase > 0 ? expense.operationExpenseAmount / expenseSalesBase : null;
-  const adRatio = expenseSalesBase > 0 ? expense.promotionServiceFee / expenseSalesBase : null;
-  const afterSaleRatio = expenseSalesBase > 0 ? expense.afterSaleIssueAmount / expenseSalesBase : null;
+  const lastMonthAfterSaleAmount = previousFinanceRecords.reduce((total, record) => total + toFiniteNumber(record.afterSaleIssueAmount), 0);
+  const estimatedAfterSaleAmount = Number(((lastMonthAfterSaleAmount / 30) * expenseElapsedDays).toFixed(2));
+  const adExpenseAmount = Number(toFiniteNumber(adSpendSummary.adSpend).toFixed(2));
+  const totalExpenseAmount = Number((adExpenseAmount + estimatedAfterSaleAmount).toFixed(2));
+  const expenseSalesBase = salesAmount;
+  const expenseRatio = expenseSalesBase > 0 ? totalExpenseAmount / expenseSalesBase : null;
+  const adRatio = expenseSalesBase > 0 ? adExpenseAmount / expenseSalesBase : null;
+  const afterSaleRatio = expenseSalesBase > 0 ? estimatedAfterSaleAmount / expenseSalesBase : null;
+  const hasExpenseData = adExpenseAmount > 0 || lastMonthAfterSaleAmount > 0;
 
   const salesScore = scoreProgress(salesAmount, target?.salesTarget, 30);
   const listingScore = scoreProgress(listingProductCount, target?.effectiveListingTarget, 30);
@@ -5911,7 +5933,8 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   if (!target?.firstOrderProductTarget) warnings.push('本月未配置首单商品目标');
   if (!target?.expenseRatioTarget) warnings.push('本月未配置费用占比目标');
   if (newProductStatsError) warnings.push(`新品30天首单统计读取失败：${newProductStatsError}`);
-  if (financeRecords.length === 0) warnings.push('未找到费用数据源或当前范围暂无费用数据');
+  if (adSpendError) warnings.push(`广告花费统计读取失败：${adSpendError}`);
+  if (!hasExpenseData) warnings.push('未找到广告花费或上月售后问题金额，费用占比无法计算');
   if (salesAmount <= 0) warnings.push('本月暂无订单销售额，费用占比无法用订单销售额校验');
   if (newProductFirstOrderStats.observingCount > 0) warnings.push(`还有 ${newProductFirstOrderStats.observingCount} 个新品处于30天观察期内，暂不计入首单率分母`);
   if (stores.length === 0) warnings.push('当前账号未绑定 TEMU 可见店铺');
@@ -5976,7 +5999,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       { kpi: '销售额目标完成率', source: '订单销售导入 + KPI目标配置', endpoint: '/api/persistent-data/orderImportStore, /api/operation-workbench/kpi-targets', confirmed: '已确认' },
       { kpi: '上新商品数', source: '商品信息导入表按创建时间统计', endpoint: '/api/data-import/temu-product-info', confirmed: newProductStatsError ? '读取失败' : '已确认' },
       { kpi: '新品30天首单率', source: '商品信息导入表 + 订单明细按商品/SKU最早订单日期统计', endpoint: '/api/data-import/temu-product-info, temu_order_items', confirmed: newProductStatsError ? '读取失败' : '已确认' },
-      { kpi: '费用占比', source: '薪资财务明细聚合后的推广费 + 售后费', endpoint: '/api/salary/operator-analysis-store-financials', confirmed: financeRecords.length > 0 ? '已确认' : '未找到可靠数据源' },
+      { kpi: '费用占比', source: '订单导入销售额 + 广告日报推广费 + 上月售后问题金额日均预估', endpoint: '/api/persistent-data/orderImportStore, /api/data-import/temu-ad-report, /api/salary/operator-analysis-store-financials', confirmed: hasExpenseData && !adSpendError ? '已确认' : '未找到可靠数据源' },
     ],
     kpiSummary: {
       totalScore,
@@ -6023,16 +6046,17 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     },
     expenseKpi: {
       salesAmount: expenseSalesBase,
-      adExpense: Number(expense.promotionServiceFee.toFixed(2)),
-      afterSaleExpense: Number(expense.afterSaleIssueAmount.toFixed(2)),
-      totalExpense: Number(expense.operationExpenseAmount.toFixed(2)),
+      adExpense: adExpenseAmount,
+      afterSaleExpense: estimatedAfterSaleAmount,
+      afterSaleExpensePeriod: previousFinancePeriod,
+      totalExpense: totalExpenseAmount,
       expenseRatio,
       adRatio,
       afterSaleRatio,
       targetRatio: target?.expenseRatioTarget ?? null,
       overTargetRatio: expenseRatio !== null && target?.expenseRatioTarget ? expenseRatio - target.expenseRatioTarget : null,
-      storeBreakdown: financeRecords,
-      hasExpenseData: financeRecords.length > 0,
+      storeBreakdown: previousFinanceRecords,
+      hasExpenseData,
     },
     productFollowUps,
     dataIntegrityWarnings: warnings,

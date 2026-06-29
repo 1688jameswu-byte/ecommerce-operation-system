@@ -2619,6 +2619,38 @@ export async function getAdImportOverview(params = {}) {
   };
 }
 
+export async function getAdSpendSummary(params = {}) {
+  await runTemuMigrations();
+  await backfillTemuImportBatchStores();
+  const filter = createWhereBuilder(1);
+  appendStoreScope(filter, 'a', params);
+  if (params.startDate) filter.push('a.report_date >= ?::date', params.startDate);
+  if (params.endDate) filter.push('a.report_date <= ?::date', params.endDate);
+  const condition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : '';
+  const summary = await queryTemuDatabase(
+    `SELECT COUNT(*)::int AS record_count,
+            COUNT(DISTINCT a.report_date)::int AS report_day_count,
+            COALESCE(SUM(a.ad_spend),0) AS ad_spend
+     FROM temu_ad_product_daily a
+     ${condition}`,
+    filter.values,
+  );
+  const stores = await queryTemuDatabase(
+    `SELECT a.store_name,
+            COUNT(DISTINCT a.report_date)::int AS report_day_count,
+            COALESCE(SUM(a.ad_spend),0) AS ad_spend
+     FROM temu_ad_product_daily a
+     ${condition}
+     GROUP BY a.store_name
+     ORDER BY ad_spend DESC NULLS LAST, a.store_name`,
+    filter.values,
+  );
+  return {
+    ...toCamel(summary.rows[0] || {}),
+    stores: stores.rows.map(toCamel),
+  };
+}
+
 export async function handleRecommendation(id, payload = {}, currentUser = {}) {
   const status = text(payload.status || 'ACCEPTED');
   const note = text(payload.handleNote || payload.note);
