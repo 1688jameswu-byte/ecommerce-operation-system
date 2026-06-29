@@ -282,6 +282,13 @@ function cardProgress(card: KpiCard | undefined) {
   return card.completionRate;
 }
 
+function salesProgressGapRow(data: WorkbenchData): [string, string] {
+  const gap = data.salesKpi.progressGap;
+  if (gap === null || gap === undefined || !Number.isFinite(gap)) return ['进度对比', '-'];
+  if (gap >= 0) return ['已超时间进度', formatPercent(gap)];
+  return ['进度落后', formatPercent(Math.abs(gap))];
+}
+
 function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] {
   const cardByKey = new Map(data.kpiSummary.cards.map((card) => [card.key, card]));
   const salesCard = cardByKey.get('sales');
@@ -314,7 +321,7 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
       ],
       detailRows: [
         ['时间进度', formatPercent(data.salesKpi.timeProgress)],
-        ['进度差距', formatPercent(data.salesKpi.progressGap)],
+        salesProgressGapRow(data),
         ['剩余目标', formatAmount(data.salesKpi.remainingSales)],
         ['剩余日均需完成', formatAmount(data.salesKpi.requiredDailySales)],
       ],
@@ -955,7 +962,6 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
           {(data?.filters.storeOptions ?? data?.filters.stores ?? []).map((item) => <option key={item.id} value={item.id}>{item.storeName}</option>)}
         </select></label>
         <span>数据更新时间<strong>{data?.dataUpdatedAt ? data.dataUpdatedAt.replace('T', ' ').slice(0, 19) : '-'}</strong></span>
-        <span>完整性<strong>{data?.dataIntegrityStatus ?? '-'}</strong></span>
       </section>
 
       {loading && !data && <div className="admin-route-loading">加载 KPI 工作台...</div>}
