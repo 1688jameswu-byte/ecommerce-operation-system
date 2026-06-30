@@ -303,7 +303,7 @@ function getDataSourceRuntimeStatus() {
           { name: '订单数据', readSource: temuSource, writeSource: 'JSON + PG同步', fallback: 'JSON', mode: temuMode },
           { name: '广告/流量转化', readSource: temuSource, writeSource: 'PG，保留JSON兼容', fallback: 'JSON', mode: temuMode },
           { name: '店铺/运营/店铺关系', readSource: temuReadsPostgres ? 'postgres+json' : 'json', writeSource: 'JSON + PG同步', fallback: 'JSON', mode: temuReadsPostgres ? 'PG合并JSON' : 'JSON为主' },
-          { name: '有效上新', readSource: 'json', writeSource: 'JSON + PG同步', fallback: 'JSON', mode: '旧页面JSON为主' },
+          { name: '有效上新', readSource: 'postgres', writeSource: 'postgres', fallback: '无', mode: '来自商品信息/SKU创建时间统计' },
         ],
       },
       {

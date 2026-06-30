@@ -1527,6 +1527,29 @@ function buildScopeWhere(params, startIndex = 1) {
   if (params.productTag) push('s.product_tag = ?', params.productTag);
   if (params.isAdEnabled !== undefined) push('s.is_ad_enabled = ?', params.isAdEnabled === 'true' || params.isAdEnabled === true);
   if (params.isOrdered !== undefined) push('s.is_ordered = ?', params.isOrdered === 'true' || params.isOrdered === true);
+  if (params.spuId) push('s.temu_spu_id ILIKE ?', `%${String(params.spuId).trim()}%`);
+  if (params.skcId) {
+    push(
+      `EXISTS (
+        SELECT 1
+        FROM temu_product_skus ps
+        WHERE ps.product_id = s.product_id
+          AND COALESCE(ps.skc_id, ps.temu_skc_id, ps.raw_data ->> 'SKC ID', '') ILIKE ?
+      )`,
+      `%${String(params.skcId).trim()}%`,
+    );
+  }
+  if (params.skuId) {
+    push(
+      `EXISTS (
+        SELECT 1
+        FROM temu_product_skus ps
+        WHERE ps.product_id = s.product_id
+          AND COALESCE(ps.sku_id, ps.raw_data ->> 'SKU ID', '') ILIKE ?
+      )`,
+      `%${String(params.skuId).trim()}%`,
+    );
+  }
   if (params.dateStart) push('s.first_online_at::date >= ?', params.dateStart);
   if (params.dateEnd) push('s.first_online_at::date <= ?', params.dateEnd);
   if (params.roasMin) push('s.roas >= ?', Number(params.roasMin));

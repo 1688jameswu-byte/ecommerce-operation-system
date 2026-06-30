@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { newProductCenterDataSource, type AdStrategyConfig, type AdStrategyExecutionRecord, type AdStrategyReviewRecord, type AdStrategySuggestion, type DashboardResponse, type OperatorOption, type ProductDetailResponse, type ProductSnapshot, type RecommendationRecord, type StoreScopeOption, type TemuStorageStatus } from '../../../data-source/newProductCenterDataSource';
 import type { CurrentUser } from '../../../types/auth';
 
@@ -413,12 +413,18 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   const [tag, setTag] = useState('');
   const [isAdEnabled, setIsAdEnabled] = useState('');
   const [isOrdered, setIsOrdered] = useState('');
+  const [spuIdKeyword, setSpuIdKeyword] = useState('');
+  const [skcIdKeyword, setSkcIdKeyword] = useState('');
+  const [skuIdKeyword, setSkuIdKeyword] = useState('');
   const [appliedSnapshotDate, setAppliedSnapshotDate] = useState('');
   const [appliedStoreId, setAppliedStoreId] = useState('');
   const [appliedOperatorName, setAppliedOperatorName] = useState('');
   const [appliedTag, setAppliedTag] = useState('');
   const [appliedIsAdEnabled, setAppliedIsAdEnabled] = useState('');
   const [appliedIsOrdered, setAppliedIsOrdered] = useState('');
+  const [appliedSpuIdKeyword, setAppliedSpuIdKeyword] = useState('');
+  const [appliedSkcIdKeyword, setAppliedSkcIdKeyword] = useState('');
+  const [appliedSkuIdKeyword, setAppliedSkuIdKeyword] = useState('');
   const [quickKey, setQuickKey] = useState('pending');
   const [page, setPage] = useState(1);
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
@@ -523,8 +529,11 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
     if (appliedTag) params.productTag = appliedTag;
     if (appliedIsAdEnabled) params.isAdEnabled = appliedIsAdEnabled;
     if (appliedIsOrdered) params.isOrdered = appliedIsOrdered;
+    if (appliedSpuIdKeyword.trim()) params.spuId = appliedSpuIdKeyword.trim();
+    if (appliedSkcIdKeyword.trim()) params.skcId = appliedSkcIdKeyword.trim();
+    if (appliedSkuIdKeyword.trim()) params.skuId = appliedSkuIdKeyword.trim();
     return { ...params, ...quickParams };
-  }, [appliedIsAdEnabled, appliedIsOrdered, appliedOperatorName, appliedSnapshotDate, appliedStoreId, appliedTag, page, quickParams]);
+  }, [appliedIsAdEnabled, appliedIsOrdered, appliedOperatorName, appliedSnapshotDate, appliedSkcIdKeyword, appliedSkuIdKeyword, appliedSpuIdKeyword, appliedStoreId, appliedTag, page, quickParams]);
 
   useEffect(() => {
     const dashboardParams: Record<string, string> = {};
@@ -607,6 +616,36 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
       applyStoreFilter(target.id, target.storeName || '');
     } else {
       setStoreSearchOpen(true);
+    }
+  };
+
+  const applyIdSearch = () => {
+    setAppliedSpuIdKeyword(spuIdKeyword.trim());
+    setAppliedSkcIdKeyword(skcIdKeyword.trim());
+    setAppliedSkuIdKeyword(skuIdKeyword.trim());
+    setPage(1);
+  };
+
+  const clearIdSearch = (type: 'spu' | 'skc' | 'sku') => {
+    if (type === 'spu') {
+      setSpuIdKeyword('');
+      setAppliedSpuIdKeyword('');
+    }
+    if (type === 'skc') {
+      setSkcIdKeyword('');
+      setAppliedSkcIdKeyword('');
+    }
+    if (type === 'sku') {
+      setSkuIdKeyword('');
+      setAppliedSkuIdKeyword('');
+    }
+    setPage(1);
+  };
+
+  const handleIdSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      applyIdSearch();
     }
   };
 
@@ -738,6 +777,29 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
                 <option key={store.id || store.storeName} value={store.id || ''}>{store.storeName}</option>
               ))}
             </select>
+          </label>
+        </div>
+        <div className="npc-diagnosis-id-filters">
+          <label>SPU ID
+            <span className="npc-inline-search-box">
+              <input type="text" value={spuIdKeyword} placeholder="搜索SPU ID" onChange={(event) => setSpuIdKeyword(event.target.value)} onKeyDown={handleIdSearchKeyDown} />
+              {spuIdKeyword && <button type="button" className="npc-inline-clear-button" aria-label="清空SPU ID" onClick={() => clearIdSearch('spu')}>×</button>}
+              <button type="button" className="npc-inline-search-button" aria-label="搜索SPU ID" onClick={applyIdSearch}>⌕</button>
+            </span>
+          </label>
+          <label>SKC ID
+            <span className="npc-inline-search-box">
+              <input type="text" value={skcIdKeyword} placeholder="搜索SKC ID" onChange={(event) => setSkcIdKeyword(event.target.value)} onKeyDown={handleIdSearchKeyDown} />
+              {skcIdKeyword && <button type="button" className="npc-inline-clear-button" aria-label="清空SKC ID" onClick={() => clearIdSearch('skc')}>×</button>}
+              <button type="button" className="npc-inline-search-button" aria-label="搜索SKC ID" onClick={applyIdSearch}>⌕</button>
+            </span>
+          </label>
+          <label>SKU ID
+            <span className="npc-inline-search-box">
+              <input type="text" value={skuIdKeyword} placeholder="搜索SKU ID" onChange={(event) => setSkuIdKeyword(event.target.value)} onKeyDown={handleIdSearchKeyDown} />
+              {skuIdKeyword && <button type="button" className="npc-inline-clear-button" aria-label="清空SKU ID" onClick={() => clearIdSearch('sku')}>×</button>}
+              <button type="button" className="npc-inline-search-button" aria-label="搜索SKU ID" onClick={applyIdSearch}>⌕</button>
+            </span>
           </label>
         </div>
         <QuickFilters active={quickKey} counts={counts} onChange={(key) => { setQuickKey(key); setPage(1); }} />
