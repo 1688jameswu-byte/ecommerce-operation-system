@@ -2303,6 +2303,18 @@ export async function readEffectiveListingsFromProductImport(params = {}) {
   await backfillTemuImportBatchStores();
   const filter = createWhereBuilder(1);
   appendStoreScope(filter, 'product_rows', params);
+  const recentDays = Number(params.recentDays || params.days || 0);
+  const startDate = dateText(params.dateStart || params.startDate);
+  const endDate = dateText(params.dateEnd || params.endDate);
+  if (Number.isFinite(recentDays) && recentDays > 0) {
+    filter.push('product_rows.created_time::date >= (bounds.latest_date - (?::int - 1))', Math.ceil(recentDays));
+  }
+  if (startDate) {
+    filter.push('product_rows.created_time::date >= ?::date', startDate);
+  }
+  if (endDate) {
+    filter.push('product_rows.created_time::date <= ?::date', endDate);
+  }
   const condition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : '';
   const skuCreatedTimeFromRaw = `CASE WHEN NULLIF(s.raw_data ->> '创建时间', '') ~ '^\\d{4}-\\d{1,2}-\\d{1,2}' THEN NULLIF(s.raw_data ->> '创建时间', '')::timestamptz ELSE NULL END`;
   const productCreatedTimeFromRaw = `CASE WHEN NULLIF(p.raw_data ->> '创建时间', '') ~ '^\\d{4}-\\d{1,2}-\\d{1,2}' THEN NULLIF(p.raw_data ->> '创建时间', '')::timestamptz ELSE NULL END`;
@@ -2350,9 +2362,14 @@ export async function readEffectiveListingsFromProductImport(params = {}) {
        WHERE r.created_time IS NOT NULL
        GROUP BY r.product_key
      )
+     , bounds AS (
+       SELECT MAX(created_time::date) AS latest_date
+       FROM product_rows
+     )
      SELECT product_key, product_id, store_id, store_name, skc, operator_id, operator_name,
             created_time::date AS site_join_date, updated_at
      FROM product_rows
+     CROSS JOIN bounds
      ${condition}
      ORDER BY site_join_date DESC, store_name ASC, skc ASC`,
     filter.values,

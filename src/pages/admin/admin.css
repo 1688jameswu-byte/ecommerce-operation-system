@@ -2468,26 +2468,29 @@
 }
 
 .operator-listing-trend-panel {
-  gap: 18px;
+  gap: 10px;
 }
 
-.operator-listing-trend-filter {
-  grid-template-columns: minmax(220px, 360px) minmax(160px, 220px);
+.operator-listing-trend-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
 }
 
 .operator-listing-trend-chart-wrap {
-  min-height: 280px;
+  min-height: 260px;
   border: 1px solid rgba(86, 154, 230, 0.22);
   border-radius: 8px;
   background: rgba(3, 13, 32, 0.28);
-  padding: 14px;
-  overflow: hidden;
+  padding: 10px 12px;
+  overflow: visible;
 }
 
 .operator-listing-trend-chart {
   display: block;
   width: 100%;
-  height: 300px;
+  height: 250px;
   color: #60a5fa;
 }
 
@@ -2506,16 +2509,14 @@
 }
 
 .operator-listing-trend-line {
-  stroke: #60a5fa;
-  stroke-width: 3;
+  stroke-width: 2.6;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .operator-listing-trend-point {
-  fill: #e0f2fe;
-  stroke: #2563eb;
-  stroke-width: 2;
+  stroke: #ffffff;
+  stroke-width: 1.6;
 }
 
 .operator-listing-trend-label,
@@ -2535,7 +2536,7 @@
 }
 
 .operator-listing-trend-table-wrap {
-  max-height: 320px;
+  max-height: 280px;
 }
 
 .operator-listing-trend-empty {
@@ -2544,6 +2545,89 @@
   place-items: center;
   color: #9fb6cf;
   font-weight: 600;
+}
+
+.operator-listing-trend-figure {
+  position: relative;
+}
+
+.operator-listing-trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+  min-height: 22px;
+  margin-bottom: 4px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.operator-listing-trend-legend span,
+.operator-listing-trend-tooltip span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.operator-listing-trend-legend i,
+.operator-listing-trend-tooltip i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 999px;
+}
+
+.operator-listing-trend-hover-line {
+  stroke: #94a3b8;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.operator-listing-trend-tooltip {
+  position: absolute;
+  top: 34px;
+  z-index: 2;
+  display: grid;
+  gap: 5px;
+  min-width: 150px;
+  max-width: 240px;
+  transform: translateX(-50%);
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 8px 10px;
+  color: #334155;
+  font-size: 12px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.13);
+  pointer-events: none;
+}
+
+.operator-listing-trend-tooltip strong {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.operator-listing-trend-controls button,
+.operator-listing-trend-controls span {
+  min-height: 28px;
+  border: 1px solid #dbe5f0;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 5px 10px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.operator-listing-trend-controls button {
+  cursor: pointer;
+}
+
+.operator-listing-trend-controls button.is-active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
 }
 
 @media (max-width: 1180px) {
@@ -16202,6 +16286,130 @@ td.workbench-follow-title-col strong {
   border-color: #dbe5f0;
   background: #f8fbff;
   color: #64748b;
+}
+
+/* Operator analysis center compact density. */
+.admin-main .excel-import-page:has(.operator-performance-panel) {
+  gap: 12px;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) > .import-overview-grid,
+.admin-main .excel-import-page:has(.operator-performance-panel) .import-overview-grid {
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .import-overview-grid article {
+  min-height: 56px;
+  gap: 4px;
+  padding: 9px 11px;
+  border-radius: 8px;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .import-overview-grid span {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .import-overview-grid strong {
+  overflow: visible;
+  color: #0f172a;
+  font-size: clamp(15px, 1.1vw, 20px);
+  line-height: 1.15;
+  white-space: normal;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) > .excel-record-panel,
+.admin-main .excel-import-page:has(.operator-performance-panel) .excel-record-panel {
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 8px;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .excel-record-panel > header {
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 0;
+  padding-bottom: 8px;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .excel-record-panel h2 {
+  margin: 0 0 3px;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .excel-record-panel p {
+  max-width: 980px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .excel-record-panel > header > span {
+  min-height: 26px;
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) :is(.operator-sku-section, .operator-expense-ratio-subsection) {
+  gap: 10px;
+  padding: 12px;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .operator-sku-section-header {
+  padding-bottom: 8px;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .operator-performance-table-wrap {
+  max-height: 360px;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .import-record-table th,
+.admin-main .excel-import-page:has(.operator-performance-panel) .import-record-table td {
+  padding: 7px 9px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .operator-listing-trend-panel {
+  gap: 8px;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .operator-compact-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .operator-compact-metrics {
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+}
+
+.admin-main .excel-import-page:has(.operator-performance-panel) .operator-compact-metrics article {
+  min-height: 48px;
+  padding: 7px 10px;
+}
+
+@media (max-width: 1280px) {
+  .admin-main .excel-import-page:has(.operator-performance-panel) > .import-overview-grid,
+  .admin-main .excel-import-page:has(.operator-performance-panel) .import-overview-grid {
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-main .excel-import-page:has(.operator-performance-panel) > .import-overview-grid,
+  .admin-main .excel-import-page:has(.operator-performance-panel) .import-overview-grid,
+  .admin-main .excel-import-page:has(.operator-performance-panel) .operator-compact-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-main .excel-import-page:has(.operator-performance-panel) .operator-compact-header {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* 1688 product library light cleanup. */

@@ -588,7 +588,6 @@ function IntegratedKpiCard({ card }: { card: IntegratedKpiCardModel }) {
       <div className="workbench-kpi-detail-list">
         {card.detailRows.map(([label, value, tone]) => <span key={label}>{label}<strong className={tone}>{value}</strong></span>)}
       </div>
-      <a className="workbench-kpi-action" href={card.actionHref}>{card.actionLabel}</a>
     </article>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { salaryFinancialDataSource, type OperatorAnalysisStoreFinancialRecord } from '../../../data-source/salaryFinancialDataSource';
 import { referenceDataService } from '../../../services/referenceDataService';
 import type { EffectiveNewListingRecord } from '../../../types/effectiveNewListing';
@@ -123,8 +123,15 @@ type StoreListingTrendPoint = {
 type StoreListingTrendSummary = {
   months: string[];
   rows: StoreListingTrendPoint[];
+  series: Array<{
+    storeName: string;
+    values: number[];
+    total: number;
+  }>;
+  selectedStoreNames: string[];
   latestMonth: string;
   total: number;
+  visibleStoreCount: number;
 };
 
 type SkuTrend = '上升' | '稳定' | '下降' | '暂无数据';
@@ -613,15 +620,32 @@ function buildSkuSalesTrendSummary(rankings: StoreSkuRanking[], visibleStoreCoun
 
 function buildStoreListingTrend(params: {
   listings: EffectiveNewListingRecord[];
-  selectedStoreName: string;
+  selectedStoreNames: string[];
   visibleStores: StoreRecord[];
 }): StoreListingTrendSummary {
-  const selectedStoreName = normalizeStoreKey(params.selectedStoreName);
-  const visibleStoreNames = new Set(params.visibleStores.flatMap((store) => getStoreKeys(store.id, store.storeName)));
+  const visibleStoreEntries = params.visibleStores
+    .map((store) => ({
+      storeName: normalizeStoreKey(store.storeName || store.id),
+      keys: getStoreKeys(store.id, store.storeName),
+    }))
+    .filter((store) => store.storeName);
+  const visibleStoreNames = new Set(visibleStoreEntries.map((store) => store.storeName));
+  const visibleStoreKeys = new Set(visibleStoreEntries.flatMap((store) => store.keys));
+  const selectedStoreNames = params.selectedStoreNames
+    .map(normalizeStoreKey)
+    .filter((storeName) => visibleStoreNames.has(storeName));
+  const selectedStoreNameSet = new Set(selectedStoreNames);
+  const targetStoreNames = selectedStoreNames.length > 0
+    ? selectedStoreNames
+    : visibleStoreEntries.map((store) => store.storeName);
+  const keyToStoreName = new Map<string, string>();
+  visibleStoreEntries.forEach((store) => {
+    store.keys.forEach((key) => keyToStoreName.set(key, store.storeName));
+  });
   const scopedListings = params.listings.filter((item) => {
-    const storeName = normalizeStoreKey(item.storeName || item.storeId);
-    if (!storeName || !visibleStoreNames.has(storeName)) return false;
-    return !selectedStoreName || storeName === selectedStoreName;
+    const storeName = keyToStoreName.get(normalizeStoreKey(item.storeName)) ?? keyToStoreName.get(normalizeStoreKey(item.storeId)) ?? normalizeStoreKey(item.storeName || item.storeId);
+    if (!storeName || !visibleStoreKeys.has(storeName) && !visibleStoreNames.has(storeName)) return false;
+    return selectedStoreNameSet.size === 0 || selectedStoreNameSet.has(storeName);
   });
   const latestMonth = scopedListings
     .map((item) => String(item.siteJoinDate || item.createdAt || '').slice(0, 7))
@@ -634,7 +658,7 @@ function buildStoreListingTrend(params: {
 
   scopedListings.forEach((item) => {
     const month = String(item.siteJoinDate || item.createdAt || '').slice(0, 7);
-    const storeName = normalizeStoreKey(item.storeName || item.storeId);
+    const storeName = keyToStoreName.get(normalizeStoreKey(item.storeName)) ?? keyToStoreName.get(normalizeStoreKey(item.storeId)) ?? normalizeStoreKey(item.storeName || item.storeId);
     const skc = normalizeStoreKey(item.skc).toLowerCase();
     if (!monthSet.has(month) || !storeName || !skc) return;
     const key = `${storeName}|${month}`;
@@ -643,71 +667,140 @@ function buildStoreListingTrend(params: {
     groupedSkc.set(key, set);
   });
 
-  let cumulative = 0;
   const rows: StoreListingTrendPoint[] = [];
-  months.forEach((month, index) => {
-    const count = Array.from(groupedSkc.entries())
-      .filter(([key]) => key.endsWith(`|${month}`))
-      .reduce((total, [, skcSet]) => total + skcSet.size, 0);
-    const previousCount = index > 0 ? rows[index - 1]?.count ?? 0 : null;
-    cumulative += count;
-    rows.push({
-      month,
-      storeName: selectedStoreName || '全部可见店铺',
-      count,
-      change: previousCount === null ? null : count - previousCount,
-      cumulative,
+  const series = targetStoreNames.map((storeName) => {
+    let cumulative = 0;
+    const values: number[] = [];
+    months.forEach((month, index) => {
+      const count = groupedSkc.get(`${storeName}|${month}`)?.size ?? 0;
+      const previousCount = index > 0 ? values[index - 1] ?? 0 : null;
+      cumulative += count;
+      values.push(count);
+      rows.push({
+        month,
+        storeName,
+        count,
+        change: previousCount === null ? null : count - previousCount,
+        cumulative,
+      });
     });
+    return {
+      storeName,
+      values,
+      total: values.reduce((total, value) => total + value, 0),
+    };
   });
 
   return {
     months,
-    rows,
+    rows: rows.sort((first, second) => first.month.localeCompare(second.month) || first.storeName.localeCompare(second.storeName)),
+    series,
+    selectedStoreNames,
     latestMonth,
-    total: rows.reduce((total, row) => total + row.count, 0),
+    total: series.reduce((total, item) => total + item.total, 0),
+    visibleStoreCount: targetStoreNames.length,
   };
 }
 
-function StoreListingTrendChart({ rows }: { rows: StoreListingTrendPoint[] }) {
+const listingTrendColors = ['#2563eb', '#16a34a', '#f97316', '#9333ea', '#dc2626', '#0891b2', '#ca8a04', '#4f46e5', '#db2777', '#0f766e', '#64748b', '#7c3aed', '#ea580c'];
+
+function StoreListingTrendChart({ summary }: { summary: StoreListingTrendSummary }) {
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const width = 720;
-  const height = 280;
-  const padding = { top: 28, right: 30, bottom: 46, left: 54 };
+  const height = 250;
+  const padding = { top: 22, right: 22, bottom: 40, left: 48 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
-  const values = rows.map((row) => Number(row.count) || 0);
+  const values = summary.series.flatMap((item) => item.values).map((value) => Number(value) || 0);
   const maxValue = Math.max(1, ...values);
-  const toX = (index: number) => padding.left + (values.length <= 1 ? chartWidth / 2 : (index / (values.length - 1)) * chartWidth);
+  const toX = (index: number) => padding.left + (summary.months.length <= 1 ? chartWidth / 2 : (index / (summary.months.length - 1)) * chartWidth);
   const toY = (value: number) => padding.top + chartHeight - (value / maxValue) * chartHeight;
-  const points = values.map((value, index) => `${toX(index).toFixed(1)},${toY(value).toFixed(1)}`).join(' ');
-  const areaPoints = `${padding.left},${padding.top + chartHeight} ${points} ${padding.left + chartWidth},${padding.top + chartHeight}`;
 
-  if (rows.length === 0) {
+  if (summary.months.length === 0 || summary.series.length === 0) {
     return <div className="operator-listing-trend-empty">当前店铺暂无最近6个月商品信息导入趋势数据</div>;
   }
 
+  const handleMove = (event: MouseEvent<SVGSVGElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = (event.clientX - rect.left) / rect.width;
+    const x = ratio * width;
+    const nextIndex = summary.months.reduce((bestIndex, _month, index) => (
+      Math.abs(toX(index) - x) < Math.abs(toX(bestIndex) - x) ? index : bestIndex
+    ), 0);
+    setHoverIndex(nextIndex);
+  };
+
   return (
-    <svg className="operator-listing-trend-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="最近6个月店铺上架趋势分析">
-      <line x1={padding.left} y1={padding.top + chartHeight} x2={padding.left + chartWidth} y2={padding.top + chartHeight} className="operator-listing-trend-axis" />
-      {[0, 0.5, 1].map((ratio) => {
-        const y = padding.top + chartHeight - ratio * chartHeight;
-        return (
-          <g key={ratio}>
-            <line x1={padding.left} y1={y} x2={padding.left + chartWidth} y2={y} className="operator-listing-trend-grid" />
-            <text x={padding.left - 12} y={y + 4} textAnchor="end" className="operator-listing-trend-label">{Math.round(maxValue * ratio)}</text>
-          </g>
-        );
-      })}
-      <polygon points={areaPoints} className="operator-listing-trend-area" />
-      <polyline points={points} fill="none" className="operator-listing-trend-line" />
-      {rows.map((row, index) => (
-        <g key={row.month}>
-          <circle cx={toX(index)} cy={toY(row.count)} r="4.5" className="operator-listing-trend-point" />
-          <title>{`${row.month} ${row.storeName} 上架商品数量 ${row.count}`}</title>
-          <text x={toX(index)} y={toY(row.count) - 12} textAnchor="middle" className="operator-listing-trend-value">{row.count}</text>
-          <text x={toX(index)} y={height - 16} textAnchor="middle" className="operator-listing-trend-date">{row.month.slice(5)}</text>
-        </g>
-      ))}
-    </svg>
+    <div className="operator-listing-trend-figure" onMouseLeave={() => setHoverIndex(null)}>
+      <div className="operator-listing-trend-legend">
+        {summary.series.map((item, index) => (
+          <span key={item.storeName}>
+            <i style={{ background: listingTrendColors[index % listingTrendColors.length] }} />
+            {item.storeName}
+          </span>
+        ))}
+      </div>
+      <svg
+        className="operator-listing-trend-chart"
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label="最近6个月店铺上架趋势分析"
+        onMouseMove={handleMove}
+      >
+        <line x1={padding.left} y1={padding.top + chartHeight} x2={padding.left + chartWidth} y2={padding.top + chartHeight} className="operator-listing-trend-axis" />
+        {[0, 0.5, 1].map((ratio) => {
+          const y = padding.top + chartHeight - ratio * chartHeight;
+          return (
+            <g key={ratio}>
+              <line x1={padding.left} y1={y} x2={padding.left + chartWidth} y2={y} className="operator-listing-trend-grid" />
+              <text x={padding.left - 10} y={y + 4} textAnchor="end" className="operator-listing-trend-label">{Math.round(maxValue * ratio)}</text>
+            </g>
+          );
+        })}
+        {summary.months.map((month, index) => (
+          <text key={month} x={toX(index)} y={height - 14} textAnchor="middle" className="operator-listing-trend-date">{month.slice(5)}</text>
+        ))}
+        {summary.series.map((item, seriesIndex) => {
+          const color = listingTrendColors[seriesIndex % listingTrendColors.length];
+          const points = item.values.map((value, index) => `${toX(index).toFixed(1)},${toY(value).toFixed(1)}`).join(' ');
+          return (
+            <g key={item.storeName}>
+              <polyline points={points} fill="none" stroke={color} className="operator-listing-trend-line" />
+              {item.values.map((value, index) => (
+                <circle
+                  key={`${item.storeName}-${summary.months[index]}`}
+                  cx={toX(index)}
+                  cy={toY(value)}
+                  r={hoverIndex === index ? 4.2 : 3}
+                  fill={color}
+                  className="operator-listing-trend-point"
+                />
+              ))}
+            </g>
+          );
+        })}
+        {hoverIndex !== null && (
+          <line
+            x1={toX(hoverIndex)}
+            y1={padding.top}
+            x2={toX(hoverIndex)}
+            y2={padding.top + chartHeight}
+            className="operator-listing-trend-hover-line"
+          />
+        )}
+      </svg>
+      {hoverIndex !== null && (
+        <div className="operator-listing-trend-tooltip" style={{ left: `${Math.min(78, Math.max(12, (toX(hoverIndex) / width) * 100))}%` }}>
+          <strong>{summary.months[hoverIndex]}</strong>
+          {summary.series.map((item, index) => (
+            <span key={`${item.storeName}-${hoverIndex}`}>
+              <i style={{ background: listingTrendColors[index % listingTrendColors.length] }} />
+              {item.storeName}：{formatNumber(item.values[hoverIndex] ?? 0)}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -727,7 +820,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const [period] = useState(currentMonth());
   const [financePeriod, setFinancePeriod] = useState(previousMonth());
   const [financeMessage, setFinanceMessage] = useState('');
-  const [listingTrendStore, setListingTrendStore] = useState('');
+  const [listingTrendStores, setListingTrendStores] = useState<string[]>([]);
   const financeMonthOptions = useMemo(() => recentMonths(12), []);
 
   useEffect(() => {
@@ -804,12 +897,13 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   }, [currentUser]);
 
   useEffect(() => {
-    if (!listingTrendStore) return;
+    if (listingTrendStores.length === 0) return;
     const visibleStoreNames = new Set(visibleTemuStores.map((store) => normalizeStoreKey(store.storeName || store.id)).filter(Boolean));
-    if (!visibleStoreNames.has(normalizeStoreKey(listingTrendStore))) {
-      setListingTrendStore('');
+    const nextStores = listingTrendStores.filter((storeName) => visibleStoreNames.has(normalizeStoreKey(storeName)));
+    if (nextStores.length !== listingTrendStores.length) {
+      setListingTrendStores(nextStores);
     }
-  }, [listingTrendStore, visibleTemuStores]);
+  }, [listingTrendStores, visibleTemuStores]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1073,9 +1167,14 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     .sort((first, second) => first.localeCompare(second)), [visibleTemuStores]);
   const listingTrendSummary = useMemo(() => buildStoreListingTrend({
     listings: effectiveNewListings,
-    selectedStoreName: listingTrendStore,
+    selectedStoreNames: listingTrendStores,
     visibleStores: visibleTemuStores,
-  }), [effectiveNewListings, listingTrendStore, visibleTemuStores]);
+  }), [effectiveNewListings, listingTrendStores, visibleTemuStores]);
+  const toggleListingTrendStore = (storeName: string) => {
+    setListingTrendStores((current) => current.includes(storeName)
+      ? current.filter((item) => item !== storeName)
+      : [...current, storeName]);
+  };
   const allStoreAveragePriceRows = useMemo<AveragePriceStoreRow[]>(() => {
     const recordsByStore = new Map(averagePriceRecords.map((record) => [
       normalizeStoreKey(record.storeName),
@@ -1590,37 +1689,39 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
         </div>
       </article>
 
-      <article className="excel-record-panel operator-performance-panel operator-listing-trend-panel">
-        <header>
+      <article className="excel-record-panel operator-performance-panel operator-listing-trend-panel operator-compact-panel">
+        <header className="operator-compact-header">
           <div>
             <h2>最近6个月店铺上架趋势分析</h2>
-            <p>按商品信息导入表格中的 SKC 去重统计最近6个月每月上架商品数量，用于观察店铺近期上新节奏、是否持续上架，以及是否存在上新断档。一个 SKC 代表一个商品。</p>
+            <p>按商品信息导入表格中的 SKC 去重统计每月上架商品数量，用于观察近期上新节奏和断档情况。</p>
           </div>
           <span>{listingTrendSummary.latestMonth ? `截至 ${formatMonthLabel(listingTrendSummary.latestMonth)}` : '暂无月份数据'}</span>
         </header>
-        <section className="operator-form-grid salary-stat-filter-grid operator-listing-trend-filter">
-          <label>
-            店铺选择
-            <select value={listingTrendStore} onChange={(event) => setListingTrendStore(event.target.value)}>
-              <option value="">全部可见店铺</option>
-              {listingTrendStoreOptions.map((storeName) => (
-                <option key={storeName} value={storeName}>{storeName}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            时间范围
-            <input value="最近6个月" readOnly />
-          </label>
+        <section className="operator-listing-trend-controls">
+          <button type="button" className={listingTrendStores.length === 0 ? 'is-active' : ''} onClick={() => setListingTrendStores([])}>
+            全部店铺
+          </button>
+          {listingTrendStoreOptions.map((storeName) => (
+            <button
+              key={storeName}
+              type="button"
+              className={listingTrendStores.includes(storeName) ? 'is-active' : ''}
+              onClick={() => toggleListingTrendStore(storeName)}
+            >
+              {storeName}
+            </button>
+          ))}
+          <span>时间范围：最近6个月</span>
+          <span>口径：SKC 去重</span>
         </section>
-        <section className="import-overview-grid">
-          <article><span>统计店铺</span><strong>{listingTrendStore || '全部可见店铺'}</strong></article>
-          <article><span>最近6个月累计上架商品数</span><strong>{formatNumber(listingTrendSummary.total)}</strong></article>
+        <section className="import-overview-grid operator-compact-metrics">
+          <article><span>展示店铺</span><strong>{listingTrendSummary.visibleStoreCount}</strong></article>
+          <article><span>累计上架商品数</span><strong>{formatNumber(listingTrendSummary.total)}</strong></article>
           <article><span>最新月份</span><strong>{listingTrendSummary.latestMonth ? formatMonthLabel(listingTrendSummary.latestMonth) : '暂无数据'}</strong></article>
-          <article><span>统计口径</span><strong>SKC 去重</strong></article>
+          <article><span>当前选择</span><strong>{listingTrendStores.length === 0 ? '全部店铺' : `${listingTrendStores.length} 家店铺`}</strong></article>
         </section>
         <section className="operator-listing-trend-chart-wrap">
-          <StoreListingTrendChart rows={listingTrendSummary.rows} />
+          <StoreListingTrendChart summary={listingTrendSummary} />
         </section>
         <div className="import-record-table-wrap operator-performance-table-wrap operator-listing-trend-table-wrap">
           <table className="import-record-table operator-performance-table operator-listing-trend-table">

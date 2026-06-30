@@ -3227,22 +3227,53 @@ function filterEffectiveListingsForUser(items, currentUser) {
   );
 }
 
+function filterEffectiveListingsByQuery(items, searchParams) {
+  const startParam = searchParams.get('dateStart') || searchParams.get('startDate') || '';
+  const endParam = searchParams.get('dateEnd') || searchParams.get('endDate') || '';
+  const recentDays = Number(searchParams.get('recentDays') || searchParams.get('days') || 0);
+  let startDate = startParam;
+  let endDate = endParam;
+
+  if (!startDate && !endDate && Number.isFinite(recentDays) && recentDays > 0) {
+    const latestDate = items
+      .map((item) => String(item?.siteJoinDate || '').slice(0, 10))
+      .filter(Boolean)
+      .sort()
+      .at(-1);
+    if (latestDate) {
+      const start = new Date(`${latestDate}T00:00:00`);
+      start.setDate(start.getDate() - Math.ceil(recentDays) + 1);
+      startDate = formatOrderDateKey(start);
+      endDate = latestDate;
+    }
+  }
+
+  if (!startDate && !endDate) return items;
+  return items.filter((item) => {
+    const date = String(item?.siteJoinDate || '').slice(0, 10);
+    return date && (!startDate || date >= startDate) && (!endDate || date <= endDate);
+  });
+}
+
 async function handleEffectiveNewListingsApi(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
 
   try {
+    const requestUrl = new URL(req.url || '/', 'http://localhost');
+    const queryParams = Object.fromEntries(requestUrl.searchParams.entries());
     const currentUser = readCurrentUser(req);
     const items = Array.isArray(readJsonFile('effectiveNewListings')) ? readJsonFile('effectiveNewListings') : [];
 
     if (req.method === 'GET') {
-      let data = items;
+      let data = filterEffectiveListingsByQuery(items, requestUrl.searchParams);
       try {
-        const productInfoItems = await readEffectiveListingsFromProductImport();
+        const productInfoItems = await readEffectiveListingsFromProductImport(queryParams);
         data = productInfoItems.length > 0 ? productInfoItems : items;
       } catch (error) {
         console.warn('[TEMU PostgreSQL] effective listings from product import fallback to JSON:', error instanceof Error ? error.message : error);
       }
+      data = filterEffectiveListingsByQuery(data, requestUrl.searchParams);
       res.end(JSON.stringify(isCompanyDashboardRead(req) ? data : filterEffectiveListingsForUser(data, currentUser)));
       return;
     }

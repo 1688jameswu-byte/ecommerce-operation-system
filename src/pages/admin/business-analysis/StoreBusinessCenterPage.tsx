@@ -739,7 +739,8 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
     const isAdmin = currentUser.role === 'admin';
     const scopedOrderRequest = fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37', { records: [] });
     const scopedTrafficRequest = fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=37', { records: [] });
-    const scopedEffectiveListingRequest = fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings?scope=company-dashboard', []);
+    const effectiveListingUrl = '/api/effective-new-listings?scope=company-dashboard&view=store-business&recentDays=37';
+    const scopedEffectiveListingRequest = fetchJson<EffectiveNewListingRecord[]>(effectiveListingUrl, []);
     Promise.all([
       referenceDataService.loadCompanyStores(),
       scopedOrderRequest,
@@ -749,7 +750,7 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
       referenceDataService.loadCompanyOperators(),
       isAdmin ? scopedOrderRequest : fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37&scope=company-dashboard', { records: [] }),
       isAdmin ? scopedTrafficRequest : fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=37&scope=company-dashboard', { records: [] }),
-      isAdmin ? scopedEffectiveListingRequest : fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings?scope=company-dashboard', []),
+      isAdmin ? scopedEffectiveListingRequest : fetchJson<EffectiveNewListingRecord[]>(effectiveListingUrl, []),
     ]).then(([
       companyStores,
       orderStore,
