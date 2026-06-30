@@ -1410,27 +1410,10 @@ const snapshotReadCache = new Map();
 const SNAPSHOT_READ_CACHE_TTL_MS = 30000;
 
 async function ensureSnapshotForRead(snapshotDate) {
-  const key = dateText(snapshotDate);
-  if (!key) return;
-  const cached = snapshotReadCache.get(key);
-  if (cached?.promise) {
-    await cached.promise;
-    return;
-  }
-  if (cached?.rebuiltAt && Date.now() - cached.rebuiltAt < SNAPSHOT_READ_CACHE_TTL_MS) {
-    return;
-  }
-  const promise = rebuildNewProductSnapshots({ snapshotDate: key })
-    .then((result) => {
-      snapshotReadCache.set(key, { rebuiltAt: Date.now(), result });
-      return result;
-    })
-    .catch((error) => {
-      snapshotReadCache.delete(key);
-      throw error;
-    });
-  snapshotReadCache.set(key, { promise });
-  await promise;
+  // Read endpoints must never rebuild snapshots. Snapshot rebuilding is an
+  // explicit import/rebuild action; opening the workbench should only read
+  // existing snapshot rows so the first screen is not blocked by heavy writes.
+  if (!dateText(snapshotDate)) return;
 }
 
 export async function getNewProductDataCutoffDate() {
@@ -1888,8 +1871,24 @@ export async function getAdStrategyPending(params = {}) {
     .map(strategyRecommendationForSnapshot)
     .filter(Boolean)
     .filter((record) => !params.status || params.status === 'PENDING');
+  const searchText = String(params.search || params.keyword || '').trim().toLowerCase();
+  const stageText = String(params.currentStage || '').trim();
+  const priorityText = String(params.priority || '').trim().toUpperCase();
   const merged = [...existing.records, ...generated]
-    .filter((record) => !params.type || record.recommendationType === params.type || record.problemType === params.type || record.productTag === params.type);
+    .filter((record) => !params.type || record.recommendationType === params.type || record.problemType === params.type || record.productTag === params.type)
+    .filter((record) => !priorityText || String(record.priority || '').toUpperCase() === priorityText)
+    .filter((record) => !stageText || String(record.currentStage || '').includes(stageText))
+    .filter((record) => {
+      if (!searchText) return true;
+      return [
+        record.productName,
+        record.temuSpuId,
+        record.storeName,
+        record.operatorName,
+        record.recommendationType,
+        record.problemType,
+      ].some((value) => String(value || '').toLowerCase().includes(searchText));
+    });
   const records = merged.slice((page - 1) * pageSize, page * pageSize);
   return {
     records,
@@ -1907,6 +1906,23 @@ export async function getAdStrategyCounts(params = {}) {
   await ensureSnapshotForRead(snapshotDate);
   const { where, values } = buildScopeWhere(params, 2);
   const condition = [`s.snapshot_date = $1`, ...where].join(' AND ');
+  const aggregate = await queryTemuDatabase(
+    `SELECT
+       COUNT(*)::int AS all_count,
+       COUNT(*) FILTER (WHERE s.product_tag = '烧钱无单')::int AS pending_count,
+       COUNT(*) FILTER (WHERE s.product_tag = '高潜新品')::int AS high_potential_count,
+       COUNT(*) FILTER (WHERE s.product_tag = '烧钱无单')::int AS burn_no_order_count,
+       COUNT(*) FILTER (WHERE s.product_tag = '有流量无转化')::int AS traffic_no_conversion_count,
+       COUNT(*) FILTER (WHERE s.product_tag = '加购未成交')::int AS cart_no_order_count,
+       COUNT(*) FILTER (WHERE s.product_tag = '低曝光新品')::int AS low_exposure_count,
+       COUNT(*) FILTER (WHERE s.product_tag = '自然起量')::int AS natural_growth_count,
+       COUNT(*) FILTER (WHERE s.is_ordered = TRUE)::int AS ordered_count,
+       COUNT(*) FILTER (WHERE s.is_ordered = FALSE)::int AS not_ordered_count,
+       COUNT(*) FILTER (WHERE s.product_tag = '数据未匹配')::int AS unmatched_count
+     FROM temu_new_product_daily_snapshot s
+     WHERE ${condition}`,
+    [snapshotDate, ...values],
+  );
   const result = await queryTemuDatabase(
     `SELECT s.product_tag, s.latest_recommendation_type, s.latest_recommendation_text,
             s.days_online, s.target_roas, s.ad_spend, s.impressions, s.clicks,
@@ -1915,7 +1931,20 @@ export async function getAdStrategyCounts(params = {}) {
      WHERE ${condition}`,
     [snapshotDate, ...values],
   );
-  const counts = {};
+  const row = aggregate.rows[0] || {};
+  const counts = {
+    all: Number(row.all_count || 0),
+    pending: Number(row.pending_count || 0),
+    highPotential: Number(row.high_potential_count || 0),
+    burnNoOrder: Number(row.burn_no_order_count || 0),
+    trafficNoConversion: Number(row.traffic_no_conversion_count || 0),
+    cartNoOrder: Number(row.cart_no_order_count || 0),
+    lowExposure: Number(row.low_exposure_count || 0),
+    naturalGrowth: Number(row.natural_growth_count || 0),
+    ordered: Number(row.ordered_count || 0),
+    notOrdered: Number(row.not_ordered_count || 0),
+    unmatched: Number(row.unmatched_count || 0),
+  };
   for (const row of result.rows) {
     const productTag = row.product_tag || '普通新品';
     counts[productTag] = (counts[productTag] || 0) + 1;

@@ -3554,9 +3554,37 @@ async function handleTemuAdReportImportApi(req, res) {
   }
 }
 
+function getNewProductPayloadRows(payload) {
+  if (!payload || typeof payload !== 'object') return 0;
+  if (Array.isArray(payload.records)) return payload.records.length;
+  if (Array.isArray(payload.recommendations)) return payload.recommendations.length;
+  if (Array.isArray(payload.operators)) return payload.operators.length;
+  if (Array.isArray(payload.stores)) return payload.stores.length;
+  if (payload.summary && typeof payload.summary === 'object') return 1;
+  if (payload.counts && typeof payload.counts === 'object') return Object.keys(payload.counts).length;
+  return 0;
+}
+
+function logNewProductApiTiming(pathname, startTime, payload) {
+  const durationMs = Math.round(performance.now() - startTime);
+  const entry = {
+    scope: 'new-product-center-api',
+    endpoint: pathname,
+    durationMs,
+    rows: getNewProductPayloadRows(payload),
+    slow: durationMs > 1000,
+  };
+  console[entry.slow ? 'warn' : 'log'](JSON.stringify(entry));
+}
+
 async function handleNewProductCenterApi(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
+  const startTime = performance.now();
+  const sendJson = (pathname, payload) => {
+    logNewProductApiTiming(pathname, startTime, payload);
+    res.end(JSON.stringify(payload));
+  };
   try {
     const currentUser = toCurrentUser(findCurrentUser(req));
     if (!currentUser) {
@@ -3570,67 +3598,68 @@ async function handleNewProductCenterApi(req, res) {
     const params = appendSearchParams(requestUrl, scope);
 
     if (req.method === 'GET' && pathname === 'boss-dashboard') {
-      res.end(JSON.stringify(await getBossDashboard(params)));
+      sendJson(pathname, await getBossDashboard(params));
       return;
     }
     if (req.method === 'GET' && pathname === 'operator-dashboard') {
-      res.end(JSON.stringify(await getOperatorDashboard(params)));
+      sendJson(pathname, await getOperatorDashboard(params));
       return;
     }
     if (req.method === 'GET' && pathname === 'operator-options') {
-      res.end(JSON.stringify(await getOperatorOptions(params)));
+      sendJson(pathname, await getOperatorOptions(params));
       return;
     }
     if (req.method === 'GET' && pathname === 'store-options') {
-      res.end(JSON.stringify(await getStoreOptions(params)));
+      sendJson(pathname, await getStoreOptions(params));
       return;
     }
     if (req.method === 'GET' && pathname === 'products') {
-      res.end(JSON.stringify(await getProducts(params)));
+      sendJson(pathname, await getProducts(params));
       return;
     }
     if (req.method === 'GET' && pathname.startsWith('products/')) {
-      res.end(JSON.stringify(await getProductDetail(decodeURIComponent(pathname.replace(/^products\//, '')), params)));
+      sendJson(pathname, await getProductDetail(decodeURIComponent(pathname.replace(/^products\//, '')), params));
       return;
     }
     if (req.method === 'GET' && pathname === 'ad-recommendations') {
-      res.end(JSON.stringify(await getRecommendations(params)));
+      sendJson(pathname, await getRecommendations(params));
       return;
     }
     if (req.method === 'GET' && pathname === 'ad-strategy/config') {
-      res.end(JSON.stringify(getAdStrategyConfig()));
+      sendJson(pathname, getAdStrategyConfig());
       return;
     }
     if (req.method === 'GET' && pathname === 'ad-strategy/counts') {
-      res.end(JSON.stringify(await getAdStrategyCounts(params)));
+      sendJson(pathname, await getAdStrategyCounts(params));
       return;
     }
     if (req.method === 'GET' && pathname === 'ad-strategy/pending') {
-      res.end(JSON.stringify(await getAdStrategyPending(params)));
+      sendJson(pathname, await getAdStrategyPending(params));
       return;
     }
     if (req.method === 'GET' && pathname === 'ad-strategy/execution') {
-      res.end(JSON.stringify(await getAdStrategyExecution(params)));
+      sendJson(pathname, await getAdStrategyExecution(params));
       return;
     }
     if (req.method === 'GET' && pathname === 'ad-strategy/review') {
-      res.end(JSON.stringify(await getAdStrategyReview(params)));
+      sendJson(pathname, await getAdStrategyReview(params));
       return;
     }
     if (req.method === 'POST' && pathname.startsWith('ad-recommendations/') && pathname.endsWith('/handle')) {
       const id = decodeURIComponent(pathname.replace(/^ad-recommendations\//, '').replace(/\/handle$/, ''));
       const body = JSON.parse((await readBody(req)) || '{}');
-      res.end(JSON.stringify(await handleRecommendation(id, body, currentUser)));
+      sendJson(pathname, await handleRecommendation(id, body, currentUser));
       return;
     }
     if (req.method === 'POST' && pathname === 'rebuild-snapshot') {
       const body = JSON.parse((await readBody(req)) || '{}');
-      res.end(JSON.stringify(await rebuildNewProductSnapshots({ snapshotDate: body.snapshotDate })));
+      sendJson(pathname, await rebuildNewProductSnapshots({ snapshotDate: body.snapshotDate }));
       return;
     }
     res.statusCode = 404;
     res.end(JSON.stringify({ ok: false, message: 'Not found' }));
   } catch (error) {
+    logNewProductApiTiming('error', startTime, { records: [] });
     res.statusCode = 500;
     res.end(JSON.stringify({ ok: false, message: error instanceof Error ? error.message : String(error) }));
   }

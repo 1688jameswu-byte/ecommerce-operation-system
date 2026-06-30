@@ -205,6 +205,17 @@ function NewProductOverviewSection({ summary }: { summary: Record<string, number
   );
 }
 
+function PanelSkeleton({ title = '数据加载中', rows = 3 }: { title?: string; rows?: number }) {
+  return (
+    <article className="excel-record-panel npc-panel npc-skeleton-panel">
+      <h2>{title}</h2>
+      <div className="npc-skeleton-lines">
+        {Array.from({ length: rows }).map((_, index) => <span key={index} />)}
+      </div>
+    </article>
+  );
+}
+
 function SecondaryMetricStrip({ summary, onSelect }: { summary: Record<string, number | null>; onSelect: (tag: string) => void }) {
   const items = [
     { label: '高潜新品', value: summary.highPotentialCount ?? 0, icon: 'diamond', tone: 'blue', tag: '高潜新品' },
@@ -416,6 +427,10 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   const [operatorOptions, setOperatorOptions] = useState<OperatorOption[]>([]);
   const [operatorStoreOptions, setOperatorStoreOptions] = useState<StoreScopeOption[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [countsLoading, setCountsLoading] = useState(true);
+  const [storageLoading, setStorageLoading] = useState(true);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -424,7 +439,11 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
         .filter((store) => store.platform === 'TEMU' && store.status !== 'inactive')
         .map((store) => ({ ...store, id: store.dbId || store.id }))))
       .catch(() => setStores([]));
-    newProductCenterDataSource.getTemuStorageStatus().then(setStorageStatus).catch(() => setStorageStatus(null));
+    setStorageLoading(true);
+    newProductCenterDataSource.getTemuStorageStatus()
+      .then(setStorageStatus)
+      .catch(() => setStorageStatus(null))
+      .finally(() => setStorageLoading(false));
   }, []);
 
   const quickParams = QUICK_FILTERS.find((item) => item.key === quickKey)?.params || {};
@@ -512,15 +531,19 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
     if (appliedSnapshotDate) dashboardParams.snapshotDate = appliedSnapshotDate;
     if (appliedStoreId) dashboardParams.storeId = appliedStoreId;
     if (appliedOperatorName) dashboardParams.operatorName = appliedOperatorName;
+    setDashboardLoading(true);
     newProductCenterDataSource.getOperatorDashboard(buildQuery(dashboardParams))
       .then(setDashboard)
-      .catch((error) => setMessage(error instanceof Error ? error.message : String(error)));
+      .catch((error) => setMessage(error instanceof Error ? error.message : String(error)))
+      .finally(() => setDashboardLoading(false));
   }, [appliedOperatorName, appliedSnapshotDate, appliedStoreId]);
 
   useEffect(() => {
+    setProductsLoading(true);
     newProductCenterDataSource.getProducts(buildQuery(baseParams))
       .then(setProducts)
-      .catch(() => setProducts({ records: [], total: 0 }));
+      .catch(() => setProducts({ records: [], total: 0 }))
+      .finally(() => setProductsLoading(false));
   }, [baseParams]);
 
   useEffect(() => {
@@ -528,13 +551,11 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
     if (appliedSnapshotDate) countBase.snapshotDate = appliedSnapshotDate;
     if (appliedStoreId) countBase.storeId = appliedStoreId;
     if (appliedOperatorName) countBase.operatorName = appliedOperatorName;
-    Promise.all(QUICK_FILTERS.map((filter) => newProductCenterDataSource.getProducts(buildQuery({ ...countBase, ...filter.params, pageSize: '1' })).then((data) => [filter.key, data.total] as const).catch(() => [filter.key, 0] as const)))
-      .then((pairs) => setCounts(Object.fromEntries(pairs)));
-    Promise.all(TAGS.map((item) => newProductCenterDataSource.getProducts(buildQuery({ ...countBase, productTag: item, pageSize: '1' })).then((data) => [item, data.total] as const).catch(() => [item, 0] as const)))
-      .then((pairs) => setCounts((current) => ({ ...current, ...Object.fromEntries(pairs) })));
+    setCountsLoading(true);
     newProductCenterDataSource.getAdStrategyCounts(buildQuery(countBase))
-      .then((data) => setCounts((current) => ({ ...current, ...(data.counts || {}) })))
-      .catch(() => undefined);
+      .then((data) => setCounts(data.counts || {}))
+      .catch(() => setCounts({}))
+      .finally(() => setCountsLoading(false));
   }, [appliedOperatorName, appliedSnapshotDate, appliedStoreId]);
 
   useEffect(() => {
@@ -657,10 +678,14 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
         <span className="npc-date-badge">数据截止 {dashboard?.dataCutoffDate || products.dataCutoffDate || '-'}</span>
       </div>
       {message && <div className="excel-import-error">{message}</div>}
-      <DataHealthPanel snapshotDate={displayedDate} dataCutoffDate={dashboard?.dataCutoffDate || products.dataCutoffDate} storageStatus={storageStatus} productTotal={products.total} healthCounts={dashboard?.summary} />
-      {dashboard && <NewProductOverviewSection summary={dashboard.summary} />}
-      {dashboard && <SecondaryMetricStrip summary={dashboard.summary} onSelect={selectTag} />}
-      <TaskBoard counts={counts} onSelect={selectTag} />
+      {storageLoading && !storageStatus && !dashboard ? (
+        <PanelSkeleton title="数据健康提示" rows={2} />
+      ) : (
+        <DataHealthPanel snapshotDate={displayedDate} dataCutoffDate={dashboard?.dataCutoffDate || products.dataCutoffDate} storageStatus={storageStatus} productTotal={products.total} healthCounts={dashboard?.summary} />
+      )}
+      {dashboardLoading && !dashboard ? <PanelSkeleton title="新品表现总览" rows={4} /> : dashboard && <NewProductOverviewSection summary={dashboard.summary} />}
+      {dashboardLoading && !dashboard ? <PanelSkeleton title="核心指标摘要" rows={2} /> : dashboard && <SecondaryMetricStrip summary={dashboard.summary} onSelect={selectTag} />}
+      {countsLoading && Object.keys(counts).length === 0 ? <PanelSkeleton title="今日待处理任务" rows={3} /> : <TaskBoard counts={counts} onSelect={selectTag} />}
       <div className="npc-two-columns">
         <StorePerformance rows={dashboard?.storeRanking ?? []} />
         <article className="excel-record-panel npc-panel">
@@ -716,7 +741,7 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
           </label>
         </div>
         <QuickFilters active={quickKey} counts={counts} onChange={(key) => { setQuickKey(key); setPage(1); }} />
-        <ProductTable records={products.records} total={products.total} title="新品诊断列表" />
+        {productsLoading && products.records.length === 0 ? <PanelSkeleton title="新品诊断列表加载中" rows={5} /> : <ProductTable records={products.records} total={products.total} title="新品诊断列表" />}
         <div className="temu-product-record-pagination">
           <span>第 {page}/{totalPages} 页</span>
           <div>
@@ -765,9 +790,9 @@ function ProductTable({ records, total, title = '新品诊断列表' }: { record
           {records.map((item) => (
             <tr key={item.id}>
               <td><div className="npc-product-cell" title={`${item.productName || '-'} ${item.temuProductId || ''} ${item.temuSpuId || ''}`}>{item.productImageUrl && <img src={item.productImageUrl} alt="" />}<span><strong>{item.productName || '-'}</strong><small>{item.temuProductId || '-'} / {item.temuSpuId || '-'}</small></span></div></td>
-              <td title={item.temuSpuId || '-'}>{item.temuSpuId || '-'}</td>
-              <td title={item.skcIds || '-'}>{item.skcIds || '-'}</td>
-              <td title={item.skuIds || '-'}>{item.skuIds || '-'}</td>
+              <td className="npc-copyable-id-cell" title={item.temuSpuId || '-'}><span>{item.temuSpuId || '-'}</span><div className="npc-copy-popover">{item.temuSpuId || '-'}</div></td>
+              <td className="npc-copyable-id-cell" title={item.skcIds || '-'}><span>{item.skcIds || '-'}</span><div className="npc-copy-popover">{item.skcIds || '-'}</div></td>
+              <td className="npc-copyable-id-cell npc-sku-id-cell" title={item.skuIds || '-'}><span>{item.skuIds || '-'}</span><div className="npc-copy-popover">{item.skuIds || '-'}</div></td>
               <td>{item.storeName || '-'}</td>
               <td>{item.operatorName || '-'}</td>
               <td>{formatDate(item.firstOnlineAt)} / {item.daysOnline}天 / {stageLabel(item.daysOnline)}</td>
@@ -1070,6 +1095,590 @@ function StageReviewTable({ rows }: { rows: AdStrategyReviewRecord[] }) {
   );
 }
 
+const AD_STRATEGY_TYPES = [
+  '投放过保守',
+  '投放过激进',
+  '烧钱无单',
+  '高潜新品',
+  '数据未匹配',
+  '应调至竞争力强',
+  '应调至竞争力中',
+  '应调至竞争力弱',
+  '应调至自定义12',
+  '建议延长测试',
+  '建议提前控本',
+  '建议转入常规商品',
+  '建议暂停/优化',
+];
+
+const AD_STRATEGY_STAGES = ['冷启动期', '测试期', '控本期', '利润期', '常规商品'];
+
+function strategyPriorityLabel(value?: string) {
+  const normalized = String(value || '').toUpperCase();
+  if (normalized === 'HIGH') return '高';
+  if (normalized === 'MEDIUM') return '中';
+  if (normalized === 'LOW') return '低';
+  return value || '观察';
+}
+
+function strategyStatusLabel(value?: string) {
+  const normalized = String(value || 'PENDING').toUpperCase();
+  if (normalized === 'PENDING') return '待处理';
+  if (normalized === 'ACCEPTED') return '已采纳';
+  if (normalized === 'EXECUTED') return '已执行';
+  if (normalized === 'IGNORED') return '已忽略';
+  if (normalized === 'EXPIRED') return '已过期';
+  return value || '待处理';
+}
+
+function strategyStatusTone(value?: string) {
+  const normalized = String(value || '').toUpperCase();
+  if (normalized === 'EXECUTED' || normalized === 'ACCEPTED' || value === '已按策略') return 'success';
+  if (normalized === 'IGNORED' || normalized === 'EXPIRED') return 'muted';
+  if (value === '投放过激进' || value === '建议暂停/优化' || value === '无广告数据' || value === '无目标ROAS') return 'danger';
+  return 'warning';
+}
+
+function StrategyBadge({ value, type = 'status' }: { value?: string; type?: 'status' | 'priority' | 'plain' }) {
+  const label = type === 'status' ? strategyStatusLabel(value) : type === 'priority' ? strategyPriorityLabel(value) : (value || '-');
+  const tone = type === 'priority'
+    ? String(value || '').toUpperCase() === 'HIGH' ? 'danger' : String(value || '').toUpperCase() === 'MEDIUM' ? 'warning' : 'muted'
+    : strategyStatusTone(value);
+  return <span className={`npc-strategy-status npc-strategy-status-${tone}`}>{label}</span>;
+}
+
+function strategyDeviation(item: AdStrategySuggestion | AdStrategyExecutionRecord) {
+  const planned = Number(item.plannedTargetRoas);
+  const actual = Number(item.actualTargetRoas);
+  if (!Number.isFinite(planned) || !Number.isFinite(actual)) return null;
+  return actual - planned;
+}
+
+function strategyDeviationText(item: AdStrategySuggestion | AdStrategyExecutionRecord) {
+  const deviation = strategyDeviation(item);
+  if (deviation === null) return '-';
+  const problem = String((item as AdStrategySuggestion).problemType || (item as AdStrategyExecutionRecord).executionStatus || '');
+  if (problem.includes('保守')) return `投放过保守 +${deviation.toFixed(2)}`;
+  if (problem.includes('激进')) return `投放过激进 ${deviation.toFixed(2)}`;
+  return deviation > 0 ? `+${deviation.toFixed(2)}` : deviation.toFixed(2);
+}
+
+function strategyProductImage(item: Record<string, unknown>) {
+  return String(item.productImageUrl || item.productImage || item.imageUrl || item.mainImageUrl || '').trim();
+}
+
+function StrategyProductCell({ item }: { item: AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord }) {
+  const image = strategyProductImage(item as Record<string, unknown>);
+  return (
+    <div className="npc-strategy-product-cell">
+      <div className="npc-strategy-product-image">
+        {image ? <img src={image} alt="" /> : <span>SPU</span>}
+      </div>
+      <div>
+        <strong title={item.productName || ''}>{item.productName || '-'}</strong>
+        <small>SPU：{String((item as any).temuSpuId || (item as any).spuId || '-')}</small>
+      </div>
+    </div>
+  );
+}
+
+function StrategyHealthPanel({
+  snapshotDate,
+  dataCutoffDate,
+  storageStatus,
+  counts,
+}: {
+  snapshotDate?: string;
+  dataCutoffDate?: string;
+  storageStatus: TemuStorageStatus | null;
+  counts: Record<string, number>;
+}) {
+  const isLate = Boolean(snapshotDate && dataCutoffDate && snapshotDate > dataCutoffDate);
+  const items = [
+    { label: '商品数据最近导入', value: snapshotDate || dataCutoffDate || '-', ok: true },
+    { label: '订单数据最近导入', value: dataCutoffDate || '-', ok: true },
+    { label: '广告数据最近导入', value: dataCutoffDate || '-', ok: true },
+    { label: '广告SPU匹配率', value: storageStatus?.ok ? '按SPU匹配' : '待连接', ok: storageStatus?.ok },
+    { label: '订单SKU匹配率', value: storageStatus?.ok ? '按SKU匹配' : '待连接', ok: storageStatus?.ok },
+    { label: '未匹配广告', value: formatInteger(counts.unmatched || 0), ok: !counts.unmatched },
+    { label: '未匹配订单', value: '-', ok: true },
+  ];
+  return (
+    <article className="excel-record-panel npc-panel npc-strategy-health">
+      <header className="npc-panel-header">
+        <h2>数据健康</h2>
+        <span>{storageStatus?.ok ? '数据源正常' : '数据源待检查'}</span>
+      </header>
+      {isLate && (
+        <div className="npc-strategy-warning">
+          当前统计日期晚于数据截止日期，部分订单/广告数据可能为空，建议切换到数据截止日期。
+        </div>
+      )}
+      <div className="npc-strategy-health-grid">
+        {items.map((item) => (
+          <section key={item.label}>
+            <small>{item.label}</small>
+            <strong>{item.value}</strong>
+            <i className={item.ok ? 'is-ok' : 'is-warn'} />
+          </section>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function StrategyOverviewCards({ counts, onSelect }: { counts: Record<string, number>; onSelect: (next: Partial<{ status: string; priority: string; type: string }>) => void }) {
+  const cards = [
+    { label: '待处理建议', value: counts.pending ?? 0, icon: 'message', tone: 'blue', filter: { status: 'PENDING', type: '', priority: '' } },
+    { label: '高优先级', value: counts.HIGH ?? counts.highPriority ?? 0, icon: 'flame', tone: 'red', filter: { priority: 'HIGH', status: 'PENDING' } },
+    { label: '投放过保守', value: counts['投放过保守'] ?? 0, icon: 'trend', tone: 'green', filter: { type: '投放过保守', status: 'PENDING' } },
+    { label: '投放过激进', value: counts['投放过激进'] ?? 0, icon: 'line', tone: 'orange', filter: { type: '投放过激进', status: 'PENDING' } },
+    { label: '烧钱无单', value: counts.burnNoOrder ?? counts['烧钱无单'] ?? 0, icon: 'flame', tone: 'orange', filter: { type: '烧钱无单', status: 'PENDING' } },
+    { label: '高潜新品', value: counts.highPotential ?? counts['高潜新品'] ?? 0, icon: 'diamond', tone: 'green', filter: { type: '高潜新品', status: 'PENDING' } },
+    { label: '数据未匹配', value: counts.unmatched ?? counts['数据未匹配'] ?? 0, icon: 'database', tone: 'violet', filter: { type: '数据未匹配', status: 'PENDING' } },
+  ];
+  return (
+    <div className="npc-strategy-overview">
+      {cards.map((item) => (
+        <button key={item.label} type="button" onClick={() => onSelect(item.filter)}>
+          <span className={`npc-strategy-card-icon npc-strategy-card-icon-${item.tone}`}><IconSymbol name={item.icon} /></span>
+          <span>{item.label}</span>
+          <strong>{formatInteger(item.value)}</strong>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function StrategyDrawer({
+  item,
+  detail,
+  loading,
+  onClose,
+  onHandle,
+}: {
+  item: AdStrategySuggestion | null;
+  detail: ProductDetailResponse | null;
+  loading: boolean;
+  onClose: () => void;
+  onHandle: (status: string) => void;
+}) {
+  if (!item) return null;
+  const recentAds = (detail?.ads || []).slice(0, 7);
+  const adSpend7 = recentAds.reduce((sum, row) => sum + Number(row.adSpend || row.ad_spend || 0), 0);
+  const clicks7 = recentAds.reduce((sum, row) => sum + Number(row.promoClicks || row.clicks || row.promo_clicks || 0), 0);
+  const addToCart7 = recentAds.reduce((sum, row) => sum + Number(row.addToCartCount || row.add_to_cart_count || 0), 0);
+  const adOrders7 = recentAds.reduce((sum, row) => sum + Number(row.promoSubOrderCount || row.adOrderCount || row.promo_sub_order_count || 0), 0);
+  const naturalOrders = Number(item.naturalOrderCount || 0);
+  const roas7 = adSpend7 > 0 ? recentAds.reduce((sum, row) => sum + Number(row.promoSalesAmount || row.adSalesAmount || row.promo_sales_amount || 0), 0) / adSpend7 : item.roas;
+  const history = detail?.recommendations || [];
+  return (
+    <div className="npc-strategy-drawer-backdrop" role="presentation" onMouseDown={onClose}>
+      <aside className="npc-strategy-drawer" role="dialog" aria-modal="true" aria-label="诊断详情" onMouseDown={(event) => event.stopPropagation()}>
+        <header>
+          <h2>诊断详情</h2>
+          <button type="button" onClick={onClose}>×</button>
+        </header>
+        <section className="npc-strategy-drawer-block">
+          <h3>商品信息</h3>
+          <StrategyProductCell item={item} />
+          <dl>
+            <div><dt>店铺</dt><dd>{item.storeName || '-'}</dd></div>
+            <div><dt>运营</dt><dd>{item.operatorName || '-'}</dd></div>
+            <div><dt>上架天数</dt><dd>{item.daysOnline ?? '-'} 天</dd></div>
+            <div><dt>当前阶段</dt><dd>{item.currentStage || '-'}</dd></div>
+          </dl>
+        </section>
+        <section className="npc-strategy-drawer-block">
+          <h3>阶段策略</h3>
+          <div className="npc-strategy-drawer-metrics three">
+            <span><small>计划目标ROAS</small><strong>{formatRoas(item.plannedTargetRoas)}</strong></span>
+            <span><small>实际目标ROAS</small><strong>{formatRoas(item.actualTargetRoas)}</strong></span>
+            <span><small>执行结论</small><strong>{String(item.problemType || strategyDeviationText(item))}</strong></span>
+          </div>
+        </section>
+        <section className="npc-strategy-drawer-block">
+          <h3>近7天广告表现</h3>
+          {loading ? <p className="npc-muted">正在加载详情...</p> : (
+            <div className="npc-strategy-drawer-metrics">
+              <span><small>花费</small><strong>{formatMoney(adSpend7 || item.adSpend)}</strong></span>
+              <span><small>点击</small><strong>{formatInteger(clicks7 || item.clicks)}</strong></span>
+              <span><small>加购</small><strong>{formatInteger(addToCart7 || item.addToCartCount)}</strong></span>
+              <span><small>广告订单</small><strong>{formatInteger(adOrders7 || item.adOrderCount)}</strong></span>
+              <span><small>自然订单</small><strong>{formatInteger(naturalOrders)}</strong></span>
+              <span><small>ROAS</small><strong>{formatRoas(roas7)}</strong></span>
+            </div>
+          )}
+        </section>
+        <section className="npc-strategy-drawer-block">
+          <h3>系统判断</h3>
+          <p><strong>诊断原因：</strong>{item.reasonText || item.problemType || '-'}</p>
+          <p><strong>影响：</strong>如果不及时调整，可能影响新品冷启动曝光、转化验证或广告成本控制。</p>
+        </section>
+        <section className="npc-strategy-drawer-block">
+          <h3>建议动作</h3>
+          <p>{item.suggestedAction || item.recommendationText || '-'}</p>
+          <div className="npc-actions">
+            <button type="button" onClick={() => onHandle('EXECUTED')}>标记已执行</button>
+            <button type="button" onClick={() => onHandle('IGNORED')}>忽略</button>
+          </div>
+        </section>
+        <section className="npc-strategy-drawer-block">
+          <h3>历史处理记录</h3>
+          <div className="npc-strategy-history">
+            {history.slice(0, 5).map((row) => (
+              <div key={row.id}>
+                <span>{formatDate(row.recommendationDate)}</span>
+                <strong>{row.recommendationText || row.recommendationType}</strong>
+                <StrategyBadge value={row.status} />
+              </div>
+            ))}
+            {history.length === 0 && <p className="npc-muted">暂无历史处理记录。</p>}
+          </div>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
+function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
+  const initialType = new URLSearchParams(window.location.search).get('type') || '';
+  const isManager = currentUser.role === 'admin' || currentUser.role === 'leader';
+  const currentOperatorName = currentUser.displayName || currentUser.username || '';
+  const [activeTab, setActiveTab] = useState<StrategyTabKey>('pending');
+  const [snapshotDate, setSnapshotDate] = useState('');
+  const [storeId, setStoreId] = useState('');
+  const [operatorName, setOperatorName] = useState('');
+  const [currentStage, setCurrentStage] = useState('');
+  const [type, setType] = useState(initialType);
+  const [priority, setPriority] = useState('');
+  const [status, setStatus] = useState('PENDING');
+  const [keyword, setKeyword] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [config, setConfig] = useState<AdStrategyConfig | null>(null);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [storageStatus, setStorageStatus] = useState<TemuStorageStatus | null>(null);
+  const [storeOptions, setStoreOptions] = useState<StoreScopeOption[]>([]);
+  const [operatorOptions, setOperatorOptions] = useState<OperatorOption[]>([]);
+  const [pending, setPending] = useState<{ records: AdStrategySuggestion[]; total: number; page?: number; pageSize?: number; snapshotDate?: string; dataCutoffDate?: string }>({ records: [], total: 0 });
+  const [execution, setExecution] = useState<{ records: AdStrategyExecutionRecord[]; total: number; page?: number; pageSize?: number; snapshotDate?: string; dataCutoffDate?: string }>({ records: [], total: 0 });
+  const [review, setReview] = useState<{ records: AdStrategyReviewRecord[]; total: number; page?: number; pageSize?: number; snapshotDate?: string; dataCutoffDate?: string }>({ records: [], total: 0 });
+  const [loading, setLoading] = useState({ counts: true, pending: true, execution: false, review: false });
+  const [message, setMessage] = useState('');
+  const [drawerItem, setDrawerItem] = useState<AdStrategySuggestion | null>(null);
+  const [drawerDetail, setDrawerDetail] = useState<ProductDetailResponse | null>(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
+
+  const appliedOperatorName = isManager ? operatorName : currentOperatorName;
+  const filterBase = useMemo(() => {
+    const params: Record<string, string> = {};
+    if (snapshotDate) params.snapshotDate = snapshotDate;
+    if (storeId) params.storeId = storeId;
+    if (appliedOperatorName) params.operatorName = appliedOperatorName;
+    if (currentStage) params.currentStage = currentStage;
+    if (keyword.trim()) params.search = keyword.trim();
+    return params;
+  }, [appliedOperatorName, currentStage, keyword, snapshotDate, storeId]);
+
+  useEffect(() => {
+    newProductCenterDataSource.getAdStrategyConfig().then(setConfig).catch(() => setConfig(null));
+    newProductCenterDataSource.getTemuStorageStatus().then(setStorageStatus).catch(() => setStorageStatus(null));
+  }, []);
+
+  useEffect(() => {
+    newProductCenterDataSource.getStoreOptions(buildQuery({ snapshotDate, operatorName: appliedOperatorName }))
+      .then((data) => setStoreOptions(data.stores || []))
+      .catch(() => setStoreOptions([]));
+  }, [appliedOperatorName, snapshotDate]);
+
+  useEffect(() => {
+    if (!isManager) return;
+    newProductCenterDataSource.getOperatorOptions(buildQuery({ snapshotDate, storeId }))
+      .then((data) => setOperatorOptions(data.operators || []))
+      .catch(() => setOperatorOptions([]));
+  }, [isManager, snapshotDate, storeId]);
+
+  useEffect(() => {
+    setLoading((current) => ({ ...current, counts: true }));
+    newProductCenterDataSource.getAdStrategyCounts(buildQuery(filterBase))
+      .then((data) => setCounts(data.counts || {}))
+      .catch(() => setCounts({}))
+      .finally(() => setLoading((current) => ({ ...current, counts: false })));
+  }, [filterBase]);
+
+  useEffect(() => {
+    const base: Record<string, string> = { ...filterBase, page: String(page), pageSize: String(pageSize) };
+    if (activeTab === 'pending') {
+      const params = { ...base };
+      if (status) params.status = status;
+      if (type) params.type = type;
+      if (priority) params.priority = priority;
+      setLoading((current) => ({ ...current, pending: true }));
+      newProductCenterDataSource.getAdStrategyPending(buildQuery(params))
+        .then(setPending)
+        .catch((error) => {
+          setMessage(error instanceof Error ? error.message : String(error));
+          setPending({ records: [], total: 0 });
+        })
+        .finally(() => setLoading((current) => ({ ...current, pending: false })));
+    }
+    if (activeTab === 'execution') {
+      setLoading((current) => ({ ...current, execution: true }));
+      newProductCenterDataSource.getAdStrategyExecution(buildQuery(base))
+        .then(setExecution)
+        .catch(() => setExecution({ records: [], total: 0 }))
+        .finally(() => setLoading((current) => ({ ...current, execution: false })));
+    }
+    if (activeTab === 'review') {
+      setLoading((current) => ({ ...current, review: true }));
+      newProductCenterDataSource.getAdStrategyReview(buildQuery(base))
+        .then(setReview)
+        .catch(() => setReview({ records: [], total: 0 }))
+        .finally(() => setLoading((current) => ({ ...current, review: false })));
+    }
+  }, [activeTab, filterBase, page, pageSize, priority, status, type]);
+
+  useEffect(() => {
+    if (!drawerItem?.productId) {
+      setDrawerDetail(null);
+      return;
+    }
+    setDrawerLoading(true);
+    newProductCenterDataSource.getProductDetail(String(drawerItem.productId))
+      .then(setDrawerDetail)
+      .catch(() => setDrawerDetail(null))
+      .finally(() => setDrawerLoading(false));
+  }, [drawerItem]);
+
+  const dataCutoffDate = pending.dataCutoffDate || execution.dataCutoffDate || review.dataCutoffDate;
+  const displayedDate = pending.snapshotDate || execution.snapshotDate || review.snapshotDate || snapshotDate || dataCutoffDate;
+  const activeTotal = activeTab === 'pending' ? pending.total : activeTab === 'execution' ? execution.total : review.total;
+  const totalPages = Math.max(1, Math.ceil((activeTotal || 0) / pageSize));
+  const executionSummary = useMemo(() => execution.records.reduce((acc, item) => {
+    const key = item.executionStatus || '未知';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>), [execution.records]);
+
+  const resetFilters = () => {
+    setSnapshotDate('');
+    setStoreId('');
+    setOperatorName('');
+    setCurrentStage('');
+    setType('');
+    setPriority('');
+    setStatus('PENDING');
+    setKeyword('');
+    setPage(1);
+  };
+
+  const exportCurrentRows = () => {
+    const rows = activeTab === 'pending' ? pending.records : activeTab === 'execution' ? execution.records : review.records;
+    const csv = rows.map((row) => [
+      row.productName || '',
+      row.storeName || '',
+      row.operatorName || '',
+      (row as any).currentStage || (row as any).stageName || '',
+      (row as any).plannedTargetRoas ?? '',
+      (row as any).actualTargetRoas ?? '',
+      (row as any).adSpend ?? '',
+      (row as any).roas ?? '',
+    ].map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([`\ufeff商品,店铺,运营,阶段,计划ROAS,实际ROAS,广告花费,ROAS\n${csv}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `广告策略中心-${activeTab}-${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRecommendation = async (item: AdStrategySuggestion, nextStatus: string) => {
+    if (item.generated) {
+      setMessage('该建议为系统实时诊断结果，已保留为待处理状态。请在 TEMU 后台手动执行后，等待下一次广告日报验证。');
+      return;
+    }
+    await newProductCenterDataSource.handleRecommendation(item.id, { status: nextStatus });
+    setDrawerItem(null);
+    const params = { ...filterBase, page: String(page), pageSize: String(pageSize), status, type, priority };
+    newProductCenterDataSource.getAdStrategyPending(buildQuery(params)).then(setPending).catch(() => undefined);
+  };
+
+  const applyOverviewFilter = (next: Partial<{ status: string; priority: string; type: string }>) => {
+    setActiveTab('pending');
+    setStatus(next.status ?? '');
+    setPriority(next.priority ?? '');
+    setType(next.type ?? '');
+    setPage(1);
+  };
+
+  const tabItems: Array<{ key: StrategyTabKey; label: string; count: number }> = [
+    { key: 'pending', label: '待处理建议', count: pending.total || counts.pending || 0 },
+    { key: 'config', label: '阶段策略配置', count: config?.stages?.length || 0 },
+    { key: 'execution', label: '阶段执行检查', count: execution.total || 0 },
+    { key: 'review', label: '阶段效果复盘', count: review.total || 0 },
+  ];
+
+  return (
+    <section className="npc-page npc-ad-strategy-page npc-ad-workbench-page">
+      <div className="npc-ad-workbench-title">
+        <div>
+          <h1>广告策略中心</h1>
+          <p>广告问题发现、策略执行检查与阶段效果复盘</p>
+        </div>
+      </div>
+      <article className="excel-record-panel npc-panel npc-strategy-notice">
+        <strong>执行说明</strong>
+        <span>系统不会自动修改 TEMU 后台广告设置，只生成建议和执行检查。运营仍需在 TEMU 后台手动调整目标ROAS；系统通过后续广告日报中的“自然周目标ROAS（推广）”字段验证是否已执行。</span>
+      </article>
+      <article className="excel-record-panel npc-panel npc-ad-workbench-filter">
+        <label>统计日期<input type="date" value={snapshotDate} onChange={(event) => { setSnapshotDate(event.target.value); setPage(1); }} /></label>
+        <label>店铺<select value={storeId} onChange={(event) => { setStoreId(event.target.value); setPage(1); }}><option value="">全部店铺</option>{storeOptions.map((store) => <option key={store.storeId || store.storeName} value={store.storeId || store.storeName}>{store.storeName}</option>)}</select></label>
+        <label>运营{isManager ? <select value={operatorName} onChange={(event) => { setOperatorName(event.target.value); setPage(1); }}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorName} value={operator.operatorName}>{operator.operatorName}</option>)}</select> : <input value={currentOperatorName || '当前运营'} readOnly />}</label>
+        <label>当前阶段<select value={currentStage} onChange={(event) => { setCurrentStage(event.target.value); setPage(1); }}><option value="">全部阶段</option>{AD_STRATEGY_STAGES.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label>建议类型<select value={type} onChange={(event) => { setType(event.target.value); setPage(1); }}><option value="">全部类型</option>{AD_STRATEGY_TYPES.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label>优先级<select value={priority} onChange={(event) => { setPriority(event.target.value); setPage(1); }}><option value="">全部</option><option value="HIGH">高</option><option value="MEDIUM">中</option><option value="LOW">低</option></select></label>
+        <label>状态<select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}><option value="">全部状态</option><option value="PENDING">待处理</option><option value="EXECUTED">已执行</option><option value="IGNORED">已忽略</option><option value="ACCEPTED">已采纳</option><option value="EXPIRED">已过期</option></select></label>
+        <div className="npc-ad-workbench-filter-actions">
+          <span>数据截止 {dataCutoffDate || '-'}</span>
+          <button type="button" onClick={resetFilters}>重置</button>
+          <button type="button" onClick={exportCurrentRows}>导出</button>
+        </div>
+      </article>
+      <StrategyHealthPanel snapshotDate={snapshotDate || displayedDate} dataCutoffDate={dataCutoffDate} storageStatus={storageStatus} counts={counts} />
+      {loading.counts ? <PanelSkeleton title="广告策略总览" rows={2} /> : <StrategyOverviewCards counts={counts} onSelect={applyOverviewFilter} />}
+      <div className="npc-strategy-tabs npc-ad-workbench-tabs">
+        {tabItems.map((item) => (
+          <button key={item.key} type="button" className={`npc-strategy-tab${activeTab === item.key ? ' is-active' : ''}`} onClick={() => { setActiveTab(item.key); setPage(1); }}>
+            <span className="npc-strategy-tab-copy"><strong>{item.label}</strong></span>
+            <span className="npc-strategy-tab-count">{formatInteger(item.count)}</span>
+          </button>
+        ))}
+      </div>
+      {message && <div className="excel-import-error">{message}</div>}
+
+      {activeTab === 'pending' && (
+        <article className="excel-record-panel npc-panel">
+          <header className="npc-panel-header"><h2>待处理建议</h2><span>{pending.total} 条</span></header>
+          <div className="npc-ad-workbench-toolbar">
+            <input placeholder="搜索商品 / 店铺 / 运营" value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1); }} />
+            <button type="button">更多筛选</button>
+            <button type="button" onClick={() => setPage(1)}>刷新</button>
+            <button type="button" onClick={exportCurrentRows}>导出</button>
+          </div>
+          <div className="npc-table-wrap npc-strategy-table-wrap npc-pending-strategy-table-wrap">
+            <table className="npc-pending-strategy-table">
+              <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数 / 当前阶段</th><th>优先级</th><th>计划ROAS</th><th>实际ROAS</th><th>执行偏差</th><th>广告花费</th><th>点击</th><th>加购</th><th>广告订单</th><th>自然订单</th><th>ROAS</th><th>目标ROAS</th><th>诊断原因</th><th>建议动作</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody>
+                {loading.pending && pending.records.length === 0 && <tr className="npc-strategy-empty-row"><td colSpan={19}><PanelSkeleton title="待处理建议加载中" rows={4} /></td></tr>}
+                {!loading.pending && pending.records.map((item) => (
+                  <tr key={item.id}>
+                    <td><StrategyProductCell item={item} /></td>
+                    <td>{item.storeName || '-'}</td>
+                    <td>{item.operatorName || '-'}</td>
+                    <td>{item.daysOnline ?? '-'}天 / {item.currentStage || '-'}</td>
+                    <td><StrategyBadge value={item.priority} type="priority" /></td>
+                    <td>{formatRoas(item.plannedTargetRoas)}</td>
+                    <td>{formatRoas(item.actualTargetRoas)}</td>
+                    <td className={strategyDeviation(item) && strategyDeviation(item)! > 0 ? 'is-positive' : 'is-negative'}>{strategyDeviationText(item)}</td>
+                    <td>{formatMoney(item.adSpend)}</td>
+                    <td>{formatInteger(item.clicks)}</td>
+                    <td>{formatInteger(item.addToCartCount)}</td>
+                    <td>{formatInteger(item.adOrderCount)}</td>
+                    <td>{formatInteger(item.naturalOrderCount)}</td>
+                    <td>{formatRoas(item.roas)}</td>
+                    <td>{formatRoas(item.targetRoas)}</td>
+                    <td title={item.reasonText || ''}>{item.reasonText || item.problemType || '-'}</td>
+                    <td title={item.suggestedAction || ''}>{item.suggestedAction || item.recommendationText || '-'}</td>
+                    <td><StrategyBadge value={item.status} /></td>
+                    <td className="npc-actions">
+                      <button type="button" onClick={() => setDrawerItem(item)}>查看诊断</button>
+                      <button type="button" onClick={() => void handleRecommendation(item, 'EXECUTED')}>标记已执行</button>
+                      <button type="button" onClick={() => void handleRecommendation(item, 'IGNORED')}>忽略</button>
+                    </td>
+                  </tr>
+                ))}
+                {!loading.pending && pending.records.length === 0 && <tr className="npc-strategy-empty-row"><td colSpan={19}><StrategyEmptyState title="暂无待处理建议" description="当前筛选条件下没有需要处理的广告策略建议。" /></td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      )}
+
+      {activeTab === 'config' && (
+        <article className="excel-record-panel npc-panel">
+          <header className="npc-panel-header"><h2>阶段策略配置</h2><span>{isManager ? '管理员可编辑' : '普通运营只读'}</span></header>
+          <div className="npc-stage-card-grid">
+            {(config?.stages || []).map((stage, index) => (
+              <section key={stage.key}>
+                <h3>第{index + 1}阶段：{stage.name}</h3>
+                <p>上架第 {stage.dayStart}-{stage.dayEnd} 天</p>
+                <strong>{stage.bidLevel}</strong>
+                <span>目标ROAS：{formatRoas(stage.targetRoas)}</span>
+                <small>{stage.goal}</small>
+              </section>
+            ))}
+          </div>
+          <div className="npc-threshold-grid">
+            <label>烧钱无单花费阈值<input value={config?.thresholds.burnNoOrderSpend ?? 5} readOnly /></label>
+            <label>点击阈值<input value={config?.thresholds.clickThreshold ?? 30} readOnly /></label>
+            <label>加购阈值<input value={config?.thresholds.addToCartThreshold ?? 3} readOnly /></label>
+            <label>低曝光阈值<input value={config?.thresholds.lowExposureThreshold ?? 50} readOnly /></label>
+            <label>投放过保守阈值<input value="实际目标ROAS > 计划目标ROAS × 1.2" readOnly /></label>
+            <label>投放过激进阈值<input value="实际目标ROAS < 计划目标ROAS × 0.8" readOnly /></label>
+          </div>
+        </article>
+      )}
+
+      {activeTab === 'execution' && (
+        <article className="excel-record-panel npc-panel">
+          <header className="npc-panel-header"><h2>阶段执行检查</h2><span>{execution.total} 条</span></header>
+          <div className="npc-ad-execution-summary">
+            {['已按策略', '投放过保守', '投放过激进', '无广告数据', '无目标ROAS'].map((item) => <section key={item}><small>{item}</small><strong>{formatInteger(executionSummary[item] || 0)}</strong></section>)}
+          </div>
+          <div className="npc-table-wrap npc-strategy-table-wrap">
+            <table className="npc-execution-strategy-table">
+              <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数</th><th>当前阶段</th><th>计划目标ROAS</th><th>实际目标ROAS</th><th>执行状态</th><th>阶段效果</th><th>下一步动作</th></tr></thead>
+              <tbody>
+                {execution.records.map((item) => (
+                  <tr key={item.id}>
+                    <td><StrategyProductCell item={item} /></td><td>{item.storeName || '-'}</td><td>{item.operatorName || '-'}</td><td>{item.daysOnline}</td><td>{item.currentStage || '-'}</td><td>{formatRoas(item.plannedTargetRoas)}</td><td>{formatRoas(item.actualTargetRoas)}</td><td><StrategyBadge value={item.executionStatus} type="plain" /></td><td>{item.stageEffect || '-'}</td><td>{item.nextAction || '-'}</td>
+                  </tr>
+                ))}
+                {execution.records.length === 0 && <tr className="npc-strategy-empty-row"><td colSpan={10}><StrategyEmptyState title="暂无阶段执行检查数据" description="当前筛选条件下没有可检查的阶段执行记录。" /></td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      )}
+
+      {activeTab === 'review' && (
+        <article className="excel-record-panel npc-panel">
+          <header className="npc-panel-header"><h2>阶段效果复盘</h2><span>{review.total} 条</span></header>
+          <div className="npc-ad-workbench-toolbar">
+            <input placeholder="搜索商品 / 店铺 / 运营" value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1); }} />
+            <button type="button" onClick={exportCurrentRows}>导出</button>
+          </div>
+          <StageReviewTable rows={review.records} />
+        </article>
+      )}
+
+      {activeTab !== 'config' && (
+        <div className="temu-product-record-pagination npc-strategy-pagination">
+          <span>第 {page}/{totalPages} 页，共 {activeTotal} 条</span>
+          <div>
+            <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}><option value={20}>20 条/页</option><option value={50}>50 条/页</option></select>
+            <button type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>上一页</button>
+            <button type="button" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)}>下一页</button>
+          </div>
+        </div>
+      )}
+      <StrategyDrawer item={drawerItem} detail={drawerDetail} loading={drawerLoading} onClose={() => setDrawerItem(null)} onHandle={(nextStatus) => drawerItem && void handleRecommendation(drawerItem, nextStatus)} />
+    </section>
+  );
+}
+
 function DetailView({ productId }: { productId: string }) {
   const [data, setData] = useState<ProductDetailResponse | null>(null);
   useEffect(() => {
@@ -1120,7 +1729,7 @@ function SimpleTable({ title, rows, columns }: { title: string; rows: Array<Reco
 export default function NewProductCenterPage({ currentUser }: { currentUser: CurrentUser }) {
   const path = window.location.pathname;
   if (path === '/new-product-center/boss-dashboard') return <DashboardView />;
-  if (path === '/new-product-center/ad-recommendations') return <RecommendationsView />;
+  if (path === '/new-product-center/ad-recommendations') return <AdStrategyWorkbenchView currentUser={currentUser} />;
   if (path.startsWith('/new-product-center/products/')) return <DetailView productId={decodeURIComponent(path.replace('/new-product-center/products/', ''))} />;
   return <WorkbenchView currentUser={currentUser} />;
 }
