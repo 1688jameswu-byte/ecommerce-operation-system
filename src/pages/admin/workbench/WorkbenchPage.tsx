@@ -218,6 +218,43 @@ function currentPeriod() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
+const WORKBENCH_DASHBOARD_CACHE_PREFIX = 'operation-workbench-dashboard:';
+const WORKBENCH_DASHBOARD_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
+
+function getWorkbenchDashboardCacheKey(query: string, currentUser: CurrentUser) {
+  return [
+    WORKBENCH_DASHBOARD_CACHE_PREFIX,
+    currentUser.userId || currentUser.username || '',
+    currentUser.role || '',
+    currentUser.operatorId || '',
+    query,
+  ].join('|');
+}
+
+function readWorkbenchDashboardCache(cacheKey: string): WorkbenchData | null {
+  try {
+    const raw = window.sessionStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { savedAt?: number; data?: WorkbenchData };
+    if (!parsed?.savedAt || Date.now() - parsed.savedAt > WORKBENCH_DASHBOARD_CACHE_MAX_AGE_MS) {
+      window.sessionStorage.removeItem(cacheKey);
+      return null;
+    }
+    return parsed.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function writeWorkbenchDashboardCache(cacheKey: string, data: WorkbenchData | null) {
+  if (!data) return;
+  try {
+    window.sessionStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data }));
+  } catch {
+    // sessionStorage may be unavailable or full; the live API response is still used.
+  }
+}
+
 async function fetchJson<T>(url: string, fallback: T, options: RequestInit & { bustCache?: boolean } = {}): Promise<T> {
   try {
     const { bustCache, ...fetchOptions } = options;
@@ -986,6 +1023,42 @@ function uniqueText(values: string[]) {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 }
 
+function WorkbenchInitialSkeleton() {
+  return (
+    <>
+      <section className="workbench-overview workbench-skeleton-panel" aria-label="KPI 工作台正在加载">
+        <header className="workbench-overview-header">
+          <div>
+            <span className="workbench-skeleton-line skeleton-title" />
+            <span className="workbench-skeleton-line skeleton-subtitle" />
+          </div>
+          <span className="workbench-skeleton-line skeleton-note" />
+        </header>
+        <section className="workbench-summary workbench-skeleton-summary">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <article className="workbench-kpi-card workbench-skeleton-card" key={index}>
+              <span className="workbench-skeleton-line skeleton-title" />
+              <span className="workbench-skeleton-line skeleton-value" />
+              <span className="workbench-skeleton-line" />
+              <span className="workbench-skeleton-line" />
+              <span className="workbench-skeleton-line skeleton-short" />
+            </article>
+          ))}
+        </section>
+      </section>
+      <article className="excel-record-panel workbench-panel workbench-skeleton-panel">
+        <header>
+          <span className="workbench-skeleton-line skeleton-title" />
+          <span className="workbench-skeleton-line skeleton-note" />
+        </header>
+        <div className="workbench-skeleton-table">
+          {Array.from({ length: 6 }).map((_, index) => <span className="workbench-skeleton-line" key={index} />)}
+        </div>
+      </article>
+    </>
+  );
+}
+
 function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStoreIds: string[]; visibleStoreNames: string[] }) {
   const [period, setPeriod] = useState(currentPeriod());
   const [operatorId, setOperatorId] = useState('');
@@ -1009,14 +1082,22 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    const cacheKey = getWorkbenchDashboardCacheKey(query, currentUser);
+    const cachedData = readWorkbenchDashboardCache(cacheKey);
+    if (cachedData) {
+      setData(cachedData);
+    }
     setLoading(true);
     void fetchJson<WorkbenchData | null>(`/api/operation-workbench/kpi-dashboard?${query}`, null, { signal: controller.signal })
       .then((nextData) => {
-        if (requestIdRef.current === requestId) setData(nextData);
+        if (requestIdRef.current === requestId) {
+          setData(nextData);
+          writeWorkbenchDashboardCache(cacheKey, nextData);
+        }
       })
       .catch((error) => {
         if (error instanceof DOMException && error.name === 'AbortError') return;
-        if (requestIdRef.current === requestId) setData(null);
+        if (requestIdRef.current === requestId && !cachedData) setData(null);
       })
       .finally(() => {
         if (requestIdRef.current === requestId) setLoading(false);
@@ -1058,7 +1139,7 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
         <span>数据更新时间<strong>{data?.dataUpdatedAt ? data.dataUpdatedAt.replace('T', ' ').slice(0, 19) : '-'}</strong></span>
       </section>
 
-      {loading && !data && <div className="admin-route-loading">加载 KPI 工作台...</div>}
+      {loading && !data && <WorkbenchInitialSkeleton />}
       {!loading && !data && <section className="excel-record-panel admin-permission-empty">工作台数据读取失败，请稍后重试。</section>}
       {data && (
         <>

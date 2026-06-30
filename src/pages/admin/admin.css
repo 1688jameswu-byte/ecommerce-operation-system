@@ -1455,6 +1455,204 @@
   font-size: 18px;
 }
 
+.salary-store-modal {
+  border-color: #d8e3ef;
+  background: #f8fafc;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
+}
+
+.salary-store-modal-header {
+  border-bottom-color: #dbe5f0;
+  background: #ffffff;
+}
+
+.salary-store-modal-header h2 {
+  color: #0f172a;
+}
+
+.salary-store-modal-header p {
+  color: #64748b;
+}
+
+.salary-store-modal-header button {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.salary-store-modal-header button:hover {
+  border-color: #fca5a5;
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.salary-store-modal-body {
+  background: #f8fafc;
+}
+
+.salary-store-basic-grid span {
+  border-color: #dbe5f0;
+  background: #ffffff;
+  color: #64748b;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+}
+
+.salary-store-basic-grid strong {
+  color: #0f172a;
+}
+
+.salary-modal-ok {
+  color: #047857 !important;
+}
+
+.salary-modal-warning {
+  color: #b45309 !important;
+}
+
+.salary-store-modal-alert {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.salary-store-modal-alert span {
+  color: #92400e;
+}
+
+.salary-store-modal .salary-store-note {
+  color: #475569;
+}
+
+.salary-store-modal .salary-calc-chain,
+.salary-calc-chain {
+  border-color: #dbe5f0;
+  background: #ffffff;
+}
+
+.salary-store-modal .salary-calc-chain b,
+.salary-calc-chain b {
+  color: #2563eb;
+}
+
+.salary-store-modal .salary-calc-node,
+.salary-calc-node {
+  border-color: #dbe5f0;
+  background: #f8fafc;
+}
+
+.salary-store-modal .salary-calc-node span,
+.salary-calc-node span {
+  color: #64748b;
+}
+
+.salary-store-modal .salary-calc-node strong,
+.salary-calc-node strong {
+  color: #0f172a;
+}
+
+.salary-store-modal .salary-calc-node em,
+.salary-calc-node em {
+  color: #64748b;
+}
+
+.salary-store-modal .salary-calc-node-highlight,
+.salary-calc-node-highlight {
+  border-color: #99f6e4;
+  background: #ecfdf5;
+}
+
+.salary-store-modal .salary-calc-node-highlight strong,
+.salary-calc-node-highlight strong {
+  color: #0f766e;
+}
+
+.salary-store-modal .salary-store-section h4,
+.salary-store-section h4 {
+  color: #0f172a;
+}
+
+.salary-store-modal .salary-expense-table-wrap,
+.salary-expense-table-wrap {
+  border-color: #dbe5f0;
+  background: #ffffff;
+}
+
+.salary-store-modal .salary-expense-table,
+.salary-expense-table {
+  background: #ffffff;
+}
+
+.salary-store-modal .salary-expense-table th,
+.salary-store-modal .salary-expense-table td,
+.salary-expense-table th,
+.salary-expense-table td {
+  border-bottom-color: #e2e8f0;
+  color: #334155;
+}
+
+.salary-store-modal .salary-expense-table th,
+.salary-expense-table th {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.salary-store-modal .salary-expense-table td:nth-child(2),
+.salary-expense-table td:nth-child(2) {
+  color: #0f172a;
+}
+
+.salary-store-modal .salary-expense-table tfoot td,
+.salary-expense-table tfoot td {
+  border-top-color: #99f6e4;
+  background: #ecfdf5;
+  color: #0f766e;
+}
+
+.salary-store-modal .salary-expense-table .salary-expense-total-outflow-row td,
+.salary-expense-table .salary-expense-total-outflow-row td {
+  border-top-color: #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.salary-store-modal .salary-expense-table .salary-expense-total-outflow-row td:nth-child(2),
+.salary-expense-table .salary-expense-total-outflow-row td:nth-child(2) {
+  color: #b45309;
+}
+
+.salary-store-modal .salary-expense-included,
+.salary-expense-included {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.salary-store-modal .salary-expense-excluded,
+.salary-expense-excluded {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.salary-store-modal .salary-expense-muted-row td,
+.salary-expense-muted-row td {
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.salary-store-modal .salary-ratio-item,
+.salary-ratio-item {
+  border-color: #dbe5f0;
+  background: #ffffff;
+}
+
+.salary-store-modal .salary-ratio-item span,
+.salary-ratio-item span {
+  color: #64748b;
+}
+
+.salary-store-modal .salary-ratio-item strong,
+.salary-ratio-item strong {
+  color: #0f172a;
+}
+
 .salary-store-detail-panel {
   max-height: 560px;
   overflow: auto;
@@ -14037,6 +14235,66 @@ td.workbench-follow-title-col strong {
 .workbench-kpi-detail-list strong {
   color: #172033;
   text-align: right;
+}
+
+.workbench-skeleton-panel {
+  pointer-events: none;
+}
+
+.workbench-skeleton-line {
+  display: block;
+  width: 100%;
+  height: 13px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e8eef6 0%, #f7faff 45%, #e8eef6 90%);
+  background-size: 220% 100%;
+  animation: workbenchSkeletonPulse 1.2s ease-in-out infinite;
+}
+
+.workbench-skeleton-line.skeleton-title {
+  width: 160px;
+  height: 18px;
+}
+
+.workbench-skeleton-line.skeleton-subtitle {
+  width: 260px;
+  margin-top: 8px;
+}
+
+.workbench-skeleton-line.skeleton-note {
+  width: 180px;
+}
+
+.workbench-skeleton-line.skeleton-value {
+  width: 120px;
+  height: 28px;
+}
+
+.workbench-skeleton-line.skeleton-short {
+  width: 68%;
+}
+
+.workbench-skeleton-summary {
+  align-items: stretch;
+}
+
+.workbench-skeleton-card {
+  min-height: 210px;
+}
+
+.workbench-skeleton-table {
+  display: grid;
+  gap: 14px;
+  padding-top: 6px;
+}
+
+@keyframes workbenchSkeletonPulse {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
 }
 
 .workbench-kpi-values strong.ok,

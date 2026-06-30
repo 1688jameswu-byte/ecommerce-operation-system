@@ -69,6 +69,8 @@ function OperatorSalaryStatisticsPage({ currentUser }: { currentUser: CurrentUse
   const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
   const [stores, setStores] = useState<StoreRecord[]>([]);
   const [periods, setPeriods] = useState<SalaryPeriodRecord[]>([]);
+  const [financialPeriodOptions, setFinancialPeriodOptions] = useState<string[]>([]);
+  const [autoPeriodAdjusted, setAutoPeriodAdjusted] = useState(false);
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [expandedStoreDetailIds, setExpandedStoreDetailIds] = useState<string[]>([]);
   const [selectedStoreDetail, setSelectedStoreDetail] = useState<{ row: OperatorSalaryStatisticRow; detail: OperatorSalaryStoreDetail } | null>(null);
@@ -95,6 +97,9 @@ function OperatorSalaryStatisticsPage({ currentUser }: { currentUser: CurrentUse
   useEffect(() => {
     salaryDataSource.loadEmployees().then((next) => setEmployees(next.filter((employee) => employee.employeeType === 'operator' && employee.status !== 'inactive' && isTemuOperatorEmployee(employee))));
     salaryDataSource.loadPeriods().then(setPeriods);
+    salaryFinancialDataSource.loadImportBatches({ platform: 'TEMU', pageSize: 200 })
+      .then((data) => setFinancialPeriodOptions(data.periodOptions || []))
+      .catch(() => setFinancialPeriodOptions([]));
     setStores(storeDataSource.load());
   }, []);
 
@@ -102,7 +107,20 @@ function OperatorSalaryStatisticsPage({ currentUser }: { currentUser: CurrentUse
     void refresh();
   }, [period, operatorId, storeId]);
 
-  const periodOptions = useMemo(() => unique([currentMonth(), ...periods.map((item) => item.periodKey).filter(Boolean)]).sort().reverse(), [periods]);
+  const periodOptions = useMemo(() => unique([
+    ...financialPeriodOptions,
+    ...periods.map((item) => item.periodKey).filter(Boolean),
+    currentMonth(),
+  ]).sort().reverse(), [financialPeriodOptions, periods]);
+
+  useEffect(() => {
+    if (autoPeriodAdjusted || period !== currentMonth()) return;
+    const latestAvailablePeriod = periodOptions.find((item) => item !== currentMonth());
+    if (latestAvailablePeriod) {
+      setAutoPeriodAdjusted(true);
+      setPeriod(latestAvailablePeriod);
+    }
+  }, [autoPeriodAdjusted, period, periodOptions]);
 
   const summary = useMemo(() => rows.reduce((total, row) => ({
     inflowAmount: total.inflowAmount + row.inflowAmount,
