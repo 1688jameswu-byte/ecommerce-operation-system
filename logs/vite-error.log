@@ -1214,3 +1214,6 @@ At file: F:\项目\TEMU运营数据大屏\vite.config.js:5975:27
       at async Object.readFile (node:internal/fs/promises:1287:14)
       at async loadAndTransform (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:22649:12)
       at async viteTransformMiddleware (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:24562:20)
+[31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
+[2m15:52:38[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+[2m15:52:38[22m [31m[1m[vite][22m[39m server restart failed

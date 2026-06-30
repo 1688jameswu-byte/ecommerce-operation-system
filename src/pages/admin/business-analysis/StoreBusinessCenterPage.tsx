@@ -546,7 +546,7 @@ function Sparkline({
   return (
     <svg className={`store-sparkline store-sparkline-${tone}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="微趋势图">
       <polygon points={areaPoints} className="store-sparkline-area" />
-      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -590,7 +590,7 @@ function DetailTrendChart({ metric, config }: { metric: StoreMetric; config: typ
         前30日均值 {formatMetricValue(metric.baselineAvg, config)}
       </text>
       <polygon points={areaPoints} className="store-sparkline-area" />
-      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       {values.map((value, index) => (
         <g key={`${metric.recentDates[index] ?? index}-${value}`}>
           <circle cx={toX(index)} cy={toY(value)} r="4.2" className="store-detail-point" />
@@ -671,7 +671,7 @@ function MetricPanel({
       <strong className={`store-trend-value store-trend-value-${metric.tone}`}>
         {metric.tone === 'up' ? '↑' : metric.tone === 'down' ? '↓' : '→'} {formatRate(metric.changeRate)}
       </strong>
-      <b>排名 {metric.rank}/{teamSize}</b>
+      <b className="store-metric-rank">排名 {metric.rank}/{teamSize}</b>
       <Sparkline
         values={config.key === 'conversion' ? metric.recentChartValues : metric.series}
         tone={metric.tone}

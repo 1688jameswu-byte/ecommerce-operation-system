@@ -132,6 +132,8 @@ type StoreListingTrendSummary = {
   latestMonth: string;
   total: number;
   visibleStoreCount: number;
+  monthlyAverage: number | null;
+  latestMonthAverage: number | null;
 };
 
 type SkuTrend = '上升' | '稳定' | '下降' | '暂无数据';
@@ -690,6 +692,18 @@ function buildStoreListingTrend(params: {
       total: values.reduce((total, value) => total + value, 0),
     };
   });
+  const monthlyStoreCount = targetStoreNames.length;
+  const monthlyAverages = months.map((month, index) => {
+    if (monthlyStoreCount <= 0) return null;
+    const monthTotal = series.reduce((total, item) => total + (item.values[index] ?? 0), 0);
+    return monthTotal / monthlyStoreCount;
+  }).filter((value): value is number => value !== null);
+  const monthlyAverage = monthlyAverages.length > 0
+    ? monthlyAverages.reduce((total, value) => total + value, 0) / monthlyAverages.length
+    : null;
+  const latestMonthAverage = monthlyStoreCount > 0 && months.length > 0
+    ? series.reduce((total, item) => total + (item.values[months.length - 1] ?? 0), 0) / monthlyStoreCount
+    : null;
 
   return {
     months,
@@ -699,6 +713,8 @@ function buildStoreListingTrend(params: {
     latestMonth,
     total: series.reduce((total, item) => total + item.total, 0),
     visibleStoreCount: targetStoreNames.length,
+    monthlyAverage,
+    latestMonthAverage,
   };
 }
 
@@ -821,6 +837,8 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   const [financePeriod, setFinancePeriod] = useState(previousMonth());
   const [financeMessage, setFinanceMessage] = useState('');
   const [listingTrendStores, setListingTrendStores] = useState<string[]>([]);
+  const [listingTrendMonth, setListingTrendMonth] = useState('');
+  const [listingTrendSortDirection, setListingTrendSortDirection] = useState<'asc' | 'desc'>('desc');
   const financeMonthOptions = useMemo(() => recentMonths(12), []);
 
   useEffect(() => {
@@ -1175,6 +1193,29 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
       ? current.filter((item) => item !== storeName)
       : [...current, storeName]);
   };
+  useEffect(() => {
+    if (!listingTrendSummary.latestMonth) {
+      if (listingTrendMonth) {
+        setListingTrendMonth('');
+      }
+      return;
+    }
+    if (!listingTrendMonth || !listingTrendSummary.months.includes(listingTrendMonth)) {
+      setListingTrendMonth(listingTrendSummary.latestMonth);
+    }
+  }, [listingTrendMonth, listingTrendSummary.latestMonth, listingTrendSummary.months]);
+  const listingTrendTableRows = useMemo(() => {
+    const selectedMonth = listingTrendMonth || listingTrendSummary.latestMonth;
+    return listingTrendSummary.rows
+      .filter((row) => row.month === selectedMonth)
+      .slice()
+      .sort((first, second) => {
+        const countSort = listingTrendSortDirection === 'desc'
+          ? second.count - first.count
+          : first.count - second.count;
+        return countSort || first.storeName.localeCompare(second.storeName);
+      });
+  }, [listingTrendMonth, listingTrendSortDirection, listingTrendSummary.latestMonth, listingTrendSummary.rows]);
   const allStoreAveragePriceRows = useMemo<AveragePriceStoreRow[]>(() => {
     const recordsByStore = new Map(averagePriceRecords.map((record) => [
       normalizeStoreKey(record.storeName),
@@ -1711,43 +1752,80 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
               {storeName}
             </button>
           ))}
+          <span>当前选择：{listingTrendStores.length === 0 ? '全部店铺' : `${listingTrendStores.length} 家店铺`}</span>
           <span>时间范围：最近6个月</span>
           <span>口径：SKC 去重</span>
         </section>
-        <section className="import-overview-grid operator-compact-metrics">
+        <section className="import-overview-grid operator-compact-metrics operator-listing-layout-grid operator-listing-metrics-layout">
           <article><span>展示店铺</span><strong>{listingTrendSummary.visibleStoreCount}</strong></article>
           <article><span>累计上架商品数</span><strong>{formatNumber(listingTrendSummary.total)}</strong></article>
-          <article><span>最新月份</span><strong>{listingTrendSummary.latestMonth ? formatMonthLabel(listingTrendSummary.latestMonth) : '暂无数据'}</strong></article>
-          <article><span>当前选择</span><strong>{listingTrendStores.length === 0 ? '全部店铺' : `${listingTrendStores.length} 家店铺`}</strong></article>
+          <article><span>最近6个月月均上架数</span><strong>{listingTrendSummary.monthlyAverage === null ? '暂无数据' : formatDecimal(listingTrendSummary.monthlyAverage, 1)}</strong></article>
+          <article className="operator-listing-latest-card">
+            <span>最新月份</span>
+            <strong>{listingTrendSummary.latestMonth ? formatMonthLabel(listingTrendSummary.latestMonth) : '暂无数据'}</strong>
+          </article>
         </section>
-        <section className="operator-listing-trend-chart-wrap">
-          <StoreListingTrendChart summary={listingTrendSummary} />
+        <section className="operator-listing-layout-grid operator-listing-trend-split">
+          <section className="operator-listing-trend-chart-wrap">
+            <StoreListingTrendChart summary={listingTrendSummary} />
+          </section>
+          <section className="operator-listing-trend-detail">
+            <header className="operator-listing-trend-detail-header">
+              <div>
+                <h3>月度上架明细</h3>
+                <p>{formatMonthLabel(listingTrendMonth || listingTrendSummary.latestMonth)} 各店铺上架商品数</p>
+              </div>
+            </header>
+            <div className="operator-listing-month-row" aria-label="月份选择">
+              <span>月份</span>
+              <div className="operator-listing-month-tabs">
+                {listingTrendSummary.months.map((month) => (
+                  <button
+                    key={month}
+                    type="button"
+                    className={(listingTrendMonth || listingTrendSummary.latestMonth) === month ? 'is-active' : ''}
+                    onClick={() => setListingTrendMonth(month)}
+                  >
+                    {month.slice(5)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="import-record-table-wrap operator-performance-table-wrap operator-listing-trend-table-wrap">
+              <table className="import-record-table operator-performance-table operator-listing-trend-table">
+                <thead>
+                  <tr>
+                    <th>月份</th>
+                    <th>店铺</th>
+                    <th>
+                      <button
+                        type="button"
+                        className="operator-listing-sort-button"
+                        onClick={() => setListingTrendSortDirection((value) => value === 'desc' ? 'asc' : 'desc')}
+                      >
+                        上架商品数量 {listingTrendSortDirection === 'desc' ? '↓' : '↑'}
+                      </button>
+                    </th>
+                    <th>环比</th>
+                    <th>累计</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listingTrendTableRows.map((row) => (
+                    <tr key={`${row.storeName}-${row.month}`}>
+                      <td>{formatMonthLabel(row.month)}</td>
+                      <td>{row.storeName}</td>
+                      <td>{formatNumber(row.count)}</td>
+                      <td>{row.change === null ? '暂无上月' : row.change > 0 ? `+${formatNumber(row.change)}` : formatNumber(row.change)}</td>
+                      <td>{formatNumber(row.cumulative)}</td>
+                    </tr>
+                  ))}
+                  {listingTrendTableRows.length === 0 && <tr><td colSpan={5}>当前月份暂无店铺上架趋势数据</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </section>
-        <div className="import-record-table-wrap operator-performance-table-wrap operator-listing-trend-table-wrap">
-          <table className="import-record-table operator-performance-table operator-listing-trend-table">
-            <thead>
-              <tr>
-                <th>月份</th>
-                <th>店铺</th>
-                <th>上架商品数量</th>
-                <th>环比变化</th>
-                <th>最近6个月累计上架商品数量</th>
-              </tr>
-            </thead>
-            <tbody>
-              {listingTrendSummary.rows.map((row) => (
-                <tr key={`${row.storeName}-${row.month}`}>
-                  <td>{formatMonthLabel(row.month)}</td>
-                  <td>{row.storeName}</td>
-                  <td>{formatNumber(row.count)}</td>
-                  <td>{row.change === null ? '暂无上月' : row.change > 0 ? `+${formatNumber(row.change)}` : formatNumber(row.change)}</td>
-                  <td>{formatNumber(row.cumulative)}</td>
-                </tr>
-              ))}
-              {listingTrendSummary.rows.length === 0 && <tr><td colSpan={5}>当前店铺暂无最近6个月商品信息导入趋势数据</td></tr>}
-            </tbody>
-          </table>
-        </div>
       </article>
 
       <article className="excel-record-panel operator-performance-panel">

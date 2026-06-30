@@ -1365,3 +1365,127 @@
 [2m15:21:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/OperatorAnalysisCenterPage.tsx[22m
 [2m15:22:18[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
 [2m15:22:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m15:37:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/OperatorAnalysisCenterPage.tsx[22m
+[2m15:37:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/OperatorAnalysisCenterPage.tsx[22m
+[2m15:38:03[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/OperatorAnalysisCenterPage.tsx[22m
+[2m15:38:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/OperatorAnalysisCenterPage.tsx[22m
+[2m15:38:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/OperatorAnalysisCenterPage.tsx[22m
+[2m15:38:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m15:39:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m15:47:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/OperatorAnalysisCenterPage.tsx[22m
+[2m15:47:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 4ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 1ms
+[workbench-kpi] targets 6ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=3
+[workbench-kpi] sales 0ms
+[workbench-kpi] listing 193ms
+[workbench-kpi] firstOrder 202ms
+[workbench-kpi] adExpense 6ms
+[workbench-kpi] afterSaleExpense 14ms
+[workbench-kpi] expense 20ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 229ms
+[2m15:51:30[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m15:51:31[22m [36m[1m[vite][22m[39m server restarted.
+[2m15:52:38[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m15:54:03[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m15:54:03[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m15:54:04[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 4ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 1ms
+[workbench-kpi] targets 35ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=3
+[workbench-kpi] sales 1ms
+[workbench-kpi] firstOrder 219ms
+[workbench-kpi] listing 223ms
+[workbench-kpi] adExpense 5ms
+[workbench-kpi] afterSaleExpense 20ms
+[workbench-kpi] expense 25ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 255ms
+[2m15:55:31[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/OperatorAnalysisCenterPage.tsx[22m
+[2m15:55:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/OperatorAnalysisCenterPage.tsx[22m
+[2m15:55:39[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m15:55:39[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 2ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 13ms
+[workbench-kpi] targets 88ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=3
+[workbench-kpi] sales 0ms
+[workbench-kpi] listing 260ms
+[workbench-kpi] firstOrder 282ms
+[workbench-kpi] adExpense 3ms
+[workbench-kpi] afterSaleExpense 34ms
+[workbench-kpi] expense 37ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 0ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 337ms
+[2m15:56:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m15:56:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m15:56:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m15:59:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/OperatorAnalysisCenterPage.tsx[22m
+[2m15:59:47[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m15:59:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":58,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":54,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":62,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":88,"rows":1,"slow":false}
+[2m16:01:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:02:21[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m16:02:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m16:03:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:04:16[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m16:04:16[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":85,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":73,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":103,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":121,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":16,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":14,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":7,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":8,"rows":1,"slow":false}
+[2m16:09:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/StoreBusinessCenterPage.tsx[22m
+[2m16:10:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:10:47[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:15:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m16:15:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m16:15:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m16:16:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/StoreBusinessCenterPage.tsx[22m
+[2m16:16:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:17:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m16:18:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/business-analysis/StoreBusinessCenterPage.tsx[22m
+[2m16:19:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":63,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":62,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":71,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":98,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":16,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":20,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":27,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":18,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":14,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":26,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":67,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":10,"rows":50,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":51,"rows":13,"slow":false}

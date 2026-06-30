@@ -122,6 +122,10 @@ function IconSymbol({ name }: { name: string }) {
     flame: <><path d="M12 21c4 0 7-3 7-7 0-3-2-5-4-7 0 3-2 4-3 5 0-4-2-7-5-9 1 5-2 7-2 11 0 4 3 7 7 7Z" {...common} /></>,
     message: <><path d="M5 5h14v10H8l-3 4V5Z" {...common} /><path d="M8 9h8M8 12h5" {...common} /></>,
     database: <><ellipse cx="12" cy="5" rx="7" ry="3" {...common} /><path d="M5 5v14c0 1.7 3.1 3 7 3s7-1.3 7-3V5M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" {...common} /></>,
+    dashboard: <><circle cx="12" cy="12" r="9" {...common} /><path d="M8 14a4 4 0 0 1 8 0M9 10h.01M15 10h.01M12 12v3" {...common} /></>,
+    cart: <><path d="M5 6h2l2 9h8l2-6H8" {...common} /><circle cx="10" cy="19" r="1.5" {...common} /><circle cx="17" cy="19" r="1.5" {...common} /></>,
+    clock: <><circle cx="12" cy="12" r="9" {...common} /><path d="M12 7v5l4 2" {...common} /></>,
+    alert: <><path d="M12 3 3 20h18L12 3Z" {...common} /><path d="M12 9v5M12 17h.01" {...common} /></>,
     box: <><path d="M4 8 12 3l8 5v8l-8 5-8-5V8Z" {...common} /><path d="m4 8 8 5 8-5M12 13v8" {...common} /></>,
   };
   return <svg viewBox="0 0 24 24" aria-hidden="true">{icons[name] || icons.box}</svg>;
@@ -270,7 +274,319 @@ function RankingTable({ title, rows }: { title: string; rows: Array<Record<strin
   );
 }
 
+function bossRowNumber(row: Record<string, unknown>, key: string) {
+  const value = Number(row[key] || 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function bossPercent(row: Record<string, unknown>, key: string) {
+  const value = row[key];
+  return value === null || value === undefined || value === '' ? '-' : `${(Number(value) * 100).toFixed(2)}%`;
+}
+
+function bossStatusClass(label: unknown) {
+  const text = String(label || '');
+  if (text.includes('优秀')) return 'excellent';
+  if (text.includes('健康')) return 'healthy';
+  if (text.includes('广告缺失')) return 'muted';
+  if (text.includes('关注') || text.includes('提升')) return 'warning';
+  if (text.includes('风险')) return 'danger';
+  return 'healthy';
+}
+
+function BossMetricCard({ icon, title, value, change, tone }: { icon: string; title: string; value: ReactNode; change: string; tone: 'blue' | 'green' | 'purple' | 'orange' | 'cyan' | 'red' }) {
+  return (
+    <article className={`boss-metric-card boss-metric-${tone}`}>
+      <header>
+        <span className="boss-metric-icon"><IconSymbol name={icon} /></span>
+        <div>
+          <small>{title}</small>
+          <strong>{value}</strong>
+        </div>
+      </header>
+      <footer>
+        <span>{change}</span>
+        <MiniTrendSparkline color={tone === 'green' ? 'green' : tone === 'orange' || tone === 'red' ? 'orange' : tone === 'purple' ? 'purple' : 'blue'} height={38} />
+      </footer>
+    </article>
+  );
+}
+
+function BossDecisionList({ title, rows, type }: { title: string; rows: Array<Record<string, unknown>>; type: 'store' | 'operator' }) {
+  return (
+    <article className="boss-card boss-decision-list">
+      <header>
+        <h2>{title}</h2>
+        <a href="/new-product-center/workbench">查看明细</a>
+      </header>
+      <div>
+        {rows.slice(0, 5).map((row, index) => {
+          const label = String(row.statusLabel || (type === 'store' ? '需关注' : '待提升'));
+          const name = String(type === 'store' ? row.storeName || '-' : row.operatorName || '-');
+          const href = type === 'store'
+            ? `/new-product-center/workbench?storeId=${encodeURIComponent(String(row.storeId || ''))}&storeName=${encodeURIComponent(name)}`
+            : `/new-product-center/workbench?operatorName=${encodeURIComponent(name)}`;
+          return (
+            <a className="boss-decision-row" key={`${name}-${index}`} href={href}>
+              <b>{index + 1}</b>
+              <span>
+                <strong>{name}</strong>
+                <small>{String(row.decisionReason || '等待更多数据验证')}</small>
+              </span>
+              <em className={`boss-status boss-status-${bossStatusClass(label)}`}>{label}</em>
+            </a>
+          );
+        })}
+        {rows.length === 0 && <p className="boss-empty">暂无需要展示的数据</p>}
+      </div>
+    </article>
+  );
+}
+
+function BossStoreTable({ rows }: { rows: Array<Record<string, unknown>> }) {
+  return (
+    <article className="boss-card">
+      <header>
+        <h2>店铺经营对比</h2>
+        <a href="/new-product-center/workbench">查看明细</a>
+      </header>
+      <div className="boss-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>排名</th><th>店铺</th><th>运营</th><th>近30天新品</th><th>出单新品</th><th>出单率</th><th>广告花费</th><th>ROAS</th><th>高潜新品</th><th>烧钱无单</th><th>状态判断</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.slice(0, 8).map((row, index) => {
+              const status = String(row.statusLabel || '健康');
+              return (
+                <tr key={String(row.storeId || index)}>
+                  <td>{index + 1}</td>
+                  <td>{String(row.storeName || '-')}</td>
+                  <td>{String(row.operatorName || '-')}</td>
+                  <td>{formatInteger(row.recent30NewCount)}</td>
+                  <td>{formatInteger(row.periodOrderedCount)}</td>
+                  <td>{bossPercent(row, 'periodOrderedRate')}</td>
+                  <td>{formatMoney(row.adSpend)}</td>
+                  <td>{formatRoas(row.roas)}</td>
+                  <td>{formatInteger(row.highPotentialCount)}</td>
+                  <td>{formatInteger(row.lossNewCount)}</td>
+                  <td><span className={`boss-status boss-status-${bossStatusClass(status)}`}>{status}</span></td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 && <tr><td colSpan={11}>暂无店铺数据</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  );
+}
+
+function BossOperatorTable({ rows }: { rows: Array<Record<string, unknown>> }) {
+  return (
+    <article className="boss-card">
+      <header>
+        <h2>运营表现对比</h2>
+        <a href="/new-product-center/workbench">查看明细</a>
+      </header>
+      <div className="boss-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>排名</th><th>运营</th><th>负责店铺</th><th>新品数</th><th>出单新品</th><th>出单率</th><th>高潜新品</th><th>问题数</th><th>综合判断</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.slice(0, 8).map((row, index) => {
+              const status = String(row.statusLabel || '健康');
+              return (
+                <tr key={String(row.operatorId || row.operatorName || index)}>
+                  <td>{index + 1}</td>
+                  <td>{String(row.operatorName || '-')}</td>
+                  <td>{formatInteger(row.storeCount)}</td>
+                  <td>{formatInteger(row.periodNewCount)}</td>
+                  <td>{formatInteger(row.periodOrderedCount)}</td>
+                  <td>{bossPercent(row, 'periodOrderedRate')}</td>
+                  <td>{formatInteger(row.highPotentialCount)}</td>
+                  <td>{formatInteger(row.problemCount)}</td>
+                  <td><span className={`boss-status boss-status-${bossStatusClass(status)}`}>{status}</span></td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 && <tr><td colSpan={9}>暂无运营数据</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  );
+}
+
+function BossTrendChart({ rows }: { rows: Array<Record<string, unknown>> }) {
+  const stores = Array.from(new Set(rows.map((row) => String(row.storeName || '-')))).slice(0, 6);
+  const dates = Array.from(new Set(rows.map((row) => String(row.date || '').slice(5, 10)))).slice(-7);
+  const colors = ['#2563eb', '#16a34a', '#7c3aed', '#f97316', '#db2777', '#06b6d4'];
+  const max = Math.max(1, ...rows.map((row) => bossRowNumber(row, 'newCount')));
+  return (
+    <article className="boss-card boss-chart-card">
+      <header>
+        <h2>店铺新品趋势</h2>
+        <a href="/new-product-center/workbench">查看更多</a>
+      </header>
+      <div className="boss-chart-legend">
+        {stores.map((store, index) => <span key={store}><i style={{ background: colors[index % colors.length] }} />{store}</span>)}
+      </div>
+      <div className="boss-line-chart">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="店铺新品趋势">
+          {stores.map((store, index) => {
+            const points = dates.map((date, pointIndex) => {
+              const row = rows.find((item) => String(item.storeName || '-') === store && String(item.date || '').slice(5, 10) === date);
+              const x = dates.length <= 1 ? 0 : (pointIndex / (dates.length - 1)) * 100;
+              const y = 92 - (bossRowNumber(row || {}, 'newCount') / max) * 72;
+              return `${x},${y}`;
+            });
+            return <polyline key={store} points={points.join(' ')} fill="none" stroke={colors[index % colors.length]} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />;
+          })}
+        </svg>
+        <div className="boss-chart-grid">{dates.map((date) => <span key={date}>{date}</span>)}</div>
+      </div>
+    </article>
+  );
+}
+
+function BossBarChart({ rows }: { rows: Array<Record<string, unknown>> }) {
+  const topRows = rows.slice(0, 8);
+  const maxRate = Math.max(0.01, ...topRows.map((row) => bossRowNumber(row, 'periodOrderedRate')));
+  const maxRoas = Math.max(0.01, ...topRows.map((row) => bossRowNumber(row, 'roas')));
+  return (
+    <article className="boss-card boss-chart-card">
+      <header>
+        <h2>店铺出单率 / ROAS 对比</h2>
+        <a href="/new-product-center/workbench">查看更多</a>
+      </header>
+      <div className="boss-bar-chart">
+        {topRows.map((row, index) => (
+          <div className="boss-bar-row" key={String(row.storeId || index)}>
+            <b>{String(row.storeName || '-')}</b>
+            <span><i style={{ width: `${Math.max(4, (bossRowNumber(row, 'periodOrderedRate') / maxRate) * 100)}%` }} />{bossPercent(row, 'periodOrderedRate')}</span>
+            <span><i className="roas" style={{ width: `${Math.max(4, (bossRowNumber(row, 'roas') / maxRoas) * 100)}%` }} />{formatRoas(row.roas)}</span>
+          </div>
+        ))}
+        {topRows.length === 0 && <p className="boss-empty">暂无可对比店铺</p>}
+      </div>
+    </article>
+  );
+}
+
 function DashboardView() {
+  const [snapshotDate, setSnapshotDate] = useState('');
+  const [storeId, setStoreId] = useState('');
+  const [operatorName, setOperatorName] = useState('');
+  const [periodDays, setPeriodDays] = useState('30');
+  const [stores, setStores] = useState<StoreOption[]>([]);
+  const [operatorOptions, setOperatorOptions] = useState<OperatorOption[]>([]);
+  const [data, setData] = useState<DashboardResponse | null>(null);
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    newProductCenterDataSource.getVisibleStores()
+      .then((result) => setStores((result.stores || [])
+        .filter((store) => store.platform === 'TEMU' && store.status !== 'inactive')
+        .map((store) => ({ ...store, id: store.dbId || store.id }))))
+      .catch(() => setStores([]));
+  }, []);
+
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (snapshotDate) params.snapshotDate = snapshotDate;
+    if (storeId) params.storeId = storeId;
+    newProductCenterDataSource.getOperatorOptions(buildQuery(params))
+      .then((result) => setOperatorOptions(result.operators || []))
+      .catch(() => setOperatorOptions([]));
+  }, [snapshotDate, storeId]);
+
+  useEffect(() => {
+    setMessage('');
+    newProductCenterDataSource.getBossDashboard(buildQuery({ snapshotDate, storeId, operatorName, periodDays }))
+      .then(setData)
+      .catch((error) => setMessage(error instanceof Error ? error.message : String(error)));
+  }, [snapshotDate, storeId, operatorName, periodDays]);
+
+  const displayedDate = snapshotDate || data?.dataCutoffDate || data?.snapshotDate || '';
+  const summary = data?.summary || {};
+  const previousRate = Number(summary.previousPeriodOrderedRate || 0);
+  const periodRate = Number(summary.periodOrderedRate || 0);
+  const rateChange = previousRate ? `${((periodRate - previousRate) * 100).toFixed(2)}pp` : '-';
+  const previousNewCount = Number(summary.previousPeriodNewCount || 0);
+  const newCountChange = previousNewCount ? `${(((Number(summary.periodNewCount || 0) - previousNewCount) / previousNewCount) * 100).toFixed(1)}%` : '-';
+  const adSpend = Number(summary.adSpend || 0);
+  const adSales = Number(summary.adSalesAmount || 0);
+
+  return (
+    <section className="npc-page boss-dashboard-page">
+      <header className="boss-page-title">
+        <span className="boss-avatar"><IconSymbol name="dashboard" /></span>
+        <div>
+          <h1>经营总览</h1>
+          <p>快速识别重点店铺、核心问题与增长机会。</p>
+        </div>
+      </header>
+
+      <div className="boss-filter-card">
+        <label>统计日期<input type="date" value={displayedDate} onChange={(event) => setSnapshotDate(event.target.value)} /></label>
+        <label>店铺
+          <select value={storeId} onChange={(event) => setStoreId(event.target.value)}>
+            <option value="">全部店铺</option>
+            {stores.map((store) => <option key={store.id || store.storeName} value={store.id}>{store.storeName}</option>)}
+          </select>
+        </label>
+        <label>运营
+          <select value={operatorName} onChange={(event) => setOperatorName(event.target.value)}>
+            <option value="">全部运营</option>
+            {operatorOptions.map((operator) => <option key={operator.operatorId || operator.operatorName} value={operator.operatorName}>{operator.operatorName}</option>)}
+          </select>
+        </label>
+        <div className="boss-period-tabs" aria-label="快捷周期">
+          {['7', '30', '60'].map((day) => (
+            <button type="button" key={day} className={periodDays === day ? 'is-active' : ''} onClick={() => setPeriodDays(day)}>近{day}天</button>
+          ))}
+        </div>
+        <span className="npc-date-badge">数据截止 {data?.dataCutoffDate || displayedDate || '-'}</span>
+        <button type="button" className="boss-rebuild-button" disabled={!displayedDate} onClick={() => newProductCenterDataSource.rebuildSnapshot(displayedDate).then(() => window.location.reload())}>重算快照</button>
+      </div>
+
+      {message && <div className="excel-import-error">{message}</div>}
+
+      <div className="boss-metric-grid">
+        <BossMetricCard icon="cube" title={`近${periodDays}天新品数`} value={formatInteger(summary.periodNewCount)} change={`较上周期 ${newCountChange}`} tone="blue" />
+        <BossMetricCard icon="cart" title="出单新品数" value={formatInteger(summary.periodOrderedCount)} change={`广告订单 ${formatInteger(summary.adOrderCount)}`} tone="green" />
+        <BossMetricCard icon="clock" title="新品出单率" value={formatRatio(summary.periodOrderedRate)} change={`较上周期 ${rateChange}`} tone="purple" />
+        <BossMetricCard icon="briefcase" title="广告花费" value={formatMoney(adSpend)} change={`销售额 ${formatMoney(adSales)}`} tone="orange" />
+        <BossMetricCard icon="trend" title="广告ROAS" value={formatRoas(summary.roas)} change={`高潜 ${formatInteger(summary.highPotentialCount)}`} tone="cyan" />
+        <BossMetricCard icon="alert" title="需关注店铺数" value={formatInteger(summary.attentionStoreCount)} change={`待处理 ${formatInteger(summary.pendingRecommendationCount)}`} tone="red" />
+      </div>
+
+      <div className="boss-decision-grid">
+        <BossDecisionList title="需重点关注店铺" rows={data?.focusStores ?? []} type="store" />
+        <BossDecisionList title="高潜店铺" rows={data?.potentialStores ?? []} type="store" />
+        <BossDecisionList title="运营关注名单" rows={data?.operatorFocus ?? []} type="operator" />
+      </div>
+
+      <div className="boss-two-columns">
+        <BossStoreTable rows={data?.storeRanking ?? []} />
+        <BossOperatorTable rows={data?.operatorRanking ?? []} />
+      </div>
+
+      <div className="boss-two-columns">
+        <BossTrendChart rows={data?.storeTrend ?? []} />
+        <BossBarChart rows={data?.storeRanking ?? []} />
+      </div>
+    </section>
+  );
+}
+
+function DashboardViewLegacy() {
   const [snapshotDate, setSnapshotDate] = useState('');
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [message, setMessage] = useState('');

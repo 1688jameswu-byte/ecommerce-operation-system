@@ -213,7 +213,7 @@ export const adminRoutes: AdminRoute[] = [
     path: '/new-product-center/boss-dashboard',
     menuKey: menuKeys.newProductBossDashboard,
     parentMenuKey: menuKeys.newProductCenter,
-    label: '老板总览',
+    label: '经营总览',
     group: '新品中心',
     description: '查看 TEMU 新品上架、出单、广告和运营排名。',
   },

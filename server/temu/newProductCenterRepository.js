@@ -1661,7 +1661,236 @@ export async function getProducts(params = {}) {
   };
 }
 
+function decorateBossStoreRow(store) {
+  const newCount = Number(store.period_new_count || 0);
+  const orderedCount = Number(store.period_ordered_count || 0);
+  const adSpend = Number(store.ad_spend || 0);
+  const adOrders = Number(store.ad_order_count || 0);
+  const roas = safeDivide(store.ad_sales_amount, store.ad_spend);
+  const highPotential = Number(store.high_potential_count || 0);
+  const loss = Number(store.loss_new_count || 0);
+  const orderedRate = safeDivide(orderedCount, newCount) || 0;
+  let statusLabel = '健康';
+  let attentionLevel = 'low';
+  let decisionReason = '新品与广告表现暂未发现明显风险';
+  if (newCount > 0 && adSpend === 0) {
+    statusLabel = '广告缺失';
+    attentionLevel = 'medium';
+    decisionReason = '有新品但广告花费为0，曝光可能不足';
+  } else if ((newCount >= 10 && orderedRate < 0.1) || (adSpend > 0 && adOrders === 0) || (roas !== null && roas < 1) || loss >= 3) {
+    statusLabel = '需关注';
+    attentionLevel = loss >= 3 || (roas !== null && roas < 1) ? 'high' : 'medium';
+    decisionReason = '新品出单率、广告效率或烧钱无单指标异常';
+  } else if (orderedRate >= 0.25 && highPotential > 0 && (roas === null || roas >= 1)) {
+    statusLabel = '优秀';
+    attentionLevel = 'low';
+    decisionReason = '出单率较高且存在高潜新品';
+  }
+  return {
+    ...toCamel(store),
+    periodOrderedRate: safeDivide(orderedCount, newCount),
+    roas,
+    statusLabel,
+    attentionLevel,
+    decisionReason,
+  };
+}
+
+function decorateBossOperatorRow(operator) {
+  const newCount = Number(operator.period_new_count || 0);
+  const orderedCount = Number(operator.period_ordered_count || 0);
+  const roas = safeDivide(operator.ad_sales_amount, operator.ad_spend);
+  const problemCount = Number(operator.problem_count || 0);
+  const highPotential = Number(operator.high_potential_count || 0);
+  const orderedRate = safeDivide(orderedCount, newCount) || 0;
+  let statusLabel = '健康';
+  let decisionReason = '负责店铺新品表现稳定';
+  if (newCount >= 10 && orderedRate < 0.1) {
+    statusLabel = '需关注';
+    decisionReason = '新品数量不少但出单率偏低';
+  } else if (problemCount >= 3 || (roas !== null && roas < 1)) {
+    statusLabel = '待提升';
+    decisionReason = '广告效率或问题商品数量需要跟进';
+  } else if (highPotential > 0 && orderedRate >= 0.2) {
+    statusLabel = '优秀';
+    decisionReason = '高潜新品和出单表现较好';
+  }
+  return {
+    ...toCamel(operator),
+    periodOrderedRate: safeDivide(orderedCount, newCount),
+    roas,
+    statusLabel,
+    decisionReason,
+  };
+}
+
 export async function getBossDashboard(params = {}) {
+  const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
+  await ensureSnapshotForRead(snapshotDate);
+  const periodDays = [7, 30, 60].includes(Number(params.periodDays)) ? Number(params.periodDays) : 30;
+  const { where, values } = buildScopeWhere(params, 3);
+  const condition = [`s.snapshot_date = $1`, ...where].join(' AND ');
+  const recommendationScopeCondition = where.length ? `AND ${where.join(' AND ').replace(/\bs\./g, 'sr.')}` : '';
+  const baseCounts = await getScopedBaseCounts(params);
+  const queryValues = [snapshotDate, periodDays, ...values];
+  const [summary, operatorRanking, storeRanking] = await Promise.all([
+    queryTemuDatabase(
+      `SELECT
+         COUNT(*) FILTER (WHERE days_online = 1) AS today_new_count,
+         COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 7) AS recent7_new_count,
+         COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 7 AND is_ordered) AS recent7_ordered_count,
+         COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 30) AS recent30_new_count,
+         COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 30 AND is_ordered) AS recent30_ordered_count,
+         COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 60) AS recent60_new_count,
+         COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 60 AND is_ordered) AS recent60_ordered_count,
+         COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND $2) AS period_new_count,
+         COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND $2 AND is_ordered) AS period_ordered_count,
+         COUNT(*) FILTER (WHERE days_online BETWEEN $2 + 1 AND $2 * 2) AS previous_period_new_count,
+         COUNT(*) FILTER (WHERE days_online BETWEEN $2 + 1 AND $2 * 2 AND is_ordered) AS previous_period_ordered_count,
+         COALESCE(SUM(ad_spend),0) AS ad_spend,
+         COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount,
+         COALESCE(SUM(ad_order_count),0) AS ad_order_count,
+         COUNT(*) FILTER (WHERE (ad_spend >= 5 AND ad_order_count = 0 AND clicks >= 10) OR (target_roas IS NOT NULL AND roas IS NOT NULL AND roas < target_roas)) AS loss_new_count,
+         COUNT(*) FILTER (WHERE ad_order_count > 0 AND target_roas IS NOT NULL AND roas IS NOT NULL AND roas >= target_roas) AS high_potential_count,
+         COUNT(*) FILTER (WHERE product_tag = '数据未匹配') AS unmatched_count,
+         (
+           SELECT COUNT(*)
+           FROM temu_ad_recommendations r
+           LEFT JOIN temu_new_product_daily_snapshot sr
+             ON sr.product_id = r.product_id
+            AND sr.snapshot_date = r.recommendation_date
+           WHERE r.status = 'PENDING'
+             AND r.recommendation_date = $1
+             ${recommendationScopeCondition}
+         ) AS pending_recommendation_count
+       FROM temu_new_product_daily_snapshot s
+       WHERE ${condition}`,
+      queryValues,
+    ),
+    queryTemuDatabase(
+      `SELECT operator_id, operator_name,
+              COUNT(DISTINCT store_id) AS store_count,
+              COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 7) AS recent7_new_count,
+              COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 30) AS recent30_new_count,
+              COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 60 AND is_ordered) AS recent60_ordered_count,
+              COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND $2) AS period_new_count,
+              COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND $2 AND is_ordered) AS period_ordered_count,
+              COUNT(*) AS new_count,
+              COALESCE(SUM(order_count),0) AS order_count,
+              COALESCE(SUM(ad_order_count),0) AS ad_order_count,
+              COALESCE(SUM(natural_order_count),0) AS natural_order_count,
+              COUNT(*) FILTER (WHERE ad_order_count > 0 AND target_roas IS NOT NULL AND roas IS NOT NULL AND roas >= target_roas) AS high_potential_count,
+              COUNT(*) FILTER (WHERE (ad_spend >= 5 AND ad_order_count = 0 AND clicks >= 10) OR (target_roas IS NOT NULL AND roas IS NOT NULL AND roas < target_roas) OR product_tag = '数据未匹配') AS problem_count,
+              COALESCE(SUM(ad_spend),0) AS ad_spend,
+              COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount
+       FROM temu_new_product_daily_snapshot s
+       WHERE ${condition}
+       GROUP BY operator_id, operator_name
+       ORDER BY period_ordered_count DESC, period_new_count DESC
+       LIMIT 20`,
+      queryValues,
+    ),
+    queryTemuDatabase(
+      `SELECT store_id, store_name,
+              MAX(operator_name) AS operator_name,
+              COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 7) AS recent7_new_count,
+              COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 30) AS recent30_new_count,
+              COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 60 AND is_ordered) AS recent60_ordered_count,
+              COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND $2) AS period_new_count,
+              COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND $2 AND is_ordered) AS period_ordered_count,
+              COUNT(*) AS new_count,
+              COALESCE(SUM(order_count),0) AS order_count,
+              COALESCE(SUM(ad_order_count),0) AS ad_order_count,
+              COALESCE(SUM(natural_order_count),0) AS natural_order_count,
+              COUNT(*) FILTER (WHERE ad_order_count > 0 AND target_roas IS NOT NULL AND roas IS NOT NULL AND roas >= target_roas) AS high_potential_count,
+              COUNT(*) FILTER (WHERE (ad_spend >= 5 AND ad_order_count = 0 AND clicks >= 10) OR (target_roas IS NOT NULL AND roas IS NOT NULL AND roas < target_roas)) AS loss_new_count,
+              COUNT(*) FILTER (WHERE ad_spend >= 5 AND ad_order_count = 0 AND clicks >= 10) AS burn_no_order_count,
+              COUNT(*) FILTER (WHERE product_tag = '数据未匹配') AS unmatched_count,
+              COALESCE(SUM(ad_spend),0) AS ad_spend,
+              COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount
+       FROM temu_new_product_daily_snapshot s
+       WHERE ${condition}
+       GROUP BY store_id, store_name
+       ORDER BY period_ordered_count DESC, period_new_count DESC
+       LIMIT 20`,
+      queryValues,
+    ),
+  ]);
+  const decoratedStores = storeRanking.rows.map(decorateBossStoreRow);
+  const decoratedOperators = operatorRanking.rows.map(decorateBossOperatorRow);
+  const topStoreIds = decoratedStores.slice(0, 5).map((store) => store.storeId).filter(Boolean);
+  let storeTrend = [];
+  if (topStoreIds.length > 0) {
+    const trendValues = [...queryValues, topStoreIds];
+    const trendStorePlaceholder = `$${trendValues.length}`;
+    const trendResult = await queryTemuDatabase(
+      `SELECT s.store_id,
+              s.store_name,
+              s.first_online_at::date AS date,
+              COUNT(*)::int AS new_count
+       FROM temu_new_product_daily_snapshot s
+       WHERE ${condition}
+         AND s.days_online BETWEEN 1 AND $2
+         AND s.store_id = ANY(${trendStorePlaceholder}::uuid[])
+       GROUP BY s.store_id, s.store_name, s.first_online_at::date
+       ORDER BY date ASC, new_count DESC`,
+      trendValues,
+    );
+    storeTrend = trendResult.rows.map(toCamel);
+  }
+  const row = summary.rows[0] || {};
+  const attentionStoreCount = decoratedStores.filter((store) => ['需关注', '广告缺失'].includes(store.statusLabel)).length;
+  return {
+    snapshotDate,
+    dataCutoffDate,
+    dateMode,
+    periodDays,
+    summary: {
+      todayNewCount: Number(row.today_new_count || 0),
+      recent7NewCount: Number(row.recent7_new_count || 0),
+      recent7OrderedRate: safeDivide(row.recent7_ordered_count, row.recent7_new_count),
+      recent30NewCount: Number(row.recent30_new_count || 0),
+      recent30OrderedCount: Number(row.recent30_ordered_count || 0),
+      recent30OrderedRate: safeDivide(row.recent30_ordered_count, row.recent30_new_count),
+      recent60OrderedCount: Number(row.recent60_ordered_count || 0),
+      recent60OrderedRate: safeDivide(row.recent60_ordered_count, row.recent60_new_count),
+      periodNewCount: Number(row.period_new_count || 0),
+      periodOrderedCount: Number(row.period_ordered_count || 0),
+      periodOrderedRate: safeDivide(row.period_ordered_count, row.period_new_count),
+      previousPeriodNewCount: Number(row.previous_period_new_count || 0),
+      previousPeriodOrderedCount: Number(row.previous_period_ordered_count || 0),
+      previousPeriodOrderedRate: safeDivide(row.previous_period_ordered_count, row.previous_period_new_count),
+      adSpend: Number(row.ad_spend || 0),
+      adSalesAmount: Number(row.ad_sales_amount || 0),
+      adOrderCount: Number(row.ad_order_count || 0),
+      roas: safeDivide(row.ad_sales_amount, row.ad_spend),
+      lossNewCount: Number(row.loss_new_count || 0),
+      highPotentialCount: Number(row.high_potential_count || 0),
+      unmatchedCount: Number(row.unmatched_count || 0),
+      attentionStoreCount,
+      pendingRecommendationCount: Number(row.pending_recommendation_count || 0),
+      baseProductCount: baseCounts.products,
+      baseSkuCount: baseCounts.skus,
+      baseAdCount: baseCounts.ads,
+    },
+    focusStores: decoratedStores
+      .filter((store) => ['需关注', '广告缺失'].includes(store.statusLabel))
+      .sort((a, b) => (b.lossNewCount || 0) - (a.lossNewCount || 0) || (a.periodOrderedRate || 0) - (b.periodOrderedRate || 0))
+      .slice(0, 5),
+    potentialStores: decoratedStores
+      .filter((store) => store.statusLabel === '优秀' || Number(store.highPotentialCount || 0) > 0)
+      .sort((a, b) => (b.highPotentialCount || 0) - (a.highPotentialCount || 0) || (b.periodOrderedRate || 0) - (a.periodOrderedRate || 0))
+      .slice(0, 5),
+    operatorFocus: decoratedOperators
+      .sort((a, b) => (b.problemCount || 0) - (a.problemCount || 0) || (b.periodNewCount || 0) - (a.periodNewCount || 0))
+      .slice(0, 5),
+    operatorRanking: decoratedOperators,
+    storeRanking: decoratedStores,
+    storeTrend,
+  };
+}
+
+async function getBossDashboardLegacy(params = {}) {
   const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
   await ensureSnapshotForRead(snapshotDate);
   const { where, values } = buildScopeWhere(params, 2);

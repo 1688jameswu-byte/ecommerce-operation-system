@@ -342,7 +342,12 @@ export interface DashboardResponse {
   snapshotDate: string;
   dataCutoffDate?: string;
   dateMode?: 'auto' | 'manual';
+  periodDays?: number;
   summary: Record<string, number | null>;
+  focusStores?: Array<Record<string, unknown>>;
+  potentialStores?: Array<Record<string, unknown>>;
+  operatorFocus?: Array<Record<string, unknown>>;
+  storeTrend?: Array<Record<string, unknown>>;
   operatorRanking: Array<Record<string, unknown>>;
   storeRanking: Array<Record<string, unknown>>;
 }
