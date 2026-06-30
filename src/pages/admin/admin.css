@@ -11815,10 +11815,175 @@
 
 .npc-ad-workbench-filter {
   display: grid;
-  grid-template-columns: 1.15fr repeat(6, minmax(118px, 1fr)) auto;
+  grid-template-columns: 1.15fr repeat(5, minmax(118px, 1fr)) auto;
   align-items: end;
   gap: 14px;
   padding: 16px 18px;
+}
+
+.npc-ad-dimension-tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: 4px;
+  width: min(420px, 100%);
+  border: 1px solid #cbd5e1;
+  background: #e2e8f0;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.npc-ad-dimension-tabs button {
+  min-height: 38px;
+  border: 0;
+  background: transparent;
+  color: #475569;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.npc-ad-dimension-tabs button.is-active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+.npc-ad-overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.npc-ad-overview-metrics article {
+  display: grid;
+  gap: 6px;
+  min-height: 78px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.npc-ad-overview-metrics article.is-warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.npc-ad-overview-metrics article.is-success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.npc-ad-overview-metrics span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.npc-ad-overview-metrics strong {
+  color: #0f172a;
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.npc-ad-overview-panel,
+.npc-ad-diagnosis-panel,
+.npc-ad-product-list {
+  padding: 14px 16px;
+}
+
+.npc-ad-sortbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.npc-ad-sortbar button {
+  min-height: 32px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.npc-ad-sortbar button.is-active {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.npc-ad-overview-table {
+  max-height: 320px;
+}
+
+.npc-ad-overview-table table {
+  min-width: 980px;
+}
+
+.npc-ad-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.npc-ad-product-list .npc-table-wrap {
+  max-height: 340px;
+}
+
+.npc-ad-product-list table {
+  min-width: 860px;
+}
+
+.npc-ad-diagnosis-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.npc-ad-diagnosis-list section {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.npc-ad-diagnosis-list strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.npc-ad-diagnosis-list span {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.npc-ad-diagnosis-panel .npc-panel-header button {
+  min-height: 34px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .npc-ad-workbench-filter label,

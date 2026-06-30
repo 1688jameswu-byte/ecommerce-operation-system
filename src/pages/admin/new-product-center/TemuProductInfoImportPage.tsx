@@ -39,6 +39,16 @@ function formatShanghaiTime(value: unknown) {
   }).format(date).replace(/\//g, '-');
 }
 
+function getImportStatusLabel(status: unknown) {
+  const value = String(status || '').toLowerCase();
+  if (value === 'success') return '全部成功';
+  if (value === 'partial_success') return '部分成功';
+  if (value === 'failed' || value === 'error') return '导入失败';
+  if (value === 'processing') return '处理中';
+  if (value === 'cancelled' || value === 'deleted') return '已作废';
+  return status ? String(status) : '-';
+}
+
 function ImportMapping({ preview, mapping, setMapping }: { preview: ImportPreview; mapping: Record<string, string>; setMapping: (mapping: Record<string, string>) => void }) {
   return (
     <div className="npc-mapping-grid">
@@ -428,7 +438,7 @@ export default function TemuProductInfoImportPage({ currentUser }: { currentUser
                   </td>
                   <td>
                     <span className={`temu-import-status-badge status-${String(row.status || '').toLowerCase()}`}>
-                      {String(row.status || '-')}
+                      {getImportStatusLabel(row.status)}
                     </span>
                   </td>
                   <td>

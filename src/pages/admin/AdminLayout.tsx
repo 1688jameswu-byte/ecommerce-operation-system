@@ -516,7 +516,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
       ? `可见店铺：${visibleStoreNames.join('、')}`
       : `可见店铺 ${visibleStoreNames.length} 个`;
   const dashboardRoute = menuAdminRoutes.find((route) => route.menuKey === 'dashboard');
-  const groupOrder = ['数据', '新品中心', '基础资料', '经营分析', '运营闭环', '1688业务', '运营工具', '规则中心', '数据源', '薪资绩效'];
+  const groupOrder = ['数据', '新品中心', '经营分析', '运营闭环', '1688业务', '运营工具', '基础资料', '规则中心', '数据源', '薪资绩效'];
   const groupLabels: Record<string, string> = { 数据: '数据中心' };
   const groups = groupOrder.filter((group) => menuAdminRoutes.some((route) => route.group === group));
   const activeRouteGroup = groups.includes(activeRoute.group) ? activeRoute.group : null;
@@ -535,7 +535,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const isTrafficImportPage = activeRoute.path === '/admin/traffic-import';
   const isTemuProductInfoImportPage = activeRoute.path === '/admin/temu-product-info-import';
   const isTemuAdReportImportPage = activeRoute.path === '/admin/temu-ad-report-import';
-  const isNewProductCenterPage = activeRoute.path.startsWith('/new-product-center/');
+  const isNewProductCenterPage = activeRoute.path.startsWith('/new-product-center/') || activeRoute.path === '/admin/ad-strategy';
   const isDataBackupPage = activeRoute.path === '/admin/data-backup';
   const isWarningRulesPage = activeRoute.path === '/admin/config/warnings';
   const isWarningResultsPage = activeRoute.path === '/admin/warning-results';

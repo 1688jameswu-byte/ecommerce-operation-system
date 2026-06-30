@@ -246,10 +246,11 @@ export const adminRoutes: AdminRoute[] = [
   {
     path: '/new-product-center/ad-recommendations',
     menuKey: menuKeys.newProductAdRecommendations,
-    parentMenuKey: menuKeys.newProductCenter,
+    parentMenuKey: menuKeys.businessAnalysis,
     label: '广告策略中心',
-    group: '新品中心',
-    description: '查看新品广告建议、阶段策略、执行检查和阶段复盘。',
+    group: '经营分析',
+    description: '兼容旧入口，打开广告策略中心。',
+    hideInMenu: true,
   },
   {
     path: '/new-product-center/products/detail',
@@ -267,6 +268,14 @@ export const adminRoutes: AdminRoute[] = [
     label: '运营分析中心',
     group: '经营分析',
     description: '按运营人员维度查看负责店铺、风险、增长和任务处理效果。',
+  },
+  {
+    path: '/admin/ad-strategy',
+    menuKey: menuKeys.newProductAdRecommendations,
+    parentMenuKey: menuKeys.businessAnalysis,
+    label: '广告策略中心',
+    group: '经营分析',
+    description: '查看全店广告总览、新品广告效果、广告异常和数据质量。',
   },
   {
     path: '/admin/warning-results',

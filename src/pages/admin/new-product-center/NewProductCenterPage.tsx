@@ -4,6 +4,8 @@ import type { CurrentUser } from '../../../types/auth';
 
 type StoreOption = { id?: string; dbId?: string; storeName?: string; platform?: string; status?: string };
 type QuickFilter = { key: string; label: string; params: Record<string, string> };
+type AdStrategyDimensionTab = 'allStores' | 'newProducts';
+type AdStrategySortKey = 'adSpend' | 'roas' | 'acos' | 'adSalesAmount';
 
 const TAGS = ['高潜新品', '烧钱无单', '有流量无转化', '加购未成交', '低曝光新品', '高费比新品', '自然起量', '已出单新品', '未出单新品', '数据未匹配', '普通新品'];
 
@@ -1628,6 +1630,252 @@ function StrategyOverviewCards({ counts, onSelect }: { counts: Record<string, nu
   );
 }
 
+function getAdSalesAmount(item: AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord) {
+  return Number((item as any).adSalesAmount ?? (item as any).promoSalesAmount ?? 0) || 0;
+}
+
+function getRoasValue(item: AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord) {
+  const roas = Number(item.roas);
+  if (Number.isFinite(roas) && roas > 0) return roas;
+  const spend = Number(item.adSpend || 0);
+  return spend > 0 ? getAdSalesAmount(item) / spend : 0;
+}
+
+function getAcosValue(item: AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord) {
+  const acos = Number((item as any).acos);
+  if (Number.isFinite(acos) && acos > 0) return acos;
+  const sales = getAdSalesAmount(item);
+  return sales > 0 ? Number(item.adSpend || 0) / sales : 0;
+}
+
+function getAdIssueLabel(item: AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord) {
+  const spend = Number(item.adSpend || 0);
+  const orders = Number(item.adOrderCount || 0);
+  const roas = getRoasValue(item);
+  const acos = getAcosValue(item);
+  const type = String((item as AdStrategySuggestion).problemType || (item as AdStrategySuggestion).recommendationType || '');
+  if (type.includes('数据') || type.includes('匹配') || type.includes('鍖归厤')) return '数据缺失';
+  if (spend > 0 && orders <= 0) return '有花费无订单';
+  if (acos >= 0.45) return '广告费率过高';
+  if (roas > 0 && roas < 1.2) return 'ROAS偏低';
+  if (spend >= 50 && roas < 1.5) return '花费偏高';
+  return '正常';
+}
+
+function getAdIssueTone(label: string) {
+  if (label === '正常') return 'success';
+  if (label === '数据缺失') return 'muted';
+  if (label === '有花费无订单' || label === '广告费率过高') return 'danger';
+  return 'warning';
+}
+
+function matchesAdIssueFilter(item: AdStrategySuggestion, filter: string) {
+  if (!filter) return true;
+  const issue = getAdIssueLabel(item);
+  if (filter === 'normal') return issue === '正常';
+  if (filter === 'highSpend') return issue === '花费偏高';
+  if (filter === 'lowRoas') return issue === 'ROAS偏低';
+  if (filter === 'highAcos') return issue === '广告费率过高';
+  if (filter === 'noOrder') return issue === '有花费无订单';
+  if (filter === 'missing') return issue === '数据缺失';
+  return true;
+}
+
+function sortAdRecords<T extends AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord>(rows: T[], sortKey: AdStrategySortKey) {
+  return [...rows].sort((first, second) => {
+    const firstValue = sortKey === 'roas'
+      ? getRoasValue(first)
+      : sortKey === 'acos'
+        ? getAcosValue(first)
+        : sortKey === 'adSalesAmount'
+          ? getAdSalesAmount(first)
+          : Number(first.adSpend || 0);
+    const secondValue = sortKey === 'roas'
+      ? getRoasValue(second)
+      : sortKey === 'acos'
+        ? getAcosValue(second)
+        : sortKey === 'adSalesAmount'
+          ? getAdSalesAmount(second)
+          : Number(second.adSpend || 0);
+    return secondValue - firstValue;
+  });
+}
+
+function AllStoreAdOverview({
+  rows,
+  counts,
+  loading,
+  sortKey,
+  onSort,
+  onOpenNewProducts,
+}: {
+  rows: AdStrategySuggestion[];
+  counts: Record<string, number>;
+  loading: boolean;
+  sortKey: AdStrategySortKey;
+  onSort: (key: AdStrategySortKey) => void;
+  onOpenNewProducts: () => void;
+}) {
+  const sortedRows = useMemo(() => sortAdRecords(rows, sortKey), [rows, sortKey]);
+  const totalSpend = rows.reduce((sum, item) => sum + Number(item.adSpend || 0), 0);
+  const totalSales = rows.reduce((sum, item) => sum + getAdSalesAmount(item), 0);
+  const totalOrders = rows.reduce((sum, item) => sum + Number(item.adOrderCount || 0), 0);
+  const abnormalRows = rows.filter((item) => getAdIssueLabel(item) !== '正常');
+  const abnormalStores = new Set(abnormalRows.map((item) => item.storeName).filter(Boolean)).size;
+  const matchRate = rows.length > 0 ? Math.max(0, 1 - Number(counts.unmatched || 0) / Math.max(rows.length, 1)) : 1;
+  const storeRows = Array.from(rows.reduce((map, item) => {
+    const key = item.storeName || '未绑定店铺';
+    const current = map.get(key) || { storeName: key, operatorName: item.operatorName || '-', adSpend: 0, adSalesAmount: 0, adOrderCount: 0, abnormalCount: 0, productCount: 0 };
+    current.adSpend += Number(item.adSpend || 0);
+    current.adSalesAmount += getAdSalesAmount(item);
+    current.adOrderCount += Number(item.adOrderCount || 0);
+    current.productCount += 1;
+    if (getAdIssueLabel(item) !== '正常') current.abnormalCount += 1;
+    map.set(key, current);
+    return map;
+  }, new Map<string, { storeName: string; operatorName: string; adSpend: number; adSalesAmount: number; adOrderCount: number; abnormalCount: number; productCount: number }>()).values())
+    .sort((first, second) => second.adSpend - first.adSpend)
+    .slice(0, 8);
+  const highSpendLowReturn = sortedRows.filter((item) => Number(item.adSpend || 0) > 0 && (Number(item.adOrderCount || 0) === 0 || getRoasValue(item) < 1.2)).slice(0, 6);
+  const highRoas = sortAdRecords(rows.filter((item) => getRoasValue(item) >= 2), 'roas').slice(0, 6);
+  const metrics = [
+    { label: '广告花费', value: formatMoney(totalSpend) },
+    { label: '广告销售额', value: formatMoney(totalSales) },
+    { label: '广告订单数', value: formatInteger(totalOrders) },
+    { label: 'ROAS', value: totalSpend > 0 ? formatRoas(totalSales / totalSpend) : '-' },
+    { label: '广告费率', value: totalSales > 0 ? formatRatio(totalSpend / totalSales) : '-' },
+    { label: '异常店铺数', value: formatInteger(abnormalStores), tone: abnormalStores > 0 ? 'warning' : 'success' },
+    { label: 'SPU匹配率', value: formatRatio(matchRate), tone: matchRate < 0.95 ? 'warning' : 'success' },
+  ];
+
+  if (loading && rows.length === 0) {
+    return <PanelSkeleton title="全店广告总览加载中" rows={4} />;
+  }
+
+  return (
+    <>
+      <section className="npc-ad-overview-metrics">
+        {metrics.map((item) => (
+          <article key={item.label} className={item.tone ? `is-${item.tone}` : ''}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </article>
+        ))}
+      </section>
+
+      <article className="excel-record-panel npc-panel npc-ad-overview-panel">
+        <header className="npc-panel-header">
+          <h2>店铺广告对比表</h2>
+          <span>默认展示最近完整一天 / 当前筛选范围</span>
+        </header>
+        <div className="npc-ad-sortbar" aria-label="广告排序">
+          {[
+            { key: 'adSpend' as const, label: '广告花费' },
+            { key: 'roas' as const, label: 'ROAS' },
+            { key: 'acos' as const, label: '广告费率' },
+            { key: 'adSalesAmount' as const, label: '广告销售额' },
+          ].map((item) => (
+            <button key={item.key} type="button" className={sortKey === item.key ? 'is-active' : ''} onClick={() => onSort(item.key)}>
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div className="npc-table-wrap npc-ad-overview-table">
+          <table>
+            <thead><tr><th>店铺</th><th>运营</th><th>广告花费</th><th>广告销售额</th><th>广告订单数</th><th>ROAS</th><th>广告费率</th><th>异常商品</th><th>状态</th></tr></thead>
+            <tbody>
+              {storeRows.map((item) => {
+                const roas = item.adSpend > 0 ? item.adSalesAmount / item.adSpend : 0;
+                const acos = item.adSalesAmount > 0 ? item.adSpend / item.adSalesAmount : 0;
+                const status = item.abnormalCount > 0 ? '需关注' : '正常';
+                return (
+                  <tr key={item.storeName}>
+                    <td>{item.storeName}</td>
+                    <td>{item.operatorName || '-'}</td>
+                    <td>{formatMoney(item.adSpend)}</td>
+                    <td>{formatMoney(item.adSalesAmount)}</td>
+                    <td>{formatInteger(item.adOrderCount)}</td>
+                    <td>{roas > 0 ? formatRoas(roas) : '-'}</td>
+                    <td>{acos > 0 ? formatRatio(acos) : '-'}</td>
+                    <td>{formatInteger(item.abnormalCount)} / {formatInteger(item.productCount)}</td>
+                    <td><span className={`npc-strategy-status npc-strategy-status-${status === '正常' ? 'success' : 'warning'}`}>{status}</span></td>
+                  </tr>
+                );
+              })}
+              {storeRows.length === 0 && <tr><td colSpan={9}>暂无广告数据，请确认广告日报是否已导入。</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <section className="npc-ad-overview-grid">
+        <AdProductList title="高花费低回报商品" rows={highSpendLowReturn} sortKey={sortKey} empty="暂无高花费低回报商品" />
+        <AdProductList title="高ROAS商品" rows={highRoas} sortKey="roas" empty="暂无高ROAS商品" />
+      </section>
+
+      <article className="excel-record-panel npc-panel npc-ad-diagnosis-panel">
+        <header className="npc-panel-header">
+          <h2>广告异常诊断</h2>
+          <button type="button" onClick={onOpenNewProducts}>查看新品广告效果</button>
+        </header>
+        <div className="npc-ad-diagnosis-list">
+          {abnormalRows.slice(0, 8).map((item) => {
+            const issue = getAdIssueLabel(item);
+            return (
+              <section key={item.id}>
+                <strong>{item.productName || '-'}</strong>
+                <span>{item.storeName || '-'} / {item.operatorName || '-'}</span>
+                <em className={`npc-strategy-status npc-strategy-status-${getAdIssueTone(issue)}`}>{issue}</em>
+              </section>
+            );
+          })}
+          {abnormalRows.length === 0 && <div className="npc-strategy-empty">当前筛选范围内暂无广告异常。</div>}
+        </div>
+      </article>
+    </>
+  );
+}
+
+function AdProductList({
+  title,
+  rows,
+  sortKey,
+  empty,
+}: {
+  title: string;
+  rows: AdStrategySuggestion[];
+  sortKey: AdStrategySortKey;
+  empty: string;
+}) {
+  return (
+    <article className="excel-record-panel npc-panel npc-ad-product-list">
+      <header className="npc-panel-header"><h2>{title}</h2><span>按{sortKey === 'acos' ? '广告费率' : sortKey === 'roas' ? 'ROAS' : sortKey === 'adSalesAmount' ? '广告销售额' : '广告花费'}排序</span></header>
+      <div className="npc-table-wrap">
+        <table>
+          <thead><tr><th>商品</th><th>店铺</th><th>花费</th><th>销售额</th><th>订单</th><th>ROAS</th><th>状态</th></tr></thead>
+          <tbody>
+            {rows.map((item) => {
+              const issue = getAdIssueLabel(item);
+              return (
+                <tr key={item.id}>
+                  <td><StrategyProductCell item={item} /></td>
+                  <td>{item.storeName || '-'}</td>
+                  <td>{formatMoney(item.adSpend)}</td>
+                  <td>{formatMoney(getAdSalesAmount(item))}</td>
+                  <td>{formatInteger(item.adOrderCount)}</td>
+                  <td>{formatRoas(getRoasValue(item))}</td>
+                  <td><span className={`npc-strategy-status npc-strategy-status-${getAdIssueTone(issue)}`}>{issue}</span></td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 && <tr><td colSpan={7}>{empty}</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  );
+}
+
 function StrategyDrawer({
   item,
   detail,
@@ -1723,12 +1971,17 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
   const initialType = new URLSearchParams(window.location.search).get('type') || '';
   const isManager = currentUser.role === 'admin' || currentUser.role === 'leader';
   const currentOperatorName = currentUser.displayName || currentUser.username || '';
+  const [dimensionTab, setDimensionTab] = useState<AdStrategyDimensionTab>(initialType ? 'newProducts' : 'allStores');
   const [activeTab, setActiveTab] = useState<StrategyTabKey>('pending');
   const [snapshotDate, setSnapshotDate] = useState('');
   const [storeId, setStoreId] = useState('');
   const [operatorName, setOperatorName] = useState('');
   const [currentStage, setCurrentStage] = useState('');
   const [type, setType] = useState(initialType);
+  const [adType, setAdType] = useState('');
+  const [productType, setProductType] = useState(initialType ? 'new' : 'all');
+  const [abnormalStatus, setAbnormalStatus] = useState('');
+  const [sortKey, setSortKey] = useState<AdStrategySortKey>('adSpend');
   const [priority, setPriority] = useState('');
   const [status, setStatus] = useState('PENDING');
   const [keyword, setKeyword] = useState('');
@@ -1755,9 +2008,12 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
     if (storeId) params.storeId = storeId;
     if (appliedOperatorName) params.operatorName = appliedOperatorName;
     if (currentStage) params.currentStage = currentStage;
+    if (adType) params.adType = adType;
+    if (productType === 'new') params.productType = 'new';
+    if (abnormalStatus) params.abnormalStatus = abnormalStatus;
     if (keyword.trim()) params.search = keyword.trim();
     return params;
-  }, [appliedOperatorName, currentStage, keyword, snapshotDate, storeId]);
+  }, [abnormalStatus, adType, appliedOperatorName, currentStage, keyword, productType, snapshotDate, storeId]);
 
   useEffect(() => {
     newProductCenterDataSource.getAdStrategyConfig().then(setConfig).catch(() => setConfig(null));
@@ -1845,6 +2101,9 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
     setOperatorName('');
     setCurrentStage('');
     setType('');
+    setAdType('');
+    setProductType('all');
+    setAbnormalStatus('');
     setPriority('');
     setStatus('PENDING');
     setKeyword('');
@@ -1885,6 +2144,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
 
   const applyOverviewFilter = (next: Partial<{ status: string; priority: string; type: string }>) => {
     setActiveTab('pending');
+    setDimensionTab('newProducts');
     setStatus(next.status ?? '');
     setPriority(next.priority ?? '');
     setType(next.type ?? '');
@@ -1897,6 +2157,10 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
     { key: 'execution', label: '阶段执行检查', count: execution.total || 0 },
     { key: 'review', label: '阶段效果复盘', count: review.total || 0 },
   ];
+  const filteredPendingRecords = useMemo(
+    () => pending.records.filter((item) => matchesAdIssueFilter(item, abnormalStatus)),
+    [abnormalStatus, pending.records],
+  );
 
   return (
     <section className="npc-page npc-ad-strategy-page npc-ad-workbench-page">
@@ -1910,33 +2174,69 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
         <strong>执行说明</strong>
         <span>系统不会自动修改 TEMU 后台广告设置，只生成建议和执行检查。运营仍需在 TEMU 后台手动调整目标ROAS；系统通过后续广告日报中的“自然周目标ROAS（推广）”字段验证是否已执行。</span>
       </article>
+      <div className="npc-ad-dimension-tabs" role="tablist" aria-label="广告策略中心视图">
+        <button type="button" className={dimensionTab === 'allStores' ? 'is-active' : ''} onClick={() => { setDimensionTab('allStores'); setProductType('all'); setPage(1); }}>
+          全店广告总览
+        </button>
+        <button type="button" className={dimensionTab === 'newProducts' ? 'is-active' : ''} onClick={() => { setDimensionTab('newProducts'); setProductType('new'); setPage(1); }}>
+          新品广告效果
+        </button>
+      </div>
       <article className="excel-record-panel npc-panel npc-ad-workbench-filter">
-        <label>统计日期<input type="date" value={snapshotDate} onChange={(event) => { setSnapshotDate(event.target.value); setPage(1); }} /></label>
+        <label>日期范围<input type="date" value={snapshotDate} onChange={(event) => { setSnapshotDate(event.target.value); setPage(1); }} /></label>
         <label>店铺<select value={storeId} onChange={(event) => { setStoreId(event.target.value); setPage(1); }}><option value="">全部店铺</option>{storeOptions.map((store) => <option key={store.storeId || store.storeName} value={store.storeId || store.storeName}>{store.storeName}</option>)}</select></label>
         <label>运营{isManager ? <select value={operatorName} onChange={(event) => { setOperatorName(event.target.value); setPage(1); }}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorName} value={operator.operatorName}>{operator.operatorName}</option>)}</select> : <input value={currentOperatorName || '当前运营'} readOnly />}</label>
-        <label>当前阶段<select value={currentStage} onChange={(event) => { setCurrentStage(event.target.value); setPage(1); }}><option value="">全部阶段</option>{AD_STRATEGY_STAGES.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <label>建议类型<select value={type} onChange={(event) => { setType(event.target.value); setPage(1); }}><option value="">全部类型</option>{AD_STRATEGY_TYPES.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <label>优先级<select value={priority} onChange={(event) => { setPriority(event.target.value); setPage(1); }}><option value="">全部</option><option value="HIGH">高</option><option value="MEDIUM">中</option><option value="LOW">低</option></select></label>
-        <label>状态<select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}><option value="">全部状态</option><option value="PENDING">待处理</option><option value="EXECUTED">已执行</option><option value="IGNORED">已忽略</option><option value="ACCEPTED">已采纳</option><option value="EXPIRED">已过期</option></select></label>
+        <label>广告类型<select value={adType} onChange={(event) => { setAdType(event.target.value); setPage(1); }}><option value="">全部广告</option><option value="商品推广">商品推广</option><option value="搜索广告">搜索广告</option><option value="场景广告">场景广告</option></select></label>
+        <label>商品类型<select value={productType} onChange={(event) => { setProductType(event.target.value); setDimensionTab(event.target.value === 'new' ? 'newProducts' : 'allStores'); setPage(1); }}><option value="all">全部商品</option><option value="new">新品</option></select></label>
+        <label>异常状态<select value={abnormalStatus} onChange={(event) => { setAbnormalStatus(event.target.value); setPage(1); }}><option value="">全部状态</option><option value="normal">正常</option><option value="highSpend">花费偏高</option><option value="lowRoas">ROAS偏低</option><option value="highAcos">广告费率过高</option><option value="noOrder">有花费无订单</option><option value="missing">数据缺失</option></select></label>
         <div className="npc-ad-workbench-filter-actions">
           <span>数据截止 {dataCutoffDate || '-'}</span>
           <button type="button" onClick={resetFilters}>重置</button>
           <button type="button" onClick={exportCurrentRows}>导出</button>
         </div>
       </article>
-      <StrategyHealthPanel snapshotDate={snapshotDate || displayedDate} dataCutoffDate={dataCutoffDate} storageStatus={storageStatus} counts={counts} />
-      {loading.counts ? <PanelSkeleton title="广告策略总览" rows={2} /> : <StrategyOverviewCards counts={counts} onSelect={applyOverviewFilter} />}
-      <div className="npc-strategy-tabs npc-ad-workbench-tabs">
-        {tabItems.map((item) => (
-          <button key={item.key} type="button" className={`npc-strategy-tab${activeTab === item.key ? ' is-active' : ''}`} onClick={() => { setActiveTab(item.key); setPage(1); }}>
-            <span className="npc-strategy-tab-copy"><strong>{item.label}</strong></span>
-            <span className="npc-strategy-tab-count">{formatInteger(item.count)}</span>
-          </button>
-        ))}
-      </div>
+      {dimensionTab === 'allStores' ? (
+        <AllStoreAdOverview
+          rows={filteredPendingRecords}
+          counts={counts}
+          loading={loading.pending || loading.counts}
+          sortKey={sortKey}
+          onSort={setSortKey}
+          onOpenNewProducts={() => { setDimensionTab('newProducts'); setProductType('new'); }}
+        />
+      ) : (
+        <>
+          <StrategyHealthPanel snapshotDate={snapshotDate || displayedDate} dataCutoffDate={dataCutoffDate} storageStatus={storageStatus} counts={counts} />
+          {loading.counts ? <PanelSkeleton title="新品广告效果总览" rows={2} /> : <StrategyOverviewCards counts={counts} onSelect={applyOverviewFilter} />}
+          <section className="npc-ad-overview-metrics npc-ad-new-product-metrics">
+            {[
+              { label: '新品广告花费', value: formatMoney(filteredPendingRecords.reduce((sum, item) => sum + Number(item.adSpend || 0), 0)) },
+              { label: '新品广告销售额', value: formatMoney(filteredPendingRecords.reduce((sum, item) => sum + getAdSalesAmount(item), 0)) },
+              { label: '新品广告订单数', value: formatInteger(filteredPendingRecords.reduce((sum, item) => sum + Number(item.adOrderCount || 0), 0)) },
+              { label: '新品ROAS', value: filteredPendingRecords.reduce((sum, item) => sum + Number(item.adSpend || 0), 0) > 0 ? formatRoas(filteredPendingRecords.reduce((sum, item) => sum + getAdSalesAmount(item), 0) / filteredPendingRecords.reduce((sum, item) => sum + Number(item.adSpend || 0), 0)) : '-' },
+              { label: '新品广告费率', value: filteredPendingRecords.reduce((sum, item) => sum + getAdSalesAmount(item), 0) > 0 ? formatRatio(filteredPendingRecords.reduce((sum, item) => sum + Number(item.adSpend || 0), 0) / filteredPendingRecords.reduce((sum, item) => sum + getAdSalesAmount(item), 0)) : '-' },
+              { label: '新品首单数', value: formatInteger(counts.ordered || 0) },
+              { label: '新品首单率', value: counts.all ? formatRatio((counts.ordered || 0) / counts.all) : '-' },
+            ].map((item) => (
+              <article key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </article>
+            ))}
+          </section>
+          <div className="npc-strategy-tabs npc-ad-workbench-tabs">
+            {tabItems.map((item) => (
+              <button key={item.key} type="button" className={`npc-strategy-tab${activeTab === item.key ? ' is-active' : ''}`} onClick={() => { setActiveTab(item.key); setPage(1); }}>
+                <span className="npc-strategy-tab-copy"><strong>{item.label}</strong></span>
+                <span className="npc-strategy-tab-count">{formatInteger(item.count)}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
       {message && <div className="excel-import-error">{message}</div>}
 
-      {activeTab === 'pending' && (
+      {dimensionTab === 'newProducts' && activeTab === 'pending' && (
         <article className="excel-record-panel npc-panel">
           <header className="npc-panel-header"><h2>待处理建议</h2><span>{pending.total} 条</span></header>
           <div className="npc-ad-workbench-toolbar">
@@ -1950,7 +2250,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
               <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数 / 当前阶段</th><th>优先级</th><th>计划ROAS</th><th>实际ROAS</th><th>执行偏差</th><th>广告花费</th><th>点击</th><th>加购</th><th>广告订单</th><th>自然订单</th><th>ROAS</th><th>目标ROAS</th><th>诊断原因</th><th>建议动作</th><th>状态</th><th>操作</th></tr></thead>
               <tbody>
                 {loading.pending && pending.records.length === 0 && <tr className="npc-strategy-empty-row"><td colSpan={19}><PanelSkeleton title="待处理建议加载中" rows={4} /></td></tr>}
-                {!loading.pending && pending.records.map((item) => (
+                {!loading.pending && filteredPendingRecords.map((item) => (
                   <tr key={item.id}>
                     <td><StrategyProductCell item={item} /></td>
                     <td>{item.storeName || '-'}</td>
@@ -1977,14 +2277,14 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
                     </td>
                   </tr>
                 ))}
-                {!loading.pending && pending.records.length === 0 && <tr className="npc-strategy-empty-row"><td colSpan={19}><StrategyEmptyState title="暂无待处理建议" description="当前筛选条件下没有需要处理的广告策略建议。" /></td></tr>}
+                {!loading.pending && filteredPendingRecords.length === 0 && <tr className="npc-strategy-empty-row"><td colSpan={19}><StrategyEmptyState title="暂无待处理建议" description="当前筛选条件下没有需要处理的广告策略建议。" /></td></tr>}
               </tbody>
             </table>
           </div>
         </article>
       )}
 
-      {activeTab === 'config' && (
+      {dimensionTab === 'newProducts' && activeTab === 'config' && (
         <article className="excel-record-panel npc-panel">
           <header className="npc-panel-header"><h2>阶段策略配置</h2><span>{isManager ? '管理员可编辑' : '普通运营只读'}</span></header>
           <div className="npc-stage-card-grid">
@@ -2009,7 +2309,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
         </article>
       )}
 
-      {activeTab === 'execution' && (
+      {dimensionTab === 'newProducts' && activeTab === 'execution' && (
         <article className="excel-record-panel npc-panel">
           <header className="npc-panel-header"><h2>阶段执行检查</h2><span>{execution.total} 条</span></header>
           <div className="npc-ad-execution-summary">
@@ -2031,7 +2331,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
         </article>
       )}
 
-      {activeTab === 'review' && (
+      {dimensionTab === 'newProducts' && activeTab === 'review' && (
         <article className="excel-record-panel npc-panel">
           <header className="npc-panel-header"><h2>阶段效果复盘</h2><span>{review.total} 条</span></header>
           <div className="npc-ad-workbench-toolbar">
@@ -2042,7 +2342,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
         </article>
       )}
 
-      {activeTab !== 'config' && (
+      {dimensionTab === 'newProducts' && activeTab !== 'config' && (
         <div className="temu-product-record-pagination npc-strategy-pagination">
           <span>第 {page}/{totalPages} 页，共 {activeTotal} 条</span>
           <div>
@@ -2107,7 +2407,7 @@ function SimpleTable({ title, rows, columns }: { title: string; rows: Array<Reco
 export default function NewProductCenterPage({ currentUser }: { currentUser: CurrentUser }) {
   const path = window.location.pathname;
   if (path === '/new-product-center/boss-dashboard') return <DashboardView />;
-  if (path === '/new-product-center/ad-recommendations') return <AdStrategyWorkbenchView currentUser={currentUser} />;
+  if (path === '/new-product-center/ad-recommendations' || path === '/admin/ad-strategy') return <AdStrategyWorkbenchView currentUser={currentUser} />;
   if (path.startsWith('/new-product-center/products/')) return <DetailView productId={decodeURIComponent(path.replace('/new-product-center/products/', ''))} />;
   return <WorkbenchView currentUser={currentUser} />;
 }

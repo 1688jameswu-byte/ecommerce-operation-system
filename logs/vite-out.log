@@ -1489,3 +1489,50 @@
 {"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":67,"rows":0,"slow":false}
 {"scope":"new-product-center-api","endpoint":"products","durationMs":10,"rows":50,"slow":false}
 {"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":51,"rows":13,"slow":false}
+[2m16:44:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m17:05:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m21:25:01[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m21:25:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m21:25:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m21:26:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m21:26:18[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m21:26:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m21:27:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m21:27:17[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m21:27:32[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m21:27:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m21:27:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m21:28:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m21:28:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":72,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":14,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":7,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":8,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":101,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":104,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":109,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":57,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":14,"rows":50,"slow":false}
+[2m21:35:08[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":56,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":59,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":11,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":5,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":64,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":10,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":70,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":8,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":12,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":5,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":8,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":10,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":9,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":11,"rows":0,"slow":false}

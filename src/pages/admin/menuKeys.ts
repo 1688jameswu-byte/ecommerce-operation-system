@@ -79,7 +79,6 @@ export const menuGroups: { key: MenuKey; label: string; children: { key: MenuKey
     children: [
       { key: menuKeys.newProductBossDashboard, label: '经营总览' },
       { key: menuKeys.newProductWorkbench, label: '新品工作台' },
-      { key: menuKeys.newProductAdRecommendations, label: '广告策略中心' },
     ],
   },
   {
@@ -103,6 +102,7 @@ export const menuGroups: { key: MenuKey; label: string; children: { key: MenuKey
     children: [
       { key: menuKeys.storeBusinessCenter, label: '店铺经营中心' },
       { key: menuKeys.operatorAnalysisCenter, label: '运营分析中心' },
+      { key: menuKeys.newProductAdRecommendations, label: '广告策略中心' },
       { key: menuKeys.businessAnalysisCenter, label: '风险诊断中心' },
       { key: menuKeys.operationDiagnosis, label: '异常结果中心' },
       { key: menuKeys.aiOperationAnalysis, label: 'AI运营分析' },
