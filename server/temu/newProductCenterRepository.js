@@ -132,6 +132,27 @@ AD_FIELDS.netPromoCpa.push('净每笔成交花费（推广）', '净每笔成交
 AD_FIELDS.netPromoSubOrderCount.push('净子订单数（推广）', '净子订单数(推广)');
 AD_FIELDS.netPromoUnitCount.push('净件数（推广）', '净件数(推广)');
 
+// TEMU 广告报表不同导出版的表头不完全一致。有些文件会把全域和推广列
+// 导成同名表头，xlsx 会自动追加 _1 后缀；这里只增强读取兼容，不改变口径。
+const AD_GLOBAL_PROMO_DUPLICATE_FIELDS = [
+  ['globalSalesAmount', 'promoSalesAmount', ['申报价销售额', '销售额']],
+  ['globalRoas', 'promoRoas', ['投资回报率ROAS', '投资回报率(ROAS)', 'ROAS']],
+  ['globalAcos', 'promoAcos', ['费比']],
+  ['globalCpa', 'promoCpa', ['每笔成交花费']],
+  ['globalSubOrderCount', 'promoSubOrderCount', ['子订单数']],
+  ['globalUnitCount', 'promoUnitCount', ['件数']],
+  ['globalImpressions', 'promoImpressions', ['曝光']],
+  ['globalClicks', 'promoClicks', ['点击']],
+  ['globalCtr', 'promoCtr', ['点击率']],
+  ['globalCvr', 'promoCvr', ['转化率']],
+  ['globalAddToCartCount', 'promoAddToCartCount', ['加入购物车数', '加购']],
+];
+
+for (const [globalField, promoField, aliases] of AD_GLOBAL_PROMO_DUPLICATE_FIELDS) {
+  AD_FIELDS[globalField].push(...aliases);
+  AD_FIELDS[promoField].push(...aliases.map((alias) => `${alias}_1`));
+}
+
 function text(value) {
   return String(value ?? '').trim();
 }
@@ -142,7 +163,11 @@ function nullableText(value) {
 }
 
 function normalizeHeader(value) {
-  return text(value).replace(/\s+/g, '').toLowerCase();
+  return text(value)
+    .replace(/\s+/g, '')
+    .replace(/[（]/g, '(')
+    .replace(/[）]/g, ')')
+    .toLowerCase();
 }
 
 function inferStoreNameFromFileName(fileName = '') {

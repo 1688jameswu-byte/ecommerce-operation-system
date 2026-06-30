@@ -26,22 +26,30 @@ function SalesTrendChart({ data }: SalesTrendChartProps) {
     backgroundColor: 'transparent',
     color: ['#1f8fff'],
     tooltip: {
-      trigger: 'axis',
+      trigger: 'item',
+      triggerOn: 'mousemove|click',
       backgroundColor: 'rgba(5, 18, 42, 0.94)',
       borderColor: 'rgba(63, 151, 255, 0.5)',
       borderWidth: 1,
-      confine: true,
-      padding: [12, 14],
+      confine: false,
+      appendToBody: true,
+      padding: [8, 10],
       textStyle: {
         color: '#dceeff',
-        fontSize: 14,
+        fontSize: 12,
       },
-      axisPointer: {
-        type: 'line',
-        lineStyle: {
-          color: 'rgba(92, 184, 255, 0.5)',
-          width: 1,
-        },
+      position: (point: number[], _params: unknown, _dom: unknown, _rect: unknown, size: { contentSize: number[]; viewSize: number[] }) => {
+        const [mouseX, mouseY] = point;
+        const [tooltipWidth, tooltipHeight] = size.contentSize;
+        const [viewWidth, viewHeight] = size.viewSize;
+        const offset = 12;
+        const nextX = mouseX + tooltipWidth + offset > viewWidth
+          ? mouseX - tooltipWidth - offset
+          : mouseX + offset;
+        const nextY = mouseY + tooltipHeight + offset > viewHeight
+          ? mouseY - tooltipHeight - offset
+          : mouseY + offset;
+        return [Math.max(8, nextX), Math.max(8, nextY)];
       },
       formatter: (params: unknown) => {
         const point = Array.isArray(params) ? params[0] : params;
@@ -57,15 +65,15 @@ function SalesTrendChart({ data }: SalesTrendChartProps) {
         const displayDate = row?.date ?? (date || '-');
         const salesAmount = Number(row?.salesAmount ?? chartPoint?.value ?? 0);
         const orderText = typeof row?.orderCount === 'number'
-          ? `<div style="margin-top:4px;color:#9fc4e8;">订单数：${row.orderCount}</div>`
+          ? `<div style="margin-top:3px;color:#9fc4e8;">订单数：${row.orderCount}</div>`
           : '';
         return [
-          `<div style="font-weight:800;color:#ffffff;margin-bottom:6px;">${displayDate}</div>`,
+          `<div style="font-weight:800;color:#ffffff;margin-bottom:4px;">${displayDate}</div>`,
           `<div style="color:#dceeff;">销售额：<strong style="color:#38c9ff;">￥ ${formatCurrency(salesAmount)}</strong></div>`,
           orderText,
         ].join('');
       },
-      extraCssText: 'box-shadow:0 12px 28px rgba(0,0,0,.36);border-radius:8px;min-width:140px;',
+      extraCssText: 'box-shadow:0 8px 20px rgba(0,0,0,.32);border-radius:8px;min-width:132px;max-width:180px;white-space:nowrap;pointer-events:none;',
     },
     grid: {
       left: 54,
