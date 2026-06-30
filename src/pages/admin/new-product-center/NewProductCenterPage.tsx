@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { newProductCenterDataSource, type AdStrategyConfig, type AdStrategyExecutionRecord, type AdStrategyReviewRecord, type AdStrategySuggestion, type DashboardResponse, type OperatorOption, type ProductDetailResponse, type ProductSnapshot, type RecommendationRecord, type StoreScopeOption, type TemuStorageStatus } from '../../../data-source/newProductCenterDataSource';
+import { newProductCenterDataSource, type AdStrategyConfig, type AdStrategyExecutionRecord, type AdStrategyReviewRecord, type AdStrategySuggestion, type DashboardResponse, type ImportOverview, type OperatorOption, type ProductDetailResponse, type ProductSnapshot, type RecommendationRecord, type StoreScopeOption, type TemuStorageStatus } from '../../../data-source/newProductCenterDataSource';
 import type { CurrentUser } from '../../../types/auth';
 
 type StoreOption = { id?: string; dbId?: string; storeName?: string; platform?: string; status?: string };
@@ -8,6 +8,7 @@ type AdStrategyDimensionTab = 'allStores' | 'newProducts';
 type AdStrategySortKey = 'adSpend' | 'adSalesAmount' | 'adOrderCount' | 'roas' | 'acos' | 'clicks' | 'conversionRate';
 type AdDatePreset = 'yesterday' | 'recent7' | 'recent30' | 'custom';
 type TrendMetricKey = 'adSpend' | 'adSalesAmount' | 'roas' | 'acos';
+type AdImportOverviewState = ImportOverview & { reportDate?: string };
 
 const TAGS = ['高潜新品', '烧钱无单', '有流量无转化', '加购未成交', '低曝光新品', '高费比新品', '自然起量', '已出单新品', '未出单新品', '数据未匹配', '普通新品'];
 
@@ -1661,6 +1662,33 @@ function getConversionRateValue(item: AdStrategySuggestion | AdStrategyExecution
   return clicks > 0 ? orders / clicks : 0;
 }
 
+function normalizeAdImportRecord(row: Record<string, any>): AdStrategySuggestion {
+  const adSpend = Number(row.adSpend ?? row.ad_spend ?? 0);
+  const adSalesAmount = Number(row.promoSalesAmount ?? row.netPromoSalesAmount ?? row.globalSalesAmount ?? row.adSalesAmount ?? 0);
+  const adOrderCount = Number(row.promoSubOrderCount ?? row.netPromoSubOrderCount ?? row.globalSubOrderCount ?? row.adOrderCount ?? 0);
+  const clicks = Number(row.promoClicks ?? row.globalClicks ?? row.clicks ?? 0);
+  const impressions = Number(row.promoImpressions ?? row.globalImpressions ?? row.impressions ?? 0);
+  return {
+    id: String(row.id || `${row.reportDate || ''}-${row.storeName || ''}-${row.temuSpuId || row.temuProductId || row.productName || ''}`),
+    recommendationDate: String(row.reportDate || '').slice(0, 10),
+    storeName: row.storeName || '-',
+    operatorName: row.operatorName || '-',
+    productId: String(row.productId || row.temuProductId || row.temuSpuId || ''),
+    productName: row.productName || row.temuSpuId || row.temuProductId || '-',
+    temuSpuId: row.temuSpuId,
+    adSpend,
+    adSalesAmount,
+    adOrderCount,
+    impressions,
+    clicks,
+    addToCartCount: Number(row.promoAddToCartCount ?? row.globalAddToCartCount ?? row.addToCartCount ?? 0),
+    roas: row.promoRoas === null || row.promoRoas === undefined ? (adSpend > 0 ? adSalesAmount / adSpend : null) : Number(row.promoRoas),
+    acos: row.promoAcos === null || row.promoAcos === undefined ? (adSalesAmount > 0 ? adSpend / adSalesAmount : null) : Number(row.promoAcos),
+    orderSalesAmount: Number(row.globalSalesAmount || adSalesAmount || 0),
+    generated: true,
+  };
+}
+
 function getAdIssueLabel(item: AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord) {
   const spend = Number(item.adSpend || 0);
   const orders = Number(item.adOrderCount || 0);
@@ -2004,6 +2032,9 @@ function AllStoreAdOverviewBoard({
   loading,
   sortKey,
   trendMetric,
+  summary,
+  reportDate,
+  totalRecords,
   onSort,
   onTrendMetricChange,
 }: {
@@ -2012,6 +2043,9 @@ function AllStoreAdOverviewBoard({
   loading: boolean;
   sortKey: AdStrategySortKey;
   trendMetric: TrendMetricKey;
+  summary?: Record<string, any>;
+  reportDate?: string;
+  totalRecords?: number;
   onSort: (key: AdStrategySortKey) => void;
   onTrendMetricChange: (key: TrendMetricKey) => void;
 }) {
@@ -2069,13 +2103,15 @@ function AllStoreAdOverviewBoard({
     return sortKey === 'roas' || sortKey === 'conversionRate' ? firstValue - secondValue : secondValue - firstValue;
   }), [sortKey, storeRows]);
 
-  const totalSpend = rows.reduce((sum, item) => sum + Number(item.adSpend || 0), 0);
-  const totalAdSales = rows.reduce((sum, item) => sum + getAdSalesAmount(item), 0);
+  const totalSpend = Number(summary?.adSpend ?? rows.reduce((sum, item) => sum + Number(item.adSpend || 0), 0));
+  const totalAdSales = Number(summary?.promoSalesAmount ?? summary?.adSalesAmount ?? rows.reduce((sum, item) => sum + getAdSalesAmount(item), 0));
   const totalStoreSales = rows.reduce((sum, item) => sum + getStoreSalesAmount(item), 0);
-  const totalOrders = rows.reduce((sum, item) => sum + Number(item.adOrderCount || 0), 0);
+  const totalOrders = Number(summary?.promoSubOrderCount ?? summary?.adOrderCount ?? rows.reduce((sum, item) => sum + Number(item.adOrderCount || 0), 0));
   const abnormalStores = storeRows.filter((item) => item.status !== '正常');
-  const unmatchedCount = Number(counts.unmatched || 0);
-  const matchRate = rows.length ? Math.max(0, 1 - unmatchedCount / Math.max(rows.length, 1)) : 1;
+  const unmatchedCount = Number(summary?.unmatchedCount ?? counts.unmatched ?? 0);
+  const matchedCount = Number(summary?.matchedCount ?? 0);
+  const matchBase = matchedCount + unmatchedCount;
+  const matchRate = matchBase > 0 ? matchedCount / matchBase : (rows.length ? Math.max(0, 1 - unmatchedCount / Math.max(rows.length, 1)) : 1);
   const highSpendLowReturn = sortAdRecordsV2(rows.filter((item) => Number(item.adSpend || 0) > 0 && (Number(item.adOrderCount || 0) === 0 || getRoasValue(item) < 2)), 'adSpend').slice(0, 8);
   const highRoas = sortAdRecordsV2(rows.filter((item) => getRoasValue(item) >= 2), 'roas').reverse().slice(0, 10);
   const metricCards = [
@@ -2117,7 +2153,7 @@ function AllStoreAdOverviewBoard({
 
       <section className="npc-ad-first-screen">
         <article className="excel-record-panel npc-panel npc-ad-store-table-card">
-          <header className="npc-panel-header"><h2>店铺广告对比表</h2><span>{sortedStores.length} 家店铺</span></header>
+          <header className="npc-panel-header"><h2>店铺广告对比表</h2><span>{sortedStores.length} 家店铺 / {formatInteger(totalRecords || rows.length)} 条广告</span></header>
           <div className="npc-table-wrap npc-ad-store-table-wrap">
             <table>
               <thead>
@@ -2188,7 +2224,7 @@ function AllStoreAdOverviewBoard({
           <article className="excel-record-panel npc-panel npc-ad-side-card">
             <header><h2>数据质量</h2></header>
             <dl className="npc-ad-quality-list">
-              <div><dt>广告数据更新时间</dt><dd>2026-06-30 09:20</dd></div>
+              <div><dt>广告数据更新时间</dt><dd>{reportDate || '暂无广告日报'}</dd></div>
               <div><dt>已导入店铺</dt><dd>{storeRows.length}/{Math.max(storeRows.length, 1)}</dd></div>
               <div><dt>SPU匹配率</dt><dd className={matchRate < 1 ? 'is-warning' : ''}>{formatRatio(matchRate)}</dd></div>
               <div><dt>未匹配SPU</dt><dd className={unmatchedCount > 0 ? 'is-danger' : ''}>{formatInteger(unmatchedCount)}个</dd></div>
@@ -2376,9 +2412,10 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
   const [storeOptions, setStoreOptions] = useState<StoreScopeOption[]>([]);
   const [operatorOptions, setOperatorOptions] = useState<OperatorOption[]>([]);
   const [pending, setPending] = useState<{ records: AdStrategySuggestion[]; total: number; page?: number; pageSize?: number; snapshotDate?: string; dataCutoffDate?: string }>({ records: [], total: 0 });
+  const [adImportOverview, setAdImportOverview] = useState<AdImportOverviewState>({ batches: [], records: [] });
   const [execution, setExecution] = useState<{ records: AdStrategyExecutionRecord[]; total: number; page?: number; pageSize?: number; snapshotDate?: string; dataCutoffDate?: string }>({ records: [], total: 0 });
   const [review, setReview] = useState<{ records: AdStrategyReviewRecord[]; total: number; page?: number; pageSize?: number; snapshotDate?: string; dataCutoffDate?: string }>({ records: [], total: 0 });
-  const [loading, setLoading] = useState({ counts: true, pending: true, execution: false, review: false });
+  const [loading, setLoading] = useState({ counts: true, pending: true, adOverview: true, execution: false, review: false });
   const [message, setMessage] = useState('');
   const [drawerItem, setDrawerItem] = useState<AdStrategySuggestion | null>(null);
   const [drawerDetail, setDrawerDetail] = useState<ProductDetailResponse | null>(null);
@@ -2424,6 +2461,46 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
       .catch(() => setCounts({}))
       .finally(() => setLoading((current) => ({ ...current, counts: false })));
   }, [filterBase]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadAdOverview = async () => {
+      setLoading((current) => ({ ...current, adOverview: true }));
+      try {
+        const selectedStore = storeOptions.find((store) => String(store.storeId || store.storeName || '') === String(storeId));
+        const baseFilters: Record<string, string> = {};
+        if (storeId) {
+          if (selectedStore?.storeName) baseFilters.storeName = selectedStore.storeName;
+          else baseFilters.storeId = storeId;
+        }
+        const reportDate = datePreset === 'custom' && snapshotDate
+          ? snapshotDate
+          : String((await newProductCenterDataSource.getAdImportRecords(1, 1, baseFilters)).reportDates?.[0] || '').slice(0, 10);
+        if (!reportDate) {
+          if (!cancelled) setAdImportOverview({ batches: [], records: [], reportDate: '' });
+          return;
+        }
+        const overview = await newProductCenterDataSource.getAdImportRecords(1, 50, {
+          ...baseFilters,
+          reportDate,
+          sortField: sortKey === 'adSalesAmount' ? 'promoSalesAmount' : sortKey === 'adOrderCount' ? 'promoSubOrderCount' : sortKey === 'clicks' ? 'promoClicks' : sortKey === 'roas' ? 'promoRoas' : sortKey === 'acos' ? 'promoAcos' : 'adSpend',
+          sortDirection: sortKey === 'roas' || sortKey === 'conversionRate' ? 'asc' : 'desc',
+        });
+        if (!cancelled) setAdImportOverview({ ...overview, reportDate });
+      } catch (error) {
+        if (!cancelled) {
+          setAdImportOverview({ batches: [], records: [] });
+          setMessage(error instanceof Error ? error.message : String(error));
+        }
+      } finally {
+        if (!cancelled) setLoading((current) => ({ ...current, adOverview: false }));
+      }
+    };
+    if (dimensionTab === 'allStores') void loadAdOverview();
+    return () => {
+      cancelled = true;
+    };
+  }, [datePreset, dimensionTab, queryVersion, snapshotDate, sortKey, storeId, storeOptions]);
 
   useEffect(() => {
     const base: Record<string, string> = { ...filterBase, page: String(page), pageSize: String(pageSize) };
@@ -2548,6 +2625,10 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
     () => pending.records.filter((item) => matchesAdIssueFilterV2(item, abnormalStatus)),
     [abnormalStatus, pending.records],
   );
+  const allStoreAdRecords = useMemo(() => {
+    const normalized = (adImportOverview.records || []).map((row) => normalizeAdImportRecord(row));
+    return normalized.filter((item) => matchesAdIssueFilterV2(item, abnormalStatus));
+  }, [abnormalStatus, adImportOverview.records]);
 
   return (
     <section className="npc-page npc-ad-strategy-page npc-ad-workbench-page">
@@ -2609,12 +2690,15 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
       </article>
       {dimensionTab === 'allStores' ? (
         <AllStoreAdOverviewBoard
-          rows={filteredPendingRecords}
+          rows={allStoreAdRecords}
           counts={counts}
-          loading={loading.pending || loading.counts}
+          loading={loading.adOverview || loading.counts}
           sortKey={sortKey}
           onSort={setSortKey}
           trendMetric={trendMetric}
+          summary={adImportOverview.summary}
+          reportDate={adImportOverview.reportDate}
+          totalRecords={adImportOverview.total}
           onTrendMetricChange={setTrendMetric}
         />
       ) : (
