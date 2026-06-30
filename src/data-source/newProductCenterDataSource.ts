@@ -245,6 +245,8 @@ export interface ProductSnapshot {
   productId: string;
   temuProductId: string;
   temuSpuId: string;
+  skcIds?: string;
+  skuIds?: string;
   productName: string;
   productImageUrl?: string;
   categoryName?: string;

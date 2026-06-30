@@ -22,6 +22,8 @@ type WorkbenchAction = {
   impact: string;
   actionLabel: string;
   actionHref: string;
+  secondaryActionLabel?: string;
+  secondaryActionHref?: string;
   storeId?: string;
 };
 
@@ -592,26 +594,35 @@ function IntegratedKpiCard({ card }: { card: IntegratedKpiCardModel }) {
 }
 
 function TodayKpiActions({ actions, onSelectStore }: { actions: WorkbenchAction[]; onSelectStore: (storeId: string) => void }) {
+  const visibleActions = actions.slice(0, 5);
+
   return (
-    <article className="excel-record-panel workbench-panel">
-      <header><h2>今日重点工作</h2><span>{actions.length} 项</span></header>
+    <article className="excel-record-panel workbench-panel workbench-today-actions">
+      <header><h2>今日重点工作</h2><span>{visibleActions.length} 项</span></header>
       <div className="workbench-action-list">
-        {actions.map((item) => (
+        {visibleActions.map((item) => (
           <section className="workbench-action-row" key={`${item.kpi}-${item.title}`}>
             <b className={`priority-${item.priority}`}>{item.priority}</b>
             <div className="workbench-action-main">
               <strong>{item.title}</strong>
               <span>{item.impact}</span>
             </div>
-            <em>{item.kpi}</em>
-            {item.storeId ? (
-              <button type="button" className="workbench-row-action" onClick={() => onSelectStore(item.storeId || '')}>{item.actionLabel}</button>
-            ) : (
-              <a href={item.actionHref}>{item.actionLabel}</a>
-            )}
+            <div className="workbench-action-controls">
+              <em>{item.kpi}</em>
+              <div className="workbench-action-buttons">
+                {item.storeId ? (
+                  <button type="button" className="workbench-row-action" onClick={() => onSelectStore(item.storeId || '')}>{item.actionLabel || '查看店铺'}</button>
+                ) : null}
+                {item.secondaryActionHref ? (
+                  <a href={item.secondaryActionHref}>{item.secondaryActionLabel || '去处理'}</a>
+                ) : !item.storeId ? (
+                  <a href={item.actionHref}>{item.actionLabel}</a>
+                ) : null}
+              </div>
+            </div>
           </section>
         ))}
-        {actions.length === 0 && <div className="admin-home-empty">当前 KPI 没有明显落后项，继续保持日常节奏。</div>}
+        {visibleActions.length === 0 && <div className="admin-home-empty">今日暂无重点待处理事项</div>}
       </div>
     </article>
   );
@@ -917,7 +928,7 @@ function KpiTargetLedger({
   });
 
   return (
-    <article className="excel-record-panel workbench-panel workbench-target-ledger">
+    <article className="excel-record-panel workbench-panel workbench-target-ledger" id="kpi-target-ledger">
       <header>
         <h2>店铺 KPI 配置台账</h2>
         <div className="workbench-ledger-tools">
@@ -1053,8 +1064,8 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
       {data && (
         <>
           <KpiOverviewSection data={data} />
-          <StoreKpiBreakdownTable rows={data.storeBreakdown ?? []} onSelectStore={selectStore} />
           <TodayKpiActions actions={data.todayActions} onSelectStore={selectStore} />
+          <StoreKpiBreakdownTable rows={data.storeBreakdown ?? []} onSelectStore={selectStore} />
           <ProductFollowUpTable rows={data.productFollowUps} />
           <DataIntegrityPanel data={data} />
           <KpiTargetLedger data={data} refreshKey={targetRefreshKey} onConfigure={setEditingTarget} />

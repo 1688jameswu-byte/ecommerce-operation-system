@@ -1051,3 +1051,65 @@
 [workbench-kpi] dataIntegrity 0ms
 [workbench-kpi] todayActions 0ms
 [workbench-kpi] total 241ms
+[2m23:42:21[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:42:41[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m23:42:41[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 3ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 11ms
+[workbench-kpi] targets 47ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=3
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 245ms
+[workbench-kpi] firstOrder 247ms
+[workbench-kpi] adExpense 4ms
+[workbench-kpi] afterSaleExpense 33ms
+[workbench-kpi] expense 37ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 300ms
+[2m23:42:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:43:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m23:43:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:44:04[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m23:44:05[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 4ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 18ms
+[workbench-kpi] targets 186ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=3
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 371ms
+[workbench-kpi] firstOrder 379ms
+[workbench-kpi] adExpense 4ms
+[workbench-kpi] afterSaleExpense 32ms
+[workbench-kpi] expense 36ms
+[workbench-kpi] storeBreakdownPreAggregate 1ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 441ms
+
+> ecommerce-operations-center@0.1.0 dev
+> vite --configLoader runner --host 127.0.0.1 --port 5176
+
+
+  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m36232[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m10:23:35[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m10:23:35[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:23:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/TemuAdReportImportPage.tsx[22m
+[2m10:24:41[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m10:24:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m10:27:47[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m10:28:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m

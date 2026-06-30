@@ -1618,8 +1618,18 @@ export async function getProducts(params = {}) {
   const { where, values } = buildScopeWhere(params, 2);
   const condition = [`s.snapshot_date = $1`, ...where].join(' AND ');
   const result = await queryTemuDatabase(
-    `SELECT s.*, COUNT(*) OVER() AS total
+    `SELECT s.*,
+            sku_meta.skc_ids,
+            sku_meta.sku_ids,
+            COUNT(*) OVER() AS total
      FROM temu_new_product_daily_snapshot s
+     LEFT JOIN LATERAL (
+       SELECT
+         STRING_AGG(DISTINCT NULLIF(COALESCE(ps.skc_id, ps.temu_skc_id, ps.raw_data ->> 'SKC ID'), ''), ' / ') AS skc_ids,
+         STRING_AGG(DISTINCT NULLIF(COALESCE(ps.sku_id, ps.raw_data ->> 'SKU ID'), ''), ' / ') AS sku_ids
+       FROM temu_product_skus ps
+       WHERE ps.product_id = s.product_id
+     ) sku_meta ON TRUE
      WHERE ${condition}
      ORDER BY CASE s.product_tag
        WHEN '数据未匹配' THEN 0

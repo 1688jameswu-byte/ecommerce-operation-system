@@ -6377,45 +6377,62 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   sectionStartedAt = Date.now();
   let todayActions = [];
   const shouldShowProgressActions = range.timeProgress > 0;
+  const scopedStore = stores.length === 1 ? stores[0] : null;
+  const scopedStoreId = scopedStore ? String(scopedStore.id || scopedStore.storeName || '').trim() : '';
+  const scopedStoreName = scopedStore ? String(scopedStore.storeName || scopedStore.id || '').trim() : '';
   if (shouldShowProgressActions && completion.sales !== null && completion.sales < range.timeProgress) {
     todayActions.push({
       priority: completion.sales < range.timeProgress - 0.2 ? '高' : '中',
-      title: `销售进度落后 ${Math.abs((completion.sales - range.timeProgress) * 100).toFixed(1)}%`,
+      title: `${scopedStoreName ? `${scopedStoreName}` : ''}销售进度落后${Math.abs((completion.sales - range.timeProgress) * 100).toFixed(1)}%，请优先查看销售明细`,
       kpi: '本月销售额',
       impact: '影响销售额目标完成率和综合 KPI 得分',
-      actionLabel: '查看销售进度',
+      actionLabel: scopedStoreId ? '查看店铺' : '查看销售进度',
       actionHref: '/admin/store-business',
+      storeId: scopedStoreId || undefined,
+      secondaryActionLabel: '查看销售明细',
+      secondaryActionHref: '/admin/store-business',
     });
   }
   if (shouldShowProgressActions && completion.listing !== null && completion.listing < range.timeProgress) {
     const listingLag = listingProgressMetric.progressGapValue !== null ? Math.abs(Math.floor(listingProgressMetric.progressGapValue)) : remainingListing;
     todayActions.push({
       priority: '高',
-      title: `上新进度严重落后，当前按时间进度落后 ${listingLag} 款，请优先补充重点店铺新品`,
+      title: scopedStoreName
+        ? `${scopedStoreName}上新进度严重落后，当前按时间进度落后${listingLag}款，请优先补齐可快速上线商品信息`
+        : `上新进度严重落后，当前按时间进度落后${listingLag}款，请优先补充重点店铺新品`,
       kpi: '上新商品数',
       impact: '影响可控动作产出和后续新品转化',
-      actionLabel: '去导入商品信息',
+      actionLabel: scopedStoreId ? '查看店铺' : '去导入商品信息',
       actionHref: '/admin/temu-product-info-import',
+      storeId: scopedStoreId || undefined,
+      secondaryActionLabel: '去导入商品信息',
+      secondaryActionHref: '/admin/temu-product-info-import',
     });
   }
   if (shouldShowProgressActions && over7NoFirstOrder > 0) {
     todayActions.push({
       priority: '高',
-      title: `${over7NoFirstOrder} 款新品已超过30天仍未首单`,
+      title: `${scopedStoreName ? `${scopedStoreName}有` : ''}${over7NoFirstOrder}款新品已超过30天仍未首单，优先优化主图、标题和价格`,
       kpi: '新品30天首单率',
       impact: '影响已判定新品的30天首单率',
-      actionLabel: '查看未首单商品',
+      actionLabel: scopedStoreId ? '查看店铺' : '查看未首单商品',
       actionHref: '#product-follow-ups',
+      storeId: scopedStoreId || undefined,
+      secondaryActionLabel: '查看未首单商品',
+      secondaryActionHref: '#product-follow-ups',
     });
   }
   if (shouldShowProgressActions && expenseRatio !== null && target?.expenseRatioTarget > 0 && expenseRatio > target.expenseRatioTarget) {
     todayActions.push({
       priority: '中',
-      title: `当前费用占比 ${(expenseRatio * 100).toFixed(1)}%，高于目标 ${(target.expenseRatioTarget * 100).toFixed(1)}%`,
+      title: `${scopedStoreName ? `${scopedStoreName}` : ''}费用占比高于目标${((expenseRatio - target.expenseRatioTarget) * 100).toFixed(1)}个百分点，请查看费用来源`,
       kpi: '费用占比',
       impact: '推广费和售后费超标会拉低费用控制得分',
-      actionLabel: '查看费用明细',
+      actionLabel: scopedStoreId ? '查看店铺' : '查看费用明细',
       actionHref: '/admin/operator-analysis',
+      storeId: scopedStoreId || undefined,
+      secondaryActionLabel: '查看费用明细',
+      secondaryActionHref: '/admin/operator-analysis',
     });
   }
   if (!scope.selectedStoreId && storeBreakdown.length > 1) {
@@ -6430,6 +6447,8 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
           impact: '目标缺失会影响综合KPI判定和工资核算公平性',
           actionLabel: '查看店铺',
           actionHref: '#store-breakdown',
+          secondaryActionLabel: '配置KPI目标',
+          secondaryActionHref: '#kpi-target-ledger',
           storeId: store.storeId,
         });
         continue;
@@ -6437,11 +6456,13 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       if (store.listingCompletionRate !== null && store.listingCompletionRate < Math.max(range.timeProgress - 0.2, 0) && listingRemaining > 0) {
         storeActions.push({
           priority: '高',
-          title: `${store.storeName} 上新还差 ${listingRemaining} 款，请优先补齐商品信息`,
+          title: `${store.storeName}上新进度落后${listingRemaining}款，优先补齐可快速上线商品信息`,
           kpi: '上新效率',
-          impact: '该店铺上新进度正在拖累当前范围KPI',
+          impact: '拖累上新效率KPI',
           actionLabel: '查看店铺',
           actionHref: '#store-breakdown',
+          secondaryActionLabel: '去导入商品信息',
+          secondaryActionHref: '/admin/temu-product-info-import',
           storeId: store.storeId,
         });
         continue;
@@ -6449,23 +6470,28 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       if (store.kpis.firstOrder.expiredNoFirstOrder > 0) {
         storeActions.push({
           priority: '中',
-          title: `${store.storeName} 有 ${store.kpis.firstOrder.expiredNoFirstOrder} 款观察期到期商品仍未首单`,
+          title: `${store.storeName}有${store.kpis.firstOrder.expiredNoFirstOrder}款观察期到期商品仍未首单，优先优化主图、标题和价格`,
           kpi: '新品转化',
-          impact: '建议优先复盘主图、价格和流量承接',
+          impact: '拖累新品转化KPI',
           actionLabel: '查看店铺',
           actionHref: '#store-breakdown',
+          secondaryActionLabel: '查看未首单商品',
+          secondaryActionHref: '#product-follow-ups',
           storeId: store.storeId,
         });
         continue;
       }
       if (store.expenseRatio !== null && store.expenseTargetRatio !== null && store.expenseRatio > store.expenseTargetRatio) {
+        const expenseGap = ((store.expenseRatio - store.expenseTargetRatio) * 100).toFixed(1);
         storeActions.push({
           priority: '中',
-          title: `${store.storeName} 费用占比 ${((store.expenseRatio || 0) * 100).toFixed(1)}%，高于目标 ${((store.expenseTargetRatio || 0) * 100).toFixed(1)}%`,
+          title: `${store.storeName}费用占比高于目标${expenseGap}个百分点，请查看费用来源`,
           kpi: '费用控制',
-          impact: '请检查广告投放和售后费用',
+          impact: '拖累费用控制KPI',
           actionLabel: '查看店铺',
           actionHref: '#store-breakdown',
+          secondaryActionLabel: '查看费用明细',
+          secondaryActionHref: '/admin/operator-analysis',
           storeId: store.storeId,
         });
       }

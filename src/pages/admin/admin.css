@@ -10787,7 +10787,7 @@
 
 .npc-diagnosis-table {
   table-layout: fixed;
-  min-width: 2450px;
+  min-width: 2760px;
 }
 
 .npc-diagnosis-table th,
@@ -10803,15 +10803,29 @@
   width: 220px;
 }
 
+.npc-diagnosis-table th:nth-child(2),
+.npc-diagnosis-table td:nth-child(2),
+.npc-diagnosis-table th:nth-child(3),
+.npc-diagnosis-table td:nth-child(3),
 .npc-diagnosis-table th:nth-child(4),
 .npc-diagnosis-table td:nth-child(4) {
+  width: 120px;
+}
+
+.npc-diagnosis-table th:nth-child(4),
+.npc-diagnosis-table td:nth-child(4) {
+  width: 140px;
+}
+
+.npc-diagnosis-table th:nth-child(7),
+.npc-diagnosis-table td:nth-child(7) {
   width: 190px;
 }
 
-.npc-diagnosis-table th:nth-child(19),
-.npc-diagnosis-table td:nth-child(19),
-.npc-diagnosis-table th:nth-child(20),
-.npc-diagnosis-table td:nth-child(20) {
+.npc-diagnosis-table th:nth-child(22),
+.npc-diagnosis-table td:nth-child(22),
+.npc-diagnosis-table th:nth-child(23),
+.npc-diagnosis-table td:nth-child(23) {
   width: 260px;
 }
 
@@ -11830,7 +11844,7 @@
 }
 
 .workbench-action-row {
-  grid-template-columns: 38px minmax(260px, 1fr) 120px 118px;
+  grid-template-columns: 38px minmax(260px, 1fr) minmax(220px, auto);
   background: #ffffff;
   border-color: #dce5ef;
 }
@@ -11850,8 +11864,16 @@
   font-size: 13px;
 }
 
+.workbench-action-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
 .workbench-action-row em {
-  justify-self: start;
+  flex: 0 0 auto;
   border-radius: 999px;
   background: #eef6ff;
   padding: 5px 9px;
@@ -11861,14 +11883,23 @@
   font-weight: 700;
 }
 
-.workbench-action-row a {
+.workbench-action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.workbench-action-row a,
+.workbench-action-row .workbench-row-action {
   justify-self: end;
   border-color: #cbd5e1;
   color: #1f2937;
   font-weight: 700;
 }
 
-.workbench-action-row a:hover {
+.workbench-action-row a:hover,
+.workbench-action-row .workbench-row-action:hover {
   border-color: #2563eb;
   color: #1d4ed8;
 }
@@ -12124,6 +12155,16 @@ td.workbench-follow-title-col strong {
 
   .workbench-action-row {
     grid-template-columns: 38px 1fr;
+  }
+
+  .workbench-action-controls {
+    justify-content: flex-start;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .workbench-action-buttons {
+    justify-content: flex-start;
   }
 
   .workbench-action-row em,
@@ -14310,6 +14351,39 @@ td.workbench-follow-title-col strong {
   color: #64748b;
 }
 
+.npc-workbench-page .npc-diagnosis-list-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin: 0 0 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 12px;
+}
+
+.npc-workbench-page .npc-diagnosis-list-filters label {
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.npc-workbench-page .npc-diagnosis-list-filters select,
+.npc-workbench-page .npc-diagnosis-list-filters .npc-readonly-filter {
+  min-height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 12px;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .npc-workbench-page .npc-quick-filters {
   display: flex;
   flex-wrap: wrap;
@@ -14373,26 +14447,26 @@ td.workbench-follow-title-col strong {
   font-variant-numeric: tabular-nums;
 }
 
-.npc-workbench-page .npc-product-list-table td:nth-child(6),
-.npc-workbench-page .npc-product-list-table td:nth-child(7),
-.npc-workbench-page .npc-product-list-table td:nth-child(8),
 .npc-workbench-page .npc-product-list-table td:nth-child(9),
 .npc-workbench-page .npc-product-list-table td:nth-child(10),
 .npc-workbench-page .npc-product-list-table td:nth-child(11),
 .npc-workbench-page .npc-product-list-table td:nth-child(12),
 .npc-workbench-page .npc-product-list-table td:nth-child(13),
+.npc-workbench-page .npc-product-list-table td:nth-child(14),
 .npc-workbench-page .npc-product-list-table td:nth-child(15),
 .npc-workbench-page .npc-product-list-table td:nth-child(16),
-.npc-workbench-page .npc-product-list-table th:nth-child(6),
-.npc-workbench-page .npc-product-list-table th:nth-child(7),
-.npc-workbench-page .npc-product-list-table th:nth-child(8),
+.npc-workbench-page .npc-product-list-table td:nth-child(18),
+.npc-workbench-page .npc-product-list-table td:nth-child(19),
 .npc-workbench-page .npc-product-list-table th:nth-child(9),
 .npc-workbench-page .npc-product-list-table th:nth-child(10),
 .npc-workbench-page .npc-product-list-table th:nth-child(11),
 .npc-workbench-page .npc-product-list-table th:nth-child(12),
 .npc-workbench-page .npc-product-list-table th:nth-child(13),
+.npc-workbench-page .npc-product-list-table th:nth-child(14),
 .npc-workbench-page .npc-product-list-table th:nth-child(15),
-.npc-workbench-page .npc-product-list-table th:nth-child(16) {
+.npc-workbench-page .npc-product-list-table th:nth-child(16),
+.npc-workbench-page .npc-product-list-table th:nth-child(18),
+.npc-workbench-page .npc-product-list-table th:nth-child(19) {
   text-align: right;
 }
 

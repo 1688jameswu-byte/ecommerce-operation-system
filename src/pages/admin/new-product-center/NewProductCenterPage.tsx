@@ -30,6 +30,11 @@ function formatNumber(value: unknown) {
   return Number(value || 0).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
 }
 
+function formatInteger(value: unknown) {
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? Math.round(number).toLocaleString('zh-CN') : '-';
+}
+
 function formatRatio(value: unknown) {
   if (value === null || value === undefined || value === '') return '-';
   return `${(Number(value) * 100).toFixed(2)}%`;
@@ -552,6 +557,15 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
     setPage(1);
   };
 
+  const selectOperatorFilter = (nextOperatorName: string) => {
+    setOperatorName(nextOperatorName);
+    setAppliedOperatorName(nextOperatorName);
+    setStoreId('');
+    setAppliedStoreId('');
+    setStoreSearchText('');
+    setPage(1);
+  };
+
   const clearStoreFilter = (keepOpen = true) => {
     setStoreId('');
     setAppliedStoreId('');
@@ -633,7 +647,7 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
         </label>
         <label>统计日期<input type="date" value={snapshotDate || displayedDate} onChange={(event) => { setSnapshotDate(event.target.value); setAppliedSnapshotDate(event.target.value); setPage(1); }} /></label>
         {isAdmin ? (
-          <label>运营<select value={operatorName} onChange={(event) => { const nextOperatorName = event.target.value; setOperatorName(nextOperatorName); setAppliedOperatorName(nextOperatorName); setStoreId(''); setAppliedStoreId(''); setStoreSearchText(''); setPage(1); }}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorId || operator.operatorName} value={operator.operatorName}>{operator.operatorName}{storeId ? '' : `（${operator.storeCount || 0}店）`}</option>)}</select></label>
+          <label>运营<select value={operatorName} onChange={(event) => selectOperatorFilter(event.target.value)}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorId || operator.operatorName} value={operator.operatorName}>{operator.operatorName}{storeId ? '' : `（${operator.storeCount || 0}店）`}</option>)}</select></label>
         ) : (
           <label>运营<span className="npc-readonly-filter">{readonlyOperatorName}（{readonlyOperatorStoreCount}店）</span></label>
         )}
@@ -666,6 +680,41 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
           <h2>新品诊断列表</h2>
           <span>{products.total} 条，自然单为系统估算：总订单数 - 子订单数（推广）。</span>
         </header>
+        <div className="npc-diagnosis-list-filters">
+          {isAdmin ? (
+            <label>运营
+              <select value={operatorName} onChange={(event) => selectOperatorFilter(event.target.value)}>
+                <option value="">全部运营</option>
+                {operatorOptions.map((operator) => (
+                  <option key={operator.operatorId || operator.operatorName} value={operator.operatorName}>
+                    {operator.operatorName}{storeId ? '' : `（${operator.storeCount || 0}店）`}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label>运营<span className="npc-readonly-filter">{readonlyOperatorName}</span></label>
+          )}
+          <label>店铺
+            <select
+              value={storeId}
+              onChange={(event) => {
+                const nextStoreId = event.target.value;
+                const nextStore = visibleStoreOptions.find((store) => store.id === nextStoreId);
+                if (nextStoreId) {
+                  applyStoreFilter(nextStoreId, nextStore?.storeName || '');
+                } else {
+                  clearStoreFilter(false);
+                }
+              }}
+            >
+              <option value="">{operatorName ? '该运营全部店铺' : '全部店铺'}</option>
+              {visibleStoreOptions.map((store) => (
+                <option key={store.id || store.storeName} value={store.id || ''}>{store.storeName}</option>
+              ))}
+            </select>
+          </label>
+        </div>
         <QuickFilters active={quickKey} counts={counts} onChange={(key) => { setQuickKey(key); setPage(1); }} />
         <ProductTable records={products.records} total={products.total} title="新品诊断列表" />
         <div className="temu-product-record-pagination">
@@ -687,6 +736,9 @@ function ProductTable({ records, total, title = '新品诊断列表' }: { record
         <thead>
           <tr>
             <th>商品</th>
+            <th>SPU ID</th>
+            <th>SKC ID</th>
+            <th>SKU ID</th>
             <th>店铺</th>
             <th>运营</th>
             <th>创建/天数/阶段</th>
@@ -713,16 +765,19 @@ function ProductTable({ records, total, title = '新品诊断列表' }: { record
           {records.map((item) => (
             <tr key={item.id}>
               <td><div className="npc-product-cell" title={`${item.productName || '-'} ${item.temuProductId || ''} ${item.temuSpuId || ''}`}>{item.productImageUrl && <img src={item.productImageUrl} alt="" />}<span><strong>{item.productName || '-'}</strong><small>{item.temuProductId || '-'} / {item.temuSpuId || '-'}</small></span></div></td>
+              <td title={item.temuSpuId || '-'}>{item.temuSpuId || '-'}</td>
+              <td title={item.skcIds || '-'}>{item.skcIds || '-'}</td>
+              <td title={item.skuIds || '-'}>{item.skuIds || '-'}</td>
               <td>{item.storeName || '-'}</td>
               <td>{item.operatorName || '-'}</td>
               <td>{formatDate(item.firstOnlineAt)} / {item.daysOnline}天 / {stageLabel(item.daysOnline)}</td>
               <td>{item.isOrdered ? '是' : '否'}</td>
-              <td>{item.orderCount}</td>
-              <td>{String((item as any).orderQuantity ?? '-')}</td>
+              <td>{formatInteger(item.orderCount)}</td>
+              <td>{formatInteger((item as any).orderQuantity)}</td>
               <td>{formatMoney(item.orderSalesAmount)}</td>
               <td>{formatMoney(item.adSpend)}</td>
-              <td>{item.adOrderCount}</td>
-              <td>{item.naturalOrderCount}</td>
+              <td>{formatInteger(item.adOrderCount)}</td>
+              <td>{formatInteger(item.naturalOrderCount)}</td>
               <td>{item.roas === null ? '-' : Number(item.roas).toFixed(2)}</td>
               <td>{(item as any).targetRoas === null || (item as any).targetRoas === undefined ? '-' : Number((item as any).targetRoas).toFixed(2)}</td>
               <td>{roasStatus(item)}</td>
@@ -735,7 +790,7 @@ function ProductTable({ records, total, title = '新品诊断列表' }: { record
               <td><a href={`/new-product-center/products/${item.productId}`}>查看诊断</a></td>
             </tr>
           ))}
-          {records.length === 0 && <tr><td colSpan={21}>暂无新品快照，请先导入商品信息或重算快照。</td></tr>}
+          {records.length === 0 && <tr><td colSpan={24}>暂无新品快照，请先导入商品信息或重算快照。</td></tr>}
         </tbody>
       </table>
       {total === 0 && <p className="npc-empty-hint">当前筛选范围没有数据。</p>}
