@@ -6723,8 +6723,8 @@
 }
 
 .alibaba-create-steps button.active span {
-  background: #2563eb;
-  color: #ffffff;
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .alibaba-create-card {
@@ -8162,9 +8162,9 @@
 }
 
 .alibaba-products-v1-export-actions .store-primary-button {
-  border-color: #2563eb;
-  background: #2563eb;
-  color: #ffffff;
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .alibaba-products-v1-export-toolbar button:disabled,
@@ -11373,8 +11373,8 @@
   width: 26px;
   height: 26px;
   border-radius: 999px;
-  background: #2563eb;
-  color: #ffffff;
+  background: #eff6ff;
+  color: #1d4ed8;
   font-size: 14px;
   font-weight: 800;
   font-family: Georgia, serif;
@@ -11427,10 +11427,10 @@
 }
 
 .npc-ad-strategy-page .npc-strategy-tab.is-active {
-  border-color: #2563eb;
-  background: #2563eb;
-  color: #ffffff;
-  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  box-shadow: none;
 }
 
 .npc-strategy-tab-index,
@@ -11459,8 +11459,8 @@
 
 .npc-strategy-tab.is-active .npc-strategy-tab-index,
 .npc-strategy-tab.is-active .npc-strategy-tab-count {
-  background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .npc-strategy-tab-copy {
@@ -11842,9 +11842,9 @@
 }
 
 .npc-ad-dimension-tabs button.is-active {
-  border-bottom: 3px solid #2563eb;
+  border-bottom: 3px solid #93c5fd;
   background: transparent;
-  color: #2563eb;
+  color: #1d4ed8;
   box-shadow: none;
 }
 
@@ -11914,9 +11914,9 @@
 }
 
 .npc-ad-sortbar button.is-active {
-  border-color: #2563eb;
-  background: #2563eb;
-  color: #ffffff;
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .npc-ad-overview-table {
@@ -12064,6 +12064,7 @@
 }
 
 .npc-ad-date-filter {
+  position: relative;
   min-width: 260px;
 }
 
@@ -12093,12 +12094,153 @@
 
 .npc-ad-segmented button.is-active,
 .npc-ad-workbench-filter-actions button.is-primary {
-  background: #2563eb;
-  color: #ffffff;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.npc-ad-custom-date-label {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.npc-ad-date-popover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 10px);
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: 10px;
+  width: 360px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 12px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
+}
+
+.npc-ad-date-popover span {
+  display: grid;
+  gap: 5px;
+}
+
+.npc-ad-date-popover small,
+.npc-ad-date-popover em {
+  color: #64748b;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.npc-ad-date-popover em,
+.npc-ad-date-popover strong,
+.npc-ad-date-popover i {
+  grid-column: 1 / -1;
+}
+
+.npc-ad-date-popover strong {
+  color: #dc2626;
+  font-size: 12px;
+}
+
+.npc-ad-date-popover i {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  font-style: normal;
+}
+
+.npc-ad-date-popover button {
+  min-height: 32px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.npc-ad-date-popover button.is-primary {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.npc-ad-calendar-popover {
+  grid-template-columns: 1fr;
+  width: 278px;
+  gap: 8px;
+}
+
+.npc-ad-calendar-popover .npc-ad-calendar-header,
+.npc-ad-calendar-popover .npc-ad-calendar-week,
+.npc-ad-calendar-popover .npc-ad-calendar-grid {
+  grid-column: 1 / -1;
+}
+
+.npc-ad-calendar-header {
+  display: grid;
+  grid-template-columns: 58px 1fr 58px;
+  align-items: center;
+  gap: 8px;
+}
+
+.npc-ad-calendar-header strong {
+  grid-column: auto;
+  color: #0f172a;
+  font-size: 14px;
+  text-align: center;
+}
+
+.npc-ad-calendar-week,
+.npc-ad-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.npc-ad-calendar-week b {
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
+}
+
+.npc-ad-calendar-grid button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #0f172a;
+  padding: 0;
+}
+
+.npc-ad-calendar-grid button.is-outside {
+  color: #94a3b8;
+}
+
+.npc-ad-calendar-grid button.is-in-range {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.npc-ad-calendar-grid button.is-selected {
+  background: #bfdbfe;
+  color: #1e3a8a;
+}
+
+.npc-ad-calendar-error {
+  color: #dc2626 !important;
 }
 
 .npc-ad-workbench-filter-actions button.is-primary {
-  border-color: #2563eb;
+  border-color: #93c5fd;
   min-width: 76px;
 }
 
@@ -12206,7 +12348,7 @@
 
 .npc-ad-store-table-wrap table,
 .npc-ad-product-compact-wrap table {
-  min-width: 920px;
+  min-width: 980px;
   border-spacing: 0;
 }
 
@@ -12227,6 +12369,24 @@
   font: inherit;
   font-weight: 900;
   cursor: pointer;
+}
+
+.npc-ad-product-compact-wrap {
+  position: relative;
+}
+
+.npc-ad-product-compact-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #eef3f9;
+  box-shadow: 0 1px 0 #dbe5f0;
+}
+
+.npc-ad-id-cell {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .npc-ad-link-button {
@@ -12454,6 +12614,42 @@
   border-radius: 8px;
 }
 
+.npc-ad-trend-card .npc-panel-header {
+  align-items: center;
+  gap: 12px;
+}
+
+.npc-ad-trend-card .npc-panel-header h2 {
+  flex: 0 0 auto;
+}
+
+.npc-ad-trend-store-tags {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 240px;
+}
+
+.npc-ad-trend-store-tags button {
+  min-height: 28px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #334155;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.npc-ad-trend-store-tags button.is-active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 .npc-ad-metric-switch button {
   min-height: 30px;
   border: 0;
@@ -12471,8 +12667,8 @@
 }
 
 .npc-ad-metric-switch button.is-active {
-  background: #2563eb;
-  color: #ffffff;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .npc-ad-trend-chart {
@@ -12480,10 +12676,30 @@
   margin-top: 8px;
 }
 
+.npc-ad-trend-empty {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  color: #64748b;
+  font-weight: 800;
+}
+
 .npc-ad-trend-chart svg {
   display: block;
   width: 100%;
   height: 220px;
+}
+
+.npc-ad-trend-chart svg path {
+  fill: none;
+  stroke-width: 2;
+}
+
+.npc-ad-trend-chart svg circle {
+  fill: #ffffff;
+  stroke-width: 2;
 }
 
 .npc-ad-trend-grid {
@@ -14685,16 +14901,16 @@ td.workbench-follow-title-col strong {
 }
 
 .workbench-modal-button-primary {
-  border-color: #2563eb;
-  background: #2563eb;
-  color: #ffffff;
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  box-shadow: none;
 }
 
 .workbench-modal-button-primary:hover {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
-  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.28);
+  border-color: #60a5fa;
+  background: #dbeafe;
+  box-shadow: none;
   transform: translateY(-1px);
 }
 
@@ -16209,14 +16425,14 @@ td.workbench-follow-title-col strong {
 }
 
 .npc-workbench-toolbar .npc-apply-filter-button {
-  border-color: #2563eb;
-  background: #2563eb;
-  color: #ffffff;
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .npc-workbench-toolbar .npc-apply-filter-button:hover {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
+  border-color: #60a5fa;
+  background: #dbeafe;
 }
 
 .npc-workbench-toolbar .npc-apply-filter-button:disabled {
@@ -17335,10 +17551,10 @@ td.workbench-follow-title-col strong {
 
 .npc-workbench-page .npc-store-clear-button:hover,
 .npc-workbench-page .npc-store-search-button:hover {
-  border-color: #2563eb;
-  background: #2563eb;
-  color: #ffffff;
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.22);
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  box-shadow: none;
 }
 
 /* Final cleanup for legacy dark/gray styles on regular admin pages. */
@@ -17671,15 +17887,15 @@ td.workbench-follow-title-col strong {
 
 .account-page .account-form-actions button,
 .account-page .account-edit-modal-actions button:last-child {
-  border-color: #2563eb;
-  background: #2563eb;
-  color: #ffffff;
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .account-page .account-form-actions button:hover,
 .account-page .account-edit-modal-actions button:last-child:hover {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
+  border-color: #60a5fa;
+  background: #dbeafe;
 }
 
 .account-page .account-message {
@@ -19189,9 +19405,9 @@ td.workbench-follow-title-col strong {
 }
 
 .admin-main .alibaba-settings-page .store-primary-button {
-  border-color: #1d4ed8 !important;
-  background: #1d4ed8 !important;
-  color: #ffffff !important;
+  border-color: #93c5fd !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
 }
 
 .admin-main .alibaba-settings-page .danger-action-button {
@@ -19254,4 +19470,18 @@ td.workbench-follow-title-col strong {
   border-color: #bbf7d0;
   background: #f0fdf4;
   color: #15803d;
+}
+
+.npc-ad-workbench-page .npc-ad-board-filter,
+.npc-ad-workbench-page .npc-ad-date-filter {
+  overflow: visible !important;
+}
+
+.npc-ad-workbench-page .npc-ad-board-filter {
+  position: relative;
+  z-index: 50;
+}
+
+.npc-ad-workbench-page .npc-ad-date-popover {
+  z-index: 999;
 }

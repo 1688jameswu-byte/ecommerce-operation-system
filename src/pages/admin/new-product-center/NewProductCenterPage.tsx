@@ -1651,7 +1651,7 @@ function getAcosValue(item: AdStrategySuggestion | AdStrategyExecutionRecord | A
 }
 
 function getStoreSalesAmount(item: AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord) {
-  const direct = Number((item as any).storeSalesAmount ?? (item as any).orderSalesAmount ?? (item as any).salesAmount ?? 0);
+  const direct = Number((item as any).storeSalesAmount ?? (item as any).globalSalesAmount ?? (item as any).orderSalesAmount ?? (item as any).salesAmount ?? 0);
   if (Number.isFinite(direct) && direct > 0) return direct;
   return getAdSalesAmount(item) + Number((item as any).naturalOrderCount || 0) * 39.8;
 }
@@ -1684,9 +1684,128 @@ function normalizeAdImportRecord(row: Record<string, any>): AdStrategySuggestion
     addToCartCount: Number(row.promoAddToCartCount ?? row.globalAddToCartCount ?? row.addToCartCount ?? 0),
     roas: row.promoRoas === null || row.promoRoas === undefined ? (adSpend > 0 ? adSalesAmount / adSpend : null) : Number(row.promoRoas),
     acos: row.promoAcos === null || row.promoAcos === undefined ? (adSalesAmount > 0 ? adSpend / adSalesAmount : null) : Number(row.promoAcos),
+    storeSalesAmount: Number(row.globalSalesAmount || row.storeSalesAmount || adSalesAmount || 0),
     orderSalesAmount: Number(row.globalSalesAmount || adSalesAmount || 0),
     generated: true,
-  };
+  } as AdStrategySuggestion;
+}
+
+function offsetDate(dateText: string, offsetDays: number) {
+  const date = new Date(`${dateText}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateText;
+  date.setDate(date.getDate() + offsetDays);
+  return date.toISOString().slice(0, 10);
+}
+
+function diffDateDays(startDate: string, endDate: string) {
+  const start = new Date(`${startDate}T00:00:00`).getTime();
+  const end = new Date(`${endDate}T00:00:00`).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return 0;
+  return Math.floor((end - start) / 86400000) + 1;
+}
+
+function buildDateRange(startDate: string, endDate: string) {
+  if (!startDate || !endDate) return [];
+  const dates: string[] = [];
+  let current = startDate;
+  for (let index = 0; index < 60 && current <= endDate; index += 1) {
+    dates.push(current);
+    current = offsetDate(current, 1);
+  }
+  return dates;
+}
+
+function todayDateKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function monthKeyFromDate(dateText: string) {
+  const fallback = todayDateKey().slice(0, 7);
+  return /^\d{4}-\d{2}/.test(dateText) ? dateText.slice(0, 7) : fallback;
+}
+
+function formatMonthTitle(monthKey: string) {
+  const [year, month] = monthKey.split('-');
+  return `${year}年${Number(month || 1)}月`;
+}
+
+function offsetMonth(monthKey: string, offset: number) {
+  const [year, month] = monthKey.split('-').map(Number);
+  const date = new Date(year, (month || 1) - 1 + offset, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function buildCalendarDays(monthKey: string) {
+  const [year, month] = monthKey.split('-').map(Number);
+  const first = new Date(year, (month || 1) - 1, 1);
+  const start = new Date(first);
+  start.setDate(first.getDate() - first.getDay());
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return { dateKey, day: date.getDate(), inMonth: date.getMonth() === first.getMonth() };
+  });
+}
+
+function isDateInRange(dateKey: string, startDate: string, endDate: string) {
+  if (!startDate) return false;
+  const start = endDate && endDate < startDate ? endDate : startDate;
+  const end = endDate && endDate < startDate ? startDate : (endDate || startDate);
+  return dateKey >= start && dateKey <= end;
+}
+
+function AdDateRangeCalendar({
+  monthKey,
+  startDate,
+  endDate,
+  error,
+  onMonthChange,
+  onSelect,
+  onClear,
+}: {
+  monthKey: string;
+  startDate: string;
+  endDate: string;
+  error: string;
+  onMonthChange: (monthKey: string) => void;
+  onSelect: (dateKey: string) => void;
+  onClear: () => void;
+}) {
+  const days = buildCalendarDays(monthKey);
+  return (
+    <span className="npc-ad-date-popover npc-ad-calendar-popover">
+      <span className="npc-ad-calendar-header">
+        <button type="button" onClick={() => onMonthChange(offsetMonth(monthKey, -1))}>上月</button>
+        <strong>{formatMonthTitle(monthKey)}</strong>
+        <button type="button" onClick={() => onMonthChange(offsetMonth(monthKey, 1))}>下月</button>
+      </span>
+      <span className="npc-ad-calendar-week">
+        {['日', '一', '二', '三', '四', '五', '六'].map((day) => <b key={day}>{day}</b>)}
+      </span>
+      <span className="npc-ad-calendar-grid">
+        {days.map((day) => {
+          const selected = day.dateKey === startDate || (!!endDate && day.dateKey === endDate);
+          return (
+            <button
+              type="button"
+              key={day.dateKey}
+              className={`${day.inMonth ? '' : 'is-outside'} ${isDateInRange(day.dateKey, startDate, endDate) ? 'is-in-range' : ''} ${selected ? 'is-selected' : ''}`}
+              onClick={() => onSelect(day.dateKey)}
+            >
+              {day.day}
+            </button>
+          );
+        })}
+      </span>
+      <em>{startDate ? `${startDate}${endDate && endDate !== startDate ? ` 至 ${endDate}` : ''}` : '请选择日期'}</em>
+      {error && <strong className="npc-ad-calendar-error">{error}</strong>}
+      <i>
+        <button type="button" onClick={onClear}>清除</button>
+        <button type="button" onClick={() => onSelect(todayDateKey())}>今天</button>
+      </i>
+    </span>
+  );
 }
 
 function getAdIssueLabel(item: AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord) {
@@ -2026,6 +2145,115 @@ function MiniLineTrend({ stores, metric }: { stores: Array<{ storeName: string; 
   );
 }
 
+function getAdTrendValue(row: Record<string, any>, metric: TrendMetricKey) {
+  const adSpend = Number(row.adSpend ?? row.ad_spend ?? 0) || 0;
+  const adSalesAmount = Number(row.promoSalesAmount ?? row.promo_sales_amount ?? row.adSalesAmount ?? row.ad_sales_amount ?? 0) || 0;
+  const storeSalesAmount = Number(row.globalSalesAmount ?? row.global_sales_amount ?? row.storeSalesAmount ?? row.store_sales_amount ?? adSalesAmount) || 0;
+  if (metric === 'adSalesAmount') return adSalesAmount;
+  if (metric === 'roas') return adSpend > 0 ? adSalesAmount / adSpend : 0;
+  if (metric === 'acos') return storeSalesAmount > 0 ? adSpend / storeSalesAmount : 0;
+  return adSpend;
+}
+
+function formatTrendAxisValue(value: number, metric: TrendMetricKey) {
+  if (metric === 'roas') return value.toFixed(1);
+  if (metric === 'acos') return `${Math.round(value * 100)}%`;
+  return formatInteger(value);
+}
+
+function formatTrendTooltipValue(value: number, metric: TrendMetricKey) {
+  if (metric === 'roas') return formatRoas(value);
+  if (metric === 'acos') return formatRatio(value);
+  return formatMoney(value);
+}
+
+function RealAdTrendChart({
+  trendRows,
+  dateKeys,
+  metric,
+  selectedStoreNames,
+  onSelectedStoreNamesChange,
+}: {
+  trendRows: Array<Record<string, any>>;
+  dateKeys?: string[];
+  metric: TrendMetricKey;
+  selectedStoreNames: string[];
+  onSelectedStoreNamesChange: (next: string[]) => void;
+}) {
+  const colors = ['#2563eb', '#10b981', '#f97316', '#8b5cf6', '#ef4444', '#0ea5e9', '#a16207', '#dc2626'];
+  const dates = dateKeys?.length
+    ? dateKeys
+    : Array.from(new Set(trendRows.map((row) => String(row.reportDate || row.report_date || '').slice(0, 10)).filter(Boolean))).sort();
+  const availableStoreNames = Array.from(new Set(trendRows.map((row) => String(row.storeName || row.store_name || '').trim()).filter(Boolean))).sort();
+  const visibleStoreNames = selectedStoreNames.length > 0
+    ? selectedStoreNames.filter((storeName) => availableStoreNames.includes(storeName))
+    : availableStoreNames;
+  const valueMap = trendRows.reduce((map, row) => {
+    const date = String(row.reportDate || row.report_date || '').slice(0, 10);
+    const storeName = String(row.storeName || row.store_name || '').trim();
+    if (date && storeName) map.set(`${date}::${storeName}`, getAdTrendValue(row, metric));
+    return map;
+  }, new Map<string, number>());
+  const series = visibleStoreNames.map((storeName, storeIndex) => ({
+    storeName,
+    color: colors[storeIndex % colors.length],
+    values: dates.map((date) => valueMap.get(`${date}::${storeName}`) ?? 0),
+  }));
+  const allValues = series.flatMap((item) => item.values);
+  const max = Math.max(...allValues, 1);
+  const width = 640;
+  const height = 170;
+  const left = 46;
+  const bottom = 28;
+  const plotWidth = width - left - 18;
+  const plotHeight = height - 24 - bottom;
+  const yFor = (value: number) => 18 + plotHeight - (value / max) * plotHeight;
+
+  return (
+    <div className="npc-ad-trend-chart">
+      {dates.length === 0 || visibleStoreNames.length === 0 ? (
+        <div className="npc-ad-trend-empty">暂无广告趋势数据，当前周期按 0 处理。</div>
+      ) : (
+        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="广告趋势分析">
+          {[0, 0.25, 0.5, 0.75, 1].map((tick) => (
+            <g key={tick}>
+              <line x1={left} x2={width - 12} y1={18 + plotHeight - tick * plotHeight} y2={18 + plotHeight - tick * plotHeight} />
+              <text x={8} y={22 + plotHeight - tick * plotHeight}>{formatTrendAxisValue(max * tick, metric)}</text>
+            </g>
+          ))}
+          {dates.map((date, index) => {
+            const x = dates.length === 1 ? left + plotWidth / 2 : left + (index / (dates.length - 1)) * plotWidth;
+            const shouldShow = dates.length <= 12 || index === 0 || index === dates.length - 1 || index % Math.ceil(dates.length / 8) === 0;
+            return shouldShow ? <text key={date} x={x - 14} y={height - 8}>{date.slice(5)}</text> : null;
+          })}
+          {series.map((item) => {
+            const path = item.values.map((value, index) => {
+              const x = dates.length === 1 ? left + plotWidth / 2 : left + (index / (dates.length - 1)) * plotWidth;
+              return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)},${yFor(value).toFixed(1)}`;
+            }).join(' ');
+            return (
+              <g key={item.storeName}>
+                <path d={path} style={{ stroke: item.color }} />
+                {item.values.map((value, index) => {
+                  const x = dates.length === 1 ? left + plotWidth / 2 : left + (index / (dates.length - 1)) * plotWidth;
+                  return (
+                    <circle key={`${item.storeName}-${dates[index]}`} cx={x} cy={yFor(value)} r="2.5" style={{ stroke: item.color }}>
+                      <title>{`${dates[index]} ${item.storeName} ${formatTrendTooltipValue(value, metric)}`}</title>
+                    </circle>
+                  );
+                })}
+              </g>
+            );
+          })}
+        </svg>
+      )}
+      <div className="npc-ad-trend-legend">
+        {series.map((item) => <span key={item.storeName}><i style={{ background: item.color }} />{item.storeName}</span>)}
+      </div>
+    </div>
+  );
+}
+
 function AllStoreAdOverviewBoard({
   rows,
   counts,
@@ -2035,8 +2263,14 @@ function AllStoreAdOverviewBoard({
   summary,
   reportDate,
   totalRecords,
+  storeSummary,
+  storeTrend,
+  trendDateKeys,
+  selectedTrendStoreNames,
   onSort,
+  onOpenStore,
   onTrendMetricChange,
+  onSelectedTrendStoreNamesChange,
 }: {
   rows: AdStrategySuggestion[];
   counts: Record<string, number>;
@@ -2046,10 +2280,16 @@ function AllStoreAdOverviewBoard({
   summary?: Record<string, any>;
   reportDate?: string;
   totalRecords?: number;
+  storeSummary?: Array<Record<string, any>>;
+  storeTrend?: Array<Record<string, any>>;
+  trendDateKeys?: string[];
+  selectedTrendStoreNames: string[];
   onSort: (key: AdStrategySortKey) => void;
+  onOpenStore?: (storeName: string) => void;
   onTrendMetricChange: (key: TrendMetricKey) => void;
+  onSelectedTrendStoreNamesChange: (next: string[]) => void;
 }) {
-  const storeRows = useMemo(() => Array.from(rows.reduce((map, item) => {
+  const detailStoreRows = useMemo(() => Array.from(rows.reduce((map, item) => {
     const key = item.storeName || '未绑定店铺';
     const current = map.get(key) || {
       storeName: key,
@@ -2096,6 +2336,45 @@ function AllStoreAdOverviewBoard({
     const healthStatus = healthScore >= 85 ? '健康' : healthScore >= 70 ? '注意' : healthScore >= 45 ? '风险' : '严重';
     return { ...item, roas, acos, conversionRate, status, healthScore, healthStatus };
   }), [rows]);
+  const summarizedStoreRows = useMemo(() => (storeSummary || []).map((row) => {
+    const adSpend = Number(row.adSpend || 0);
+    const adSalesAmount = Number(row.promoSalesAmount || row.adSalesAmount || 0);
+    const adOrderCount = Number(row.promoSubOrderCount || row.adOrderCount || 0);
+    const clicks = Number(row.promoClicks || row.clicks || 0);
+    const storeSalesAmount = Number(row.globalSalesAmount || row.storeSalesAmount || adSalesAmount || 0);
+    const unmatchedCount = Number(row.unmatchedCount || 0);
+    const roas = adSpend > 0 ? adSalesAmount / adSpend : 0;
+    const acos = storeSalesAmount > 0 ? adSpend / storeSalesAmount : 0;
+    const conversionRate = clicks > 0 ? adOrderCount / clicks : 0;
+    const status = unmatchedCount > 0 ? 'SPU匹配异常' : adSpend > 0 && adOrderCount <= 0 ? '有花费无订单' : roas > 0 && roas < 2 ? 'ROAS偏低' : acos >= 0.32 ? '广告费率过高' : '正常';
+    const abnormalCount = status === '正常' ? 0 : 1;
+    const healthScore = Math.max(30, Math.round(96 - Math.min(30, acos * 80) - Math.max(0, 2.5 - roas) * 10 - abnormalCount * 7));
+    const healthStatus = healthScore >= 85 ? '健康' : healthScore >= 70 ? '注意' : healthScore >= 45 ? '风险' : '严重';
+    return {
+      storeName: String(row.storeName || '-'),
+      operatorName: String(row.operatorName || '-'),
+      storeSalesAmount,
+      adSpend,
+      adSalesAmount,
+      adOrderCount,
+      clicks,
+      productCount: Number(row.adProductCount || 0),
+      abnormalCount,
+      roas,
+      acos,
+      conversionRate,
+      status,
+      healthScore,
+      healthStatus,
+    };
+  }), [storeSummary]);
+  const storeRows = summarizedStoreRows.length ? summarizedStoreRows : detailStoreRows;
+  const trendStoreNames = useMemo(() => Array.from(new Set((storeTrend || [])
+    .map((row) => String(row.storeName || row.store_name || '').trim())
+    .filter(Boolean))).sort(), [storeTrend]);
+  const effectiveTrendStoreNames = selectedTrendStoreNames.length > 0
+    ? selectedTrendStoreNames.filter((storeName) => trendStoreNames.includes(storeName))
+    : trendStoreNames;
 
   const sortedStores = useMemo(() => [...storeRows].sort((first, second) => {
     const firstValue = sortKey === 'roas' ? first.roas : sortKey === 'acos' ? first.acos : sortKey === 'adSalesAmount' ? first.adSalesAmount : sortKey === 'adOrderCount' ? first.adOrderCount : sortKey === 'clicks' ? first.clicks : sortKey === 'conversionRate' ? first.conversionRate : first.adSpend;
@@ -2188,7 +2467,7 @@ function AllStoreAdOverviewBoard({
                     <td>{formatInteger(item.clicks)}</td>
                     <td>{item.conversionRate > 0 ? formatRatio(item.conversionRate) : '-'}</td>
                     <td><span className={`npc-ad-status npc-ad-status-${getAdIssueToneV2(item.status)}`}>{item.status}</span></td>
-                    <td><button type="button" className="npc-ad-link-button">查看</button></td>
+                    <td><button type="button" className="npc-ad-link-button" onClick={() => onOpenStore?.(item.storeName)}>查看</button></td>
                   </tr>
                 ))}
                 {sortedStores.length === 0 && <tr><td colSpan={12}>暂无广告数据，请确认广告日报是否已导入。</td></tr>}
@@ -2238,6 +2517,30 @@ function AllStoreAdOverviewBoard({
         <article className="excel-record-panel npc-panel npc-ad-trend-card">
           <header className="npc-panel-header">
             <h2>广告趋势分析</h2>
+            <div className="npc-ad-trend-store-tags" aria-label="选择店铺">
+              {trendStoreNames.map((storeName) => {
+                const isActive = effectiveTrendStoreNames.includes(storeName);
+                return (
+                  <button
+                    key={storeName}
+                    type="button"
+                    className={isActive ? 'is-active' : ''}
+                    onClick={() => {
+                      if (selectedTrendStoreNames.length === 0) {
+                        onSelectedTrendStoreNamesChange(trendStoreNames.filter((name) => name !== storeName));
+                        return;
+                      }
+                      const next = isActive
+                        ? selectedTrendStoreNames.filter((name) => name !== storeName)
+                        : [...selectedTrendStoreNames, storeName];
+                      onSelectedTrendStoreNamesChange(next.length > 0 ? next : trendStoreNames);
+                    }}
+                  >
+                    {storeName}
+                  </button>
+                );
+              })}
+            </div>
             <div className="npc-ad-metric-switch">
               {[
                 ['adSpend', '广告花费'],
@@ -2247,7 +2550,13 @@ function AllStoreAdOverviewBoard({
               ].map(([key, label]) => <button key={key} type="button" className={trendMetric === key ? 'is-active' : ''} onClick={() => onTrendMetricChange(key as TrendMetricKey)}>{label}</button>)}
             </div>
           </header>
-          <MiniLineTrend stores={storeRows} metric={trendMetric} />
+          <RealAdTrendChart
+            trendRows={storeTrend || []}
+            dateKeys={trendDateKeys}
+            metric={trendMetric}
+            selectedStoreNames={selectedTrendStoreNames}
+            onSelectedStoreNamesChange={onSelectedTrendStoreNamesChange}
+          />
         </article>
         <article className="excel-record-panel npc-panel npc-ad-low-return-card">
           <header className="npc-panel-header"><h2>高花费低回报商品榜</h2><span>Top {highSpendLowReturn.length}</span></header>
@@ -2263,17 +2572,33 @@ function AllStoreAdOverviewBoard({
   );
 }
 
+function getAdItemIdentifier(item: AdStrategySuggestion, key: 'spu' | 'skc' | 'sku') {
+  const record = item as unknown as Record<string, unknown>;
+  const keys = key === 'spu'
+    ? ['temuSpuId', 'spuId']
+    : key === 'skc'
+      ? ['skcIds', 'skcId', 'temuSkcId']
+      : ['skuIds', 'skuId'];
+  for (const field of keys) {
+    const value = record[field];
+    if (value !== undefined && value !== null && String(value).trim()) return String(value);
+  }
+  return '-';
+}
+
 function AdCompactProductTable({ rows, mode }: { rows: AdStrategySuggestion[]; mode: 'risk' | 'good' }) {
   return (
     <div className="npc-table-wrap npc-ad-product-compact-wrap">
       <table>
-        <thead><tr><th>商品 / SPU</th><th>店铺</th><th>广告花费</th><th>广告销售额</th><th>{mode === 'good' ? '广告订单数' : 'ROAS'}</th><th>{mode === 'good' ? 'ROAS' : '状态'}</th>{mode === 'good' && <th>广告费率</th>}<th>操作</th></tr></thead>
+        <thead><tr><th>SPU ID</th><th>SKC ID</th><th>SKU ID</th><th>店铺</th><th>广告花费</th><th>广告销售额</th><th>{mode === 'good' ? '广告订单数' : 'ROAS'}</th><th>{mode === 'good' ? 'ROAS' : '状态'}</th>{mode === 'good' && <th>广告费率</th>}<th>操作</th></tr></thead>
         <tbody>
           {rows.map((item) => {
             const issue = mode === 'good' ? '值得继续投放' : getAdIssueLabelV2(item);
             return (
               <tr key={item.id}>
-                <td><strong>{item.productName || '-'}</strong><small>{String((item as any).temuSpuId || item.productId || '-')}</small></td>
+                <td className="npc-ad-id-cell" title={getAdItemIdentifier(item, 'spu')}>{getAdItemIdentifier(item, 'spu')}</td>
+                <td className="npc-ad-id-cell" title={getAdItemIdentifier(item, 'skc')}>{getAdItemIdentifier(item, 'skc')}</td>
+                <td className="npc-ad-id-cell" title={getAdItemIdentifier(item, 'sku')}>{getAdItemIdentifier(item, 'sku')}</td>
                 <td>{item.storeName || '-'}</td>
                 <td>{formatMoney(item.adSpend)}</td>
                 <td>{formatMoney(getAdSalesAmount(item))}</td>
@@ -2284,7 +2609,7 @@ function AdCompactProductTable({ rows, mode }: { rows: AdStrategySuggestion[]; m
               </tr>
             );
           })}
-          {rows.length === 0 && <tr><td colSpan={mode === 'good' ? 8 : 7}>暂无数据</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={mode === 'good' ? 10 : 9}>暂无数据</td></tr>}
         </tbody>
       </table>
     </div>
@@ -2394,12 +2719,19 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
   const [currentStage, setCurrentStage] = useState('');
   const [type, setType] = useState(initialType);
   const [datePreset, setDatePreset] = useState<AdDatePreset>('recent7');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [isCustomDateOpen, setIsCustomDateOpen] = useState(false);
+  const [customCalendarMonth, setCustomCalendarMonth] = useState(monthKeyFromDate(todayDateKey()));
+  const [customDateError, setCustomDateError] = useState('');
   const [platform, setPlatform] = useState('');
   const [adType, setAdType] = useState('');
   const [productType, setProductType] = useState(initialType ? 'new' : 'all');
   const [abnormalStatus, setAbnormalStatus] = useState('');
   const [sortKey, setSortKey] = useState<AdStrategySortKey>('adSpend');
   const [trendMetric, setTrendMetric] = useState<TrendMetricKey>('adSpend');
+  const [selectedTrendStoreNames, setSelectedTrendStoreNames] = useState<string[]>([]);
+  const [trendDateKeys, setTrendDateKeys] = useState<string[]>([]);
   const [queryVersion, setQueryVersion] = useState(0);
   const [priority, setPriority] = useState('');
   const [status, setStatus] = useState('PENDING');
@@ -2422,6 +2754,61 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
   const [drawerLoading, setDrawerLoading] = useState(false);
 
   const appliedOperatorName = isManager ? operatorName : currentOperatorName;
+  const selectCustomCalendarDate = (dateKey: string) => {
+    const hasOpenRange = Boolean(customStartDate && !customEndDate);
+    if (!hasOpenRange) {
+      setCustomStartDate(dateKey);
+      setCustomEndDate('');
+      setSnapshotDate(dateKey);
+      setDatePreset('custom');
+      setCustomCalendarMonth(monthKeyFromDate(dateKey));
+      setCustomDateError('');
+      setQueryVersion((value) => value + 1);
+      return;
+    }
+    const startDate = dateKey < customStartDate ? dateKey : customStartDate;
+    const endDate = dateKey < customStartDate ? customStartDate : dateKey;
+    if (diffDateDays(startDate, endDate) > 60) {
+      setCustomDateError('时间跨度不能超过60天');
+      return;
+    }
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
+    setSnapshotDate(startDate);
+    setDatePreset('custom');
+    setCustomDateError('');
+    setIsCustomDateOpen(false);
+    setQueryVersion((value) => value + 1);
+  };
+  const clearCustomCalendarDate = () => {
+    setCustomStartDate('');
+    setCustomEndDate('');
+    setCustomDateError('');
+    setIsCustomDateOpen(false);
+  };
+  const applyCustomDateRange = () => {
+    const startDate = customStartDate || customEndDate;
+    const endDate = customEndDate || customStartDate;
+    if (!startDate) {
+      setCustomDateError('请选择开始日期');
+      return;
+    }
+    if (endDate < startDate) {
+      setCustomDateError('结束日期不能早于开始日期');
+      return;
+    }
+    if (diffDateDays(startDate, endDate) > 30) {
+      setCustomDateError('时间跨度不能超过30天');
+      return;
+    }
+    setCustomDateError('');
+    setDatePreset('custom');
+    setSnapshotDate(startDate);
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
+    setIsCustomDateOpen(false);
+    setQueryVersion((value) => value + 1);
+  };
   const filterBase = useMemo(() => {
     const params: Record<string, string> = {};
     if (snapshotDate) params.snapshotDate = snapshotDate;
@@ -2473,23 +2860,38 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           if (selectedStore?.storeName) baseFilters.storeName = selectedStore.storeName;
           else baseFilters.storeId = storeId;
         }
-        const reportDate = datePreset === 'custom' && snapshotDate
-          ? snapshotDate
-          : String((await newProductCenterDataSource.getAdImportRecords(1, 1, baseFilters)).reportDates?.[0] || '').slice(0, 10);
-        if (!reportDate) {
-          if (!cancelled) setAdImportOverview({ batches: [], records: [], reportDate: '' });
+        const recent = await newProductCenterDataSource.getAdImportRecords(1, 1, baseFilters);
+        const latestReportDate = String(recent.reportDates?.[0] || '').slice(0, 10);
+        const customStart = customStartDate || snapshotDate;
+        const customEnd = customEndDate || customStart;
+        const endDate = datePreset === 'custom' && customStart ? customEnd : latestReportDate;
+        const startDate = datePreset === 'recent7'
+          ? offsetDate(endDate, -6)
+          : datePreset === 'recent30'
+            ? offsetDate(endDate, -29)
+            : datePreset === 'custom'
+              ? customStart
+              : endDate;
+        if (!endDate) {
+          if (!cancelled) {
+            setAdImportOverview({ batches: [], records: [], reportDate: '' });
+            setTrendDateKeys([]);
+          }
           return;
         }
-        const overview = await newProductCenterDataSource.getAdImportRecords(1, 50, {
+        if (!cancelled) setTrendDateKeys(buildDateRange(startDate, endDate));
+        const overview = await newProductCenterDataSource.getAdImportRecords(1, 2000, {
           ...baseFilters,
-          reportDate,
+          startDate,
+          endDate,
           sortField: sortKey === 'adSalesAmount' ? 'promoSalesAmount' : sortKey === 'adOrderCount' ? 'promoSubOrderCount' : sortKey === 'clicks' ? 'promoClicks' : sortKey === 'roas' ? 'promoRoas' : sortKey === 'acos' ? 'promoAcos' : 'adSpend',
           sortDirection: sortKey === 'roas' || sortKey === 'conversionRate' ? 'asc' : 'desc',
         });
-        if (!cancelled) setAdImportOverview({ ...overview, reportDate });
+        if (!cancelled) setAdImportOverview({ ...overview, reportDate: startDate === endDate ? endDate : `${startDate} 至 ${endDate}` });
       } catch (error) {
         if (!cancelled) {
           setAdImportOverview({ batches: [], records: [] });
+          setTrendDateKeys([]);
           setMessage(error instanceof Error ? error.message : String(error));
         }
       } finally {
@@ -2500,7 +2902,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
     return () => {
       cancelled = true;
     };
-  }, [datePreset, dimensionTab, queryVersion, snapshotDate, sortKey, storeId, storeOptions]);
+  }, [customEndDate, customStartDate, datePreset, dimensionTab, queryVersion, snapshotDate, sortKey, storeId, storeOptions]);
 
   useEffect(() => {
     const base: Record<string, string> = { ...filterBase, page: String(page), pageSize: String(pageSize) };
@@ -2563,6 +2965,10 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
     setCurrentStage('');
     setType('');
     setDatePreset('recent7');
+    setCustomStartDate('');
+    setCustomEndDate('');
+    setIsCustomDateOpen(false);
+    setCustomDateError('');
     setPlatform('');
     setAdType('');
     setProductType('all');
@@ -2659,11 +3065,43 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
               ['recent30', '近30天'],
               ['custom', '自定义'],
             ].map(([key, label]) => (
-              <button key={key} type="button" className={datePreset === key ? 'is-active' : ''} onClick={() => setDatePreset(key as AdDatePreset)}>
+              <button
+                key={key}
+                type="button"
+                className={datePreset === key ? 'is-active' : ''}
+                onClick={() => {
+                  if (key === 'custom') {
+                    setDatePreset('custom');
+                    setCustomCalendarMonth(monthKeyFromDate(customStartDate || snapshotDate || todayDateKey()));
+                    setIsCustomDateOpen((open) => !open);
+                    setCustomDateError('');
+                    return;
+                  }
+                  setDatePreset(key as AdDatePreset);
+                  setIsCustomDateOpen(false);
+                  setQueryVersion((value) => value + 1);
+                }}
+              >
                 {label}
               </button>
             ))}
           </span>
+          {datePreset === 'custom' && (
+            <span className="npc-ad-custom-date-label">
+              {customStartDate ? `${customStartDate}${customEndDate && customEndDate !== customStartDate ? ` 至 ${customEndDate}` : ''}` : '请选择日期'}
+            </span>
+          )}
+          {isCustomDateOpen && (
+            <AdDateRangeCalendar
+              monthKey={customCalendarMonth}
+              startDate={customStartDate}
+              endDate={customEndDate}
+              error={customDateError}
+              onMonthChange={setCustomCalendarMonth}
+              onSelect={selectCustomCalendarDate}
+              onClear={clearCustomCalendarDate}
+            />
+          )}
         </label>
         <label>平台<select value={platform} onChange={(event) => { setPlatform(event.target.value); setPage(1); }}><option value="">全部平台</option><option value="TEMU">TEMU</option><option value="Amazon">Amazon</option><option value="1688">1688</option><option value="other">其他</option></select></label>
         <label>店铺<select value={storeId} onChange={(event) => { setStoreId(event.target.value); setPage(1); }}><option value="">全部店铺</option>{storeOptions.map((store) => <option key={store.storeId || store.storeName} value={store.storeId || store.storeName}>{store.storeName}</option>)}</select></label>
@@ -2699,7 +3137,18 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           summary={adImportOverview.summary}
           reportDate={adImportOverview.reportDate}
           totalRecords={adImportOverview.total}
+          storeSummary={(adImportOverview as any).storeSummary || []}
+          storeTrend={(adImportOverview as any).storeTrend || []}
+          trendDateKeys={trendDateKeys}
+          selectedTrendStoreNames={selectedTrendStoreNames}
+          onOpenStore={(storeName) => {
+            const params = new URLSearchParams();
+            params.set('storeName', storeName);
+            if (adImportOverview.reportDate && !adImportOverview.reportDate.includes('至')) params.set('reportDate', adImportOverview.reportDate);
+            window.location.href = `/admin/temu-ad-report-import?${params.toString()}`;
+          }}
           onTrendMetricChange={setTrendMetric}
+          onSelectedTrendStoreNamesChange={setSelectedTrendStoreNames}
         />
       ) : (
         <>

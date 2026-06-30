@@ -218,6 +218,8 @@ export interface ImportOverview {
   page?: number;
   pageSize?: number;
   summary?: Record<string, any>;
+  storeSummary?: Array<Record<string, any>>;
+  storeTrend?: Array<Record<string, any>>;
   unmatched?: Array<Record<string, any>>;
   reportDates?: string[];
   categoryOptions?: string[];

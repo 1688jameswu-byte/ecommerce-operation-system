@@ -181,9 +181,10 @@ function getMissingAdMappings(mapping: Record<string, string>) {
 }
 
 export default function TemuAdReportImportPage({ currentUser }: { currentUser: CurrentUser }) {
-  const [reportDate, setReportDate] = useState('');
+  const initialParams = new URLSearchParams(window.location.search);
+  const [reportDate, setReportDate] = useState(initialParams.get('reportDate') || '');
   const [importReportDate, setImportReportDate] = useState('');
-  const [storeName, setStoreName] = useState('');
+  const [storeName, setStoreName] = useState(initialParams.get('storeName') || '');
   const [importStoreName, setImportStoreName] = useState('');
   const [overview, setOverview] = useState<ImportOverview>({ batches: [], records: [] });
   const [preview, setPreview] = useState<ImportPreview | null>(null);

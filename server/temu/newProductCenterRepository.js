@@ -2362,7 +2362,7 @@ export async function getProductImportOverview(params = {}) {
   await runTemuMigrations();
   await backfillTemuImportBatchStores();
   const currentPage = Math.max(Number(params.page) || 1, 1);
-  const size = Math.min(Math.max(Number(params.pageSize) || 50, 1), 50);
+  const size = Math.min(Math.max(Number(params.pageSize) || 50, 1), 2000);
   const offset = (currentPage - 1) * size;
   const filter = createWhereBuilder(1);
   appendStoreScope(filter, 'product_rows', params);
@@ -2862,6 +2862,8 @@ export async function getAdImportOverview(params = {}) {
   const filter = createWhereBuilder(1);
   appendStoreScope(filter, 'a', params);
   if (params.reportDate) filter.push('a.report_date = ?::date', params.reportDate);
+  if (!params.reportDate && params.startDate) filter.push('a.report_date >= ?::date', params.startDate);
+  if (!params.reportDate && params.endDate) filter.push('a.report_date <= ?::date', params.endDate);
   if (params.spuId) filter.push('a.temu_spu_id ILIKE ?', `%${params.spuId}%`);
   if (params.productName) filter.push('a.product_name ILIKE ?', `%${params.productName}%`);
   if (params.matched === 'true') filter.where.push('a.product_id IS NOT NULL');
@@ -2930,6 +2932,7 @@ export async function getAdImportOverview(params = {}) {
   const summary = await queryTemuDatabase(
     `SELECT COUNT(*)::int AS ad_product_count,
             COALESCE(SUM(a.ad_spend),0) AS ad_spend,
+            COALESCE(SUM(a.global_sales_amount),0) AS global_sales_amount,
             COALESCE(SUM(a.promo_sales_amount),0) AS promo_sales_amount,
             COALESCE(SUM(a.promo_sub_order_count),0) AS promo_sub_order_count,
             CASE WHEN COALESCE(SUM(a.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(a.promo_sales_amount),0) / NULLIF(SUM(a.ad_spend),0) END AS promo_roas,
@@ -2937,6 +2940,39 @@ export async function getAdImportOverview(params = {}) {
             COUNT(*) FILTER (WHERE a.product_id IS NOT NULL)::int AS matched_count
      FROM temu_ad_product_daily a
      ${adCondition}`,
+    filter.values,
+  );
+  const storeSummary = await queryTemuDatabase(
+    `SELECT a.store_name,
+            COALESCE(NULLIF(MAX(a.operator_name), ''), '-') AS operator_name,
+            COUNT(*)::int AS ad_product_count,
+            COALESCE(SUM(a.ad_spend),0) AS ad_spend,
+            COALESCE(SUM(a.global_sales_amount),0) AS global_sales_amount,
+            COALESCE(SUM(a.promo_sales_amount),0) AS promo_sales_amount,
+            COALESCE(SUM(a.promo_sub_order_count),0) AS promo_sub_order_count,
+            COALESCE(SUM(a.promo_clicks),0) AS promo_clicks,
+            COUNT(*) FILTER (WHERE a.product_id IS NULL)::int AS unmatched_count,
+            COUNT(*) FILTER (WHERE a.product_id IS NOT NULL)::int AS matched_count
+     FROM temu_ad_product_daily a
+     ${adCondition}
+     GROUP BY a.store_name
+     ORDER BY ad_spend DESC NULLS LAST, a.store_name`,
+    filter.values,
+  );
+  const storeTrend = await queryTemuDatabase(
+    `SELECT a.report_date::text AS report_date,
+            a.store_name,
+            COALESCE(NULLIF(MAX(a.operator_name), ''), '-') AS operator_name,
+            COUNT(*)::int AS ad_product_count,
+            COALESCE(SUM(a.ad_spend),0) AS ad_spend,
+            COALESCE(SUM(a.global_sales_amount),0) AS global_sales_amount,
+            COALESCE(SUM(a.promo_sales_amount),0) AS promo_sales_amount,
+            COALESCE(SUM(a.promo_sub_order_count),0) AS promo_sub_order_count,
+            COALESCE(SUM(a.promo_clicks),0) AS promo_clicks
+     FROM temu_ad_product_daily a
+     ${adCondition}
+     GROUP BY a.report_date, a.store_name
+     ORDER BY a.report_date ASC, a.store_name`,
     filter.values,
   );
   const unmatched = await queryTemuDatabase(
@@ -2965,6 +3001,8 @@ export async function getAdImportOverview(params = {}) {
     page: currentPage,
     pageSize: size,
     summary: toCamel(summary.rows[0] || {}),
+    storeSummary: storeSummary.rows.map(toCamel),
+    storeTrend: storeTrend.rows.map(toCamel),
     unmatched: unmatched.rows.map(toCamel),
     reportDates: dates.rows.map((row) => String(row.report_date || '').slice(0, 10)).filter(Boolean),
   };

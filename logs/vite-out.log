@@ -1536,3 +1536,474 @@
 {"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":9,"rows":0,"slow":false}
 {"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
 {"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":11,"rows":0,"slow":false}
+[2m21:45:03[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":1,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":68,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":73,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":5,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":10,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":14,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":88,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":16,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":92,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":70,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":72,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":14,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":5,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":9,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":5,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":7,"rows":0,"slow":false}
+[2m22:24:18[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":40,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":46,"rows":0,"slow":false}
+[2m22:25:08[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":42,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":43,"rows":0,"slow":false}
+[2m22:26:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":54,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":163,"rows":13,"slow":false}
+[2m22:27:03[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":9,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":56,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":58,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":62,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":65,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":69,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":11,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":5,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":6,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":8,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":9,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":8,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":9,"rows":0,"slow":false}
+[2m22:28:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":59,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":56,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":8,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":13,"rows":0,"slow":false}
+[2m22:28:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:29:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":51,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":56,"rows":0,"slow":false}
+[2m22:29:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":52,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":59,"rows":0,"slow":false}
+[2m22:30:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":11,"rows":0,"slow":false}
+[2m22:30:21[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:31:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:31:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m22:31:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":65,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":66,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/execution","durationMs":8,"rows":20,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/review","durationMs":15,"rows":20,"slow":false}
+[2m22:43:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":49,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/review","durationMs":52,"rows":20,"slow":false}
+[2m22:43:41[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":8,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/review","durationMs":9,"rows":20,"slow":false}
+[2m22:43:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/review","durationMs":8,"rows":20,"slow":false}
+[2m22:44:15[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/review","durationMs":6,"rows":20,"slow":false}
+[2m22:44:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":10,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":59,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":63,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":66,"rows":0,"slow":false}
+[2m22:44:41[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":15,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":13,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":12,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":75,"rows":0,"slow":false}
+[2m22:44:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":13,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":11,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":9,"rows":0,"slow":false}
+[2m22:44:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":5,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":8,"rows":0,"slow":false}
+[2m22:55:07[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m22:55:07[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":65,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":7,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":8,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":113,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":117,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":119,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":18,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":14,"rows":0,"slow":false}
+[2m22:55:53[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m22:55:53[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":73,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":7,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":117,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":10,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":122,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":125,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":14,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":13,"rows":0,"slow":false}
+[2m22:56:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":14,"rows":0,"slow":false}
+[2m22:56:42[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":42,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":47,"rows":0,"slow":false}
+[2m22:56:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m22:57:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":16,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":6,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":6,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":7,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":62,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":61,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":75,"rows":0,"slow":false}
+[2m22:57:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":47,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":54,"rows":0,"slow":false}
+[2m22:58:11[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":12,"rows":0,"slow":false}
+[2m22:58:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":8,"rows":0,"slow":false}
+[2m22:58:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":7,"rows":0,"slow":false}
+[2m22:58:45[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m22:58:45[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":98,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":6,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":9,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":146,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":149,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":153,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":21,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":17,"rows":0,"slow":false}
+[2m22:58:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":9,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":15,"rows":13,"slow":false}
+[2m22:59:08[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":5,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":6,"rows":0,"slow":false}
+[2m22:59:17[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":8,"rows":0,"slow":false}
+[2m22:59:32[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":7,"rows":0,"slow":false}
+[2m22:59:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":6,"rows":0,"slow":false}
+[2m23:00:32[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":52,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":52,"rows":0,"slow":false}
+[2m23:00:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":5,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":10,"rows":0,"slow":false}
+[2m23:01:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:01:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":40,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":45,"rows":0,"slow":false}
+[2m23:02:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":11,"rows":0,"slow":false}
+[2m23:02:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":7,"rows":0,"slow":false}
+[2m23:02:44[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m23:03:32[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":77,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":6,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":16,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":104,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":112,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":120,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":23,"rows":0,"slow":false}
+[2m23:03:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":13,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":11,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":15,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":10,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":26,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":10,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":30,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":22,"rows":0,"slow":false}
+[2m23:04:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":62,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":64,"rows":0,"slow":false}
+[2m23:04:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":8,"rows":0,"slow":false}
+[2m23:04:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":6,"rows":0,"slow":false}
+[2m23:06:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":62,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":67,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":67,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":75,"rows":0,"slow":false}
+[2m23:06:36[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":5,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":8,"rows":0,"slow":false}
+[2m23:06:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":8,"rows":0,"slow":false}
+[2m23:06:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":7,"rows":0,"slow":false}
+[2m23:07:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:09:11[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":39,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":43,"rows":0,"slow":false}
+[2m23:09:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":12,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":53,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":52,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":61,"rows":0,"slow":false}
+[2m23:09:31[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":20,"rows":0,"slow":false}
+[2m23:09:41[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":5,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":11,"rows":0,"slow":false}
+[2m23:10:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":7,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":13,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":5,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":6,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":10,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":17,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":101,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":101,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":112,"rows":13,"slow":false}
+[2m23:10:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":15,"rows":0,"slow":false}
+[2m23:10:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":8,"rows":0,"slow":false}
+[2m23:10:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":8,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":9,"rows":0,"slow":false}
+[2m23:11:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":40,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":43,"rows":0,"slow":false}
+[2m23:11:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":55,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":60,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":53,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":10,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":10,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":8,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":11,"rows":0,"slow":false}
+[2m23:14:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":45,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":150,"rows":13,"slow":false}
+[2m23:15:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":13,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":12,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":51,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":51,"rows":13,"slow":false}
+[2m23:15:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":5,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":7,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":18,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":11,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":9,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":17,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":71,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":77,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":101,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":7,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":12,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":9,"rows":0,"slow":false}
+[2m23:16:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:16:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 3ms
+[workbench-kpi] params period=2026-06 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 1ms
+[workbench-kpi] targets 4ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=3
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 166ms
+[workbench-kpi] firstOrder 218ms
+[workbench-kpi] adExpense 4ms
+[workbench-kpi] afterSaleExpense 17ms
+[workbench-kpi] expense 21ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 244ms
+[2m23:19:12[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m23:19:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[workbench-kpi] cacheHit true 0ms
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":17,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":6,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":15,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":14,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":58,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":60,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":85,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":51,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":48,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":55,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":82,"rows":1,"slow":false}
+[2m23:21:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":19,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":16,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":20,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":12,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":11,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":19,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":10,"rows":50,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":72,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":11,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":8,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":15,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":9,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":19,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":15,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":12,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":11,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":18,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":8,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":20,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":10,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":19,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":18,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":20,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":11,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":33,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":11,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":15,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":8,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":8,"rows":50,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":90,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":94,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":9,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":18,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":15,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":107,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":20,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":110,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":15,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":11,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":11,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":5,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":11,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":6,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":11,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":5,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":11,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":4,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":11,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":3,"rows":0,"slow":false}
+[2m23:23:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":11,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":4,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":8,"rows":11,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":4,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":73,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":76,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":79,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":8,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":12,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":10,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":17,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":182,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":11,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":17,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":10,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":7,"rows":0,"slow":false}
+[2m23:28:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":19,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":16,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":27,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":20,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":21,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":21,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":22,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":13,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":7,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":39,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":11,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":18,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":13,"rows":50,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":4,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":14,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":10,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":8,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":15,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":28,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":25,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":23,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":20,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":6,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":8,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/execution","durationMs":8,"rows":20,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/review","durationMs":7,"rows":20,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":5,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/review","durationMs":6,"rows":20,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":7,"rows":0,"slow":false}
+[2m23:31:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:31:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:31:36[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:32:01[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:32:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m23:33:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
