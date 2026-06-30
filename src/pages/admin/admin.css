@@ -11787,7 +11787,7 @@
 }
 
 .npc-ad-workbench-page {
-  padding: 22px;
+  padding: 18px 20px 24px;
   background: #f3f6fb;
 }
 
@@ -11802,15 +11802,13 @@
 .npc-ad-workbench-title h1 {
   margin: 0;
   color: #0f172a;
-  font-size: 30px;
+  font-size: 24px;
   line-height: 1.2;
   letter-spacing: 0;
 }
 
 .npc-ad-workbench-title p {
-  margin: 7px 0 0;
-  color: #64748b;
-  font-size: 14px;
+  display: none;
 }
 
 .npc-ad-workbench-filter {
@@ -11822,31 +11820,32 @@
 }
 
 .npc-ad-dimension-tabs {
-  display: inline-grid;
-  grid-template-columns: repeat(2, minmax(150px, 1fr));
-  gap: 4px;
-  width: min(420px, 100%);
-  border: 1px solid #cbd5e1;
-  background: #e2e8f0;
-  border-radius: 8px;
-  padding: 4px;
+  display: flex;
+  gap: 24px;
+  width: 100%;
+  margin-top: 10px;
+  border-bottom: 1px solid #dbe4f0;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
 }
 
 .npc-ad-dimension-tabs button {
-  min-height: 38px;
+  min-height: 42px;
   border: 0;
   background: transparent;
   color: #475569;
-  border-radius: 6px;
+  border-radius: 0;
   font-size: 14px;
   font-weight: 900;
   cursor: pointer;
 }
 
 .npc-ad-dimension-tabs button.is-active {
-  background: #ffffff;
+  border-bottom: 3px solid #2563eb;
+  background: transparent;
   color: #2563eb;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  box-shadow: none;
 }
 
 .npc-ad-overview-metrics {
@@ -12045,6 +12044,547 @@
   cursor: pointer;
 }
 
+.npc-ad-strategy-page .npc-strategy-notice,
+.npc-ad-legacy-filter {
+  display: none;
+}
+
+.npc-ad-board-filter {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.5fr) repeat(5, minmax(118px, 1fr)) auto;
+  gap: 14px;
+  margin: 0 0 12px;
+  border: 1px solid #dbe4f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.npc-ad-board-filter label {
+  gap: 6px;
+}
+
+.npc-ad-date-filter {
+  min-width: 260px;
+}
+
+.npc-ad-segmented {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.npc-ad-segmented button {
+  border: 0;
+  border-right: 1px solid #dbe4f0;
+  background: transparent;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.npc-ad-segmented button:last-child {
+  border-right: 0;
+}
+
+.npc-ad-segmented button.is-active,
+.npc-ad-workbench-filter-actions button.is-primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.npc-ad-workbench-filter-actions button.is-primary {
+  border-color: #2563eb;
+  min-width: 76px;
+}
+
+.npc-ad-board {
+  display: grid;
+  gap: 12px;
+}
+
+.npc-ad-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.npc-ad-kpi-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  grid-template-areas: "icon label" "icon value" "icon change";
+  align-items: center;
+  min-height: 110px;
+  border: 1px solid #dbe4f0;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 16px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.npc-ad-kpi-icon {
+  grid-area: icon;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.npc-ad-kpi-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.npc-ad-kpi-card small {
+  grid-area: label;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.npc-ad-kpi-card strong {
+  grid-area: value;
+  color: #0f172a;
+  font-size: 24px;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.npc-ad-kpi-card em {
+  grid-area: change;
+  color: #64748b;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.npc-ad-kpi-card em.is-good {
+  color: #16a34a;
+}
+
+.npc-ad-kpi-card em.is-bad {
+  color: #ef4444;
+}
+
+.npc-ad-first-screen,
+.npc-ad-second-screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(320px, 0.75fr);
+  gap: 12px;
+}
+
+.npc-ad-store-table-card,
+.npc-ad-side-card,
+.npc-ad-trend-card,
+.npc-ad-low-return-card,
+.npc-ad-high-roas-card {
+  border: 1px solid #dbe4f0;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.npc-ad-store-table-card,
+.npc-ad-trend-card,
+.npc-ad-low-return-card,
+.npc-ad-high-roas-card {
+  padding: 12px 14px;
+}
+
+.npc-ad-store-table-wrap {
+  max-height: 360px;
+}
+
+.npc-ad-store-table-wrap table,
+.npc-ad-product-compact-wrap table {
+  min-width: 920px;
+  border-spacing: 0;
+}
+
+.npc-ad-store-table-wrap th,
+.npc-ad-store-table-wrap td,
+.npc-ad-product-compact-wrap th,
+.npc-ad-product-compact-wrap td {
+  padding: 8px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.npc-ad-store-table-wrap th button,
+.npc-ad-product-compact-wrap th button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.npc-ad-link-button {
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.npc-ad-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  border-radius: 999px;
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.npc-ad-status-good,
+.npc-ad-status-success,
+.npc-ad-health-rank em.is-good,
+.npc-ad-health-rank em.is-success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.npc-ad-status-warning,
+.npc-ad-health-rank em.is-warning {
+  background: #fff7ed;
+  color: #f97316;
+}
+
+.npc-ad-status-danger,
+.npc-ad-health-rank em.is-danger {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.npc-ad-status-info,
+.npc-ad-status-muted,
+.npc-ad-health-rank em.is-info,
+.npc-ad-health-rank em.is-muted {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.npc-ad-side {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.npc-ad-side-card {
+  padding: 12px 14px;
+}
+
+.npc-ad-side-card header h2,
+.npc-ad-store-table-card h2,
+.npc-ad-trend-card h2,
+.npc-ad-low-return-card h2,
+.npc-ad-high-roas-card h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.npc-ad-diagnosis-compact {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.npc-ad-diagnosis-compact section {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  color: #334155;
+  font-size: 12px;
+}
+
+.npc-ad-diagnosis-compact b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.npc-ad-diagnosis-compact .level-高 {
+  background: #ef4444;
+}
+
+.npc-ad-diagnosis-compact .level-中 {
+  background: #f97316;
+}
+
+.npc-ad-diagnosis-compact .level-低 {
+  background: #3b82f6;
+}
+
+.npc-ad-diagnosis-compact span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.npc-ad-diagnosis-compact button {
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.npc-ad-health-rank {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.npc-ad-health-rank section {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 48px 44px;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.npc-ad-health-rank i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  color: #475569;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.npc-ad-health-rank section:nth-child(1) i {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.npc-ad-health-rank section:nth-child(2) i {
+  background: #f97316;
+  color: #ffffff;
+}
+
+.npc-ad-health-rank section:nth-child(3) i {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.npc-ad-health-rank span {
+  overflow: hidden;
+  color: #0f172a;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.npc-ad-health-rank strong {
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.npc-ad-health-rank em {
+  border-radius: 999px;
+  padding: 2px 7px;
+  text-align: center;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.npc-ad-quality-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+}
+
+.npc-ad-quality-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.npc-ad-quality-list dt {
+  color: #475569;
+  font-size: 12px;
+}
+
+.npc-ad-quality-list dd {
+  margin: 0;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.npc-ad-quality-list .is-warning {
+  color: #f97316;
+}
+
+.npc-ad-quality-list .is-danger {
+  color: #ef4444;
+}
+
+.npc-ad-metric-switch {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.npc-ad-metric-switch button {
+  min-height: 30px;
+  border: 0;
+  border-right: 1px solid #dbe4f0;
+  background: #ffffff;
+  color: #334155;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.npc-ad-metric-switch button:last-child {
+  border-right: 0;
+}
+
+.npc-ad-metric-switch button.is-active {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.npc-ad-trend-chart {
+  min-height: 250px;
+  margin-top: 8px;
+}
+
+.npc-ad-trend-chart svg {
+  display: block;
+  width: 100%;
+  height: 220px;
+}
+
+.npc-ad-trend-grid {
+  stroke: #e2e8f0;
+  stroke-width: 1;
+}
+
+.npc-ad-trend-line {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.npc-ad-trend-dot {
+  fill: #ffffff;
+  stroke-width: 2;
+}
+
+.npc-ad-trend-axis {
+  fill: #64748b;
+  font-size: 11px;
+}
+
+.npc-ad-trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.npc-ad-trend-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.npc-ad-trend-legend i {
+  width: 20px;
+  height: 3px;
+  border-radius: 999px;
+}
+
+.npc-ad-low-return-card .npc-ad-product-compact-wrap {
+  max-height: 250px;
+}
+
+.npc-ad-high-roas-card .npc-ad-product-compact-wrap {
+  max-height: 360px;
+}
+
+.npc-ad-product-compact-wrap small {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.npc-ad-roas-good {
+  color: #16a34a;
+}
+
+.npc-ad-empty {
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  padding: 12px;
+  text-align: center;
+}
+
+@media (max-width: 1320px) {
+  .npc-ad-board-filter {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .npc-ad-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .npc-ad-first-screen,
+  .npc-ad-second-screen {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .npc-ad-workbench-page {
+    padding: 14px;
+  }
+
+  .npc-ad-board-filter,
+  .npc-ad-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .npc-ad-dimension-tabs {
+    gap: 14px;
+  }
+}
+
 .npc-strategy-health {
   padding: 16px 18px;
 }
@@ -12126,12 +12666,9 @@
 
 .npc-strategy-overview button {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas:
-    "icon label"
-    "icon value";
+  grid-template-rows: auto auto;
   align-items: center;
-  gap: 3px 12px;
+  gap: 8px;
   min-height: 88px;
   border: 0;
   border-right: 1px solid #e2e8f0;
@@ -12149,57 +12686,13 @@
   background: #f8fbff;
 }
 
-.npc-strategy-card-icon {
-  grid-area: icon;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-}
-
-.npc-strategy-card-icon svg {
-  width: 22px;
-  height: 22px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 2;
-}
-
-.npc-strategy-card-icon-blue {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.npc-strategy-card-icon-red {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.npc-strategy-card-icon-green {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-.npc-strategy-card-icon-orange {
-  background: #ffedd5;
-  color: #f97316;
-}
-
-.npc-strategy-card-icon-violet {
-  background: #ede9fe;
-  color: #7c3aed;
-}
-
 .npc-strategy-overview span {
-  grid-area: label;
   color: #64748b;
   font-size: 13px;
   font-weight: 800;
 }
 
 .npc-strategy-overview strong {
-  grid-area: value;
   color: #0f172a;
   font-size: 26px;
   line-height: 1;
