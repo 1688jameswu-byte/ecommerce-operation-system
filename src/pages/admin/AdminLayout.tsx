@@ -633,7 +633,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
                   className="admin-nav-group-title"
                   type="button"
                   onClick={() => setActiveOpenGroup((current) => (
-                    current === group && activeRoute.group !== group ? null : group
+                    current === group ? null : group
                   ))}
                 >
                   <span>{groupLabels[group] ?? group}</span>
