@@ -30,6 +30,7 @@ function SalesTrendChart({ data }: SalesTrendChartProps) {
       backgroundColor: 'rgba(5, 18, 42, 0.94)',
       borderColor: 'rgba(63, 151, 255, 0.5)',
       borderWidth: 1,
+      confine: true,
       padding: [12, 14],
       textStyle: {
         color: '#dceeff',
@@ -44,15 +45,23 @@ function SalesTrendChart({ data }: SalesTrendChartProps) {
       },
       formatter: (params: unknown) => {
         const point = Array.isArray(params) ? params[0] : params;
-        const dataIndex = Number((point as { dataIndex?: number })?.dataIndex ?? -1);
-        const row = data[dataIndex];
-        if (!row) return '';
-        const orderText = typeof row.orderCount === 'number'
+        const chartPoint = point as {
+          axisValue?: string;
+          axisValueLabel?: string;
+          dataIndex?: number;
+          value?: number;
+        };
+        const dataIndex = Number(chartPoint?.dataIndex ?? -1);
+        const date = String(chartPoint?.axisValue ?? chartPoint?.axisValueLabel ?? '');
+        const row = data[dataIndex] ?? data.find((item) => item.date === date);
+        const displayDate = row?.date ?? (date || '-');
+        const salesAmount = Number(row?.salesAmount ?? chartPoint?.value ?? 0);
+        const orderText = typeof row?.orderCount === 'number'
           ? `<div style="margin-top:4px;color:#9fc4e8;">订单数：${row.orderCount}</div>`
           : '';
         return [
-          `<div style="font-weight:800;color:#ffffff;margin-bottom:6px;">${row.date}</div>`,
-          `<div style="color:#dceeff;">销售额：<strong style="color:#38c9ff;">￥ ${formatCurrency(Number(row.salesAmount || 0))}</strong></div>`,
+          `<div style="font-weight:800;color:#ffffff;margin-bottom:6px;">${displayDate}</div>`,
+          `<div style="color:#dceeff;">销售额：<strong style="color:#38c9ff;">￥ ${formatCurrency(salesAmount)}</strong></div>`,
           orderText,
         ].join('');
       },
