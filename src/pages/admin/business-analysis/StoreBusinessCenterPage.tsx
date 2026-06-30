@@ -189,11 +189,11 @@ function normalizeStoreName(value: unknown) {
 }
 
 function normalizeStoreKey(value: unknown) {
-  return String(value ?? '').trim();
+  return String(value ?? '').replace(/\s+/g, '').trim().toLowerCase();
 }
 
-function getStoreKeys(storeId?: string, storeName?: string) {
-  return [normalizeStoreKey(storeId), normalizeStoreKey(storeName)].filter(Boolean);
+function getStoreKeys(storeId?: string, storeName?: string, dbId?: string) {
+  return [normalizeStoreKey(storeId), normalizeStoreKey(storeName), normalizeStoreKey(dbId)].filter(Boolean);
 }
 
 function getPlatformCandidate(record: unknown) {
@@ -218,7 +218,7 @@ function isTemuStore(store: StoreRecord) {
 }
 
 function buildStoreKeySet(stores: StoreRecord[]) {
-  return new Set(stores.flatMap((store) => getStoreKeys(store.id, store.storeName)));
+  return new Set(stores.flatMap((store) => getStoreKeys(store.id, store.storeName, (store as { dbId?: string }).dbId)));
 }
 
 function storeKeyMatches(storeKeys: Set<string>, storeId?: string, storeName?: string) {
@@ -282,16 +282,13 @@ function setDaily(
 
 function getEffectiveListingStoreId(
   item: EffectiveNewListingRecord,
-  resolveStoreKey: (storeName: string) => { storeId: string; storeName: string },
+  resolveStoreKey: (storeId: string, storeName: string) => { storeId: string; storeName: string },
 ) {
   const storeId = String(item.storeId ?? '').trim();
   if (storeId) {
-    return {
-      storeId,
-      storeName: item.storeName || storeId,
-    };
+    return resolveStoreKey(storeId, item.storeName ?? '');
   }
-  return resolveStoreKey(item.storeName ?? '');
+  return resolveStoreKey('', item.storeName ?? '');
 }
 
 function buildMetric(
@@ -356,8 +353,23 @@ function rankMetric(rows: StoreTrendRow[], key: TrendKey) {
 
 function buildStoreTrendRows(data: StoreBusinessData) {
   const storeMatcher = createStoreMatcher(data.stores);
-  const resolveStoreKey = (storeName: string) => {
-    const identity = storeMatcher.match(storeName);
+  const storeByKey = new Map<string, StoreRecord>();
+  data.stores.forEach((store) => {
+    getStoreKeys(store.id, store.storeName, (store as { dbId?: string }).dbId).forEach((key) => {
+      if (!storeByKey.has(key)) {
+        storeByKey.set(key, store);
+      }
+    });
+  });
+  const resolveStoreKey = (storeId: string, storeName: string) => {
+    const store = storeByKey.get(normalizeStoreKey(storeId)) || storeByKey.get(normalizeStoreKey(storeName));
+    if (store) {
+      return {
+        storeId: store.id,
+        storeName: store.storeName,
+      };
+    }
+    const identity = storeMatcher.match(storeName || storeId);
     return {
       storeId: identity.storeId || identity.key,
       storeName: identity.storeName,
@@ -368,7 +380,7 @@ function buildStoreTrendRows(data: StoreBusinessData) {
 
   data.stores.forEach((store) => storeMap.set(store.id, store));
   data.orderDailyRecords.forEach((record) => {
-    const resolved = resolveStoreKey(record.storeName);
+    const resolved = resolveStoreKey('', record.storeName);
     if (!storeMap.has(resolved.storeId)) {
       storeMap.set(resolved.storeId, {
         id: resolved.storeId,
@@ -402,7 +414,7 @@ function buildStoreTrendRows(data: StoreBusinessData) {
   const effectiveListingKeys = new Set<string>();
 
   data.orderDailyRecords.forEach((record) => {
-    const resolved = resolveStoreKey(record.storeName);
+    const resolved = resolveStoreKey('', record.storeName);
     addToDaily(sales, resolved.storeId, record.orderDate, Number(record.salesAmount) || 0);
     addToDaily(firstOrders, resolved.storeId, record.orderDate, Number(record.firstOrderCount) || 0);
   });
@@ -424,9 +436,10 @@ function buildStoreTrendRows(data: StoreBusinessData) {
 
   data.trafficRecords.forEach((record) => {
     const store = record.storeId
-      ? data.stores.find((item) => item.id === record.storeId)
+      ? storeByKey.get(normalizeStoreKey(record.storeId))
       : storeByName.get(normalizeStoreName(record.storeName));
-    const storeId = store?.id || resolveStoreKey(record.storeName).storeId;
+    const resolved = store ? { storeId: store.id, storeName: store.storeName } : resolveStoreKey(record.storeId || '', record.storeName);
+    const storeId = resolved.storeId;
     const visitorValue = Number(record.totalVisitors || record.productVisitors || 0);
     const conversionValue = Number(record.totalPayConversionRate || record.detailPayConversionRate || 0);
     addToDaily(traffic, storeId, record.date, visitorValue);
@@ -726,7 +739,7 @@ function StoreBusinessCenterPage({ currentUser }: { currentUser: CurrentUser }) 
     const isAdmin = currentUser.role === 'admin';
     const scopedOrderRequest = fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=37', { records: [] });
     const scopedTrafficRequest = fetchJson<StoreBusinessTrafficResponse>('/api/persistent-data/trafficConversionStore?view=store-business-traffic&recentDays=37', { records: [] });
-    const scopedEffectiveListingRequest = fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings', []);
+    const scopedEffectiveListingRequest = fetchJson<EffectiveNewListingRecord[]>('/api/effective-new-listings?scope=company-dashboard', []);
     Promise.all([
       referenceDataService.loadCompanyStores(),
       scopedOrderRequest,

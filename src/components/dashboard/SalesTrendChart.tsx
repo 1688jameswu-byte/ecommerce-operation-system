@@ -42,7 +42,21 @@ function SalesTrendChart({ data }: SalesTrendChartProps) {
           width: 1,
         },
       },
-      valueFormatter: (value: unknown) => `￥ ${formatCurrency(Number(value))}`,
+      formatter: (params: unknown) => {
+        const point = Array.isArray(params) ? params[0] : params;
+        const dataIndex = Number((point as { dataIndex?: number })?.dataIndex ?? -1);
+        const row = data[dataIndex];
+        if (!row) return '';
+        const orderText = typeof row.orderCount === 'number'
+          ? `<div style="margin-top:4px;color:#9fc4e8;">订单数：${row.orderCount}</div>`
+          : '';
+        return [
+          `<div style="font-weight:800;color:#ffffff;margin-bottom:6px;">${row.date}</div>`,
+          `<div style="color:#dceeff;">销售额：<strong style="color:#38c9ff;">￥ ${formatCurrency(Number(row.salesAmount || 0))}</strong></div>`,
+          orderText,
+        ].join('');
+      },
+      extraCssText: 'box-shadow:0 12px 28px rgba(0,0,0,.36);border-radius:8px;min-width:140px;',
     },
     grid: {
       left: 54,

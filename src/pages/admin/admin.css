@@ -2467,6 +2467,85 @@
   font-size: 16px;
 }
 
+.operator-listing-trend-panel {
+  gap: 18px;
+}
+
+.operator-listing-trend-filter {
+  grid-template-columns: minmax(220px, 360px) minmax(160px, 220px);
+}
+
+.operator-listing-trend-chart-wrap {
+  min-height: 280px;
+  border: 1px solid rgba(86, 154, 230, 0.22);
+  border-radius: 8px;
+  background: rgba(3, 13, 32, 0.28);
+  padding: 14px;
+  overflow: hidden;
+}
+
+.operator-listing-trend-chart {
+  display: block;
+  width: 100%;
+  height: 300px;
+  color: #60a5fa;
+}
+
+.operator-listing-trend-axis,
+.operator-listing-trend-grid {
+  stroke: rgba(148, 163, 184, 0.26);
+  stroke-width: 1;
+}
+
+.operator-listing-trend-grid {
+  stroke-dasharray: 4 6;
+}
+
+.operator-listing-trend-area {
+  fill: rgba(96, 165, 250, 0.12);
+}
+
+.operator-listing-trend-line {
+  stroke: #60a5fa;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.operator-listing-trend-point {
+  fill: #e0f2fe;
+  stroke: #2563eb;
+  stroke-width: 2;
+}
+
+.operator-listing-trend-label,
+.operator-listing-trend-value,
+.operator-listing-trend-date {
+  fill: #b9d6f4;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.operator-listing-trend-value {
+  fill: #f8fbff;
+}
+
+.operator-listing-trend-table {
+  min-width: 760px;
+}
+
+.operator-listing-trend-table-wrap {
+  max-height: 320px;
+}
+
+.operator-listing-trend-empty {
+  display: grid;
+  min-height: 260px;
+  place-items: center;
+  color: #9fb6cf;
+  font-weight: 600;
+}
+
 @media (max-width: 1180px) {
   .operator-expense-ratio-secondary-grid {
     grid-template-columns: 1fr;
@@ -15933,6 +16012,7 @@ td.workbench-follow-title-col strong {
   .excel-record-panel,
   .operator-sku-section,
   .operator-expense-ratio-subsection,
+  .operator-listing-trend-chart-wrap,
   .operation-ai-debug-panel,
   .fact-quality-summary article,
   .fact-quality-fix-panel,
@@ -15977,6 +16057,7 @@ td.workbench-follow-title-col strong {
   .operator-sku-section-header h3,
   .operator-expense-ratio-subsection h3,
   .operator-expense-ratio-featured h3,
+  .operator-listing-trend-value,
   .operator-anomaly-section h3,
   .analysis-card span,
   .operator-kpi-grid strong,
@@ -15996,6 +16077,9 @@ td.workbench-follow-title-col strong {
   .operator-sku-section-header p,
   .operator-expense-ratio-subsection p,
   .operator-expense-ratio-table .numeric-cell small,
+  .operator-listing-trend-label,
+  .operator-listing-trend-date,
+  .operator-listing-trend-empty,
   .operator-kpi-grid span,
   .operator-anomaly-grid span,
   .operator-anomaly-grid p,
