@@ -151,6 +151,13 @@ type WorkbenchData = {
     dueProductFirstOrderRate?: number | null;
     remainingToTarget?: number | null;
     dueIn7DaysCount?: number;
+    monthlyListingConvertedCount?: number;
+    observationAchievedCount?: number;
+    conversionDuplicateCount?: number;
+    monthlyListingObservingCount?: number;
+    observationOverdueCount?: number;
+    immediateConversionRate?: number | null;
+    observationAchievementRate?: number | null;
     target: number | null;
     completed: number;
     completionRate: number | null;
@@ -410,6 +417,12 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
   const firstOrderDueCount = data.firstOrderKpi.observationDueCount ?? data.firstOrderKpi.decidableCount;
   const firstOrderRate = data.firstOrderKpi.dueProductFirstOrderRate ?? data.firstOrderKpi.firstOrderRate;
   const firstOrderRemaining = data.firstOrderKpi.remainingToTarget ?? (firstOrderTarget ? Math.max(firstOrderTarget - firstOrderCurrent, 0) : null);
+  const monthlyListingConvertedCount = data.firstOrderKpi.monthlyListingConvertedCount ?? 0;
+  const observationAchievedCount = data.firstOrderKpi.observationAchievedCount ?? data.firstOrderKpi.firstOrderWithin30DaysCount ?? 0;
+  const monthlyListingObservingCount = data.firstOrderKpi.monthlyListingObservingCount ?? 0;
+  const observationOverdueCount = data.firstOrderKpi.observationOverdueCount ?? data.firstOrderKpi.expiredNoFirstOrderCount ?? 0;
+  const immediateConversionRate = data.firstOrderKpi.immediateConversionRate;
+  const observationAchievementRate = data.firstOrderKpi.observationAchievementRate ?? firstOrderRate;
   const expenseTargetRatio = data.expenseKpi.targetExpenseRatio ?? data.expenseKpi.targetRatio;
   const expenseCurrentRatio = data.expenseKpi.currentExpenseRatio ?? data.expenseKpi.expenseRatio;
   const promotionExpense = data.expenseKpi.promotionExpense ?? data.expenseKpi.adExpense;
@@ -471,11 +484,11 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
     {
       key: 'firstOrder',
       title: '新品转化',
-      subtitle: '30天首单达成',
+      subtitle: '本月新品转化数',
       weight: 20,
       status: firstOrderCard?.status ?? '数据缺失',
       statusClassName: statusClass(firstOrderCard?.status ?? '数据缺失'),
-      mainValue: formatNumber(firstOrderCurrent, '款'),
+      mainValue: `本月新品转化 ${formatNumber(firstOrderCurrent, '款')}`,
       progress: cardProgress(firstOrderCard),
       summaryRows: [
         ['目标', formatNumber(firstOrderTarget, '款')],
@@ -483,12 +496,14 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
         ['得分', scoreText(firstOrderCard)],
       ],
       detailRows: [
-        ['本月观察期到期', formatNumber(firstOrderDueCount, '款')],
-        ['30天内首单', formatNumber(data.firstOrderKpi.firstOrderWithin30DaysCount, '款')],
-        ['到期未首单', formatNumber(data.firstOrderKpi.expiredNoFirstOrderCount, '款')],
-        ['到期商品首单率', formatFirstOrderRate(firstOrderRate)],
+        ['本月上新已转化', formatNumber(monthlyListingConvertedCount, '款')],
+        ['30天观察期达成', formatNumber(observationAchievedCount, '款')],
+        ['观察中新品', formatNumber(monthlyListingObservingCount, '款')],
+        ['逾期未转化', formatNumber(observationOverdueCount, '款')],
+        ['本月上新即时转化率', formatFirstOrderRate(immediateConversionRate)],
+        ['30天观察期达成率', formatFirstOrderRate(observationAchievementRate)],
+        ['观察期本月到期', formatNumber(firstOrderDueCount, '款')],
         ['距离目标还差', formatNumber(firstOrderRemaining, '款')],
-        ['7天内即将到期', formatNumber(data.firstOrderKpi.dueIn7DaysCount ?? 0, '款')],
       ],
       actionLabel: '查看未首单商品',
       actionHref: '#product-follow-ups',

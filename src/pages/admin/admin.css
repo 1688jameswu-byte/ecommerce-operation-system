@@ -18966,6 +18966,52 @@ td.workbench-follow-title-col strong {
   font-weight: 800;
 }
 
+.boss-store-table-card {
+  grid-column: 1 / -1;
+}
+
+.boss-store-table-wrap {
+  overflow-x: hidden;
+}
+
+.boss-store-table-wrap table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.boss-store-table-wrap th,
+.boss-store-table-wrap td {
+  padding: 8px 6px;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.boss-store-table-wrap th:nth-child(1),
+.boss-store-table-wrap td:nth-child(1) { width: 44px; }
+
+.boss-store-table-wrap th:nth-child(2),
+.boss-store-table-wrap td:nth-child(2) { width: 70px; }
+
+.boss-store-table-wrap th:nth-child(3),
+.boss-store-table-wrap td:nth-child(3) { width: 78px; }
+
+.boss-store-table-wrap th:nth-child(4),
+.boss-store-table-wrap td:nth-child(4),
+.boss-store-table-wrap th:nth-child(5),
+.boss-store-table-wrap td:nth-child(5) { width: 74px; }
+
+.boss-store-table-wrap th:nth-child(6),
+.boss-store-table-wrap td:nth-child(6),
+.boss-store-table-wrap th:nth-child(9),
+.boss-store-table-wrap td:nth-child(9) { width: 78px; }
+
+.boss-store-table-wrap th:nth-child(10),
+.boss-store-table-wrap td:nth-child(10) {
+  width: 86px;
+  text-align: center;
+}
+
 .boss-chart-card {
   min-height: 230px;
 }

@@ -367,38 +367,37 @@ function BossDecisionList({ title, rows, type }: { title: string; rows: Array<Re
 
 function BossStoreTable({ rows }: { rows: Array<Record<string, unknown>> }) {
   return (
-    <article className="boss-card">
+    <article className="boss-card boss-store-table-card">
       <header>
         <h2>店铺经营对比</h2>
         <a href="/new-product-center/workbench">查看明细</a>
       </header>
-      <div className="boss-table-wrap">
+      <div className="boss-table-wrap boss-store-table-wrap">
         <table>
           <thead>
             <tr>
-              <th>排名</th><th>店铺</th><th>运营</th><th>近30天新品</th><th>出单新品</th><th>出单率</th><th>总花费</th><th>投资回报率(ROAS)（全域）</th><th>高潜新品</th><th>烧钱无单</th><th>状态判断</th>
+              <th>排名</th><th>店铺</th><th>运营</th><th>新品</th><th>出单新品</th><th>出单率</th><th>销售额</th><th>总花费</th><th>ROAS</th><th>状态判断</th>
             </tr>
           </thead>
           <tbody>
-            {rows.slice(0, 8).map((row, index) => {
+            {rows.map((row, index) => {
               const status = String(row.statusLabel || '健康');
               return (
                 <tr key={String(row.storeId || index)}>
                   <td>{index + 1}</td>
                   <td>{String(row.storeName || '-')}</td>
                   <td>{String(row.operatorName || '-')}</td>
-                  <td>{formatInteger(row.recent30NewCount)}</td>
+                  <td>{formatInteger(row.periodNewCount ?? row.recent30NewCount)}</td>
                   <td>{formatInteger(row.periodOrderedCount)}</td>
                   <td>{bossPercent(row, 'periodOrderedRate')}</td>
+                  <td>{formatMoney(row.orderSalesAmount)}</td>
                   <td>{formatMoney(row.adSpend)}</td>
                   <td>{formatRoas(row.roas)}</td>
-                  <td>{formatInteger(row.highPotentialCount)}</td>
-                  <td>{formatInteger(row.lossNewCount)}</td>
                   <td><span className={`boss-status boss-status-${bossStatusClass(status)}`}>{status}</span></td>
                 </tr>
               );
             })}
-            {rows.length === 0 && <tr><td colSpan={11}>暂无店铺数据</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={10}>暂无店铺数据</td></tr>}
           </tbody>
         </table>
       </div>
@@ -543,7 +542,7 @@ function DashboardView() {
   const previousNewCount = Number(summary.previousPeriodNewCount || 0);
   const newCountChange = previousNewCount ? `${(((Number(summary.periodNewCount || 0) - previousNewCount) / previousNewCount) * 100).toFixed(1)}%` : '-';
   const adSpend = Number(summary.adSpend || 0);
-  const adSales = Number(summary.adSalesAmount || 0);
+  const orderSales = Number(summary.orderSalesAmount ?? summary.salesAmount ?? 0);
 
   return (
     <section className="npc-page boss-dashboard-page">
@@ -584,7 +583,7 @@ function DashboardView() {
         <BossMetricCard icon="cube" title={`近${periodDays}天新品数`} value={formatInteger(summary.periodNewCount)} change={`较上周期 ${newCountChange}`} tone="blue" />
         <BossMetricCard icon="cart" title="出单新品数" value={formatInteger(summary.periodOrderedCount)} change={`子订单数（全域） ${formatInteger(summary.adOrderCount)}`} tone="green" />
         <BossMetricCard icon="clock" title="新品出单率" value={formatRatio(summary.periodOrderedRate)} change={`较上周期 ${rateChange}`} tone="purple" />
-        <BossMetricCard icon="briefcase" title="总花费" value={formatMoney(adSpend)} change={`销售额 ${formatMoney(adSales)}`} tone="orange" />
+        <BossMetricCard icon="briefcase" title="总花费" value={formatMoney(adSpend)} change={`销售额 ${formatMoney(orderSales)}`} tone="orange" />
         <BossMetricCard icon="trend" title="广告投资回报率(ROAS)（全域）" value={formatRoas(summary.roas)} change={`高潜 ${formatInteger(summary.highPotentialCount)}`} tone="cyan" />
         <BossMetricCard icon="alert" title="需关注店铺数" value={formatInteger(summary.attentionStoreCount)} change={`待处理 ${formatInteger(summary.pendingRecommendationCount)}`} tone="red" />
       </div>

@@ -5699,6 +5699,17 @@ function getWorkbenchOrderSkc(order) {
   return normalizeWorkbenchSkc(order?.skc || order?.skcCode || order?.productSku || order?.skuCode || order?.productName || order?.uniqueKey);
 }
 
+function getWorkbenchProductIdentity(product) {
+  return String(
+    product?.productId ||
+    product?.productKey ||
+    product?.spuId ||
+    product?.skcId ||
+    product?.skuId ||
+    `${product?.storeName || product?.storeId || ''}-${product?.listedAt || ''}-${product?.productName || ''}`,
+  ).trim();
+}
+
 function getWorkbenchMonthRange(period) {
   const safePeriod = /^\d{4}-\d{2}$/.test(period) ? period : formatOrderDateKey(new Date()).slice(0, 7);
   const [year, month] = safePeriod.split('-').map(Number);
@@ -6387,7 +6398,28 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     const listedAt = String(item?.listedAt ?? '').slice(0, 10);
     return listedAt && listedAt >= listingLast7Start && listedAt <= listingReferenceDate;
   }).length;
-  const firstOrderProductCount = newProductFirstOrderStats.firstOrderWithin30DaysCount;
+  const monthlyListingConvertedProducts = newProductListingStats.products.filter((item) => Boolean(String(item?.firstOrderAt || '').slice(0, 10)));
+  const observationAchievedProducts = newProductFirstOrderStats.products.filter((item) => item.status === 'FIRST_ORDER_SUCCESS');
+  const convertedProductMap = new Map();
+  for (const item of [...monthlyListingConvertedProducts, ...observationAchievedProducts]) {
+    const key = getWorkbenchProductIdentity(item);
+    if (key) convertedProductMap.set(key, item);
+  }
+  const firstOrderProductCount = convertedProductMap.size;
+  const monthlyListingConvertedCount = monthlyListingConvertedProducts.length;
+  const observationAchievedCount = observationAchievedProducts.length;
+  const conversionDuplicateCount = Math.max(0, monthlyListingConvertedCount + observationAchievedCount - firstOrderProductCount);
+  const monthlyListingObservingCount = newProductListingStats.products.filter((item) => (
+    !String(item?.firstOrderAt || '').slice(0, 10) &&
+    item.status === 'OBSERVING'
+  )).length;
+  const observationOverdueCount = newProductFirstOrderStats.products.filter((item) => (
+    item.status === 'EXPIRED_NO_FIRST_ORDER' ||
+    item.status === 'DELAYED_FIRST_ORDER'
+  )).length;
+  const observationDueCount = observationAchievedCount + observationOverdueCount;
+  const immediateConversionRate = listingProductCount > 0 ? monthlyListingConvertedCount / listingProductCount : null;
+  const observationAchievementRate = observationDueCount > 0 ? observationAchievedCount / observationDueCount : null;
   const productFollowUpSource = Array.from(new Map([
     ...newProductFirstOrderStats.products,
     ...newProductListingStats.products.filter((item) => item.status === 'OBSERVING'),
@@ -6538,7 +6570,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   };
   const listingByStore = countProductsByStore(newProductListingStats.products);
   const listingObservingByStore = countProductsByStore(newProductListingStats.products, (item) => item.status === 'OBSERVING');
-  const firstOrderSuccessByStore = countProductsByStore(newProductFirstOrderStats.products, (item) => item.status === 'FIRST_ORDER_SUCCESS');
+  const firstOrderSuccessByStore = countProductsByStore(Array.from(convertedProductMap.values()));
   const firstOrderExpiredByStore = countProductsByStore(newProductFirstOrderStats.products, (item) => item.status === 'EXPIRED_NO_FIRST_ORDER');
   const firstOrderObservingByStore = countProductsByStore(newProductFirstOrderStats.products, (item) => item.status === 'OBSERVING');
   logWorkbenchKpiTiming('storeBreakdownPreAggregate', sectionStartedAt, timings);
@@ -6656,7 +6688,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   };
   const salesProgressMetric = buildProgressMetric(salesAmount, target?.salesTarget ?? null);
   const listingProgressMetric = buildProgressMetric(listingProductCount, target?.effectiveListingTarget ?? null);
-  const over7NoFirstOrder = newProductFirstOrderStats.expiredNoFirstOrderCount;
+  const over7NoFirstOrder = observationOverdueCount;
   const remainingListing = Math.max((target?.effectiveListingTarget || 0) - listingProductCount, 0);
   const todaySuggestedListing = target?.effectiveListingTarget > 0 && range.timeProgress > 0 ? Math.ceil(remainingListing / range.remainingDays) : null;
   const dataUpdatedAt = [
@@ -6902,8 +6934,15 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       targetValue: target?.firstOrderProductTarget ?? null,
       targetCompletionRate: completion.firstOrder,
       score: firstOrderScore,
-      observationDueCount: newProductFirstOrderStats.decidableCount,
-      dueProductFirstOrderRate: newProductFirstOrderStats.firstOrderRate,
+      monthlyListingConvertedCount,
+      observationAchievedCount,
+      conversionDuplicateCount,
+      monthlyListingObservingCount,
+      observationOverdueCount,
+      immediateConversionRate,
+      observationAchievementRate,
+      observationDueCount,
+      dueProductFirstOrderRate: observationAchievementRate,
       remainingToTarget: target?.firstOrderProductTarget ? Math.max(target.firstOrderProductTarget - firstOrderProductCount, 0) : null,
       dueIn7DaysCount,
       target: target?.firstOrderProductTarget ?? null,
@@ -6911,11 +6950,11 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       completionRate: completion.firstOrder,
       effectiveListingCount: listingProductCount,
       firstOrderWithin30DaysCount: firstOrderProductCount,
-      expiredNoFirstOrderCount: newProductFirstOrderStats.expiredNoFirstOrderCount,
+      expiredNoFirstOrderCount: observationOverdueCount,
       delayedFirstOrderCount: newProductFirstOrderStats.delayedFirstOrderCount ?? 0,
       observingCount: totalObservingCount,
-      decidableCount: newProductFirstOrderStats.decidableCount,
-      firstOrderRate: newProductFirstOrderStats.firstOrderRate,
+      decidableCount: observationDueCount,
+      firstOrderRate: observationAchievementRate,
       over7NoFirstOrder,
     },
     expenseKpi: {

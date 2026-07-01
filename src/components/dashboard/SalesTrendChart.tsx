@@ -12,11 +12,19 @@ interface SalesTrendChartProps {
   data: SalesTrendItem[];
 }
 
-function formatCurrency(value: number) {
+function formatCurrency(value: unknown) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return '—';
   return new Intl.NumberFormat('zh-CN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(value);
+  }).format(numericValue);
+}
+
+function formatInteger(value: unknown) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return '—';
+  return String(Math.round(numericValue));
 }
 
 function SalesTrendChart({ data }: SalesTrendChartProps) {
@@ -26,8 +34,17 @@ function SalesTrendChart({ data }: SalesTrendChartProps) {
     backgroundColor: 'transparent',
     color: ['#1f8fff'],
     tooltip: {
-      trigger: 'item',
+      trigger: 'axis',
       triggerOn: 'mousemove|click',
+      axisPointer: {
+        type: 'line',
+        snap: true,
+        lineStyle: {
+          color: 'rgba(126, 190, 255, 0.9)',
+          width: 1,
+          opacity: 0.35,
+        },
+      },
       backgroundColor: 'rgba(5, 18, 42, 0.94)',
       borderColor: 'rgba(63, 151, 255, 0.5)',
       borderWidth: 1,
@@ -63,14 +80,12 @@ function SalesTrendChart({ data }: SalesTrendChartProps) {
         const date = String(chartPoint?.axisValue ?? chartPoint?.axisValueLabel ?? '');
         const row = data[dataIndex] ?? data.find((item) => item.date === date);
         const displayDate = row?.date ?? (date || '-');
-        const salesAmount = Number(row?.salesAmount ?? chartPoint?.value ?? 0);
-        const orderText = typeof row?.orderCount === 'number'
-          ? `<div style="margin-top:3px;color:#9fc4e8;">订单数：${row.orderCount}</div>`
-          : '';
+        const salesAmount = row?.salesAmount ?? chartPoint?.value;
+        const orderCount = row?.orderCount;
         return [
-          `<div style="font-weight:800;color:#ffffff;margin-bottom:4px;">${displayDate}</div>`,
-          `<div style="color:#dceeff;">销售额：<strong style="color:#38c9ff;">￥ ${formatCurrency(salesAmount)}</strong></div>`,
-          orderText,
+          `<div style="font-weight:800;color:#ffffff;margin-bottom:6px;">日期：${displayDate}</div>`,
+          `<div style="color:#dceeff;">销售额：<strong style="color:#38c9ff;">¥${formatCurrency(salesAmount)}</strong></div>`,
+          `<div style="margin-top:3px;color:#9fc4e8;">订单数：<strong style="color:#38c9ff;">${formatInteger(orderCount)}</strong></div>`,
         ].join('');
       },
       extraCssText: 'box-shadow:0 8px 20px rgba(0,0,0,.32);border-radius:8px;min-width:132px;max-width:180px;white-space:nowrap;pointer-events:none;',
@@ -120,8 +135,12 @@ function SalesTrendChart({ data }: SalesTrendChartProps) {
         type: 'line',
         smooth: true,
         symbol: 'circle',
-        symbolSize: 7,
+        symbolSize: 5,
         showSymbol: true,
+        emphasis: {
+          focus: 'series',
+          scale: 1.6,
+        },
         lineStyle: {
           width: 3,
           color: '#1f8fff',

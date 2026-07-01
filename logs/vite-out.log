@@ -3011,3 +3011,188 @@
 [temu-ad-report-trend] 3ms metric=adSalesAmount mode=topSpend5 stores=C店,F店,A店
 [temu-ad-report-trend] 4ms metric=roas mode=topSpend5 stores=C店,F店,A店
 [temu-ad-report-trend] 3ms metric=acos mode=topSpend5 stores=C店,F店,A店
+[2m17:12:20[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m17:12:20[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+[temu-ad-report-records] 4ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":21,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":132,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":2,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":153,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":5,"rows":6,"slow":false}
+[temu-ad-report-trend] 166ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-trend] 13ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 174ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-records] 25ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":3,"rows":0,"slow":false}
+[temu-ad-report-records] 0ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-trend] 0ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":261,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":112,"rows":13,"slow":false}
+[2m17:12:36[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":2,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+[2m17:12:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
+[2m17:13:18[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m17:13:18[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+[temu-ad-report-records] 4ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":18,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":84,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":2,"rows":6,"slow":false}
+[temu-ad-report-records] 98ms topOnly=false lightweight=true pageSize=80 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":103,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":10,"rows":13,"slow":false}
+[temu-ad-report-records] 0ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-records] 1ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":114,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":22,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+[temu-ad-report-records] 0ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+[temu-ad-report-trend] 124ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-trend] 20ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-trend] 4ms metric=adSpend mode=topSpend5 stores=auto
+[2m17:14:52[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m17:14:52[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+[temu-ad-report-records] 4ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":15,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":110,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":2,"rows":6,"slow":false}
+[temu-ad-report-trend] 130ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 141ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-records] 5ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-trend] 0ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":163,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":35,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":190,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":67,"rows":6,"slow":false}
+[temu-ad-report-records] 0ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-trend] 0ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+[2m17:14:59[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m17:14:59[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+[temu-ad-report-records] 4ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":19,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":1,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":101,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":2,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":116,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":10,"rows":6,"slow":false}
+[temu-ad-report-records] 117ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-records] 7ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":131,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":25,"rows":13,"slow":false}
+[temu-ad-report-trend] 123ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-trend] 13ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 0ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-trend] 0ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 1ms topOnly=true lightweight=false pageSize=10 store=all
+[2m17:15:10[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m17:15:10[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+[temu-ad-report-records] 4ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":17,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":90,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":4,"rows":6,"slow":false}
+[temu-ad-report-trend] 83ms metric=adSpend mode=topSpend5 stores=auto
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":99,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":10,"rows":6,"slow":false}
+[temu-ad-report-trend] 0ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":1,"rows":0,"slow":false}
+[temu-ad-report-trend] 0ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 111ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-records] 21ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-records] 7ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":128,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":44,"rows":13,"slow":false}
+[2m17:25:23[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m17:25:24[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+[temu-ad-report-records] 4ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":21,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":98,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":3,"rows":6,"slow":false}
+[temu-ad-report-records] 101ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-records] 1ms topOnly=false lightweight=true pageSize=80 store=all
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":116,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":19,"rows":6,"slow":false}
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+[temu-ad-report-records] 0ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+[temu-ad-report-trend] 125ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-trend] 17ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-trend] 4ms metric=adSpend mode=topSpend5 stores=auto
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":135,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":36,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":3,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+[temu-ad-report-records] 6ms topOnly=true lightweight=false pageSize=10 store=all
+[temu-ad-report-records] 16ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-trend] 17ms metric=adSpend mode=topSpend5 stores=auto
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":2,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+[temu-ad-report-records] 4ms topOnly=true lightweight=false pageSize=10 store=all
+[temu-ad-report-trend] 7ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 10ms topOnly=false lightweight=true pageSize=80 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":2,"rows":13,"slow":false}
+[temu-ad-report-records] 0ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-trend] 1ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 1ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":2,"rows":13,"slow":false}
+[temu-ad-report-records] 0ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-trend] 0ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":2,"rows":13,"slow":false}
+[temu-ad-report-records] 0ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-trend] 0ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":2,"rows":13,"slow":false}
+[temu-ad-report-records] 0ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-trend] 0ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":2,"rows":13,"slow":false}
+[temu-ad-report-records] 0ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-trend] 0ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 0ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":2,"rows":13,"slow":false}
+[temu-ad-report-records] 0ms topOnly=false lightweight=true pageSize=80 store=all
+[temu-ad-report-trend] 0ms metric=adSpend mode=topSpend5 stores=auto
+[temu-ad-report-records] 1ms topOnly=true lightweight=false pageSize=10 store=all
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+[2m17:25:34[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:25:34[22m [36m[1m[vite][22m[39m server restarted.
+[2m17:25:48[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:25:48[22m [36m[1m[vite][22m[39m server restarted.
+[2m17:26:03[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:26:04[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":79,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":66,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":177,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":225,"rows":1,"slow":false}
+[2m17:26:14[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m17:26:14[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":99,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":15,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":15,"rows":1,"slow":false}

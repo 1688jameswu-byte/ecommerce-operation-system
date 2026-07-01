@@ -1721,6 +1721,67 @@ async function getScopedBaseCounts(params = {}) {
   };
 }
 
+async function getScopedTemuStores(params = {}, snapshotDate = null) {
+  const values = [snapshotDate || null];
+  const where = [
+    `UPPER(COALESCE(s.platform, 'TEMU')) = 'TEMU'`,
+    `COALESCE(s.status, 'active') <> 'inactive'`,
+    `COALESCE(NULLIF(s.store_name, ''), '') <> ''`,
+  ];
+  const push = (sql, value) => {
+    values.push(value);
+    where.push(sql.replace('?', `$${values.length}`));
+  };
+  if (params.storeId) {
+    values.push(params.storeId);
+    where.push(`(s.id::text = $${values.length} OR s.legacy_id = $${values.length} OR s.store_name = $${values.length})`);
+  }
+  if (params.storeName) push(`s.store_name = ?`, params.storeName);
+  if (Array.isArray(params.storeIds)) {
+    if (params.storeIds.length === 0) {
+      where.push('1 = 0');
+    } else {
+      values.push(params.storeIds);
+      where.push(`s.id = ANY($${values.length}::uuid[])`);
+    }
+  }
+  if (Array.isArray(params.storeNames)) {
+    if (params.storeNames.length === 0) {
+      where.push('1 = 0');
+    } else {
+      values.push(params.storeNames);
+      where.push(`s.store_name = ANY($${values.length}::text[])`);
+    }
+  }
+  if (params.operatorId) push(`rel.operator_id = ?`, params.operatorId);
+  if (params.operatorName) push(`rel.operator_name = ?`, params.operatorName);
+
+  const result = await queryTemuDatabase(
+    `SELECT s.id AS store_id,
+            s.store_name,
+            rel.operator_id,
+            COALESCE(rel.operator_name, '') AS operator_name
+     FROM temu_stores s
+     LEFT JOIN LATERAL (
+       SELECT r.operator_id,
+              COALESCE(o.operator_name, r.operator_name) AS operator_name
+       FROM temu_store_operator_relations r
+       LEFT JOIN temu_operators o ON o.id = r.operator_id
+       WHERE r.status <> 'inactive'
+         AND UPPER(COALESCE(r.platform, 'TEMU')) = 'TEMU'
+         AND (r.store_id = s.id OR r.store_name = s.store_name)
+         AND ($1::date IS NULL OR COALESCE(r.start_date, DATE '0001-01-01') <= $1::date)
+         AND ($1::date IS NULL OR COALESCE(r.end_date, DATE '9999-12-31') >= $1::date)
+       ORDER BY CASE WHEN r.role = 'primary' THEN 0 ELSE 1 END, r.updated_at DESC
+       LIMIT 1
+     ) rel ON TRUE
+     WHERE ${where.join(' AND ')}
+     ORDER BY s.store_name ASC`,
+    values,
+  );
+  return result.rows.map(toCamel);
+}
+
 export async function getProducts(params = {}) {
   const { snapshotDate, dataCutoffDate, dateMode } = await resolveSnapshotDate(params);
   await ensureSnapshotForRead(snapshotDate);
@@ -1854,6 +1915,7 @@ export async function getBossDashboard(params = {}) {
          COUNT(*) FILTER (WHERE days_online BETWEEN $2 + 1 AND $2 * 2 AND is_ordered) AS previous_period_ordered_count,
          COALESCE(SUM(ad_spend),0) AS ad_spend,
          COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount,
+         COALESCE(SUM(order_sales_amount),0) AS order_sales_amount,
          COALESCE(SUM(ad_order_count),0) AS ad_order_count,
          COUNT(*) FILTER (WHERE (ad_spend >= 5 AND ad_order_count = 0 AND clicks >= 10) OR (target_roas IS NOT NULL AND roas IS NOT NULL AND roas < target_roas)) AS loss_new_count,
          COUNT(*) FILTER (WHERE ad_order_count > 0 AND target_roas IS NOT NULL AND roas IS NOT NULL AND roas >= target_roas) AS high_potential_count,
@@ -1887,7 +1949,8 @@ export async function getBossDashboard(params = {}) {
               COUNT(*) FILTER (WHERE ad_order_count > 0 AND target_roas IS NOT NULL AND roas IS NOT NULL AND roas >= target_roas) AS high_potential_count,
               COUNT(*) FILTER (WHERE (ad_spend >= 5 AND ad_order_count = 0 AND clicks >= 10) OR (target_roas IS NOT NULL AND roas IS NOT NULL AND roas < target_roas) OR product_tag = '数据未匹配') AS problem_count,
               COALESCE(SUM(ad_spend),0) AS ad_spend,
-              COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount
+              COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount,
+              COALESCE(SUM(order_sales_amount),0) AS order_sales_amount
        FROM temu_new_product_daily_snapshot s
        WHERE ${condition}
        GROUP BY operator_id, operator_name
@@ -1912,7 +1975,8 @@ export async function getBossDashboard(params = {}) {
               COUNT(*) FILTER (WHERE ad_spend >= 5 AND ad_order_count = 0 AND clicks >= 10) AS burn_no_order_count,
               COUNT(*) FILTER (WHERE product_tag = '数据未匹配') AS unmatched_count,
               COALESCE(SUM(ad_spend),0) AS ad_spend,
-              COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount
+              COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount,
+              COALESCE(SUM(order_sales_amount),0) AS order_sales_amount
        FROM temu_new_product_daily_snapshot s
        WHERE ${condition}
        GROUP BY store_id, store_name
@@ -1921,7 +1985,36 @@ export async function getBossDashboard(params = {}) {
       queryValues,
     ),
   ]);
-  const decoratedStores = storeRanking.rows.map(decorateBossStoreRow);
+  const snapshotStores = storeRanking.rows.map(decorateBossStoreRow);
+  const scopedStores = await getScopedTemuStores(params, snapshotDate);
+  const storeMap = new Map(snapshotStores.map((store) => [String(store.storeId || store.storeName), store]));
+  const decoratedStores = [
+    ...snapshotStores,
+    ...scopedStores
+      .filter((store) => !storeMap.has(String(store.storeId || store.storeName)))
+      .map((store) => decorateBossStoreRow({
+        store_id: store.storeId,
+        store_name: store.storeName,
+        operator_id: store.operatorId,
+        operator_name: store.operatorName,
+        recent7_new_count: 0,
+        recent30_new_count: 0,
+        recent60_ordered_count: 0,
+        period_new_count: 0,
+        period_ordered_count: 0,
+        new_count: 0,
+        order_count: 0,
+        ad_order_count: 0,
+        natural_order_count: 0,
+        high_potential_count: 0,
+        loss_new_count: 0,
+        burn_no_order_count: 0,
+        unmatched_count: 0,
+        ad_spend: 0,
+        ad_sales_amount: 0,
+        order_sales_amount: 0,
+      })),
+  ];
   const decoratedOperators = operatorRanking.rows.map(decorateBossOperatorRow);
   const topStoreIds = decoratedStores.slice(0, 5).map((store) => store.storeId).filter(Boolean);
   let storeTrend = [];
@@ -1967,6 +2060,7 @@ export async function getBossDashboard(params = {}) {
       previousPeriodOrderedRate: safeDivide(row.previous_period_ordered_count, row.previous_period_new_count),
       adSpend: Number(row.ad_spend || 0),
       adSalesAmount: Number(row.ad_sales_amount || 0),
+      orderSalesAmount: Number(row.order_sales_amount || 0),
       adOrderCount: Number(row.ad_order_count || 0),
       roas: safeDivide(row.ad_sales_amount, row.ad_spend),
       lossNewCount: Number(row.loss_new_count || 0),
@@ -2013,6 +2107,7 @@ async function getBossDashboardLegacy(params = {}) {
        COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 60 AND is_ordered) AS recent60_ordered_count,
        COALESCE(SUM(ad_spend),0) AS ad_spend,
        COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount,
+       COALESCE(SUM(order_sales_amount),0) AS order_sales_amount,
        COUNT(*) FILTER (WHERE product_tag IN ('烧钱无单','高费比新品')) AS loss_new_count,
        COUNT(*) FILTER (WHERE product_tag = '高潜新品') AS high_potential_count,
        COUNT(*) FILTER (WHERE product_tag = '数据未匹配') AS unmatched_count,
@@ -2037,7 +2132,8 @@ async function getBossDashboardLegacy(params = {}) {
             COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 60 AND is_ordered) AS recent60_ordered_count,
             COUNT(*) AS new_count,
             COALESCE(SUM(order_count),0) AS order_count,
-            COALESCE(SUM(ad_spend),0) AS ad_spend, COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount
+            COALESCE(SUM(ad_spend),0) AS ad_spend, COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount,
+            COALESCE(SUM(order_sales_amount),0) AS order_sales_amount
      FROM temu_new_product_daily_snapshot s
      WHERE ${condition}
      GROUP BY operator_id, operator_name
@@ -2052,7 +2148,8 @@ async function getBossDashboardLegacy(params = {}) {
             COUNT(*) FILTER (WHERE days_online BETWEEN 1 AND 60 AND is_ordered) AS recent60_ordered_count,
             COUNT(*) AS new_count,
             COALESCE(SUM(order_count),0) AS order_count,
-            COALESCE(SUM(ad_spend),0) AS ad_spend, COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount
+            COALESCE(SUM(ad_spend),0) AS ad_spend, COALESCE(SUM(ad_sales_amount),0) AS ad_sales_amount,
+            COALESCE(SUM(order_sales_amount),0) AS order_sales_amount
      FROM temu_new_product_daily_snapshot s
      WHERE ${condition}
      GROUP BY store_id, store_name
@@ -2076,6 +2173,7 @@ async function getBossDashboardLegacy(params = {}) {
       recent60OrderedRate: safeDivide(row.recent60_ordered_count, row.recent60_new_count),
       adSpend: Number(row.ad_spend || 0),
       adSalesAmount: Number(row.ad_sales_amount || 0),
+      orderSalesAmount: Number(row.order_sales_amount || 0),
       roas: safeDivide(row.ad_sales_amount, row.ad_spend),
       lossNewCount: Number(row.loss_new_count || 0),
       highPotentialCount: Number(row.high_potential_count || 0),
@@ -2904,6 +3002,7 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
         AND o.is_cancelled = FALSE
         AND o.order_date IS NOT NULL
         AND o.order_date >= p.listed_at::date
+        AND o.order_date <= $2::date
         AND (
           o.store_id IS NULL
           OR sr.store_id IS NULL
