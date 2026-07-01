@@ -2298,7 +2298,6 @@ function AllStoreAdOverviewBoard({
   visibleStores,
   highRoasRows,
   highRoasTotal,
-  highRoasPage,
   highRoasPageSize,
   highRoasStoreId,
   highRoasLoading,
@@ -2307,7 +2306,6 @@ function AllStoreAdOverviewBoard({
   onSort,
   onOpenStore,
   onHighRoasStoreChange,
-  onHighRoasPageChange,
   onTrendMetricChange,
   onSelectedTrendStoreNamesChange,
 }: {
@@ -2324,7 +2322,6 @@ function AllStoreAdOverviewBoard({
   visibleStores?: StoreScopeOption[];
   highRoasRows: AdStrategySuggestion[];
   highRoasTotal: number;
-  highRoasPage: number;
   highRoasPageSize: number;
   highRoasStoreId: string;
   highRoasLoading: boolean;
@@ -2333,7 +2330,6 @@ function AllStoreAdOverviewBoard({
   onSort: (key: AdStrategySortKey) => void;
   onOpenStore?: (storeName: string) => void;
   onHighRoasStoreChange: (storeId: string) => void;
-  onHighRoasPageChange: (page: number) => void;
   onTrendMetricChange: (key: TrendMetricKey) => void;
   onSelectedTrendStoreNamesChange: (next: string[]) => void;
 }) {
@@ -2473,7 +2469,6 @@ function AllStoreAdOverviewBoard({
   const matchBase = matchedCount + unmatchedCount;
   const matchRate = matchBase > 0 ? matchedCount / matchBase : (rows.length ? Math.max(0, 1 - unmatchedCount / Math.max(rows.length, 1)) : 1);
   const highSpendLowReturn = sortAdRecordsV2(rows.filter((item) => Number(item.adSpend || 0) > 0 && (Number(item.adOrderCount || 0) === 0 || getRoasValue(item) < 2)), 'adSpend').slice(0, 8);
-  const highRoasTotalPages = Math.max(1, Math.ceil((highRoasTotal || 0) / highRoasPageSize));
   const metricCards = [
     { label: '总花费', value: formatMoney(totalSpend), icon: 'briefcase', change: changeMeta(rows.length + 1, false) },
     { label: '申报价销售额（全域）', value: formatMoney(totalAdSales), icon: 'cart', change: changeMeta(rows.length + 2) },
@@ -2669,14 +2664,12 @@ function AllStoreAdOverviewBoard({
                 ))}
               </select>
             </label>
-            <span>每页 10 个商品</span>
+            <span>{highRoasStoreId ? '当前店铺 Top 10' : '全店范围 Top 10'}</span>
           </div>
         </header>
         <AdCompactProductTable rows={highRoasRows} mode="good" loading={highRoasLoading} />
         <div className="npc-pagination npc-ad-high-roas-pagination">
-          <span>共 {formatInteger(highRoasTotal)} 个商品，第 {highRoasPage}/{highRoasTotalPages} 页</span>
-          <button type="button" disabled={highRoasLoading || highRoasPage <= 1} onClick={() => onHighRoasPageChange(highRoasPage - 1)}>上一页</button>
-          <button type="button" disabled={highRoasLoading || highRoasPage >= highRoasTotalPages} onClick={() => onHighRoasPageChange(highRoasPage + 1)}>下一页</button>
+          <span>{highRoasStoreId ? '当前店铺' : '全部店铺'}显示 Top {formatInteger(Math.min(highRoasTotal, highRoasPageSize || 10))} 商品</span>
         </div>
       </article>
     </section>
@@ -3064,7 +3057,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
       if (dimensionTab !== 'allStores') return;
       setHighRoasLoading(true);
       try {
-        const selectedStoreKey = highRoasStoreId || storeId;
+        const selectedStoreKey = highRoasStoreId;
         const selectedStore = storeOptions.find((store) => String(store.storeId || store.storeName || '') === String(selectedStoreKey));
         const baseFilters: Record<string, string> = {};
         if (selectedStoreKey) {
@@ -3074,11 +3067,10 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
         if (platform) baseFilters.platform = platform;
         if (appliedOperatorName) baseFilters.operatorName = appliedOperatorName;
 
-        const recent = await newProductCenterDataSource.getAdImportRecords(1, 1, baseFilters);
-        const latestReportDate = String(recent.reportDates?.[0] || '').slice(0, 10);
         const customStart = customStartDate || snapshotDate;
         const customEnd = customEndDate || customStart;
-        const endDate = datePreset === 'custom' && customStart ? customEnd : latestReportDate;
+        const referenceDate = snapshotDate || todayDateKey();
+        const endDate = datePreset === 'custom' && customStart ? customEnd : referenceDate;
         const startDate = datePreset === 'recent7'
           ? offsetDate(endDate, -6)
           : datePreset === 'recent30'
@@ -3090,19 +3082,22 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           if (!cancelled) setHighRoasProducts({ records: [], total: 0, page: 1, pageSize: 10 });
           return;
         }
-        const result = await newProductCenterDataSource.getAdImportRecords(highRoasProducts.page, 10, {
+        const result = await newProductCenterDataSource.getAdImportRecords(1, 10, {
           ...baseFilters,
           startDate,
           endDate,
           sortField: 'globalRoas',
           sortDirection: 'desc',
           roasMin: '2',
+          topOnly: 'true',
+          limit: '10',
         });
+        const records = (result.records || []).map((row) => normalizeAdImportRecord(row));
         if (!cancelled) {
           setHighRoasProducts({
-            records: (result.records || []).map((row) => normalizeAdImportRecord(row)),
-            total: Number(result.total || 0),
-            page: Number(result.page || highRoasProducts.page || 1),
+            records,
+            total: records.length,
+            page: 1,
             pageSize: 10,
           });
         }
@@ -3119,7 +3114,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
     return () => {
       cancelled = true;
     };
-  }, [appliedOperatorName, customEndDate, customStartDate, datePreset, dimensionTab, highRoasProducts.page, highRoasStoreId, platform, queryVersion, snapshotDate, storeId, storeOptions]);
+  }, [appliedOperatorName, customEndDate, customStartDate, datePreset, dimensionTab, highRoasStoreId, platform, queryVersion, snapshotDate, storeOptions]);
 
   useEffect(() => {
     const base: Record<string, string> = { ...filterBase, page: String(page), pageSize: String(pageSize) };
@@ -3369,12 +3364,9 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           totalRecords={adImportOverview.total}
           storeSummary={(adImportOverview as any).storeSummary || []}
           storeTrend={(adImportOverview as any).storeTrend || []}
-          visibleStores={storeId
-            ? storeOptions.filter((store) => String(store.storeId || store.storeName || '') === String(storeId))
-            : storeOptions}
+          visibleStores={storeOptions}
           highRoasRows={highRoasProducts.records}
           highRoasTotal={highRoasProducts.total}
-          highRoasPage={highRoasProducts.page}
           highRoasPageSize={highRoasProducts.pageSize}
           highRoasStoreId={highRoasStoreId}
           highRoasLoading={highRoasLoading}
@@ -3390,7 +3382,6 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
             setHighRoasStoreId(nextStoreId);
             setHighRoasProducts((current) => ({ ...current, page: 1 }));
           }}
-          onHighRoasPageChange={(nextPage) => setHighRoasProducts((current) => ({ ...current, page: Math.max(1, nextPage) }))}
           onTrendMetricChange={setTrendMetric}
           onSelectedTrendStoreNamesChange={setSelectedTrendStoreNames}
         />

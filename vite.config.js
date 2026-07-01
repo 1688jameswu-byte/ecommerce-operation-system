@@ -3495,10 +3495,15 @@ async function handleTemuAdReportImportApi(req, res) {
     const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
     if (req.method === 'GET' && action === 'records') {
       const scope = getNewProductCenterScope(currentUser);
-      res.end(JSON.stringify(await getAdImportOverview({
+      const params = {
         ...Object.fromEntries(requestUrl.searchParams.entries()),
         ...scope,
-      })));
+      };
+      const isTopOnly = String(requestUrl.searchParams.get('topOnly') || '').toLowerCase() === 'true';
+      const payload = isTopOnly
+        ? await getCachedNewProductCenterPayload('temu-ad-report/high-roas', params, currentUser, () => getAdImportOverview(params))
+        : await getAdImportOverview(params);
+      res.end(JSON.stringify(payload));
       return;
     }
     if (req.method === 'DELETE' && action.startsWith('batches/')) {
@@ -3626,6 +3631,9 @@ function getNewProductCenterCacheTtl(pathname) {
     return NEW_PRODUCT_CENTER_STATIC_TTL_MS;
   }
   if (pathname === 'ad-strategy/counts' || pathname === 'ad-strategy/pending') {
+    return NEW_PRODUCT_CENTER_DYNAMIC_TTL_MS;
+  }
+  if (pathname === 'temu-ad-report/high-roas') {
     return NEW_PRODUCT_CENTER_DYNAMIC_TTL_MS;
   }
   return 0;

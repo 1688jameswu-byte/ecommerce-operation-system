@@ -3009,8 +3009,12 @@ const AD_IMPORT_SORT_FIELDS = {
 
 export async function getAdImportOverview(params = {}) {
   await runTemuMigrations();
-  const currentPage = Math.max(Number(params.page) || 1, 1);
-  const size = Math.min(Math.max(Number(params.pageSize) || 50, 1), 2000);
+  const topOnly = params.topOnly === true || String(params.topOnly || '').toLowerCase() === 'true';
+  const currentPage = topOnly ? 1 : Math.max(Number(params.page) || 1, 1);
+  const requestedSize = Number(params.limit || params.pageSize) || (topOnly ? 10 : 50);
+  const size = topOnly
+    ? Math.min(Math.max(requestedSize, 1), 50)
+    : Math.min(Math.max(Number(params.pageSize) || 50, 1), 2000);
   const offset = (currentPage - 1) * size;
   const filter = createWhereBuilder(1);
   appendStoreScope(filter, 'a', params);
@@ -3030,9 +3034,66 @@ export async function getAdImportOverview(params = {}) {
   if (params.adSpendMax) filter.push('a.ad_spend <= ?', Number(params.adSpendMax));
   if (params.promoOrderMin) filter.push('a.global_sub_order_count >= ?', Number(params.promoOrderMin));
   if (params.promoOrderMax) filter.push('a.global_sub_order_count <= ?', Number(params.promoOrderMax));
+  if (topOnly) {
+    filter.where.push('a.ad_spend > 0');
+    filter.where.push('a.global_roas IS NOT NULL');
+    filter.where.push('a.global_roas > 0');
+  }
   const adCondition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : 'WHERE 1 = 0';
   const sortColumn = AD_IMPORT_SORT_FIELDS[params.sortField] || AD_IMPORT_SORT_FIELDS.adSpend;
   const sortDirection = String(params.sortDirection || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+
+  const ads = await queryTemuDatabase(
+    `WITH paged_ads AS (
+       SELECT a.id, a.product_id, a.report_date, a.store_name, a.operator_name, a.temu_product_id, a.temu_spu_id,
+              a.product_name, a.ad_spend, a.net_ad_spend,
+              a.global_sales_amount, a.global_roas, a.global_acos, a.global_cpa, a.global_sub_order_count,
+              a.global_unit_count, a.global_impressions, a.global_clicks, a.global_ctr, a.global_cvr,
+              a.global_add_to_cart_count,
+              a.promo_sales_amount, a.promo_roas, a.promo_week_roas, a.target_roas, a.promo_acos, a.promo_cpa,
+              a.promo_sub_order_count, a.promo_unit_count, a.promo_impressions, a.promo_clicks, a.promo_ctr,
+              a.promo_cvr, a.promo_add_to_cart_count,
+              a.net_promo_sales_amount, a.net_promo_roas, a.net_promo_acos, a.net_promo_cpa,
+              a.net_promo_sub_order_count, a.net_promo_unit_count,
+              a.raw_data, a.updated_at, ${topOnly ? 'NULL::int' : 'COUNT(*) OVER()::int'} AS total_count
+       FROM temu_ad_product_daily a
+       ${adCondition}
+       ORDER BY ${sortColumn} ${sortDirection} NULLS LAST, a.report_date DESC, a.updated_at DESC, a.id DESC
+       LIMIT $${filter.values.length + 1} OFFSET $${filter.values.length + 2}
+     )
+     SELECT pa.*,
+            sku_meta.skc_ids
+     FROM paged_ads pa
+     LEFT JOIN LATERAL (
+       SELECT STRING_AGG(DISTINCT NULLIF(COALESCE(ps.skc_id, ps.temu_skc_id, ps.raw_data ->> 'SKC ID', p.skc_id, p.temu_skc_id, p.raw_data ->> 'SKC ID'), ''), ' / ') AS skc_ids
+       FROM temu_product_skus ps
+       LEFT JOIN temu_products p ON p.id = ps.product_id
+       WHERE (
+         (pa.product_id IS NOT NULL AND ps.product_id = pa.product_id)
+         OR (
+           NULLIF(pa.temu_spu_id, '') IS NOT NULL
+           AND COALESCE(NULLIF(ps.spu_id, ''), NULLIF(ps.raw_data ->> 'SPU ID', ''), NULLIF(p.spu_id, ''), NULLIF(p.raw_data ->> 'SPU ID', ''), NULLIF(p.temu_spu_id, '')) = pa.temu_spu_id
+           AND COALESCE(NULLIF(ps.store_name, ''), NULLIF(p.store_name, '')) = pa.store_name
+         )
+       )
+     ) sku_meta ON TRUE
+     ORDER BY ${sortColumn.replace(/\ba\./g, 'pa.')} ${sortDirection} NULLS LAST, pa.report_date DESC, pa.updated_at DESC, pa.id DESC`,
+    [...filter.values, size, offset],
+  );
+  if (topOnly) {
+    return {
+      batches: [],
+      records: ads.rows.map(toCamel),
+      total: ads.rows.length,
+      page: 1,
+      pageSize: size,
+      summary: {},
+      storeSummary: [],
+      storeTrend: [],
+      unmatched: [],
+      reportDates: [],
+    };
+  }
 
   const batchFilter = createWhereBuilder(1);
   batchFilter.push('b.import_type = ?', 'ad_product_daily');
@@ -3065,43 +3126,6 @@ export async function getAdImportOverview(params = {}) {
      ORDER BY created_at DESC, id DESC
      LIMIT 20`,
     batchFilter.values,
-  );
-  const ads = await queryTemuDatabase(
-    `WITH paged_ads AS (
-       SELECT a.id, a.product_id, a.report_date, a.store_name, a.operator_name, a.temu_product_id, a.temu_spu_id,
-              a.product_name, a.ad_spend, a.net_ad_spend,
-              a.global_sales_amount, a.global_roas, a.global_acos, a.global_cpa, a.global_sub_order_count,
-              a.global_unit_count, a.global_impressions, a.global_clicks, a.global_ctr, a.global_cvr,
-              a.global_add_to_cart_count,
-              a.promo_sales_amount, a.promo_roas, a.promo_week_roas, a.target_roas, a.promo_acos, a.promo_cpa,
-              a.promo_sub_order_count, a.promo_unit_count, a.promo_impressions, a.promo_clicks, a.promo_ctr,
-              a.promo_cvr, a.promo_add_to_cart_count,
-              a.net_promo_sales_amount, a.net_promo_roas, a.net_promo_acos, a.net_promo_cpa,
-              a.net_promo_sub_order_count, a.net_promo_unit_count,
-              a.raw_data, a.updated_at, COUNT(*) OVER()::int AS total_count
-       FROM temu_ad_product_daily a
-       ${adCondition}
-       ORDER BY ${sortColumn} ${sortDirection} NULLS LAST, a.report_date DESC, a.updated_at DESC, a.id DESC
-       LIMIT $${filter.values.length + 1} OFFSET $${filter.values.length + 2}
-     )
-     SELECT pa.*,
-            sku_meta.skc_ids
-     FROM paged_ads pa
-     LEFT JOIN LATERAL (
-       SELECT STRING_AGG(DISTINCT NULLIF(COALESCE(ps.skc_id, ps.temu_skc_id, ps.raw_data ->> 'SKC ID', p.skc_id, p.temu_skc_id, p.raw_data ->> 'SKC ID'), ''), ' / ') AS skc_ids
-       FROM temu_product_skus ps
-       LEFT JOIN temu_products p ON p.id = ps.product_id
-       WHERE (
-         (pa.product_id IS NOT NULL AND ps.product_id = pa.product_id)
-         OR (
-           NULLIF(pa.temu_spu_id, '') IS NOT NULL
-           AND COALESCE(NULLIF(ps.spu_id, ''), NULLIF(ps.raw_data ->> 'SPU ID', ''), NULLIF(p.spu_id, ''), NULLIF(p.raw_data ->> 'SPU ID', ''), NULLIF(p.temu_spu_id, '')) = pa.temu_spu_id
-           AND COALESCE(NULLIF(ps.store_name, ''), NULLIF(p.store_name, '')) = pa.store_name
-         )
-       )
-     ) sku_meta ON TRUE
-     ORDER BY ${sortColumn.replace(/\ba\./g, 'pa.')} ${sortDirection} NULLS LAST, pa.report_date DESC, pa.updated_at DESC, pa.id DESC`,
-    [...filter.values, size, offset],
   );
   const summary = await queryTemuDatabase(
     `SELECT COUNT(*)::int AS ad_product_count,
