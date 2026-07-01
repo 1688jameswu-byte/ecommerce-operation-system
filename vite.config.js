@@ -3494,15 +3494,21 @@ async function handleTemuAdReportImportApi(req, res) {
     const requestUrl = new URL(req.url ?? '/', 'http://localhost');
     const action = (req.url ?? '').split('?')[0].replace(/^\/+/, '');
     if (req.method === 'GET' && action === 'records') {
+      const startedAt = Date.now();
       const scope = getNewProductCenterScope(currentUser);
       const params = {
         ...Object.fromEntries(requestUrl.searchParams.entries()),
         ...scope,
       };
       const isTopOnly = String(requestUrl.searchParams.get('topOnly') || '').toLowerCase() === 'true';
-      const payload = isTopOnly
-        ? await getCachedNewProductCenterPayload('temu-ad-report/high-roas', params, currentUser, () => getAdImportOverview(params))
+      const isLightweight = String(requestUrl.searchParams.get('lightweight') || '').toLowerCase() === 'true';
+      const cachePath = isTopOnly ? 'temu-ad-report/high-roas' : isLightweight ? 'temu-ad-report/ad-overview' : '';
+      const payload = cachePath
+        ? await getCachedNewProductCenterPayload(cachePath, params, currentUser, () => getAdImportOverview(params))
         : await getAdImportOverview(params);
+      const elapsedMs = Date.now() - startedAt;
+      const logger = elapsedMs > 1000 ? console.warn : console.info;
+      logger(`[temu-ad-report-records] ${elapsedMs}ms topOnly=${isTopOnly} lightweight=${isLightweight} pageSize=${params.pageSize || params.limit || ''} store=${params.storeName || params.storeId || 'all'}`);
       res.end(JSON.stringify(payload));
       return;
     }
@@ -3634,6 +3640,9 @@ function getNewProductCenterCacheTtl(pathname) {
     return NEW_PRODUCT_CENTER_DYNAMIC_TTL_MS;
   }
   if (pathname === 'temu-ad-report/high-roas') {
+    return NEW_PRODUCT_CENTER_DYNAMIC_TTL_MS;
+  }
+  if (pathname === 'temu-ad-report/ad-overview') {
     return NEW_PRODUCT_CENTER_DYNAMIC_TTL_MS;
   }
   return 0;
@@ -3942,6 +3951,21 @@ function summarizeOrderImportRecords(records) {
 
 function buildStoreBusinessOrderDaily(data, searchParams) {
   const { start, end } = resolveOrderDateRange(data, searchParams);
+  if (searchParams.get('extrasOnly') === 'sku-first-order') {
+    const result = {
+      dateStart: start,
+      dateEnd: end,
+      records: [],
+    };
+    if (searchParams.get('includeSkuTrend') === '1') {
+      result.skuTrend = buildSkuSalesTrendSummary(data);
+    }
+    if (searchParams.get('includeFirstOrderProducts') === '1') {
+      result.firstOrderProducts = buildFirstOrderProductSummary(data);
+    }
+    return result;
+  }
+
   const groups = new Map();
 
   for (const batch of data?.batches ?? []) {
@@ -5460,6 +5484,7 @@ async function handleSalaryFinancialImportsApi(req, res) {
         ...normalizedDetails,
       ]);
       clearOperationWorkbenchDashboardCache();
+      clearOperatorAnalysisStoreFinancialsCache();
       res.end(JSON.stringify({ ok: true, batch: normalizedBatch }));
       return;
     }
@@ -5471,6 +5496,7 @@ async function handleSalaryFinancialImportsApi(req, res) {
       writeJsonFile('salaryFinancialImportBatches', readCollection('salaryFinancialImportBatches').filter((batch) => batch.id !== batchId));
       writeJsonFile('salaryFinancialDetails', readCollection('salaryFinancialDetails').filter((detail) => detail.importBatchId !== batchId));
       clearOperationWorkbenchDashboardCache();
+      clearOperatorAnalysisStoreFinancialsCache();
       res.end(JSON.stringify({ ok: true }));
       return;
     }
@@ -5591,6 +5617,37 @@ function buildOperatorAnalysisStoreFinancialRecords(searchParams, currentUser) {
     .map(({ hasFinancialData, platform, storeName, ...record }) => record);
 }
 
+function getOperatorAnalysisStoreFinancialsCacheKey(searchParams, currentUser) {
+  const params = Array.from(searchParams.entries())
+    .sort(([firstKey], [secondKey]) => firstKey.localeCompare(secondKey))
+    .map(([key, value]) => `${key}=${value}`)
+    .join('&');
+  return [
+    getPersistentUserScopeKey(currentUser, false),
+    params,
+  ].join('::');
+}
+
+function getCachedOperatorAnalysisStoreFinancialRecords(searchParams, currentUser) {
+  const key = getOperatorAnalysisStoreFinancialsCacheKey(searchParams, currentUser);
+  const cached = operatorAnalysisStoreFinancialsCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.records;
+  }
+  if (cached) operatorAnalysisStoreFinancialsCache.delete(key);
+  const startedAt = Date.now();
+  const records = buildOperatorAnalysisStoreFinancialRecords(searchParams, currentUser);
+  operatorAnalysisStoreFinancialsCache.set(key, {
+    records,
+    expiresAt: Date.now() + OPERATOR_ANALYSIS_FINANCIALS_CACHE_TTL_MS,
+  });
+  const elapsed = Date.now() - startedAt;
+  if (elapsed > 500) {
+    console.warn(`[operator-analysis-financials] build ${elapsed}ms records=${records.length}`);
+  }
+  return records;
+}
+
 function handleOperatorAnalysisStoreFinancialsApi(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
@@ -5605,7 +5662,7 @@ function handleOperatorAnalysisStoreFinancialsApi(req, res) {
 
   const requestUrl = new URL(req.url ?? '/', 'http://local');
   const currentUser = toCurrentUser(findCurrentUser(req));
-  const records = buildOperatorAnalysisStoreFinancialRecords(requestUrl.searchParams, currentUser);
+  const records = getCachedOperatorAnalysisStoreFinancialRecords(requestUrl.searchParams, currentUser);
 
   res.end(JSON.stringify({ records: sanitizeSensitiveFields(records, currentUser) }));
 }
@@ -5995,9 +6052,15 @@ function filterWorkbenchKpiTargetsForScope(targets, currentUser, searchParams = 
 
 const operationWorkbenchDashboardCache = new Map();
 const OPERATION_WORKBENCH_DASHBOARD_CACHE_TTL_MS = 5 * 60_000;
+const operatorAnalysisStoreFinancialsCache = new Map();
+const OPERATOR_ANALYSIS_FINANCIALS_CACHE_TTL_MS = 2 * 60_000;
 
 function clearOperationWorkbenchDashboardCache() {
   operationWorkbenchDashboardCache.clear();
+}
+
+function clearOperatorAnalysisStoreFinancialsCache() {
+  operatorAnalysisStoreFinancialsCache.clear();
 }
 
 function logWorkbenchKpiTiming(label, startedAt, timings) {
@@ -6299,7 +6362,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   if (scope.operatorId) previousFinanceParams.set('operatorId', scope.operatorId);
   if (searchParams.get('storeId')) previousFinanceParams.set('storeId', searchParams.get('storeId'));
   sectionStartedAt = Date.now();
-  const previousFinanceRecords = buildOperatorAnalysisStoreFinancialRecords(previousFinanceParams, currentUser)
+  const previousFinanceRecords = getCachedOperatorAnalysisStoreFinancialRecords(previousFinanceParams, currentUser)
     .filter((record) => !searchParams.get('storeId') || record.storeNames?.includes(searchParams.get('storeId')) || record.storeNames?.some((name) => scope.storeNames.has(normalizeOrderImportStoreName(name))));
   logWorkbenchKpiTiming('afterSaleExpense', sectionStartedAt, timings);
   timings.expense = (timings.adExpense ?? 0) + (timings.afterSaleExpense ?? 0);

@@ -881,17 +881,11 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
           }
         });
 
-      void fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=62&includeSkuTrend=1&includeFirstOrderProducts=1&includeAveragePriceSummary=1&averagePriceRecentDays=30', { records: [], averagePriceSummary: { records: [] } })
+      void fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&recentDays=62&includeAveragePriceSummary=1&averagePriceRecentDays=30', { records: [], averagePriceSummary: { records: [] } })
         .then((orderStore) => {
           if (!cancelled) {
             setAveragePriceRecords((orderStore.averagePriceSummary?.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
             setOrderDailyRecords((orderStore.records ?? []).filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)));
-            setSkuTrend({
-              ...orderStore.skuTrend,
-              storeSkuRankings: (orderStore.skuTrend?.storeSkuRankings ?? [])
-                .filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)),
-            });
-            setFirstOrderProductSummary(orderStore.firstOrderProducts ?? { records: [] });
           }
         });
 
@@ -924,22 +918,47 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
   }, [listingTrendStores, visibleTemuStores]);
 
   useEffect(() => {
+    if (visibleTemuStores.length === 0) return;
     let cancelled = false;
-    salaryFinancialDataSource.loadOperatorAnalysisStoreFinancials({ period: financePeriod })
-      .then((data) => {
-        if (!cancelled) {
-          setSalaryRows(data.records ?? []);
-          setFinanceMessage('');
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setSalaryRows([]);
-          setFinanceMessage('暂无资金明细数据');
-        }
-      });
+    const visibleTemuStoreKeys = buildStoreKeySet(visibleTemuStores);
+    const timer = window.setTimeout(() => {
+      void fetchJson<StoreBusinessOrderDailyResponse>('/api/persistent-data/orderImportStore?view=store-business-daily&extrasOnly=sku-first-order&includeSkuTrend=1&includeFirstOrderProducts=1', { records: [] })
+        .then((orderStore) => {
+          if (cancelled) return;
+          setSkuTrend({
+            ...orderStore.skuTrend,
+            storeSkuRankings: (orderStore.skuTrend?.storeSkuRankings ?? [])
+              .filter((record) => recordMatchesTemuStore(record, visibleTemuStoreKeys)),
+          });
+          setFirstOrderProductSummary(orderStore.firstOrderProducts ?? { records: [] });
+        });
+    }, 800);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [visibleTemuStores]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      salaryFinancialDataSource.loadOperatorAnalysisStoreFinancials({ period: financePeriod })
+        .then((data) => {
+          if (!cancelled) {
+            setSalaryRows(data.records ?? []);
+            setFinanceMessage('');
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setSalaryRows([]);
+            setFinanceMessage('暂无资金明细数据');
+          }
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [financePeriod]);
 

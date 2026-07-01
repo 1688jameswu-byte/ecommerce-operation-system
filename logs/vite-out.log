@@ -2551,3 +2551,198 @@
 {"scope":"new-product-center-api","endpoint":"operator-options","durationMs":2,"rows":6,"slow":false}
 {"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":2,"rows":13,"slow":false}
 {"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":3,"rows":0,"slow":false}
+[2m16:09:02[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:09:02[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":21,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":140,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":8,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":144,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":5,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":150,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":11,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":3,"rows":0,"slow":false}
+[2m16:09:19[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:09:19[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":4,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":14,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":110,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":23,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":114,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":4,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":120,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":10,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":3,"rows":0,"slow":false}
+[2m16:09:33[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:09:33[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":17,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":116,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":5,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":120,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":10,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":124,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":14,"rows":13,"slow":false}
+[2m16:09:45[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:09:45[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":4,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":15,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":138,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":2,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":140,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":2,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":243,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":121,"rows":6,"slow":false}
+[2m16:10:06[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:10:07[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":18,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":98,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":7,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":105,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":9,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":111,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":16,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":2,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":2,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":2,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":2,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":94,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":2,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":97,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":2,"rows":0,"slow":false}
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 3ms
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 13ms
+[workbench-kpi] targets 19ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 146ms
+[workbench-kpi] firstOrder 154ms
+[workbench-kpi] adExpense 1ms
+[workbench-kpi] afterSaleExpense 18ms
+[workbench-kpi] expense 19ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 192ms
+[2m16:18:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+[2m16:20:01[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m16:20:01[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 4ms
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 11ms
+[workbench-kpi] targets 66ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] sales 0ms
+[workbench-kpi] listing 241ms
+[workbench-kpi] firstOrder 252ms
+[workbench-kpi] adExpense 3ms
+[workbench-kpi] afterSaleExpense 15ms
+[workbench-kpi] expense 18ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 287ms
+[2m16:20:16[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m16:20:16[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 3ms
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 14ms
+[workbench-kpi] targets 60ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 228ms
+[workbench-kpi] firstOrder 233ms
+[workbench-kpi] adExpense 3ms
+[workbench-kpi] afterSaleExpense 14ms
+[workbench-kpi] expense 17ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 0ms
+[workbench-kpi] dataIntegrity 1ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 270ms
+[2m16:20:42[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m16:20:43[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 3ms
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 12ms
+[workbench-kpi] targets 91ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] sales 0ms
+[workbench-kpi] firstOrder 293ms
+[workbench-kpi] listing 298ms
+[workbench-kpi] adExpense 3ms
+[workbench-kpi] afterSaleExpense 16ms
+[workbench-kpi] expense 19ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 0ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 333ms
+[2m16:20:57[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:20:57[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 5ms
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 13ms
+[workbench-kpi] targets 54ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] sales 1ms
+[workbench-kpi] firstOrder 269ms
+[workbench-kpi] listing 341ms
+[workbench-kpi] adExpense 4ms
+[workbench-kpi] afterSaleExpense 18ms
+[workbench-kpi] expense 22ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 382ms
+[2m16:21:27[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:21:27[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 4ms
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 12ms
+[workbench-kpi] targets 86ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] sales 0ms
+[workbench-kpi] listing 290ms
+[workbench-kpi] firstOrder 301ms
+[workbench-kpi] adExpense 4ms
+[workbench-kpi] afterSaleExpense 17ms
+[workbench-kpi] expense 21ms
+[workbench-kpi] storeBreakdownPreAggregate 0ms
+[workbench-kpi] storeBreakdown 1ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 340ms

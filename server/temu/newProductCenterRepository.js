@@ -3010,11 +3010,15 @@ const AD_IMPORT_SORT_FIELDS = {
 export async function getAdImportOverview(params = {}) {
   await runTemuMigrations();
   const topOnly = params.topOnly === true || String(params.topOnly || '').toLowerCase() === 'true';
-  const currentPage = topOnly ? 1 : Math.max(Number(params.page) || 1, 1);
+  const lightweight = params.lightweight === true || String(params.lightweight || '').toLowerCase() === 'true';
+  const fastPage = topOnly || lightweight;
+  const currentPage = fastPage ? 1 : Math.max(Number(params.page) || 1, 1);
   const requestedSize = Number(params.limit || params.pageSize) || (topOnly ? 10 : 50);
   const size = topOnly
     ? Math.min(Math.max(requestedSize, 1), 50)
-    : Math.min(Math.max(Number(params.pageSize) || 50, 1), 2000);
+    : lightweight
+      ? Math.min(Math.max(requestedSize, 1), 100)
+      : Math.min(Math.max(Number(params.pageSize) || 50, 1), 2000);
   const offset = (currentPage - 1) * size;
   const filter = createWhereBuilder(1);
   appendStoreScope(filter, 'a', params);
@@ -3042,6 +3046,8 @@ export async function getAdImportOverview(params = {}) {
   const adCondition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : 'WHERE 1 = 0';
   const sortColumn = AD_IMPORT_SORT_FIELDS[params.sortField] || AD_IMPORT_SORT_FIELDS.adSpend;
   const sortDirection = String(params.sortDirection || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+  const includeSkuMeta = !fastPage && String(params.includeSkuMeta || 'true').toLowerCase() !== 'false';
+  const recordTotalExpression = fastPage ? 'NULL::int' : 'COUNT(*) OVER()::int';
 
   const ads = await queryTemuDatabase(
     `WITH paged_ads AS (
@@ -3055,16 +3061,16 @@ export async function getAdImportOverview(params = {}) {
               a.promo_cvr, a.promo_add_to_cart_count,
               a.net_promo_sales_amount, a.net_promo_roas, a.net_promo_acos, a.net_promo_cpa,
               a.net_promo_sub_order_count, a.net_promo_unit_count,
-              a.raw_data, a.updated_at, ${topOnly ? 'NULL::int' : 'COUNT(*) OVER()::int'} AS total_count
+              a.raw_data, a.updated_at, ${recordTotalExpression} AS total_count
        FROM temu_ad_product_daily a
        ${adCondition}
        ORDER BY ${sortColumn} ${sortDirection} NULLS LAST, a.report_date DESC, a.updated_at DESC, a.id DESC
        LIMIT $${filter.values.length + 1} OFFSET $${filter.values.length + 2}
      )
      SELECT pa.*,
-            sku_meta.skc_ids
+            ${includeSkuMeta ? 'sku_meta.skc_ids' : 'NULL::text AS skc_ids'}
      FROM paged_ads pa
-     LEFT JOIN LATERAL (
+     ${includeSkuMeta ? `LEFT JOIN LATERAL (
        SELECT STRING_AGG(DISTINCT NULLIF(COALESCE(ps.skc_id, ps.temu_skc_id, ps.raw_data ->> 'SKC ID', p.skc_id, p.temu_skc_id, p.raw_data ->> 'SKC ID'), ''), ' / ') AS skc_ids
        FROM temu_product_skus ps
        LEFT JOIN temu_products p ON p.id = ps.product_id
@@ -3076,7 +3082,7 @@ export async function getAdImportOverview(params = {}) {
            AND COALESCE(NULLIF(ps.store_name, ''), NULLIF(p.store_name, '')) = pa.store_name
          )
        )
-     ) sku_meta ON TRUE
+     ) sku_meta ON TRUE` : ''}
      ORDER BY ${sortColumn.replace(/\ba\./g, 'pa.')} ${sortDirection} NULLS LAST, pa.report_date DESC, pa.updated_at DESC, pa.id DESC`,
     [...filter.values, size, offset],
   );
@@ -3090,6 +3096,80 @@ export async function getAdImportOverview(params = {}) {
       summary: {},
       storeSummary: [],
       storeTrend: [],
+      unmatched: [],
+      reportDates: [],
+    };
+  }
+  if (lightweight) {
+    const [summary, storeSummary, storeTrend] = await Promise.all([
+      queryTemuDatabase(
+        `SELECT COUNT(*)::int AS ad_product_count,
+                COALESCE(SUM(a.ad_spend),0) AS ad_spend,
+                COALESCE(SUM(a.global_sales_amount),0) AS global_sales_amount,
+                COALESCE(SUM(a.global_sub_order_count),0) AS global_sub_order_count,
+                COALESCE(SUM(a.global_impressions),0) AS global_impressions,
+                COALESCE(SUM(a.global_clicks),0) AS global_clicks,
+                COALESCE(SUM(a.global_add_to_cart_count),0) AS global_add_to_cart_count,
+                COALESCE(SUM(a.global_unit_count),0) AS global_unit_count,
+                CASE WHEN COALESCE(SUM(a.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(a.global_sales_amount),0) / NULLIF(SUM(a.ad_spend),0) END AS global_roas,
+                CASE WHEN COALESCE(SUM(a.global_sales_amount),0) = 0 THEN NULL ELSE COALESCE(SUM(a.ad_spend),0) / NULLIF(SUM(a.global_sales_amount),0) END AS global_acos,
+                COUNT(*) FILTER (WHERE a.product_id IS NULL)::int AS unmatched_count,
+                COUNT(*) FILTER (WHERE a.product_id IS NOT NULL)::int AS matched_count
+         FROM temu_ad_product_daily a
+         ${adCondition}`,
+        filter.values,
+      ),
+      queryTemuDatabase(
+        `SELECT a.store_name,
+                COALESCE(NULLIF(MAX(a.operator_name), ''), '-') AS operator_name,
+                COUNT(*)::int AS ad_product_count,
+                COALESCE(SUM(a.ad_spend),0) AS ad_spend,
+                COALESCE(SUM(a.global_sales_amount),0) AS global_sales_amount,
+                COALESCE(SUM(a.global_sub_order_count),0) AS global_sub_order_count,
+                COALESCE(SUM(a.global_impressions),0) AS global_impressions,
+                COALESCE(SUM(a.global_clicks),0) AS global_clicks,
+                COALESCE(SUM(a.global_add_to_cart_count),0) AS global_add_to_cart_count,
+                COALESCE(SUM(a.global_unit_count),0) AS global_unit_count,
+                CASE WHEN COALESCE(SUM(a.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(a.global_sales_amount),0) / NULLIF(SUM(a.ad_spend),0) END AS global_roas,
+                CASE WHEN COALESCE(SUM(a.global_sales_amount),0) = 0 THEN NULL ELSE COALESCE(SUM(a.ad_spend),0) / NULLIF(SUM(a.global_sales_amount),0) END AS global_acos,
+                CASE WHEN COALESCE(SUM(a.global_sub_order_count),0) = 0 THEN NULL ELSE COALESCE(SUM(a.ad_spend),0) / NULLIF(SUM(a.global_sub_order_count),0) END AS global_cpa,
+                CASE WHEN COALESCE(SUM(a.global_clicks),0) = 0 THEN NULL ELSE COALESCE(SUM(a.global_sub_order_count),0) / NULLIF(SUM(a.global_clicks),0) END AS global_cvr,
+                COUNT(*) FILTER (WHERE a.product_id IS NULL)::int AS unmatched_count,
+                COUNT(*) FILTER (WHERE a.product_id IS NOT NULL)::int AS matched_count
+         FROM temu_ad_product_daily a
+         ${adCondition}
+         GROUP BY a.store_name
+         ORDER BY ad_spend DESC NULLS LAST, a.store_name`,
+        filter.values,
+      ),
+      queryTemuDatabase(
+        `SELECT a.report_date::text AS report_date,
+                a.store_name,
+                COALESCE(NULLIF(MAX(a.operator_name), ''), '-') AS operator_name,
+                COUNT(*)::int AS ad_product_count,
+                COALESCE(SUM(a.ad_spend),0) AS ad_spend,
+                COALESCE(SUM(a.global_sales_amount),0) AS global_sales_amount,
+                COALESCE(SUM(a.global_sub_order_count),0) AS global_sub_order_count,
+                COALESCE(SUM(a.global_clicks),0) AS global_clicks,
+                CASE WHEN COALESCE(SUM(a.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(a.global_sales_amount),0) / NULLIF(SUM(a.ad_spend),0) END AS global_roas,
+                CASE WHEN COALESCE(SUM(a.global_sales_amount),0) = 0 THEN NULL ELSE COALESCE(SUM(a.ad_spend),0) / NULLIF(SUM(a.global_sales_amount),0) END AS global_acos
+         FROM temu_ad_product_daily a
+         ${adCondition}
+         GROUP BY a.report_date, a.store_name
+         ORDER BY a.report_date ASC, a.store_name`,
+        filter.values,
+      ),
+    ]);
+    const summaryRow = summary.rows[0] || {};
+    return {
+      batches: [],
+      records: ads.rows.map(toCamel),
+      total: Number(summaryRow.ad_product_count || ads.rows.length),
+      page: 1,
+      pageSize: size,
+      summary: toCamel(summaryRow),
+      storeSummary: storeSummary.rows.map(toCamel),
+      storeTrend: storeTrend.rows.map(toCamel),
       unmatched: [],
       reportDates: [],
     };

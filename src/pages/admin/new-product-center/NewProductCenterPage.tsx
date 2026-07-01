@@ -3003,11 +3003,10 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           else baseFilters.storeId = storeId;
         }
         if (appliedOperatorName) baseFilters.operatorName = appliedOperatorName;
-        const recent = await newProductCenterDataSource.getAdImportRecords(1, 1, baseFilters);
-        const latestReportDate = String(recent.reportDates?.[0] || '').slice(0, 10);
         const customStart = customStartDate || snapshotDate;
         const customEnd = customEndDate || customStart;
-        const endDate = datePreset === 'custom' && customStart ? customEnd : latestReportDate;
+        const referenceDate = snapshotDate || todayDateKey();
+        const endDate = datePreset === 'custom' && customStart ? customEnd : referenceDate;
         const startDate = datePreset === 'recent7'
           ? offsetDate(endDate, -6)
           : datePreset === 'recent30'
@@ -3023,10 +3022,12 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           return;
         }
         if (!cancelled) setTrendDateKeys(buildDateRange(startDate, endDate));
-        const overview = await newProductCenterDataSource.getAdImportRecords(1, 200, {
+        const overview = await newProductCenterDataSource.getAdImportRecords(1, 80, {
           ...baseFilters,
           startDate,
           endDate,
+          lightweight: 'true',
+          includeSkuMeta: 'false',
           sortField: sortKey === 'adSalesAmount' ? 'globalSalesAmount' : sortKey === 'adOrderCount' ? 'globalSubOrderCount' : sortKey === 'clicks' ? 'globalClicks' : sortKey === 'roas' ? 'globalRoas' : sortKey === 'acos' ? 'globalAcos' : 'adSpend',
           sortDirection: sortKey === 'roas' || sortKey === 'conversionRate' ? 'asc' : 'desc',
         });
