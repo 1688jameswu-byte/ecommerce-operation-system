@@ -1696,6 +1696,7 @@ function normalizeAdImportRecord(row: Record<string, any>): AdStrategySuggestion
     productId: String(row.productId || row.temuProductId || row.temuSpuId || ''),
     productName: row.productName || row.temuSpuId || row.temuProductId || '-',
     temuSpuId: row.temuSpuId,
+    skcIds: row.skcIds || row.skc_ids || row.skcId || row.skc_id || row.temuSkcId || row.temu_skc_id,
     adSpend,
     adSalesAmount,
     adOrderCount,
@@ -2226,14 +2227,17 @@ function RealAdTrendChart({
     values: dates.map((date) => valueMap.get(`${date}::${storeName}`) ?? 0),
   }));
   const allValues = series.flatMap((item) => item.values);
-  const max = Math.max(...allValues, 1);
-  const width = 640;
-  const height = 170;
-  const left = 46;
-  const bottom = 28;
-  const plotWidth = width - left - 18;
-  const plotHeight = height - 24 - bottom;
-  const yFor = (value: number) => 18 + plotHeight - (value / max) * plotHeight;
+  const rawMax = Math.max(...allValues, 0);
+  const max = rawMax > 0 ? rawMax * 1.18 : 1;
+  const width = 760;
+  const height = 220;
+  const left = 58;
+  const right = 22;
+  const top = 20;
+  const bottom = 38;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const yFor = (value: number) => top + plotHeight - (value / max) * plotHeight;
 
   return (
     <div className="npc-ad-trend-chart">
@@ -2243,14 +2247,14 @@ function RealAdTrendChart({
         <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="广告趋势分析">
           {[0, 0.25, 0.5, 0.75, 1].map((tick) => (
             <g key={tick}>
-              <line x1={left} x2={width - 12} y1={18 + plotHeight - tick * plotHeight} y2={18 + plotHeight - tick * plotHeight} />
-              <text x={8} y={22 + plotHeight - tick * plotHeight}>{formatTrendAxisValue(max * tick, metric)}</text>
+              <line className="npc-ad-trend-grid" x1={left} x2={width - right} y1={top + plotHeight - tick * plotHeight} y2={top + plotHeight - tick * plotHeight} />
+              <text className="npc-ad-trend-axis" x={8} y={top + 4 + plotHeight - tick * plotHeight}>{formatTrendAxisValue(max * tick, metric)}</text>
             </g>
           ))}
           {dates.map((date, index) => {
             const x = dates.length === 1 ? left + plotWidth / 2 : left + (index / (dates.length - 1)) * plotWidth;
             const shouldShow = dates.length <= 12 || index === 0 || index === dates.length - 1 || index % Math.ceil(dates.length / 8) === 0;
-            return shouldShow ? <text key={date} x={x - 14} y={height - 8}>{date.slice(5)}</text> : null;
+            return shouldShow ? <text key={date} className="npc-ad-trend-axis" x={x - 16} y={height - 10}>{date.slice(5)}</text> : null;
           })}
           {series.map((item) => {
             const path = item.values.map((value, index) => {
@@ -2259,11 +2263,11 @@ function RealAdTrendChart({
             }).join(' ');
             return (
               <g key={item.storeName}>
-                <path d={path} style={{ stroke: item.color }} />
+                <path className="npc-ad-trend-line" d={path} style={{ stroke: item.color }} />
                 {item.values.map((value, index) => {
                   const x = dates.length === 1 ? left + plotWidth / 2 : left + (index / (dates.length - 1)) * plotWidth;
                   return (
-                    <circle key={`${item.storeName}-${dates[index]}`} cx={x} cy={yFor(value)} r="2.5" style={{ stroke: item.color }}>
+                    <circle className="npc-ad-trend-dot" key={`${item.storeName}-${dates[index]}`} cx={x} cy={yFor(value)} r="3" style={{ stroke: item.color }}>
                       <title>{`${dates[index]} ${item.storeName} ${formatTrendTooltipValue(value, metric)}`}</title>
                     </circle>
                   );
@@ -2292,10 +2296,18 @@ function AllStoreAdOverviewBoard({
   storeSummary,
   storeTrend,
   visibleStores,
+  highRoasRows,
+  highRoasTotal,
+  highRoasPage,
+  highRoasPageSize,
+  highRoasStoreId,
+  highRoasLoading,
   trendDateKeys,
   selectedTrendStoreNames,
   onSort,
   onOpenStore,
+  onHighRoasStoreChange,
+  onHighRoasPageChange,
   onTrendMetricChange,
   onSelectedTrendStoreNamesChange,
 }: {
@@ -2310,10 +2322,18 @@ function AllStoreAdOverviewBoard({
   storeSummary?: Array<Record<string, any>>;
   storeTrend?: Array<Record<string, any>>;
   visibleStores?: StoreScopeOption[];
+  highRoasRows: AdStrategySuggestion[];
+  highRoasTotal: number;
+  highRoasPage: number;
+  highRoasPageSize: number;
+  highRoasStoreId: string;
+  highRoasLoading: boolean;
   trendDateKeys?: string[];
   selectedTrendStoreNames: string[];
   onSort: (key: AdStrategySortKey) => void;
   onOpenStore?: (storeName: string) => void;
+  onHighRoasStoreChange: (storeId: string) => void;
+  onHighRoasPageChange: (page: number) => void;
   onTrendMetricChange: (key: TrendMetricKey) => void;
   onSelectedTrendStoreNamesChange: (next: string[]) => void;
 }) {
@@ -2426,9 +2446,16 @@ function AllStoreAdOverviewBoard({
   const trendStoreNames = useMemo(() => Array.from(new Set((storeTrend || [])
     .map((row) => String(row.storeName || row.store_name || '').trim())
     .filter(Boolean))).sort(), [storeTrend]);
+  const topTrendStoreNames = useMemo(() => {
+    const ranked = [...storeRows]
+      .filter((row) => trendStoreNames.includes(row.storeName))
+      .sort((first, second) => second.adSpend - first.adSpend)
+      .map((row) => row.storeName);
+    return (ranked.length ? ranked : trendStoreNames).slice(0, 5);
+  }, [storeRows, trendStoreNames]);
   const effectiveTrendStoreNames = selectedTrendStoreNames.length > 0
     ? selectedTrendStoreNames.filter((storeName) => trendStoreNames.includes(storeName))
-    : trendStoreNames;
+    : topTrendStoreNames;
 
   const sortedStores = useMemo(() => [...storeRows].sort((first, second) => {
     const firstValue = sortKey === 'roas' ? first.roas : sortKey === 'acos' ? first.acos : sortKey === 'adSalesAmount' ? first.adSalesAmount : sortKey === 'adOrderCount' ? first.adOrderCount : sortKey === 'clicks' ? first.clicks : sortKey === 'conversionRate' ? first.conversionRate : first.adSpend;
@@ -2446,7 +2473,7 @@ function AllStoreAdOverviewBoard({
   const matchBase = matchedCount + unmatchedCount;
   const matchRate = matchBase > 0 ? matchedCount / matchBase : (rows.length ? Math.max(0, 1 - unmatchedCount / Math.max(rows.length, 1)) : 1);
   const highSpendLowReturn = sortAdRecordsV2(rows.filter((item) => Number(item.adSpend || 0) > 0 && (Number(item.adOrderCount || 0) === 0 || getRoasValue(item) < 2)), 'adSpend').slice(0, 8);
-  const highRoas = sortAdRecordsV2(rows.filter((item) => getRoasValue(item) >= 2), 'roas').reverse().slice(0, 10);
+  const highRoasTotalPages = Math.max(1, Math.ceil((highRoasTotal || 0) / highRoasPageSize));
   const metricCards = [
     { label: '总花费', value: formatMoney(totalSpend), icon: 'briefcase', change: changeMeta(rows.length + 1, false) },
     { label: '申报价销售额（全域）', value: formatMoney(totalAdSales), icon: 'cart', change: changeMeta(rows.length + 2) },
@@ -2570,30 +2597,9 @@ function AllStoreAdOverviewBoard({
       <section className="npc-ad-second-screen">
         <article className="excel-record-panel npc-panel npc-ad-trend-card">
           <header className="npc-panel-header">
-            <h2>广告趋势分析</h2>
-            <div className="npc-ad-trend-store-tags" aria-label="选择店铺">
-              {trendStoreNames.map((storeName) => {
-                const isActive = effectiveTrendStoreNames.includes(storeName);
-                return (
-                  <button
-                    key={storeName}
-                    type="button"
-                    className={isActive ? 'is-active' : ''}
-                    onClick={() => {
-                      if (selectedTrendStoreNames.length === 0) {
-                        onSelectedTrendStoreNamesChange(trendStoreNames.filter((name) => name !== storeName));
-                        return;
-                      }
-                      const next = isActive
-                        ? selectedTrendStoreNames.filter((name) => name !== storeName)
-                        : [...selectedTrendStoreNames, storeName];
-                      onSelectedTrendStoreNamesChange(next.length > 0 ? next : trendStoreNames);
-                    }}
-                  >
-                    {storeName}
-                  </button>
-                );
-              })}
+            <div>
+              <h2>广告趋势分析</h2>
+              <span>默认展示总花费最高的前 5 个店铺，可手动添加对比店铺</span>
             </div>
             <div className="npc-ad-metric-switch">
               {[
@@ -2604,11 +2610,43 @@ function AllStoreAdOverviewBoard({
               ].map(([key, label]) => <button key={key} type="button" className={trendMetric === key ? 'is-active' : ''} onClick={() => onTrendMetricChange(key as TrendMetricKey)}>{label}</button>)}
             </div>
           </header>
+          <div className="npc-ad-trend-toolbar">
+            <div className="npc-ad-trend-store-picker">
+              <button type="button" onClick={() => onSelectedTrendStoreNamesChange(trendStoreNames)}>全部店铺</button>
+              <button type="button" onClick={() => onSelectedTrendStoreNamesChange(topTrendStoreNames)}>花费前5</button>
+              <button type="button" onClick={() => onSelectedTrendStoreNamesChange([])}>恢复默认</button>
+              <select
+                value=""
+                onChange={(event) => {
+                  const storeName = event.target.value;
+                  if (!storeName) return;
+                  const current = effectiveTrendStoreNames.length ? effectiveTrendStoreNames : topTrendStoreNames;
+                  onSelectedTrendStoreNamesChange(Array.from(new Set([...current, storeName])));
+                }}
+              >
+                <option value="">添加对比店铺</option>
+                {trendStoreNames.filter((storeName) => !effectiveTrendStoreNames.includes(storeName)).map((storeName) => (
+                  <option key={storeName} value={storeName}>{storeName}</option>
+                ))}
+              </select>
+            </div>
+            <div className="npc-ad-trend-selected-stores" aria-label="已选择店铺">
+              {effectiveTrendStoreNames.map((storeName) => (
+                <button
+                  key={storeName}
+                  type="button"
+                  onClick={() => onSelectedTrendStoreNamesChange(effectiveTrendStoreNames.filter((name) => name !== storeName))}
+                >
+                  {storeName}<span>×</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <RealAdTrendChart
             trendRows={storeTrend || []}
             dateKeys={trendDateKeys}
             metric={trendMetric}
-            selectedStoreNames={selectedTrendStoreNames}
+            selectedStoreNames={effectiveTrendStoreNames}
             onSelectedStoreNamesChange={onSelectedTrendStoreNamesChange}
           />
         </article>
@@ -2619,8 +2657,27 @@ function AllStoreAdOverviewBoard({
       </section>
 
       <article className="excel-record-panel npc-panel npc-ad-high-roas-card">
-        <header className="npc-panel-header"><h2>高投资回报率(ROAS)（全域）商品榜</h2><span>Top {highRoas.length}</span></header>
-        <AdCompactProductTable rows={highRoas} mode="good" />
+        <header className="npc-panel-header">
+          <h2>高投资回报率(ROAS)（全域）商品榜</h2>
+          <div className="npc-ad-high-roas-toolbar">
+            <label>
+              店铺
+              <select value={highRoasStoreId} onChange={(event) => onHighRoasStoreChange(event.target.value)}>
+                <option value="">全部店铺</option>
+                {(visibleStores || []).map((store) => (
+                  <option key={store.storeId || store.storeName} value={store.storeId || store.storeName}>{store.storeName}</option>
+                ))}
+              </select>
+            </label>
+            <span>每页 10 个商品</span>
+          </div>
+        </header>
+        <AdCompactProductTable rows={highRoasRows} mode="good" loading={highRoasLoading} />
+        <div className="npc-pagination npc-ad-high-roas-pagination">
+          <span>共 {formatInteger(highRoasTotal)} 个商品，第 {highRoasPage}/{highRoasTotalPages} 页</span>
+          <button type="button" disabled={highRoasLoading || highRoasPage <= 1} onClick={() => onHighRoasPageChange(highRoasPage - 1)}>上一页</button>
+          <button type="button" disabled={highRoasLoading || highRoasPage >= highRoasTotalPages} onClick={() => onHighRoasPageChange(highRoasPage + 1)}>下一页</button>
+        </div>
       </article>
     </section>
   );
@@ -2640,11 +2697,11 @@ function getAdItemIdentifier(item: AdStrategySuggestion, key: 'spu' | 'skc' | 's
   return '-';
 }
 
-function AdCompactProductTable({ rows, mode }: { rows: AdStrategySuggestion[]; mode: 'risk' | 'good' }) {
+function AdCompactProductTable({ rows, mode, loading = false }: { rows: AdStrategySuggestion[]; mode: 'risk' | 'good'; loading?: boolean }) {
   return (
     <div className="npc-table-wrap npc-ad-product-compact-wrap">
       <table>
-        <thead><tr><th>SPU ID</th><th>SKC ID</th><th>SKU ID</th><th>店铺</th><th>总花费</th><th>申报价销售额（全域）</th><th>{mode === 'good' ? '子订单数（全域）' : '投资回报率(ROAS)（全域）'}</th><th>{mode === 'good' ? '投资回报率(ROAS)（全域）' : '状态'}</th>{mode === 'good' && <th>费比（全域）</th>}<th>操作</th></tr></thead>
+        <thead><tr><th>SPU ID</th><th>SKC ID</th><th>店铺</th><th>总花费</th><th>申报价销售额（全域）</th><th>{mode === 'good' ? '子订单数（全域）' : '投资回报率(ROAS)（全域）'}</th><th>{mode === 'good' ? '投资回报率(ROAS)（全域）' : '状态'}</th>{mode === 'good' && <th>费比（全域）</th>}<th>操作</th></tr></thead>
         <tbody>
           {rows.map((item) => {
             const issue = mode === 'good' ? '值得继续投放' : getAdIssueLabelV2(item);
@@ -2652,7 +2709,6 @@ function AdCompactProductTable({ rows, mode }: { rows: AdStrategySuggestion[]; m
               <tr key={item.id}>
                 <td className="npc-ad-id-cell" title={getAdItemIdentifier(item, 'spu')}>{getAdItemIdentifier(item, 'spu')}</td>
                 <td className="npc-ad-id-cell" title={getAdItemIdentifier(item, 'skc')}>{getAdItemIdentifier(item, 'skc')}</td>
-                <td className="npc-ad-id-cell" title={getAdItemIdentifier(item, 'sku')}>{getAdItemIdentifier(item, 'sku')}</td>
                 <td>{item.storeName || '-'}</td>
                 <td>{formatMoney(item.adSpend)}</td>
                 <td>{formatMoney(getAdSalesAmount(item))}</td>
@@ -2663,7 +2719,8 @@ function AdCompactProductTable({ rows, mode }: { rows: AdStrategySuggestion[]; m
               </tr>
             );
           })}
-          {rows.length === 0 && <tr><td colSpan={mode === 'good' ? 10 : 9}>暂无数据</td></tr>}
+          {loading && rows.length === 0 && <tr><td colSpan={mode === 'good' ? 9 : 8}>加载中...</td></tr>}
+          {!loading && rows.length === 0 && <tr><td colSpan={mode === 'good' ? 9 : 8}>暂无数据</td></tr>}
         </tbody>
       </table>
     </div>
@@ -2799,6 +2856,9 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
   const [operatorOptions, setOperatorOptions] = useState<OperatorOption[]>([]);
   const [pending, setPending] = useState<{ records: AdStrategySuggestion[]; total: number; page?: number; pageSize?: number; snapshotDate?: string; dataCutoffDate?: string }>({ records: [], total: 0 });
   const [adImportOverview, setAdImportOverview] = useState<AdImportOverviewState>({ batches: [], records: [] });
+  const [highRoasProducts, setHighRoasProducts] = useState<{ records: AdStrategySuggestion[]; total: number; page: number; pageSize: number }>({ records: [], total: 0, page: 1, pageSize: 10 });
+  const [highRoasStoreId, setHighRoasStoreId] = useState('');
+  const [highRoasLoading, setHighRoasLoading] = useState(false);
   const [execution, setExecution] = useState<{ records: AdStrategyExecutionRecord[]; total: number; page?: number; pageSize?: number; snapshotDate?: string; dataCutoffDate?: string }>({ records: [], total: 0 });
   const [review, setReview] = useState<{ records: AdStrategyReviewRecord[]; total: number; page?: number; pageSize?: number; snapshotDate?: string; dataCutoffDate?: string }>({ records: [], total: 0 });
   const [loading, setLoading] = useState({ counts: true, pending: true, adOverview: true, execution: false, review: false });
@@ -2893,7 +2953,13 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
         const visibleStores = visibleResult.status === 'fulfilled' ? visibleResult.value.stores || [] : [];
         const scopedStores = scopedResult.status === 'fulfilled' ? scopedResult.value.stores || [] : [];
         const merged = new Map<string, StoreScopeOption>();
-        visibleStores.forEach((store) => {
+        visibleStores
+          .filter((store) => {
+            const platformText = String(store.platform || '').trim().toUpperCase();
+            const storeName = String(store.storeName || '').trim();
+            return platformText ? platformText === 'TEMU' : /店$/.test(storeName);
+          })
+          .forEach((store) => {
           const storeName = String(store.storeName || '').trim();
           if (!storeName) return;
           const storeId = String(store.id || store.dbId || storeName);
@@ -2943,6 +3009,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           if (selectedStore?.storeName) baseFilters.storeName = selectedStore.storeName;
           else baseFilters.storeId = storeId;
         }
+        if (appliedOperatorName) baseFilters.operatorName = appliedOperatorName;
         const recent = await newProductCenterDataSource.getAdImportRecords(1, 1, baseFilters);
         const latestReportDate = String(recent.reportDates?.[0] || '').slice(0, 10);
         const customStart = customStartDate || snapshotDate;
@@ -2963,7 +3030,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           return;
         }
         if (!cancelled) setTrendDateKeys(buildDateRange(startDate, endDate));
-        const overview = await newProductCenterDataSource.getAdImportRecords(1, 2000, {
+        const overview = await newProductCenterDataSource.getAdImportRecords(1, 200, {
           ...baseFilters,
           startDate,
           endDate,
@@ -2985,7 +3052,74 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
     return () => {
       cancelled = true;
     };
-  }, [customEndDate, customStartDate, datePreset, dimensionTab, queryVersion, snapshotDate, sortKey, storeId, storeOptions]);
+  }, [appliedOperatorName, customEndDate, customStartDate, datePreset, dimensionTab, queryVersion, snapshotDate, sortKey, storeId, storeOptions]);
+
+  useEffect(() => {
+    setHighRoasProducts((current) => ({ ...current, page: 1 }));
+  }, [appliedOperatorName, customEndDate, customStartDate, datePreset, dimensionTab, platform, queryVersion, snapshotDate, storeId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadHighRoasProducts = async () => {
+      if (dimensionTab !== 'allStores') return;
+      setHighRoasLoading(true);
+      try {
+        const selectedStoreKey = highRoasStoreId || storeId;
+        const selectedStore = storeOptions.find((store) => String(store.storeId || store.storeName || '') === String(selectedStoreKey));
+        const baseFilters: Record<string, string> = {};
+        if (selectedStoreKey) {
+          if (selectedStore?.storeName) baseFilters.storeName = selectedStore.storeName;
+          else baseFilters.storeId = selectedStoreKey;
+        }
+        if (platform) baseFilters.platform = platform;
+        if (appliedOperatorName) baseFilters.operatorName = appliedOperatorName;
+
+        const recent = await newProductCenterDataSource.getAdImportRecords(1, 1, baseFilters);
+        const latestReportDate = String(recent.reportDates?.[0] || '').slice(0, 10);
+        const customStart = customStartDate || snapshotDate;
+        const customEnd = customEndDate || customStart;
+        const endDate = datePreset === 'custom' && customStart ? customEnd : latestReportDate;
+        const startDate = datePreset === 'recent7'
+          ? offsetDate(endDate, -6)
+          : datePreset === 'recent30'
+            ? offsetDate(endDate, -29)
+            : datePreset === 'custom'
+              ? customStart
+              : endDate;
+        if (!endDate) {
+          if (!cancelled) setHighRoasProducts({ records: [], total: 0, page: 1, pageSize: 10 });
+          return;
+        }
+        const result = await newProductCenterDataSource.getAdImportRecords(highRoasProducts.page, 10, {
+          ...baseFilters,
+          startDate,
+          endDate,
+          sortField: 'globalRoas',
+          sortDirection: 'desc',
+          roasMin: '2',
+        });
+        if (!cancelled) {
+          setHighRoasProducts({
+            records: (result.records || []).map((row) => normalizeAdImportRecord(row)),
+            total: Number(result.total || 0),
+            page: Number(result.page || highRoasProducts.page || 1),
+            pageSize: 10,
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setHighRoasProducts({ records: [], total: 0, page: 1, pageSize: 10 });
+          setMessage(error instanceof Error ? error.message : String(error));
+        }
+      } finally {
+        if (!cancelled) setHighRoasLoading(false);
+      }
+    };
+    void loadHighRoasProducts();
+    return () => {
+      cancelled = true;
+    };
+  }, [appliedOperatorName, customEndDate, customStartDate, datePreset, dimensionTab, highRoasProducts.page, highRoasStoreId, platform, queryVersion, snapshotDate, storeId, storeOptions]);
 
   useEffect(() => {
     const base: Record<string, string> = { ...filterBase, page: String(page), pageSize: String(pageSize) };
@@ -3056,6 +3190,8 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
     setAdType('');
     setProductType('all');
     setAbnormalStatus('');
+    setHighRoasStoreId('');
+    setHighRoasProducts((current) => ({ ...current, page: 1 }));
     setPriority('');
     setStatus('PENDING');
     setKeyword('');
@@ -3118,19 +3254,29 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
     const normalized = (adImportOverview.records || []).map((row) => normalizeAdImportRecord(row));
     return normalized.filter((item) => matchesAdIssueFilterV2(item, abnormalStatus));
   }, [abnormalStatus, adImportOverview.records]);
+  const operatorOptionsForFilter = useMemo(() => {
+    const names = new Set<string>();
+    operatorOptions.forEach((operator) => {
+      const name = String(operator.operatorName || '').trim();
+      if (name) names.add(name);
+    });
+    ((adImportOverview as any).storeSummary || []).forEach((row: Record<string, any>) => {
+      const name = String(row.operatorName || row.operator_name || '').trim();
+      if (name && name !== '-') names.add(name);
+    });
+    allStoreAdRecords.forEach((row) => {
+      const name = String(row.operatorName || '').trim();
+      if (name && name !== '-') names.add(name);
+    });
+    pending.records.forEach((row) => {
+      const name = String(row.operatorName || '').trim();
+      if (name && name !== '-') names.add(name);
+    });
+    return Array.from(names).sort((first, second) => first.localeCompare(second, 'zh-CN')).map((operatorName) => ({ operatorName }));
+  }, [adImportOverview, allStoreAdRecords, operatorOptions, pending.records]);
 
   return (
     <section className="npc-page npc-ad-strategy-page npc-ad-workbench-page">
-      <div className="npc-ad-workbench-title">
-        <div>
-          <h1>广告策略中心</h1>
-          <p>广告问题发现、策略执行检查与阶段效果复盘</p>
-        </div>
-      </div>
-      <article className="excel-record-panel npc-panel npc-strategy-notice">
-        <strong>执行说明</strong>
-        <span>系统不会自动修改 TEMU 后台广告设置，只生成建议和执行检查。运营仍需在 TEMU 后台手动调整策略目标值；系统通过后续广告日报中的“自然周策略目标值（推广）”字段验证是否已执行。</span>
-      </article>
       <div className="npc-ad-dimension-tabs" role="tablist" aria-label="广告策略中心视图">
         <button type="button" className={dimensionTab === 'allStores' ? 'is-active' : ''} onClick={() => { setDimensionTab('allStores'); setProductType('all'); setPage(1); }}>
           全店广告总览
@@ -3186,11 +3332,8 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
             />
           )}
         </label>
-        <label>平台<select value={platform} onChange={(event) => { setPlatform(event.target.value); setPage(1); }}><option value="">全部平台</option><option value="TEMU">TEMU</option><option value="Amazon">Amazon</option><option value="1688">1688</option><option value="other">其他</option></select></label>
         <label>店铺<select value={storeId} onChange={(event) => { setStoreId(event.target.value); setPage(1); }}><option value="">全部店铺</option>{storeOptions.map((store) => <option key={store.storeId || store.storeName} value={store.storeId || store.storeName}>{store.storeName}</option>)}</select></label>
-        <label>运营{isManager ? <select value={operatorName} onChange={(event) => { setOperatorName(event.target.value); setPage(1); }}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorName} value={operator.operatorName}>{operator.operatorName}</option>)}</select> : <input value={currentOperatorName || '当前运营'} readOnly />}</label>
-        <label>广告类型<select value={adType} onChange={(event) => { setAdType(event.target.value); setPage(1); }}><option value="">全部</option><option value="商品推广">商品广告</option><option value="搜索广告">搜索广告</option><option value="场景广告">场景广告</option></select></label>
-        <label>异常状态<select value={abnormalStatus ? 'abnormal' : ''} onChange={(event) => { setAbnormalStatus(event.target.value === 'abnormal' ? 'abnormal' : ''); setPage(1); }}><option value="">全部</option><option value="abnormal">仅看异常</option></select></label>
+        <label>运营{isManager ? <select value={operatorName} onChange={(event) => { setOperatorName(event.target.value); setPage(1); }}><option value="">全部运营</option>{operatorOptionsForFilter.map((operator) => <option key={operator.operatorName} value={operator.operatorName}>{operator.operatorName}</option>)}</select> : <input value={currentOperatorName || '当前运营'} readOnly />}</label>
         <div className="npc-ad-workbench-filter-actions">
           <button type="button" className="is-primary" onClick={() => setQueryVersion((value) => value + 1)}>查询</button>
           <button type="button" onClick={resetFilters}>重置</button>
@@ -3229,6 +3372,12 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           visibleStores={storeId
             ? storeOptions.filter((store) => String(store.storeId || store.storeName || '') === String(storeId))
             : storeOptions}
+          highRoasRows={highRoasProducts.records}
+          highRoasTotal={highRoasProducts.total}
+          highRoasPage={highRoasProducts.page}
+          highRoasPageSize={highRoasProducts.pageSize}
+          highRoasStoreId={highRoasStoreId}
+          highRoasLoading={highRoasLoading}
           trendDateKeys={trendDateKeys}
           selectedTrendStoreNames={selectedTrendStoreNames}
           onOpenStore={(storeName) => {
@@ -3237,6 +3386,11 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
             if (adImportOverview.reportDate && !adImportOverview.reportDate.includes('至')) params.set('reportDate', adImportOverview.reportDate);
             window.location.href = `/admin/temu-ad-report-import?${params.toString()}`;
           }}
+          onHighRoasStoreChange={(nextStoreId) => {
+            setHighRoasStoreId(nextStoreId);
+            setHighRoasProducts((current) => ({ ...current, page: 1 }));
+          }}
+          onHighRoasPageChange={(nextPage) => setHighRoasProducts((current) => ({ ...current, page: Math.max(1, nextPage) }))}
           onTrendMetricChange={setTrendMetric}
           onSelectedTrendStoreNamesChange={setSelectedTrendStoreNames}
         />

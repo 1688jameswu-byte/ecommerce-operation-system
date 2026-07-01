@@ -11787,7 +11787,7 @@
 }
 
 .npc-ad-workbench-page {
-  padding: 18px 20px 24px;
+  padding: 0 20px 24px;
   background: #f3f6fb;
 }
 
@@ -11813,7 +11813,7 @@
 
 .npc-ad-workbench-filter {
   display: grid;
-  grid-template-columns: 1.15fr repeat(5, minmax(118px, 1fr)) auto;
+  grid-template-columns: minmax(260px, 1.2fr) minmax(160px, 0.85fr) minmax(160px, 0.85fr) auto;
   align-items: end;
   gap: 14px;
   padding: 16px 18px;
@@ -11823,7 +11823,7 @@
   display: flex;
   gap: 24px;
   width: 100%;
-  margin-top: 10px;
+  margin-top: 0;
   border-bottom: 1px solid #dbe4f0;
   background: transparent;
   border-radius: 0;
@@ -12051,7 +12051,7 @@
 
 .npc-ad-board-filter {
   display: grid;
-  grid-template-columns: minmax(260px, 1.5fr) repeat(5, minmax(118px, 1fr)) auto;
+  grid-template-columns: minmax(260px, 1.3fr) minmax(160px, 0.9fr) minmax(160px, 0.9fr) auto;
   gap: 14px;
   margin: 0 0 12px;
   border: 1px solid #dbe4f0;
@@ -12430,6 +12430,59 @@
   box-shadow: 0 1px 0 #dbe5f0;
 }
 
+.npc-ad-high-roas-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.npc-ad-high-roas-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #334155;
+  font-weight: 800;
+}
+
+.npc-ad-high-roas-toolbar select {
+  min-width: 120px;
+  height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 8px;
+}
+
+.npc-ad-high-roas-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 10px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.npc-ad-high-roas-pagination button {
+  height: 30px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.npc-ad-high-roas-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .npc-ad-id-cell {
   max-width: 150px;
   overflow: hidden;
@@ -12663,10 +12716,21 @@
 
 .npc-ad-trend-card .npc-panel-header {
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
 }
 
 .npc-ad-trend-card .npc-panel-header h2 {
+  margin-bottom: 4px;
+}
+
+.npc-ad-trend-card .npc-panel-header span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.npc-ad-trend-card .npc-panel-header > div:first-child {
   flex: 0 0 auto;
 }
 
@@ -12697,6 +12761,69 @@
   color: #1d4ed8;
 }
 
+.npc-ad-trend-toolbar {
+  display: grid;
+  grid-template-columns: minmax(280px, auto) 1fr;
+  gap: 10px;
+  align-items: start;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
+}
+
+.npc-ad-trend-store-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.npc-ad-trend-store-picker button,
+.npc-ad-trend-store-picker select {
+  min-height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #334155;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.npc-ad-trend-store-picker button:hover,
+.npc-ad-trend-store-picker select:focus {
+  border-color: #93c5fd;
+  outline: none;
+}
+
+.npc-ad-trend-selected-stores {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.npc-ad-trend-selected-stores button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 0 10px 0 12px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.npc-ad-trend-selected-stores span {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1;
+}
+
 .npc-ad-metric-switch button {
   min-height: 30px;
   border: 0;
@@ -12719,8 +12846,12 @@
 }
 
 .npc-ad-trend-chart {
-  min-height: 250px;
-  margin-top: 8px;
+  min-height: 278px;
+  margin-top: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  padding: 12px;
 }
 
 .npc-ad-trend-empty {
@@ -12736,7 +12867,7 @@
 .npc-ad-trend-chart svg {
   display: block;
   width: 100%;
-  height: 220px;
+  height: 260px;
 }
 
 .npc-ad-trend-chart svg path {
@@ -12830,6 +12961,14 @@
   .npc-ad-first-screen,
   .npc-ad-second-screen {
     grid-template-columns: 1fr;
+  }
+
+  .npc-ad-trend-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .npc-ad-trend-selected-stores {
+    justify-content: flex-start;
   }
 }
 

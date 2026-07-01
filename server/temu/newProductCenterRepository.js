@@ -2106,11 +2106,40 @@ export async function getOperatorOptions(params = {}) {
      ORDER BY s.operator_name ASC`,
     [snapshotDate, ...values],
   );
+  const relationFilter = createWhereBuilder(1);
+  relationFilter.where.push(`r.status <> 'inactive'`);
+  relationFilter.where.push(`COALESCE(NULLIF(COALESCE(o.operator_name, r.operator_name), ''), '') <> ''`);
+  if (params.storeId) relationFilter.push('r.store_id = ?::uuid', params.storeId);
+  if (params.storeName) relationFilter.push('r.store_name = ?', params.storeName);
+  const relationResult = await queryTemuDatabase(
+    `SELECT r.operator_id,
+            COALESCE(o.operator_name, r.operator_name) AS operator_name,
+            COUNT(DISTINCT COALESCE(r.store_id::text, r.store_name)) AS store_count,
+            0::int AS product_count
+     FROM temu_store_operator_relations r
+     LEFT JOIN temu_operators o ON o.id = r.operator_id
+     WHERE ${relationFilter.where.join(' AND ')}
+     GROUP BY r.operator_id, COALESCE(o.operator_name, r.operator_name)
+     ORDER BY operator_name ASC`,
+    relationFilter.values,
+  );
+  const operatorMap = new Map();
+  [...relationResult.rows, ...result.rows].forEach((row) => {
+    const operatorName = text(row.operator_name);
+    if (!operatorName) return;
+    const current = operatorMap.get(operatorName) || { ...row, store_count: 0, product_count: 0 };
+    operatorMap.set(operatorName, {
+      operator_id: row.operator_id || current.operator_id,
+      operator_name: operatorName,
+      store_count: Math.max(Number(current.store_count || 0), Number(row.store_count || 0)),
+      product_count: Math.max(Number(current.product_count || 0), Number(row.product_count || 0)),
+    });
+  });
   return {
     snapshotDate,
     dataCutoffDate,
     dateMode,
-    operators: result.rows.map(toCamel),
+    operators: Array.from(operatorMap.values()).sort((a, b) => text(a.operator_name).localeCompare(text(b.operator_name), 'zh-CN')).map(toCamel),
   };
 }
 
@@ -2962,19 +2991,22 @@ export async function getAdImportOverview(params = {}) {
   await runTemuMigrations();
   await backfillTemuImportBatchStores();
   const currentPage = Math.max(Number(params.page) || 1, 1);
-  const size = Math.min(Math.max(Number(params.pageSize) || 50, 1), 50);
+  const size = Math.min(Math.max(Number(params.pageSize) || 50, 1), 2000);
   const offset = (currentPage - 1) * size;
   const filter = createWhereBuilder(1);
   appendStoreScope(filter, 'a', params);
   if (params.reportDate) filter.push('a.report_date = ?::date', params.reportDate);
   if (!params.reportDate && params.startDate) filter.push('a.report_date >= ?::date', params.startDate);
   if (!params.reportDate && params.endDate) filter.push('a.report_date <= ?::date', params.endDate);
+  if (params.operatorName) filter.push('a.operator_name = ?', String(params.operatorName));
   if (params.spuId) filter.push('a.temu_spu_id ILIKE ?', `%${params.spuId}%`);
   if (params.productName) filter.push('a.product_name ILIKE ?', `%${params.productName}%`);
   if (params.matched === 'true') filter.where.push('a.product_id IS NOT NULL');
   if (params.matched === 'false') filter.where.push('a.product_id IS NULL');
   if (params.roasMet === 'true') filter.where.push('a.target_roas IS NOT NULL AND a.global_roas IS NOT NULL AND a.global_roas >= a.target_roas');
   if (params.roasMet === 'false') filter.where.push('a.target_roas IS NOT NULL AND a.global_roas IS NOT NULL AND a.global_roas < a.target_roas');
+  if (params.roasMin) filter.push('a.global_roas >= ?', Number(params.roasMin));
+  if (params.roasMax) filter.push('a.global_roas <= ?', Number(params.roasMax));
   if (params.adSpendMin) filter.push('a.ad_spend >= ?', Number(params.adSpendMin));
   if (params.adSpendMax) filter.push('a.ad_spend <= ?', Number(params.adSpendMax));
   if (params.promoOrderMin) filter.push('a.global_sub_order_count >= ?', Number(params.promoOrderMin));
@@ -3016,7 +3048,8 @@ export async function getAdImportOverview(params = {}) {
     batchFilter.values,
   );
   const ads = await queryTemuDatabase(
-    `SELECT id, report_date, store_name, operator_name, temu_product_id, temu_spu_id,
+    `SELECT a.id, a.product_id, a.report_date, a.store_name, a.operator_name, a.temu_product_id, a.temu_spu_id,
+            sku_meta.skc_ids,
             product_name, ad_spend, net_ad_spend,
             global_sales_amount, global_roas, global_acos, global_cpa, global_sub_order_count,
             global_unit_count, global_impressions, global_clicks, global_ctr, global_cvr,
@@ -3026,9 +3059,21 @@ export async function getAdImportOverview(params = {}) {
             promo_cvr, promo_add_to_cart_count,
             net_promo_sales_amount, net_promo_roas, net_promo_acos, net_promo_cpa,
             net_promo_sub_order_count, net_promo_unit_count,
-            raw_data, updated_at, COUNT(*) OVER()::int AS total_count
-     FROM temu_ad_product_daily
-     a
+            a.raw_data, a.updated_at, COUNT(*) OVER()::int AS total_count
+     FROM temu_ad_product_daily a
+     LEFT JOIN LATERAL (
+       SELECT STRING_AGG(DISTINCT NULLIF(COALESCE(ps.skc_id, ps.temu_skc_id, ps.raw_data ->> 'SKC ID', p.skc_id, p.temu_skc_id, p.raw_data ->> 'SKC ID'), ''), ' / ') AS skc_ids
+       FROM temu_product_skus ps
+       LEFT JOIN temu_products p ON p.id = ps.product_id
+       WHERE (
+         (a.product_id IS NOT NULL AND ps.product_id = a.product_id)
+         OR (
+           NULLIF(a.temu_spu_id, '') IS NOT NULL
+           AND COALESCE(NULLIF(ps.spu_id, ''), NULLIF(ps.raw_data ->> 'SPU ID', ''), NULLIF(p.spu_id, ''), NULLIF(p.raw_data ->> 'SPU ID', ''), NULLIF(p.temu_spu_id, '')) = a.temu_spu_id
+           AND COALESCE(NULLIF(ps.store_name, ''), NULLIF(p.store_name, '')) = a.store_name
+         )
+       )
+     ) sku_meta ON TRUE
      ${adCondition}
      ORDER BY ${sortColumn} ${sortDirection} NULLS LAST, report_date DESC, updated_at DESC, id DESC
      LIMIT $${filter.values.length + 1} OFFSET $${filter.values.length + 2}`,
