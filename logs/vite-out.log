@@ -2184,3 +2184,16 @@
 {"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":12,"rows":0,"slow":false}
 {"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":101,"rows":13,"slow":false}
 {"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":103,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":5,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":61,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":59,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":5,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":67,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":14,"rows":4,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":11,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":20,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":89,"rows":0,"slow":false}
+[2m14:44:31[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/new-product-center/NewProductCenterPage.tsx[22m
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":62,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":64,"rows":0,"slow":false}

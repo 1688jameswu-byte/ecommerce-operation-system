@@ -2883,9 +2883,38 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
   }, []);
 
   useEffect(() => {
-    newProductCenterDataSource.getStoreOptions(buildQuery({ snapshotDate, operatorName: appliedOperatorName }))
-      .then((data) => setStoreOptions(data.stores || []))
-      .catch(() => setStoreOptions([]));
+    let cancelled = false;
+    const loadStoreOptions = async () => {
+      try {
+        const [visibleResult, scopedResult] = await Promise.allSettled([
+          newProductCenterDataSource.getVisibleStores(),
+          newProductCenterDataSource.getStoreOptions(buildQuery({ snapshotDate, operatorName: appliedOperatorName })),
+        ]);
+        const visibleStores = visibleResult.status === 'fulfilled' ? visibleResult.value.stores || [] : [];
+        const scopedStores = scopedResult.status === 'fulfilled' ? scopedResult.value.stores || [] : [];
+        const merged = new Map<string, StoreScopeOption>();
+        visibleStores.forEach((store) => {
+          const storeName = String(store.storeName || '').trim();
+          if (!storeName) return;
+          const storeId = String(store.id || store.dbId || storeName);
+          merged.set(storeName, { storeId, storeName });
+        });
+        scopedStores.forEach((store) => {
+          const storeName = String(store.storeName || '').trim();
+          if (!storeName) return;
+          const current = merged.get(storeName) || { storeId: store.storeId || storeName, storeName };
+          merged.set(storeName, { ...current, ...store, storeId: current.storeId || store.storeId || storeName });
+        });
+        const nextStores = Array.from(merged.values()).sort((first, second) => first.storeName.localeCompare(second.storeName, 'zh-CN'));
+        if (!cancelled) setStoreOptions(nextStores);
+      } catch {
+        if (!cancelled) setStoreOptions([]);
+      }
+    };
+    void loadStoreOptions();
+    return () => {
+      cancelled = true;
+    };
   }, [appliedOperatorName, snapshotDate]);
 
   useEffect(() => {

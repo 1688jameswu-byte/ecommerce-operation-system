@@ -63,6 +63,13 @@ function DashboardPage() {
   });
 
   useEffect(() => {
+    document.title = 'TEMU运营中心大屏';
+    return () => {
+      document.title = '电商运营中心';
+    };
+  }, []);
+
+  useEffect(() => {
     const refreshDashboardData = (force = false) => {
       void import('../../services/dashboardDataService')
         .then((module) => module.getDashboardData(force))
