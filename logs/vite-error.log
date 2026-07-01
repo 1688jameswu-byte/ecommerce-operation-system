@@ -1288,3 +1288,179 @@ At file: F:\项目\TEMU运营数据大屏\vite.config.js:5975:27
       at TypeScriptParserMixin.parseBlock (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:13314:10)
       at TypeScriptParserMixin.parseFunctionBody (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12117:24)
       at TypeScriptParserMixin.parseFunctionBodyAndFinish (F:\项目\TEMU运营数据大屏\node_modules\@babel\parser\lib\index.js:12103:10)
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}
+[temu-ad-report-api-error] {
+  message: 'for SELECT DISTINCT, ORDER BY expressions must appear in select list',
+  stack: 'error: for SELECT DISTINCT, ORDER BY expressions must appear in select list\n' +
+    '    at F:\\项目\\TEMU运营数据大屏\\node_modules\\pg-pool\\index.js:45:11\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at async getAdImportTrend (F:/项目/TEMU运营数据大屏/server/temu/newProductCenterRepository.js:3490:20)\n' +
+    '    at async handleTemuAdReportImportApi (F:/项目/TEMU运营数据大屏/vite.config.js:3493:23)'
+}

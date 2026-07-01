@@ -33,6 +33,7 @@ import {
   getAdStrategyReview,
   getBossDashboard,
   getAdImportOverview,
+  getAdImportTrend,
   getAdSpendSummary,
   getOperatorDashboard,
   getOperatorOptions,
@@ -3514,6 +3515,20 @@ async function handleTemuAdReportImportApi(req, res) {
       res.end(JSON.stringify(payload));
       return;
     }
+    if (req.method === 'GET' && action === 'trend') {
+      const startedAt = Date.now();
+      const scope = getNewProductCenterScope(currentUser);
+      const params = {
+        ...Object.fromEntries(requestUrl.searchParams.entries()),
+        ...scope,
+      };
+      const payload = await getCachedNewProductCenterPayload('temu-ad-report/trend', params, currentUser, () => getAdImportTrend(params));
+      const elapsedMs = Date.now() - startedAt;
+      const logger = elapsedMs > 1000 ? console.warn : console.info;
+      logger(`[temu-ad-report-trend] ${elapsedMs}ms metric=${params.metric || 'adSpend'} mode=${params.trendStoreMode || 'topSpend5'} stores=${params.trendStoreNames || 'auto'}`);
+      res.end(JSON.stringify(payload));
+      return;
+    }
     if (req.method === 'DELETE' && action.startsWith('batches/')) {
       if (String(currentUser.role || '').toLowerCase() !== 'admin') {
         res.statusCode = 403;
@@ -3646,6 +3661,9 @@ function getNewProductCenterCacheTtl(pathname) {
     return NEW_PRODUCT_CENTER_DYNAMIC_TTL_MS;
   }
   if (pathname === 'temu-ad-report/ad-overview') {
+    return NEW_PRODUCT_CENTER_DYNAMIC_TTL_MS;
+  }
+  if (pathname === 'temu-ad-report/trend') {
     return NEW_PRODUCT_CENTER_DYNAMIC_TTL_MS;
   }
   return 0;

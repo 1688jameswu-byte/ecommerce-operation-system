@@ -3329,6 +3329,144 @@ export async function getAdImportOverview(params = {}) {
   };
 }
 
+function parseTrendStoreNames(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function getTrendMetricSortExpression(metric) {
+  if (metric === 'roas') {
+    return `CASE WHEN COALESCE(SUM(a.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(a.global_sales_amount),0) / NULLIF(SUM(a.ad_spend),0) END`;
+  }
+  if (metric === 'acos') {
+    return `CASE WHEN COALESCE(SUM(a.global_sales_amount),0) = 0 THEN NULL ELSE COALESCE(SUM(a.ad_spend),0) / NULLIF(SUM(a.global_sales_amount),0) END`;
+  }
+  if (metric === 'adSalesAmount') return 'COALESCE(SUM(a.global_sales_amount),0)';
+  return 'COALESCE(SUM(a.ad_spend),0)';
+}
+
+function buildAdTrendConclusions({ trendRows, selectedStores, metric }) {
+  const rowsByStore = new Map();
+  for (const row of trendRows) {
+    const storeName = String(row.storeName || '').trim();
+    if (!storeName) continue;
+    const rows = rowsByStore.get(storeName) || [];
+    rows.push(row);
+    rowsByStore.set(storeName, rows);
+  }
+  const conclusions = [];
+  for (const storeName of selectedStores) {
+    const rows = (rowsByStore.get(storeName) || []).sort((a, b) => String(a.reportDate || '').localeCompare(String(b.reportDate || '')));
+    if (rows.length < 2) continue;
+    const first = rows[0];
+    const last = rows[rows.length - 1];
+    const spendChange = Number(last.adSpend || 0) - Number(first.adSpend || 0);
+    const salesChange = Number(last.globalSalesAmount || 0) - Number(first.globalSalesAmount || 0);
+    const roasValues = rows.map((row) => Number(row.globalRoas || 0)).filter((value) => Number.isFinite(value) && value > 0);
+    const acosValues = rows.map((row) => Number(row.globalAcos || 0)).filter((value) => Number.isFinite(value) && value > 0);
+    if (spendChange > 0 && salesChange <= 0) {
+      conclusions.push({ tone: 'risk', text: `${storeName}广告花费上涨，但申报价销售额没有同步增长` });
+    }
+    if (roasValues.length >= 3 && roasValues.slice(-3).every((value, index, list) => index === 0 || value < list[index - 1])) {
+      conclusions.push({ tone: 'risk', text: `${storeName}投资回报率(ROAS)连续下降，建议检查投放商品` });
+    }
+    if (acosValues.slice(-3).filter((value) => value >= 0.3).length >= 3) {
+      conclusions.push({ tone: 'warning', text: `${storeName}费比连续3天高于预警线` });
+    }
+    if (salesChange > 0 && spendChange >= 0) {
+      conclusions.push({ tone: 'good', text: `${storeName}申报价销售额持续改善，可关注预算承接` });
+    }
+  }
+  if (!conclusions.length && selectedStores.length) {
+    conclusions.push({ tone: 'good', text: `当前筛选范围广告趋势整体平稳，暂无明显异常。` });
+  }
+  return conclusions.slice(0, 5);
+}
+
+export async function getAdImportTrend(params = {}) {
+  await runTemuMigrations();
+  const filter = createWhereBuilder(1);
+  appendStoreScope(filter, 'a', params);
+  if (params.startDate) filter.push('a.report_date >= ?::date', params.startDate);
+  if (params.endDate) filter.push('a.report_date <= ?::date', params.endDate);
+  if (params.operatorName) filter.push('a.operator_name = ?', String(params.operatorName));
+
+  const manualStoreNames = parseTrendStoreNames(params.trendStoreNames || params.storeNamesForTrend);
+  const rangeMode = String(params.trendStoreMode || 'topSpend5');
+  const metric = String(params.metric || 'adSpend');
+  const limit = Math.min(Math.max(Number(params.limit || 5), 1), 5);
+
+  if (manualStoreNames.length > 0) {
+    filter.values.push(manualStoreNames.slice(0, 5));
+    filter.where.push(`a.store_name = ANY($${filter.startIndex + filter.values.length - 1}::text[])`);
+  }
+
+  const condition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : 'WHERE 1 = 0';
+  const storeOrderMetric = rangeMode === 'roasLow5'
+    ? getTrendMetricSortExpression('roas')
+    : getTrendMetricSortExpression(metric);
+  const storeOrderDirection = rangeMode === 'roasLow5' ? 'ASC NULLS LAST' : 'DESC NULLS LAST';
+
+  const storeRanking = await queryTemuDatabase(
+    `SELECT a.store_name,
+            COALESCE(NULLIF(MAX(a.operator_name), ''), '-') AS operator_name,
+            COUNT(DISTINCT a.report_date)::int AS report_day_count,
+            COALESCE(SUM(a.ad_spend),0) AS ad_spend,
+            COALESCE(SUM(a.global_sales_amount),0) AS global_sales_amount,
+            CASE WHEN COALESCE(SUM(a.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(a.global_sales_amount),0) / NULLIF(SUM(a.ad_spend),0) END AS global_roas,
+            CASE WHEN COALESCE(SUM(a.global_sales_amount),0) = 0 THEN NULL ELSE COALESCE(SUM(a.ad_spend),0) / NULLIF(SUM(a.global_sales_amount),0) END AS global_acos
+     FROM temu_ad_product_daily a
+     ${condition}
+     GROUP BY a.store_name
+     ORDER BY ${storeOrderMetric} ${storeOrderDirection}, a.store_name
+     LIMIT $${filter.values.length + 1}`,
+    [...filter.values, manualStoreNames.length ? Math.min(manualStoreNames.length, 5) : limit],
+  );
+  const selectedStores = storeRanking.rows.map((row) => String(row.store_name || '').trim()).filter(Boolean);
+  let trendRows = [];
+  if (selectedStores.length > 0) {
+    const trendValues = [...filter.values, selectedStores];
+    const selectedPlaceholder = `$${trendValues.length}`;
+    const trend = await queryTemuDatabase(
+      `SELECT a.report_date::text AS report_date,
+              a.store_name,
+              COALESCE(NULLIF(MAX(a.operator_name), ''), '-') AS operator_name,
+              COUNT(*)::int AS ad_product_count,
+              COALESCE(SUM(a.ad_spend),0) AS ad_spend,
+              COALESCE(SUM(a.global_sales_amount),0) AS global_sales_amount,
+              COALESCE(SUM(a.global_sub_order_count),0) AS global_sub_order_count,
+              COALESCE(SUM(a.global_impressions),0) AS global_impressions,
+              COALESCE(SUM(a.global_clicks),0) AS global_clicks,
+              CASE WHEN COALESCE(SUM(a.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(a.global_sales_amount),0) / NULLIF(SUM(a.ad_spend),0) END AS global_roas,
+              CASE WHEN COALESCE(SUM(a.global_sales_amount),0) = 0 THEN NULL ELSE COALESCE(SUM(a.ad_spend),0) / NULLIF(SUM(a.global_sales_amount),0) END AS global_acos
+       FROM temu_ad_product_daily a
+       ${condition}
+         AND a.store_name = ANY(${selectedPlaceholder}::text[])
+       GROUP BY a.report_date, a.store_name
+       ORDER BY a.report_date ASC, a.store_name`,
+      trendValues,
+    );
+    trendRows = trend.rows.map(toCamel);
+  }
+  const dateRows = await queryTemuDatabase(
+    `SELECT DISTINCT a.report_date::text AS report_date
+     FROM temu_ad_product_daily a
+     ${condition}
+     ORDER BY report_date ASC`,
+    filter.values,
+  );
+  return {
+    records: trendRows,
+    stores: storeRanking.rows.map(toCamel),
+    selectedStores,
+    conclusions: buildAdTrendConclusions({ trendRows, selectedStores, metric }),
+    reportDates: dateRows.rows.map((row) => String(row.report_date || '').slice(0, 10)).filter(Boolean),
+  };
+}
+
 export async function getAdSpendSummary(params = {}) {
   await runTemuMigrations();
   const filter = createWhereBuilder(1);

@@ -8,6 +8,7 @@ type AdStrategyDimensionTab = 'allStores' | 'newProducts';
 type AdStrategySortKey = 'adSpend' | 'adSalesAmount' | 'adOrderCount' | 'roas' | 'acos' | 'clicks' | 'conversionRate';
 type AdDatePreset = 'yesterday' | 'recent7' | 'recent30' | 'custom';
 type TrendMetricKey = 'adSpend' | 'adSalesAmount' | 'roas' | 'acos';
+type TrendStoreMode = 'topSpend5' | 'lowRoas5' | 'manual';
 type AdImportOverviewState = ImportOverview & { reportDate?: string };
 
 const TAGS = ['高潜新品', '烧钱无单', '有流量无转化', '加购未成交', '低曝光新品', '高费比新品', '自然起量', '已出单新品', '未出单新品', '数据未匹配', '普通新品'];
@@ -2223,27 +2224,63 @@ function formatTrendTooltipValue(value: number, metric: TrendMetricKey) {
   return formatMoney(value);
 }
 
+function getTrendMetricLabel(metric: TrendMetricKey) {
+  if (metric === 'adSalesAmount') return '广告销售额';
+  if (metric === 'roas') return 'ROAS';
+  if (metric === 'acos') return '广告费率';
+  return '广告花费';
+}
+
+function getTrendMetricUnit(metric: TrendMetricKey) {
+  if (metric === 'roas') return '倍数';
+  if (metric === 'acos') return '百分比';
+  return '金额（元）';
+}
+
+function getTrendMetricChangeText(current: number, previous: number) {
+  if (!Number.isFinite(previous) || previous <= 0) return '较前一日 —';
+  const change = (current - previous) / previous;
+  if (!Number.isFinite(change)) return '较前一日 —';
+  return `较前一日 ${change >= 0 ? '+' : ''}${(change * 100).toFixed(2)}%`;
+}
+
+function formatAdTrendErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || '');
+  if (!message) return '趋势数据加载失败，请稍后重试。';
+  if (/select distinct|order by expressions|syntax|database|sql/i.test(message)) {
+    return '趋势数据查询失败，请稍后重试或联系管理员。';
+  }
+  if (/network|fetch|timeout/i.test(message)) {
+    return '趋势数据请求超时，请检查网络后重试。';
+  }
+  return message.replace(/^Error:\s*/i, '') || '趋势数据加载失败，请稍后重试。';
+}
+
 function RealAdTrendChart({
   trendRows,
   dateKeys,
+  actualReportDates,
   metric,
   selectedStoreNames,
-  onSelectedStoreNamesChange,
+  loading,
+  error,
+  onSwitchRecent7,
 }: {
   trendRows: Array<Record<string, any>>;
   dateKeys?: string[];
+  actualReportDates?: string[];
   metric: TrendMetricKey;
   selectedStoreNames: string[];
-  onSelectedStoreNamesChange: (next: string[]) => void;
+  loading?: boolean;
+  error?: string;
+  onSwitchRecent7: () => void;
 }) {
-  const colors = ['#2563eb', '#10b981', '#f97316', '#8b5cf6', '#ef4444', '#0ea5e9', '#a16207', '#dc2626'];
+  const colors = ['#2563eb', '#10b981', '#f97316', '#8b5cf6', '#ef4444'];
   const dates = dateKeys?.length
     ? dateKeys
     : Array.from(new Set(trendRows.map((row) => String(row.reportDate || row.report_date || '').slice(0, 10)).filter(Boolean))).sort();
-  const availableStoreNames = Array.from(new Set(trendRows.map((row) => String(row.storeName || row.store_name || '').trim()).filter(Boolean))).sort();
-  const visibleStoreNames = selectedStoreNames.length > 0
-    ? selectedStoreNames.filter((storeName) => availableStoreNames.includes(storeName))
-    : availableStoreNames;
+  const reportDateCount = new Set((actualReportDates?.length ? actualReportDates : trendRows.map((row) => String(row.reportDate || row.report_date || '').slice(0, 10))).filter(Boolean)).size;
+  const visibleStoreNames = selectedStoreNames.slice(0, 5);
   const valueMap = trendRows.reduce((map, row) => {
     const date = String(row.reportDate || row.report_date || '').slice(0, 10);
     const storeName = String(row.storeName || row.store_name || '').trim();
@@ -2268,12 +2305,28 @@ function RealAdTrendChart({
   const plotHeight = height - top - bottom;
   const yFor = (value: number) => top + plotHeight - (value / max) * plotHeight;
 
+  if (loading) {
+    return <div className="npc-ad-trend-chart npc-ad-trend-loading"><span /><span /><span /></div>;
+  }
+  if (error) {
+    return <div className="npc-ad-trend-empty"><strong>趋势数据加载失败</strong><p>{error}</p></div>;
+  }
+  if (reportDateCount <= 1) {
+    return (
+      <div className="npc-ad-trend-empty npc-ad-trend-empty-action">
+        <strong>暂无趋势数据</strong>
+        <p>当前筛选范围只有 1 天数据，无法形成趋势。请切换到「近7天」或「近30天」查看广告趋势。</p>
+        <button type="button" onClick={onSwitchRecent7}>切换到近7天</button>
+      </div>
+    );
+  }
+
   return (
     <div className="npc-ad-trend-chart">
       {dates.length === 0 || visibleStoreNames.length === 0 ? (
-        <div className="npc-ad-trend-empty">暂无广告趋势数据，当前周期按 0 处理。</div>
+        <div className="npc-ad-trend-empty">暂无广告趋势数据。</div>
       ) : (
-        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="广告趋势分析">
+        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="店铺广告趋势对比">
           {[0, 0.25, 0.5, 0.75, 1].map((tick) => (
             <g key={tick}>
               <line className="npc-ad-trend-grid" x1={left} x2={width - right} y1={top + plotHeight - tick * plotHeight} y2={top + plotHeight - tick * plotHeight} />
@@ -2295,9 +2348,10 @@ function RealAdTrendChart({
                 <path className="npc-ad-trend-line" d={path} style={{ stroke: item.color }} />
                 {item.values.map((value, index) => {
                   const x = dates.length === 1 ? left + plotWidth / 2 : left + (index / (dates.length - 1)) * plotWidth;
+                  const previous = index > 0 ? item.values[index - 1] : 0;
                   return (
                     <circle className="npc-ad-trend-dot" key={`${item.storeName}-${dates[index]}`} cx={x} cy={yFor(value)} r="3" style={{ stroke: item.color }}>
-                      <title>{`${dates[index]} ${item.storeName} ${formatTrendTooltipValue(value, metric)}`}</title>
+                      <title>{`${dates[index]} ${item.storeName} ${getTrendMetricLabel(metric)} ${formatTrendTooltipValue(value, metric)}，${getTrendMetricChangeText(value, previous)}`}</title>
                     </circle>
                   );
                 })}
@@ -2313,6 +2367,35 @@ function RealAdTrendChart({
   );
 }
 
+function AdTrendConclusionPanel({
+  conclusions,
+  loading,
+}: {
+  conclusions?: Array<{ tone?: string; text: string }>;
+  loading?: boolean;
+}) {
+  return (
+    <aside className="npc-ad-trend-insights">
+      <header>
+        <h3>趋势结论</h3>
+        <span>系统自动判断</span>
+      </header>
+      {loading ? (
+        <div className="npc-ad-trend-insight-loading"><span /><span /><span /></div>
+      ) : (
+        <div className="npc-ad-trend-insight-list">
+          {(conclusions?.length ? conclusions : [{ tone: 'good', text: '近7天广告趋势整体平稳，暂无明显异常。' }]).slice(0, 5).map((item, index) => (
+            <section key={`${item.text}-${index}`} className={`is-${item.tone || 'neutral'}`}>
+              <i>{index + 1}</i>
+              <span>{item.text}</span>
+            </section>
+          ))}
+        </div>
+      )}
+    </aside>
+  );
+}
+
 function AllStoreAdOverviewBoard({
   rows,
   counts,
@@ -2324,6 +2407,10 @@ function AllStoreAdOverviewBoard({
   totalRecords,
   storeSummary,
   storeTrend,
+  adTrend,
+  adTrendLoading,
+  adTrendError,
+  trendStoreMode,
   visibleStores,
   highRoasRows,
   highRoasTotal,
@@ -2336,7 +2423,9 @@ function AllStoreAdOverviewBoard({
   onOpenStore,
   onHighRoasStoreChange,
   onTrendMetricChange,
+  onTrendStoreModeChange,
   onSelectedTrendStoreNamesChange,
+  onSwitchTrendRecent7,
 }: {
   rows: AdStrategySuggestion[];
   counts: Record<string, number>;
@@ -2348,6 +2437,16 @@ function AllStoreAdOverviewBoard({
   totalRecords?: number;
   storeSummary?: Array<Record<string, any>>;
   storeTrend?: Array<Record<string, any>>;
+  adTrend?: {
+    records: Array<Record<string, any>>;
+    stores: Array<Record<string, any>>;
+    selectedStores: string[];
+    conclusions: Array<{ tone?: string; text: string }>;
+    reportDates: string[];
+  };
+  adTrendLoading?: boolean;
+  adTrendError?: string;
+  trendStoreMode: TrendStoreMode;
   visibleStores?: StoreScopeOption[];
   highRoasRows: AdStrategySuggestion[];
   highRoasTotal: number;
@@ -2360,7 +2459,9 @@ function AllStoreAdOverviewBoard({
   onOpenStore?: (storeName: string) => void;
   onHighRoasStoreChange: (storeId: string) => void;
   onTrendMetricChange: (key: TrendMetricKey) => void;
+  onTrendStoreModeChange: (mode: TrendStoreMode) => void;
   onSelectedTrendStoreNamesChange: (next: string[]) => void;
+  onSwitchTrendRecent7: () => void;
 }) {
   const detailStoreRows = useMemo(() => Array.from(rows.reduce((map, item) => {
     const key = item.storeName || '未绑定店铺';
@@ -2468,9 +2569,14 @@ function AllStoreAdOverviewBoard({
       healthStatus: '暂无数据',
     });
   }, [detailStoreRows, summarizedStoreRows, visibleStores]);
-  const trendStoreNames = useMemo(() => Array.from(new Set((storeTrend || [])
-    .map((row) => String(row.storeName || row.store_name || '').trim())
-    .filter(Boolean))).sort(), [storeTrend]);
+  const trendStoreNames = useMemo(() => Array.from(new Set([
+    ...(adTrend?.selectedStores || []),
+    ...(adTrend?.stores || []).map((row) => String(row.storeName || row.store_name || '').trim()),
+  ].filter(Boolean))).sort(), [adTrend]);
+  const manualStoreOptions = useMemo(() => Array.from(new Set([
+    ...(visibleStores || []).map((store) => String(store.storeName || '').trim()),
+    ...trendStoreNames,
+  ].filter(Boolean))).sort((first, second) => first.localeCompare(second, 'zh-CN')), [trendStoreNames, visibleStores]);
   const topTrendStoreNames = useMemo(() => {
     const ranked = [...storeRows]
       .filter((row) => trendStoreNames.includes(row.storeName))
@@ -2478,9 +2584,7 @@ function AllStoreAdOverviewBoard({
       .map((row) => row.storeName);
     return (ranked.length ? ranked : trendStoreNames).slice(0, 5);
   }, [storeRows, trendStoreNames]);
-  const effectiveTrendStoreNames = selectedTrendStoreNames.length > 0
-    ? selectedTrendStoreNames.filter((storeName) => trendStoreNames.includes(storeName))
-    : topTrendStoreNames;
+  const effectiveTrendStoreNames = (adTrend?.selectedStores?.length ? adTrend.selectedStores : (selectedTrendStoreNames.length > 0 ? selectedTrendStoreNames : topTrendStoreNames)).slice(0, 5);
 
   const sortedStores = useMemo(() => [...storeRows].sort((first, second) => {
     const firstValue = sortKey === 'roas' ? first.roas : sortKey === 'acos' ? first.acos : sortKey === 'adSalesAmount' ? first.adSalesAmount : sortKey === 'adOrderCount' ? first.adOrderCount : sortKey === 'clicks' ? first.clicks : sortKey === 'conversionRate' ? first.conversionRate : first.adSpend;
@@ -2622,57 +2726,77 @@ function AllStoreAdOverviewBoard({
         <article className="excel-record-panel npc-panel npc-ad-trend-card">
           <header className="npc-panel-header">
             <div>
-              <h2>广告趋势分析</h2>
-              <span>默认展示总花费最高的前 5 个店铺，可手动添加对比店铺</span>
+              <h2>店铺广告趋势对比</h2>
+              <span>默认展示当前筛选范围内广告花费最高的前5个店铺，可切换指标或手动选择店铺对比。</span>
             </div>
-            <div className="npc-ad-metric-switch">
-              {[
-                ['adSpend', '总花费'],
-                ['adSalesAmount', '申报价销售额（全域）'],
-                ['roas', '投资回报率(ROAS)（全域）'],
-                ['acos', '费比（全域）'],
-              ].map(([key, label]) => <button key={key} type="button" className={trendMetric === key ? 'is-active' : ''} onClick={() => onTrendMetricChange(key as TrendMetricKey)}>{label}</button>)}
-            </div>
+            <span className="npc-ad-trend-scope-badge">当前口径：全域推广</span>
           </header>
           <div className="npc-ad-trend-toolbar">
+            <div className="npc-ad-trend-control-group">
+              <span>指标</span>
+              <div className="npc-ad-metric-switch">
+                {[
+                  ['adSpend', '广告花费'],
+                  ['adSalesAmount', '广告销售额'],
+                  ['roas', 'ROAS'],
+                  ['acos', '广告费率'],
+                ].map(([key, label]) => <button key={key} type="button" className={trendMetric === key ? 'is-active' : ''} onClick={() => onTrendMetricChange(key as TrendMetricKey)}>{label}</button>)}
+              </div>
+            </div>
+            <div className="npc-ad-trend-control-group">
+              <span>店铺范围</span>
+              <div className="npc-ad-metric-switch">
+                <button type="button" className={trendStoreMode === 'topSpend5' ? 'is-active' : ''} onClick={() => onTrendStoreModeChange('topSpend5')}>花费前5</button>
+                <button type="button" className={trendStoreMode === 'lowRoas5' ? 'is-active' : ''} onClick={() => onTrendStoreModeChange('lowRoas5')}>ROAS最低5</button>
+                <button type="button" className={trendStoreMode === 'manual' ? 'is-active' : ''} onClick={() => onTrendStoreModeChange('manual')}>手动选择</button>
+              </div>
+            </div>
+            {trendStoreMode === 'manual' && (
             <div className="npc-ad-trend-store-picker">
-              <button type="button" onClick={() => onSelectedTrendStoreNamesChange(trendStoreNames)}>全部店铺</button>
-              <button type="button" onClick={() => onSelectedTrendStoreNamesChange(topTrendStoreNames)}>花费前5</button>
-              <button type="button" onClick={() => onSelectedTrendStoreNamesChange([])}>恢复默认</button>
               <select
                 value=""
                 onChange={(event) => {
                   const storeName = event.target.value;
                   if (!storeName) return;
-                  const current = effectiveTrendStoreNames.length ? effectiveTrendStoreNames : topTrendStoreNames;
-                  onSelectedTrendStoreNamesChange(Array.from(new Set([...current, storeName])));
+                  if (selectedTrendStoreNames.length >= 5 && !selectedTrendStoreNames.includes(storeName)) return;
+                  onSelectedTrendStoreNamesChange(Array.from(new Set([...selectedTrendStoreNames, storeName])).slice(0, 5));
                 }}
               >
-                <option value="">添加对比店铺</option>
-                {trendStoreNames.filter((storeName) => !effectiveTrendStoreNames.includes(storeName)).map((storeName) => (
+                <option value="">选择对比店铺</option>
+                {manualStoreOptions.filter((storeName) => !selectedTrendStoreNames.includes(storeName)).map((storeName) => (
                   <option key={storeName} value={storeName}>{storeName}</option>
                 ))}
               </select>
+              <button type="button" onClick={() => onSelectedTrendStoreNamesChange([])}>恢复默认</button>
             </div>
+            )}
             <div className="npc-ad-trend-selected-stores" aria-label="已选择店铺">
-              {effectiveTrendStoreNames.map((storeName) => (
+              {(trendStoreMode === 'manual' ? selectedTrendStoreNames : effectiveTrendStoreNames).map((storeName) => (
                 <button
                   key={storeName}
                   type="button"
-                  onClick={() => onSelectedTrendStoreNamesChange(effectiveTrendStoreNames.filter((name) => name !== storeName))}
+                  onClick={() => trendStoreMode === 'manual' && onSelectedTrendStoreNamesChange(selectedTrendStoreNames.filter((name) => name !== storeName))}
                 >
                   {storeName}<span>×</span>
                 </button>
               ))}
             </div>
           </div>
-          <RealAdTrendChart
-            trendRows={storeTrend || []}
-            dateKeys={trendDateKeys}
-            metric={trendMetric}
-            selectedStoreNames={effectiveTrendStoreNames}
-            onSelectedStoreNamesChange={onSelectedTrendStoreNamesChange}
-          />
+          {trendStoreMode === 'manual' && selectedTrendStoreNames.length >= 5 && <div className="npc-ad-trend-limit-tip">最多选择 5 个店铺进行对比，避免图表过于拥挤。</div>}
+          <div className="npc-ad-trend-content">
+            <RealAdTrendChart
+              trendRows={adTrend?.records || []}
+              dateKeys={trendDateKeys}
+              actualReportDates={adTrend?.reportDates || []}
+              metric={trendMetric}
+              selectedStoreNames={effectiveTrendStoreNames}
+              loading={adTrendLoading}
+              error={adTrendError}
+              onSwitchRecent7={onSwitchTrendRecent7}
+            />
+            <AdTrendConclusionPanel conclusions={adTrend?.conclusions || []} loading={adTrendLoading} />
+          </div>
+          <div className="npc-ad-trend-unit">纵轴单位：{getTrendMetricUnit(trendMetric)}</div>
         </article>
         <article className="excel-record-panel npc-panel npc-ad-low-return-card">
           <header className="npc-panel-header"><h2>高总花费低回报商品榜</h2><span>Top {highSpendLowReturn.length}</span></header>
@@ -2863,8 +2987,12 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
   const [abnormalStatus, setAbnormalStatus] = useState('');
   const [sortKey, setSortKey] = useState<AdStrategySortKey>('adSpend');
   const [trendMetric, setTrendMetric] = useState<TrendMetricKey>('adSpend');
+  const [trendStoreMode, setTrendStoreMode] = useState<TrendStoreMode>('topSpend5');
   const [selectedTrendStoreNames, setSelectedTrendStoreNames] = useState<string[]>([]);
   const [trendDateKeys, setTrendDateKeys] = useState<string[]>([]);
+  const [adTrend, setAdTrend] = useState<{ records: Array<Record<string, any>>; stores: Array<Record<string, any>>; selectedStores: string[]; conclusions: Array<{ tone?: string; text: string }>; reportDates: string[] }>({ records: [], stores: [], selectedStores: [], conclusions: [], reportDates: [] });
+  const [adTrendLoading, setAdTrendLoading] = useState(false);
+  const [adTrendError, setAdTrendError] = useState('');
   const [queryVersion, setQueryVersion] = useState(0);
   const [priority, setPriority] = useState('');
   const [status, setStatus] = useState('PENDING');
@@ -3071,6 +3199,51 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
       cancelled = true;
     };
   }, [appliedOperatorName, customEndDate, customStartDate, datePreset, dimensionTab, queryVersion, snapshotDate, sortKey, storeId, storeOptions]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadAdTrend = async () => {
+      if (dimensionTab !== 'allStores') return;
+      setAdTrendLoading(true);
+      setAdTrendError('');
+      try {
+        const selectedStore = storeOptions.find((store) => String(store.storeId || store.storeName || '') === String(storeId));
+        const baseFilters: Record<string, string> = {};
+        if (storeId) {
+          if (selectedStore?.storeName) baseFilters.storeName = selectedStore.storeName;
+          else baseFilters.storeId = storeId;
+        }
+        if (appliedOperatorName) baseFilters.operatorName = appliedOperatorName;
+        const { startDate, endDate } = getAdPresetDateRange({
+          datePreset,
+          customStartDate,
+          customEndDate,
+          snapshotDate,
+        });
+        const result = await newProductCenterDataSource.getAdImportTrend({
+          ...baseFilters,
+          startDate,
+          endDate,
+          metric: trendMetric,
+          trendStoreMode: trendStoreMode === 'lowRoas5' ? 'roasLow5' : 'topSpend5',
+          trendStoreNames: trendStoreMode === 'manual' ? selectedTrendStoreNames.slice(0, 5).join(',') : '',
+          limit: '5',
+        });
+        if (!cancelled) setAdTrend(result);
+      } catch (error) {
+        if (!cancelled) {
+          setAdTrend({ records: [], stores: [], selectedStores: [], conclusions: [], reportDates: [] });
+          setAdTrendError(formatAdTrendErrorMessage(error));
+        }
+      } finally {
+        if (!cancelled) setAdTrendLoading(false);
+      }
+    };
+    void loadAdTrend();
+    return () => {
+      cancelled = true;
+    };
+  }, [appliedOperatorName, customEndDate, customStartDate, datePreset, dimensionTab, queryVersion, selectedTrendStoreNames, snapshotDate, storeId, storeOptions, trendMetric, trendStoreMode]);
 
   useEffect(() => {
     setHighRoasProducts((current) => ({ ...current, page: 1 }));
@@ -3384,6 +3557,10 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           totalRecords={adImportOverview.total}
           storeSummary={(adImportOverview as any).storeSummary || []}
           storeTrend={(adImportOverview as any).storeTrend || []}
+          adTrend={adTrend}
+          adTrendLoading={adTrendLoading}
+          adTrendError={adTrendError}
+          trendStoreMode={trendStoreMode}
           visibleStores={storeOptions}
           highRoasRows={highRoasProducts.records}
           highRoasTotal={highRoasProducts.total}
@@ -3403,7 +3580,16 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
             setHighRoasProducts((current) => ({ ...current, page: 1 }));
           }}
           onTrendMetricChange={setTrendMetric}
+          onTrendStoreModeChange={(mode) => {
+            setTrendStoreMode(mode);
+            if (mode !== 'manual') setSelectedTrendStoreNames([]);
+          }}
           onSelectedTrendStoreNamesChange={setSelectedTrendStoreNames}
+          onSwitchTrendRecent7={() => {
+            setDatePreset('recent7');
+            setIsCustomDateOpen(false);
+            setQueryVersion((value) => value + 1);
+          }}
         />
       ) : (
         <>

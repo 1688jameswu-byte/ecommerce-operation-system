@@ -102,6 +102,20 @@ export const newProductCenterDataSource = {
     return request<ImportOverview>(`/api/data-import/temu-ad-report/records?${params.toString()}`);
   },
 
+  getAdImportTrend(filters: Record<string, string> = {}) {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    return request<{
+      records: Array<Record<string, any>>;
+      stores: Array<Record<string, any>>;
+      selectedStores: string[];
+      conclusions: Array<{ tone: 'good' | 'warning' | 'risk' | 'neutral'; text: string }>;
+      reportDates: string[];
+    }>(`/api/data-import/temu-ad-report/trend?${params.toString()}`);
+  },
+
   deleteAdImportBatch(batchId: string) {
     return request<DeleteImportBatchResult>(`/api/data-import/temu-ad-report/batches/${encodeURIComponent(batchId)}`, {
       method: 'DELETE',
