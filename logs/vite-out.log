@@ -2353,3 +2353,15 @@
 {"scope":"new-product-center-api","endpoint":"operator-options","durationMs":23,"rows":6,"slow":false}
 {"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":24,"rows":13,"slow":false}
 {"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":13,"rows":0,"slow":false}
+[2m15:13:17[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m15:13:18[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":3,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":21,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/config","durationMs":2,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":7,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":101,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":106,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":12,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":110,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":12,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":20,"rows":0,"slow":false}
