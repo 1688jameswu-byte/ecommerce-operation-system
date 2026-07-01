@@ -2775,7 +2775,34 @@ export async function readEffectiveListingsFromProductImport(params = {}) {
   }));
 }
 
+const newProductFirstOrderStatsCache = new Map();
+const NEW_PRODUCT_FIRST_ORDER_STATS_CACHE_TTL_MS = 2 * 60_000;
+
+export function clearNewProductFirstOrderStatsCache() {
+  newProductFirstOrderStatsCache.clear();
+}
+
+function getNewProductFirstOrderStatsCacheKey(params = {}) {
+  return JSON.stringify(Object.entries({
+    periodStart: dateText(params.periodStart),
+    periodEnd: dateText(params.periodEnd),
+    today: dateText(params.today),
+    observeDays: Math.max(1, Number(params.observeDays || 30)),
+    dateMode: params.dateMode === 'observeEnd' ? 'observeEnd' : 'listedAt',
+    operatorId: params.operatorId || '',
+    operatorName: params.operatorName || '',
+    storeNames: Array.isArray(params.storeNames) ? [...params.storeNames].map((name) => String(name || '').trim()).filter(Boolean).sort().join(',') : '',
+    storeIds: Array.isArray(params.storeIds) ? [...params.storeIds].map((id) => String(id || '').trim()).filter(Boolean).sort().join(',') : '',
+  }).sort(([first], [second]) => first.localeCompare(second)));
+}
+
 export async function calculateNewProductFirstOrderStats(params = {}) {
+  const cacheKey = getNewProductFirstOrderStatsCacheKey(params);
+  const cached = newProductFirstOrderStatsCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+  if (cached) newProductFirstOrderStatsCache.delete(cacheKey);
   await ensureTemuProductStatsMaintenance();
   const observeDays = Math.max(1, Number(params.observeDays || 30));
   const periodStart = dateText(params.periodStart) || `${new Date().toISOString().slice(0, 7)}-01`;
@@ -2955,7 +2982,7 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
   const delayedFirstOrderCount = products.filter((item) => item.status === 'DELAYED_FIRST_ORDER').length;
   const observingCount = products.filter((item) => item.status === 'OBSERVING').length;
   const decidableCount = firstOrderWithin30DaysCount + expiredNoFirstOrderCount + delayedFirstOrderCount;
-  return {
+  const value = {
     periodStart,
     periodEnd,
     observeDays,
@@ -2970,6 +2997,11 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
     products,
     dataUpdatedAt: products.map((item) => item.updatedAt).filter(Boolean).sort().at(-1) || '',
   };
+  newProductFirstOrderStatsCache.set(cacheKey, {
+    value,
+    expiresAt: Date.now() + NEW_PRODUCT_FIRST_ORDER_STATS_CACHE_TTL_MS,
+  });
+  return value;
 }
 
 const AD_IMPORT_SORT_FIELDS = {

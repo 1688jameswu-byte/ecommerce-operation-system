@@ -1715,11 +1715,18 @@ function normalizeAdImportRecord(row: Record<string, any>): AdStrategySuggestion
   } as AdStrategySuggestion;
 }
 
+function formatLocalDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function offsetDate(dateText: string, offsetDays: number) {
   const date = new Date(`${dateText}T00:00:00`);
   if (Number.isNaN(date.getTime())) return dateText;
   date.setDate(date.getDate() + offsetDays);
-  return date.toISOString().slice(0, 10);
+  return formatLocalDateKey(date);
 }
 
 function diffDateDays(startDate: string, endDate: string) {
@@ -1741,7 +1748,29 @@ function buildDateRange(startDate: string, endDate: string) {
 }
 
 function todayDateKey() {
-  return new Date().toISOString().slice(0, 10);
+  return formatLocalDateKey(new Date());
+}
+
+function getAdPresetDateRange(options: {
+  datePreset: AdDatePreset;
+  customStartDate: string;
+  customEndDate: string;
+  snapshotDate: string;
+}) {
+  const { datePreset, customStartDate, customEndDate, snapshotDate } = options;
+  const yesterday = offsetDate(todayDateKey(), -1);
+  if (datePreset === 'custom') {
+    const firstDate = customStartDate || customEndDate || snapshotDate || yesterday;
+    const secondDate = customEndDate || customStartDate || firstDate;
+    return firstDate <= secondDate
+      ? { startDate: firstDate, endDate: secondDate }
+      : { startDate: secondDate, endDate: firstDate };
+  }
+
+  const endDate = yesterday;
+  if (datePreset === 'recent30') return { startDate: offsetDate(endDate, -29), endDate };
+  if (datePreset === 'recent7') return { startDate: offsetDate(endDate, -6), endDate };
+  return { startDate: endDate, endDate };
 }
 
 function monthKeyFromDate(dateText: string) {
@@ -3003,17 +3032,12 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           else baseFilters.storeId = storeId;
         }
         if (appliedOperatorName) baseFilters.operatorName = appliedOperatorName;
-        const customStart = customStartDate || snapshotDate;
-        const customEnd = customEndDate || customStart;
-        const referenceDate = snapshotDate || todayDateKey();
-        const endDate = datePreset === 'custom' && customStart ? customEnd : referenceDate;
-        const startDate = datePreset === 'recent7'
-          ? offsetDate(endDate, -6)
-          : datePreset === 'recent30'
-            ? offsetDate(endDate, -29)
-            : datePreset === 'custom'
-              ? customStart
-              : endDate;
+        const { startDate, endDate } = getAdPresetDateRange({
+          datePreset,
+          customStartDate,
+          customEndDate,
+          snapshotDate,
+        });
         if (!endDate) {
           if (!cancelled) {
             setAdImportOverview({ batches: [], records: [], reportDate: '' });
@@ -3068,17 +3092,12 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
         if (platform) baseFilters.platform = platform;
         if (appliedOperatorName) baseFilters.operatorName = appliedOperatorName;
 
-        const customStart = customStartDate || snapshotDate;
-        const customEnd = customEndDate || customStart;
-        const referenceDate = snapshotDate || todayDateKey();
-        const endDate = datePreset === 'custom' && customStart ? customEnd : referenceDate;
-        const startDate = datePreset === 'recent7'
-          ? offsetDate(endDate, -6)
-          : datePreset === 'recent30'
-            ? offsetDate(endDate, -29)
-            : datePreset === 'custom'
-              ? customStart
-              : endDate;
+        const { startDate, endDate } = getAdPresetDateRange({
+          datePreset,
+          customStartDate,
+          customEndDate,
+          snapshotDate,
+        });
         if (!endDate) {
           if (!cancelled) setHighRoasProducts({ records: [], total: 0, page: 1, pageSize: 10 });
           return;

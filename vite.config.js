@@ -6,6 +6,7 @@ import path from 'path';
 import { handleAlibaba1688Api } from './server/alibaba1688/api/alibaba1688ApiHandler.js';
 import {
   readOrderImportStoreFromPostgres,
+  readOrderSalesSummaryFromPostgres,
   readTemuCollectionFromPostgres,
   readTrafficConversionStoreFromPostgres,
   readWorkbenchKpiTargetsFromPostgres,
@@ -22,6 +23,7 @@ import {
   assertImportFileShape,
   buildImportPreview,
   calculateNewProductFirstOrderStats,
+  clearNewProductFirstOrderStatsCache,
   deleteAdImportBatch,
   deleteProductImportBatch,
   getAdStrategyConfig,
@@ -3630,6 +3632,7 @@ const NEW_PRODUCT_CENTER_DYNAMIC_TTL_MS = 45_000;
 
 function clearNewProductCenterApiCache() {
   newProductCenterApiCache.clear();
+  clearNewProductFirstOrderStatsCache();
 }
 
 function getNewProductCenterCacheTtl(pathname) {
@@ -6004,6 +6007,77 @@ async function readWorkbenchOrderStore() {
   return readPersistentDataForApi('orderImportStore', ensureDataFile('orderImportStore'));
 }
 
+async function readWorkbenchSalesSummary(range, scope) {
+  const empty = {
+    salesAmount: 0,
+    orderCount: 0,
+    quantity: 0,
+    storeSalesMap: new Map(),
+    dataUpdatedAt: '',
+    source: 'empty',
+  };
+  const storeNames = Array.from(scope.storeNames ?? []).filter(Boolean);
+
+  if (preferTemuPostgresReads() && isTemuPostgresConfigured()) {
+    try {
+      const summary = await readOrderSalesSummaryFromPostgres({
+        startDate: range.start,
+        endDate: range.end,
+        storeNames,
+      });
+      const storeSalesMap = new Map();
+      for (const row of summary.rows ?? []) {
+        const storeName = normalizeOrderImportStoreName(row.storeName);
+        storeSalesMap.set(storeName, {
+          storeName,
+          salesAmount: toFiniteNumber(row.salesAmount),
+          orderCount: toFiniteNumber(row.orderCount),
+        });
+      }
+      return {
+        salesAmount: Number(toFiniteNumber(summary.totalSalesAmount).toFixed(2)),
+        orderCount: toFiniteNumber(summary.orderCount),
+        quantity: toFiniteNumber(summary.quantity),
+        storeSalesMap,
+        dataUpdatedAt: summary.dataUpdatedAt || '',
+        source: 'postgres',
+      };
+    } catch (error) {
+      console.warn('[workbench-kpi] PG sales summary failed, fallback to JSON:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  const orderStore = await readWorkbenchOrderStore();
+  let salesAmountRaw = 0;
+  let orderCount = 0;
+  let quantity = 0;
+  const storeSalesMap = new Map();
+  for (const batch of orderStore?.batches ?? []) {
+    for (const order of batch?.orders ?? []) {
+      const date = getOrderDateKey(order);
+      if (!date || date < range.start || date > range.end || !itemMatchesWorkbenchScope(order, scope)) continue;
+      const orderSalesAmount = getDashboardOrderSalesAmount(order);
+      salesAmountRaw += orderSalesAmount;
+      orderCount += 1;
+      quantity += Number(order?.quantity) || 0;
+      const storeName = normalizeOrderImportStoreName(order?.storeName);
+      const current = storeSalesMap.get(storeName) ?? { storeName, salesAmount: 0, orderCount: 0 };
+      current.salesAmount += orderSalesAmount;
+      current.orderCount += 1;
+      storeSalesMap.set(storeName, current);
+    }
+  }
+  return {
+    ...empty,
+    salesAmount: Number(salesAmountRaw.toFixed(2)),
+    orderCount,
+    quantity,
+    storeSalesMap,
+    dataUpdatedAt: (orderStore?.batches ?? []).map((batch) => batch.importedAt).filter(Boolean).sort().at(-1) || '',
+    source: 'json',
+  };
+}
+
 async function readWorkbenchKpiTargets() {
   const jsonTargets = readCollectionCached('operationWorkbenchKpiTargets').map((target) => normalizeWorkbenchTarget(target));
   try {
@@ -6054,6 +6128,7 @@ const operationWorkbenchDashboardCache = new Map();
 const OPERATION_WORKBENCH_DASHBOARD_CACHE_TTL_MS = 5 * 60_000;
 const operatorAnalysisStoreFinancialsCache = new Map();
 const OPERATOR_ANALYSIS_FINANCIALS_CACHE_TTL_MS = 2 * 60_000;
+const WORKBENCH_KPI_DEBUG = process.env.WORKBENCH_KPI_DEBUG === 'true';
 
 function clearOperationWorkbenchDashboardCache() {
   operationWorkbenchDashboardCache.clear();
@@ -6066,7 +6141,9 @@ function clearOperatorAnalysisStoreFinancialsCache() {
 function logWorkbenchKpiTiming(label, startedAt, timings) {
   const elapsed = Date.now() - startedAt;
   timings[label] = elapsed;
-  console.info(`[workbench-kpi] ${label} ${elapsed}ms`);
+  if (elapsed > 1000) {
+    console.warn(`[workbench-kpi] slow ${label} ${elapsed}ms`);
+  }
   return elapsed;
 }
 
@@ -6111,7 +6188,7 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
   const now = Date.now();
   if (cached && cached.expiresAt > now) {
     if (cached.promise) return cached.promise;
-    console.info('[workbench-kpi] cacheHit true 0ms');
+    if (WORKBENCH_KPI_DEBUG) console.info('[workbench-kpi] cacheHit true 0ms');
     return {
       ...cached.value,
       cache: {
@@ -6126,7 +6203,7 @@ async function buildOperationWorkbenchDashboard(searchParams, currentUser) {
     };
   }
 
-  console.info('[workbench-kpi] cacheHit false');
+  if (WORKBENCH_KPI_DEBUG) console.info('[workbench-kpi] cacheHit false');
   const promise = buildOperationWorkbenchDashboardUncached(searchParams, currentUser)
     .then((value) => {
       const generatedAt = new Date().toISOString();
@@ -6178,9 +6255,11 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       ? 'selectedOperatorAllStores'
       : 'allVisibleStores';
   const scopeHash = resolvedStoreIds.length > 0 ? resolvedStoreIds.join(',') : resolvedStoreLabels.join(',');
-  console.info(`[workbench-kpi] params period=${range.period} operatorId=${requestedOperatorId || scope.operatorId || 'all'} storeId=${requestedStoreId || 'all'}`);
-  console.info(`[workbench-kpi] resolvedStoreIds count=${stores.length} stores=${resolvedStoreLabels.join('、') || '-'}`);
-  console.info(`[workbench-kpi] scope mode=${scopeMode} role=${scope.role || ''} hash=${scopeHash || '-'}`);
+  if (WORKBENCH_KPI_DEBUG) {
+    console.info(`[workbench-kpi] params period=${range.period} operatorId=${requestedOperatorId || scope.operatorId || 'all'} storeId=${requestedStoreId || 'all'}`);
+    console.info(`[workbench-kpi] resolvedStoreIds count=${stores.length} stores=${resolvedStoreLabels.join('、') || '-'}`);
+    console.info(`[workbench-kpi] scope mode=${scopeMode} role=${scope.role || ''} hash=${scopeHash || '-'}`);
+  }
   const storeByName = new Map(stores.map((store) => [normalizeOrderImportStoreName(store.storeName || store.id), store]));
   sectionStartedAt = Date.now();
   const targetsPromise = readWorkbenchKpiTargets().then((value) => {
@@ -6189,7 +6268,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     return scopedTargets;
   });
   const orderReadStartedAt = Date.now();
-  const orderStorePromise = readWorkbenchOrderStore().then((value) => {
+  const salesSummaryPromise = readWorkbenchSalesSummary(range, scope).then((value) => {
     logWorkbenchKpiTiming('salesDataRead', orderReadStartedAt, timings);
     return value;
   });
@@ -6220,10 +6299,17 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   });
   const dataReadResults = await Promise.allSettled([
     withWorkbenchTimeout(targetsPromise, 5000, 'targets'),
-    withWorkbenchTimeout(orderStorePromise, 5000, 'salesDataRead'),
+    withWorkbenchTimeout(salesSummaryPromise, 5000, 'salesDataRead'),
   ]);
   let targets = [];
-  let orderStore = { batches: [] };
+  let salesSummary = {
+    salesAmount: 0,
+    orderCount: 0,
+    quantity: 0,
+    storeSalesMap: new Map(),
+    dataUpdatedAt: '',
+    source: 'empty',
+  };
   let baseDataReadError = '';
   if (dataReadResults[0].status === 'fulfilled') {
     targets = dataReadResults[0].value;
@@ -6233,35 +6319,19 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     if (!timings.targets) timings.targets = Date.now() - sectionStartedAt;
   }
   if (dataReadResults[1].status === 'fulfilled') {
-    orderStore = dataReadResults[1].value;
+    salesSummary = dataReadResults[1].value;
   } else {
     baseDataReadError = [baseDataReadError, `订单销售数据读取失败：${dataReadResults[1].reason?.message || dataReadResults[1].reason}`].filter(Boolean).join('；');
     console.warn('[workbench-kpi] salesDataRead failed:', baseDataReadError);
     if (!timings.salesDataRead) timings.salesDataRead = Date.now() - orderReadStartedAt;
   }
   const target = pickWorkbenchTarget(targets, scope, range.period);
-  console.info(`[workbench-kpi] targets count=${targets.length} targetStatus=${target ? 'matched' : 'missing'} configuredStores=${target?.configuredStoreCount ?? '-'}`);
+  if (WORKBENCH_KPI_DEBUG) console.info(`[workbench-kpi] targets count=${targets.length} targetStatus=${target ? 'matched' : 'missing'} configuredStores=${target?.configuredStoreCount ?? '-'}`);
   sectionStartedAt = Date.now();
-  let salesAmountRaw = 0;
-  let orderCount = 0;
-  let quantity = 0;
-  const storeSalesMap = new Map();
-  for (const batch of orderStore?.batches ?? []) {
-    for (const order of batch?.orders ?? []) {
-      const date = getOrderDateKey(order);
-      if (!date || date < range.start || date > range.end || !itemMatchesWorkbenchScope(order, scope)) continue;
-      const orderSalesAmount = getDashboardOrderSalesAmount(order);
-      salesAmountRaw += orderSalesAmount;
-      orderCount += 1;
-      quantity += Number(order?.quantity) || 0;
-      const storeName = normalizeOrderImportStoreName(order?.storeName);
-      const current = storeSalesMap.get(storeName) ?? { storeName, salesAmount: 0, orderCount: 0 };
-      current.salesAmount += orderSalesAmount;
-      current.orderCount += 1;
-      storeSalesMap.set(storeName, current);
-    }
-  }
-  const salesAmount = Number(salesAmountRaw.toFixed(2));
+  const salesAmount = salesSummary.salesAmount;
+  const orderCount = salesSummary.orderCount;
+  const quantity = salesSummary.quantity;
+  const storeSalesMap = salesSummary.storeSalesMap;
   logWorkbenchKpiTiming('sales', sectionStartedAt, timings);
 
   const emptyNewProductStats = {
@@ -6366,7 +6436,11 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     .filter((record) => !searchParams.get('storeId') || record.storeNames?.includes(searchParams.get('storeId')) || record.storeNames?.some((name) => scope.storeNames.has(normalizeOrderImportStoreName(name))));
   logWorkbenchKpiTiming('afterSaleExpense', sectionStartedAt, timings);
   timings.expense = (timings.adExpense ?? 0) + (timings.afterSaleExpense ?? 0);
-  console.info(`[workbench-kpi] expense ${timings.expense}ms`);
+  if (timings.expense > 1000) {
+    console.warn(`[workbench-kpi] slow expense ${timings.expense}ms`);
+  } else if (WORKBENCH_KPI_DEBUG) {
+    console.info(`[workbench-kpi] expense ${timings.expense}ms`);
+  }
   const lastMonthAfterSaleAmount = previousFinanceRecords.reduce((total, record) => total + toFiniteNumber(record.afterSaleIssueAmount), 0);
   const estimatedAfterSaleAmount = Number(((lastMonthAfterSaleAmount / 30) * expenseElapsedDays).toFixed(2));
   const adExpenseAmount = Number(toFiniteNumber(adSpendSummary.adSpend).toFixed(2));
@@ -6568,7 +6642,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const remainingListing = Math.max((target?.effectiveListingTarget || 0) - listingProductCount, 0);
   const todaySuggestedListing = target?.effectiveListingTarget > 0 && range.timeProgress > 0 ? Math.ceil(remainingListing / range.remainingDays) : null;
   const dataUpdatedAt = [
-    ...(orderStore?.batches ?? []).map((batch) => batch.importedAt),
+    salesSummary.dataUpdatedAt,
     newProductListingStats.dataUpdatedAt,
     newProductFirstOrderStats.dataUpdatedAt,
   ].filter(Boolean).sort().at(-1) || '';
@@ -6732,7 +6806,11 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   }
   logWorkbenchKpiTiming('todayActions', sectionStartedAt, timings);
   timings.total = Date.now() - totalStartedAt;
-  console.info(`[workbench-kpi] total ${timings.total}ms`);
+  if (timings.total > 1000) {
+    console.warn(`[workbench-kpi] slow total ${timings.total}ms`);
+  } else if (WORKBENCH_KPI_DEBUG) {
+    console.info(`[workbench-kpi] total ${timings.total}ms`);
+  }
 
   return {
     filters: {
@@ -7485,6 +7563,7 @@ function localDataPlugin() {
               persistentResponseCache.clear();
               clearDashboardSummaryCache();
               clearOperationWorkbenchDashboardCache();
+              clearNewProductFirstOrderStatsCache();
               const deleteSummary = isOrderImportDelete && deleteBefore && deleteAfter
                 ? {
                   user: currentUser?.username ?? currentUser?.userId ?? '',
@@ -7580,6 +7659,7 @@ function localDataPlugin() {
             clearDashboardSummaryCache();
             if (name === 'orderImportStore') {
               clearOperationWorkbenchDashboardCache();
+              clearNewProductFirstOrderStatsCache();
             }
             const deleteSummary = isOrderImportDelete && deleteBefore && deleteAfter
               ? {

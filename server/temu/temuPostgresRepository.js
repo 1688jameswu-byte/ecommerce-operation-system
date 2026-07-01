@@ -920,6 +920,45 @@ export async function readOrderImportStoreFromPostgres() {
   };
 }
 
+export async function readOrderSalesSummaryFromPostgres(params = {}) {
+  const startDate = dateValue(params.startDate);
+  const endDate = dateValue(params.endDate) || startDate;
+  const storeNames = Array.from(new Set((params.storeNames ?? []).map((name) => text(name)).filter(Boolean)));
+  if (!startDate || !endDate || storeNames.length === 0) {
+    return { rows: [], totalSalesAmount: 0, orderCount: 0, quantity: 0, dataUpdatedAt: '' };
+  }
+
+  const result = await queryTemuDatabase(
+    `SELECT
+       o.store_name,
+       COALESCE(SUM(o.item_amount), 0)::numeric AS sales_amount,
+       COUNT(*)::int AS order_count,
+       COALESCE(SUM(o.quantity), 0)::numeric AS quantity,
+       MAX(o.updated_at) AS data_updated_at
+     FROM temu_order_items o
+     WHERE o.order_date >= $1::date
+       AND o.order_date <= $2::date
+       AND o.store_name = ANY($3::text[])
+     GROUP BY o.store_name
+     ORDER BY o.store_name`,
+    [startDate, endDate, storeNames],
+  );
+  const rows = result.rows.map((row) => ({
+    storeName: row.store_name || '',
+    salesAmount: numberValue(row.sales_amount),
+    orderCount: numberValue(row.order_count),
+    quantity: numberValue(row.quantity),
+    dataUpdatedAt: row.data_updated_at?.toISOString?.() || '',
+  }));
+  return {
+    rows,
+    totalSalesAmount: rows.reduce((total, row) => total + row.salesAmount, 0),
+    orderCount: rows.reduce((total, row) => total + row.orderCount, 0),
+    quantity: rows.reduce((total, row) => total + row.quantity, 0),
+    dataUpdatedAt: rows.map((row) => row.dataUpdatedAt).filter(Boolean).sort().at(-1) || '',
+  };
+}
+
 export async function readTrafficConversionStoreFromPostgres() {
   const recordsResult = await queryTemuDatabase(
     `SELECT r.raw_data, b.source_batch_id

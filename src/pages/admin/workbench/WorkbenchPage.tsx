@@ -1087,7 +1087,7 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
     if (cachedData) {
       setData(cachedData);
     }
-    setLoading(true);
+    setLoading(!cachedData);
     void fetchJson<WorkbenchData | null>(`/api/operation-workbench/kpi-dashboard?${query}`, null, { signal: controller.signal })
       .then((nextData) => {
         if (requestIdRef.current === requestId) {

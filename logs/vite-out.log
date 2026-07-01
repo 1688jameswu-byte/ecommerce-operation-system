@@ -2746,3 +2746,156 @@
 [workbench-kpi] dataIntegrity 0ms
 [workbench-kpi] todayActions 0ms
 [workbench-kpi] total 340ms
+[2m16:30:30[22m [36m[1m[vite][22m[39m [32mserver/temu/temuPostgresRepository.js changed, restarting server...[39m
+[2m16:30:30[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 3ms
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 16ms
+[workbench-kpi] targets 93ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] sales 0ms
+[workbench-kpi] listing 266ms
+[workbench-kpi] firstOrder 269ms
+[workbench-kpi] adExpense 3ms
+[workbench-kpi] afterSaleExpense 16ms
+[workbench-kpi] expense 19ms
+[workbench-kpi] storeBreakdownPreAggregate 1ms
+[workbench-kpi] storeBreakdown 0ms
+[workbench-kpi] dataIntegrity 0ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 311ms
+[2m16:30:44[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:30:44[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] scope 3ms
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] salesDataRead 12ms
+[workbench-kpi] targets 90ms
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] sales 1ms
+[workbench-kpi] listing 286ms
+[workbench-kpi] firstOrder 296ms
+[workbench-kpi] adExpense 3ms
+[workbench-kpi] afterSaleExpense 20ms
+[workbench-kpi] expense 23ms
+[workbench-kpi] storeBreakdownPreAggregate 1ms
+[workbench-kpi] storeBreakdown 0ms
+[workbench-kpi] dataIntegrity 1ms
+[workbench-kpi] todayActions 0ms
+[workbench-kpi] total 338ms
+[2m16:30:56[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:30:56[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] expense 19ms
+[workbench-kpi] total 274ms
+[2m16:31:21[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:31:21[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] expense 24ms
+[workbench-kpi] total 288ms
+[2m16:32:19[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:32:19[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] expense 21ms
+[2m16:32:51[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:32:51[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] expense 22ms
+[workbench-kpi] total 315ms
+[2m16:33:02[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+[2m16:33:19[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m16:33:19[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] expense 20ms
+[workbench-kpi] total 319ms
+[2m16:33:33[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m16:33:33[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] expense 19ms
+[workbench-kpi] total 299ms
+[2m16:33:44[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:33:44[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] expense 18ms
+[workbench-kpi] total 318ms
+[2m16:33:55[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:33:55[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] expense 20ms
+[workbench-kpi] total 297ms
+[2m16:34:34[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:34:34[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] expense 22ms
+[workbench-kpi] total 312ms
+[2m16:35:27[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:35:27[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] cacheHit false
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] expense 21ms
+[workbench-kpi] total 354ms
+[2m16:35:37[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:35:37[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] params period=2026-07 operatorId=all storeId=all
+[workbench-kpi] resolvedStoreIds count=13 stores=B店、F店、K店、U店、C店、S店、A店、X店、O店、M店、L店、H店、Q店
+[workbench-kpi] scope mode=allVisibleStores role=admin hash=store-1779189685728-5d0o88,store-1779189704925-n37kk8,store-1779250535504-oe7pn2,store-1779250571842-ap1dc1,store-1779250608720-3y40xd,store-1779250617735-mrgeer,store-1779250673329-f6ao3r,store-1779250680437-doqtlc,store-1779250687680-o0326k,store-1779250695491-3z7kwi,store-1779250703920-yl2wme,store-1779250710562-bij0ve,store-1779250716950-i7x6ep
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] expense 18ms
+[workbench-kpi] total 289ms
+[2m16:36:06[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:36:07[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] targets count=4 targetStatus=matched configuredStores=1
+[workbench-kpi] expense 18ms
+[workbench-kpi] total 334ms
+[2m16:36:17[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:36:18[22m [36m[1m[vite][22m[39m server restarted.
+[workbench-kpi] expense 19ms
+[workbench-kpi] total 297ms
+[2m16:36:32[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:36:32[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:36:50[22m [36m[1m[vite][22m[39m [32mserver/temu/temuPostgresRepository.js changed, restarting server...[39m
+[2m16:36:50[22m [36m[1m[vite][22m[39m server restarted.
