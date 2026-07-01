@@ -2071,6 +2071,7 @@ async function mirrorTemuReferenceJsonToPostgres() {
       operators: getOperators(),
       relations: readCollection('storeOperatorRelations'),
     });
+    clearNewProductCenterApiCache();
   } catch (error) {
     console.warn('[TEMU PostgreSQL] reference sync skipped:', error instanceof Error ? error.message : error);
   }
@@ -3397,6 +3398,7 @@ async function handleTemuProductInfoImportApi(req, res) {
       const batchId = decodeURIComponent(action.replace(/^batches\//, ''));
       const result = await deleteProductImportBatch(batchId);
       clearOperationWorkbenchDashboardCache();
+      clearNewProductCenterApiCache();
       res.end(JSON.stringify(result));
       return;
     }
@@ -3458,6 +3460,7 @@ async function handleTemuProductInfoImportApi(req, res) {
         errorRows: result.errorRows,
       });
       clearOperationWorkbenchDashboardCache();
+      clearNewProductCenterApiCache();
       res.end(JSON.stringify(result));
       return;
     }
@@ -3507,6 +3510,7 @@ async function handleTemuAdReportImportApi(req, res) {
       const batchId = decodeURIComponent(action.replace(/^batches\//, ''));
       const result = await deleteAdImportBatch(batchId);
       clearOperationWorkbenchDashboardCache();
+      clearNewProductCenterApiCache();
       res.end(JSON.stringify(result));
       return;
     }
@@ -3570,6 +3574,7 @@ async function handleTemuAdReportImportApi(req, res) {
         errorRows: result.errorRows,
       });
       clearOperationWorkbenchDashboardCache();
+      clearNewProductCenterApiCache();
       res.end(JSON.stringify(result));
       return;
     }
@@ -3608,6 +3613,64 @@ function logNewProductApiTiming(pathname, startTime, payload) {
   console[entry.slow ? 'warn' : 'log'](JSON.stringify(entry));
 }
 
+const newProductCenterApiCache = new Map();
+const NEW_PRODUCT_CENTER_STATIC_TTL_MS = 5 * 60_000;
+const NEW_PRODUCT_CENTER_DYNAMIC_TTL_MS = 45_000;
+
+function clearNewProductCenterApiCache() {
+  newProductCenterApiCache.clear();
+}
+
+function getNewProductCenterCacheTtl(pathname) {
+  if (pathname === 'ad-strategy/config' || pathname === 'store-options' || pathname === 'operator-options') {
+    return NEW_PRODUCT_CENTER_STATIC_TTL_MS;
+  }
+  if (pathname === 'ad-strategy/counts' || pathname === 'ad-strategy/pending') {
+    return NEW_PRODUCT_CENTER_DYNAMIC_TTL_MS;
+  }
+  return 0;
+}
+
+function getNewProductCenterCacheKey(pathname, params, currentUser) {
+  const normalizedParams = Object.entries(params || {})
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .sort(([first], [second]) => first.localeCompare(second))
+    .map(([key, value]) => `${key}=${Array.isArray(value) ? value.join(',') : String(value)}`)
+    .join('&');
+  const visibleStores = Array.isArray(params?.storeNames) ? [...params.storeNames].sort().join(',') : '';
+  return [
+    pathname,
+    String(currentUser?.userId || currentUser?.id || currentUser?.username || ''),
+    String(currentUser?.role || ''),
+    String(currentUser?.operatorId || ''),
+    visibleStores,
+    normalizedParams,
+  ].join('|');
+}
+
+async function getCachedNewProductCenterPayload(pathname, params, currentUser, producer) {
+  const ttlMs = getNewProductCenterCacheTtl(pathname);
+  if (!ttlMs) return producer();
+  const key = getNewProductCenterCacheKey(pathname, params, currentUser);
+  const now = Date.now();
+  const cached = newProductCenterApiCache.get(key);
+  if (cached && cached.expiresAt > now) {
+    return cached.promise || cached.value;
+  }
+  const promise = Promise.resolve()
+    .then(producer)
+    .then((value) => {
+      newProductCenterApiCache.set(key, { value, expiresAt: Date.now() + ttlMs });
+      return value;
+    })
+    .catch((error) => {
+      newProductCenterApiCache.delete(key);
+      throw error;
+    });
+  newProductCenterApiCache.set(key, { promise, expiresAt: now + ttlMs });
+  return promise;
+}
+
 async function handleNewProductCenterApi(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
@@ -3637,11 +3700,11 @@ async function handleNewProductCenterApi(req, res) {
       return;
     }
     if (req.method === 'GET' && pathname === 'operator-options') {
-      sendJson(pathname, await getOperatorOptions(params));
+      sendJson(pathname, await getCachedNewProductCenterPayload(pathname, params, currentUser, () => getOperatorOptions(params)));
       return;
     }
     if (req.method === 'GET' && pathname === 'store-options') {
-      sendJson(pathname, await getStoreOptions(params));
+      sendJson(pathname, await getCachedNewProductCenterPayload(pathname, params, currentUser, () => getStoreOptions(params)));
       return;
     }
     if (req.method === 'GET' && pathname === 'products') {
@@ -3657,15 +3720,15 @@ async function handleNewProductCenterApi(req, res) {
       return;
     }
     if (req.method === 'GET' && pathname === 'ad-strategy/config') {
-      sendJson(pathname, getAdStrategyConfig());
+      sendJson(pathname, await getCachedNewProductCenterPayload(pathname, params, currentUser, () => getAdStrategyConfig()));
       return;
     }
     if (req.method === 'GET' && pathname === 'ad-strategy/counts') {
-      sendJson(pathname, await getAdStrategyCounts(params));
+      sendJson(pathname, await getCachedNewProductCenterPayload(pathname, params, currentUser, () => getAdStrategyCounts(params)));
       return;
     }
     if (req.method === 'GET' && pathname === 'ad-strategy/pending') {
-      sendJson(pathname, await getAdStrategyPending(params));
+      sendJson(pathname, await getCachedNewProductCenterPayload(pathname, params, currentUser, () => getAdStrategyPending(params)));
       return;
     }
     if (req.method === 'GET' && pathname === 'ad-strategy/execution') {
@@ -3679,12 +3742,16 @@ async function handleNewProductCenterApi(req, res) {
     if (req.method === 'POST' && pathname.startsWith('ad-recommendations/') && pathname.endsWith('/handle')) {
       const id = decodeURIComponent(pathname.replace(/^ad-recommendations\//, '').replace(/\/handle$/, ''));
       const body = JSON.parse((await readBody(req)) || '{}');
-      sendJson(pathname, await handleRecommendation(id, body, currentUser));
+      const result = await handleRecommendation(id, body, currentUser);
+      clearNewProductCenterApiCache();
+      sendJson(pathname, result);
       return;
     }
     if (req.method === 'POST' && pathname === 'rebuild-snapshot') {
       const body = JSON.parse((await readBody(req)) || '{}');
-      sendJson(pathname, await rebuildNewProductSnapshots({ snapshotDate: body.snapshotDate }));
+      const result = await rebuildNewProductSnapshots({ snapshotDate: body.snapshotDate });
+      clearNewProductCenterApiCache();
+      sendJson(pathname, result);
       return;
     }
     res.statusCode = 404;
@@ -5932,6 +5999,15 @@ function logWorkbenchKpiTiming(label, startedAt, timings) {
   return elapsed;
 }
 
+function withWorkbenchTimeout(promise, timeoutMs, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`${label} timeout after ${timeoutMs}ms`)), timeoutMs);
+    }),
+  ]);
+}
+
 function getOperationWorkbenchDashboardCacheKey(searchParams, currentUser) {
   const params = Array.from(searchParams.entries())
     .filter(([key]) => key !== 't')
@@ -6071,7 +6147,27 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     logWorkbenchKpiTiming('firstOrder', firstOrderStartedAt, timings);
     return value;
   });
-  const [targets, orderStore] = await Promise.all([targetsPromise, orderStorePromise]);
+  const dataReadResults = await Promise.allSettled([
+    withWorkbenchTimeout(targetsPromise, 5000, 'targets'),
+    withWorkbenchTimeout(orderStorePromise, 5000, 'salesDataRead'),
+  ]);
+  let targets = [];
+  let orderStore = { batches: [] };
+  let baseDataReadError = '';
+  if (dataReadResults[0].status === 'fulfilled') {
+    targets = dataReadResults[0].value;
+  } else {
+    baseDataReadError = `KPI目标读取失败：${dataReadResults[0].reason?.message || dataReadResults[0].reason}`;
+    console.warn('[workbench-kpi] targets failed:', baseDataReadError);
+    if (!timings.targets) timings.targets = Date.now() - sectionStartedAt;
+  }
+  if (dataReadResults[1].status === 'fulfilled') {
+    orderStore = dataReadResults[1].value;
+  } else {
+    baseDataReadError = [baseDataReadError, `订单销售数据读取失败：${dataReadResults[1].reason?.message || dataReadResults[1].reason}`].filter(Boolean).join('；');
+    console.warn('[workbench-kpi] salesDataRead failed:', baseDataReadError);
+    if (!timings.salesDataRead) timings.salesDataRead = Date.now() - orderReadStartedAt;
+  }
   const target = pickWorkbenchTarget(targets, scope, range.period);
   console.info(`[workbench-kpi] targets count=${targets.length} targetStatus=${target ? 'matched' : 'missing'} configuredStores=${target?.configuredStoreCount ?? '-'}`);
   sectionStartedAt = Date.now();
@@ -6113,12 +6209,14 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   let newProductStatsError = '';
   try {
     [newProductListingStats, newProductFirstOrderStats] = await Promise.all([
-      newProductListingStatsPromise,
-      newProductFirstOrderStatsPromise,
+      withWorkbenchTimeout(newProductListingStatsPromise, 8000, 'listing'),
+      withWorkbenchTimeout(newProductFirstOrderStatsPromise, 8000, 'firstOrder'),
     ]);
   } catch (error) {
     newProductStatsError = error instanceof Error ? error.message : String(error);
     console.warn('[TEMU PostgreSQL] workbench first-order stats failed:', newProductStatsError);
+    if (!timings.listing) timings.listing = Date.now() - listingStartedAt;
+    if (!timings.firstOrder) timings.firstOrder = Date.now() - firstOrderStartedAt;
     newProductListingStats = emptyNewProductStats;
     newProductFirstOrderStats = emptyNewProductStats;
   }
@@ -6427,6 +6525,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   }
   if (newProductStatsError) warnings.push(`新品30天首单统计读取失败：${newProductStatsError}`);
   if (adSpendError) warnings.push(`广告花费统计读取失败：${adSpendError}`);
+  if (baseDataReadError) warnings.push(baseDataReadError);
   if (!hasExpenseData) warnings.push('未找到广告花费或上月售后问题金额，费用占比无法计算');
   if (salesAmount <= 0) warnings.push('本月暂无订单销售额，费用占比无法用订单销售额校验');
   const totalObservingCount = newProductListingStats.observingCount + newProductFirstOrderStats.observingCount;

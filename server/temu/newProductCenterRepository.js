@@ -2517,7 +2517,6 @@ async function ensureTemuProductStatsMaintenance() {
 
 export async function getProductImportOverview(params = {}) {
   await runTemuMigrations();
-  await ensureTemuImportBatchStoreBackfill();
   const currentPage = Math.max(Number(params.page) || 1, 1);
   const size = Math.min(Math.max(Number(params.pageSize) || 50, 1), 2000);
   const offset = (currentPage - 1) * size;
@@ -2645,7 +2644,6 @@ export async function getProductImportOverview(params = {}) {
 
 export async function getProductImportRankingSummary(params = {}) {
   await runTemuMigrations();
-  await ensureTemuImportBatchStoreBackfill();
   const month = String(params.month || '').match(/^\d{4}-\d{2}$/)?.[0] || new Date().toISOString().slice(0, 7);
   const startDate = `${month}-01`;
   const [year, monthNumber] = month.split('-').map(Number);
@@ -2686,7 +2684,6 @@ export async function getProductImportRankingSummary(params = {}) {
 
 export async function readEffectiveListingsFromProductImport(params = {}) {
   await runTemuMigrations();
-  await ensureTemuImportBatchStoreBackfill();
   const filter = createWhereBuilder(1);
   appendStoreScope(filter, 'product_rows', params);
   const recentDays = Number(params.recentDays || params.days || 0);
@@ -3012,7 +3009,6 @@ const AD_IMPORT_SORT_FIELDS = {
 
 export async function getAdImportOverview(params = {}) {
   await runTemuMigrations();
-  await ensureTemuImportBatchStoreBackfill();
   const currentPage = Math.max(Number(params.page) || 1, 1);
   const size = Math.min(Math.max(Number(params.pageSize) || 50, 1), 2000);
   const offset = (currentPage - 1) * size;
@@ -3199,7 +3195,6 @@ export async function getAdImportOverview(params = {}) {
 
 export async function getAdSpendSummary(params = {}) {
   await runTemuMigrations();
-  await ensureTemuImportBatchStoreBackfill();
   const filter = createWhereBuilder(1);
   appendStoreScope(filter, 'a', params);
   if (params.startDate) filter.push('a.report_date >= ?::date', params.startDate);
