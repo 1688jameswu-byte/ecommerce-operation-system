@@ -12,6 +12,7 @@
     "backup:all": "npm run backup && npm run backup:1688-db",
     "migrate:temu-postgres": "node scripts/migrate-temu-json-to-postgres.js",
     "verify:temu-postgres": "node scripts/verify-temu-postgres-migration.js",
+    "repair:temu-operator-name": "node scripts/fix-temu-operator-name.js",
     "verify:1688-db": "node scripts/verify-alibaba1688-postgres.js",
     "backup:1688-db": "node scripts/backup-1688-postgres.js",
     "diagnose:1688-duplicate-skus": "node scripts/diagnose-1688-duplicate-skus.js",

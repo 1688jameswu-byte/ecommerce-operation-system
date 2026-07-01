@@ -5,6 +5,19 @@ import type { CurrentUser } from '../../../types/auth';
 type StoreOption = { id?: string; dbId?: string; storeName?: string; platform?: string; status?: string };
 type QuickFilter = { key: string; label: string; params: Record<string, string> };
 type AdStrategyDimensionTab = 'allStores' | 'newProducts';
+
+function normalizeTemuOperatorName(name: unknown) {
+  const normalized = String(name ?? '').trim();
+  return normalized === '曾佳宏' ? '曾佳弘' : normalized;
+}
+
+function normalizeOperatorOption(operator: OperatorOption): OperatorOption {
+  return { ...operator, operatorName: normalizeTemuOperatorName(operator.operatorName) };
+}
+
+function getOperatorOptionValue(operator: OperatorOption) {
+  return String(operator.operatorId || operator.operatorName || '');
+}
 type AdStrategySortKey = 'adSpend' | 'adSalesAmount' | 'adOrderCount' | 'roas' | 'acos' | 'clicks' | 'conversionRate';
 type AdDatePreset = 'yesterday' | 'recent7' | 'recent30' | 'custom';
 type TrendMetricKey = 'adSpend' | 'adSalesAmount' | 'roas' | 'acos';
@@ -503,7 +516,7 @@ function BossBarChart({ rows }: { rows: Array<Record<string, unknown>> }) {
 function DashboardView() {
   const [snapshotDate, setSnapshotDate] = useState('');
   const [storeId, setStoreId] = useState('');
-  const [operatorName, setOperatorName] = useState('');
+  const [operatorId, setOperatorId] = useState('');
   const [periodDays, setPeriodDays] = useState('30');
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [operatorOptions, setOperatorOptions] = useState<OperatorOption[]>([]);
@@ -523,16 +536,28 @@ function DashboardView() {
     if (snapshotDate) params.snapshotDate = snapshotDate;
     if (storeId) params.storeId = storeId;
     newProductCenterDataSource.getOperatorOptions(buildQuery(params))
-      .then((result) => setOperatorOptions(result.operators || []))
+      .then((result) => setOperatorOptions((result.operators || []).map(normalizeOperatorOption)))
       .catch(() => setOperatorOptions([]));
   }, [snapshotDate, storeId]);
 
   useEffect(() => {
     setMessage('');
-    newProductCenterDataSource.getBossDashboard(buildQuery({ snapshotDate, storeId, operatorName, periodDays }))
+    const selectedOperator = operatorOptions.find((operator) => getOperatorOptionValue(operator) === operatorId);
+    const query: Record<string, string> = { snapshotDate, storeId, periodDays };
+    if (operatorId) {
+      if (selectedOperator?.operatorId) query.operatorId = String(selectedOperator.operatorId);
+      else query.operatorName = normalizeTemuOperatorName(selectedOperator?.operatorName || operatorId);
+    }
+    newProductCenterDataSource.getBossDashboard(buildQuery(query))
       .then(setData)
       .catch((error) => setMessage(error instanceof Error ? error.message : String(error)));
-  }, [snapshotDate, storeId, operatorName, periodDays]);
+  }, [snapshotDate, storeId, operatorId, operatorOptions, periodDays]);
+
+  useEffect(() => {
+    if (!operatorId) return;
+    const exists = operatorOptions.some((operator) => getOperatorOptionValue(operator) === operatorId);
+    if (!exists) setOperatorId('');
+  }, [operatorId, operatorOptions]);
 
   const displayedDate = snapshotDate || data?.dataCutoffDate || data?.snapshotDate || '';
   const summary = data?.summary || {};
@@ -563,9 +588,9 @@ function DashboardView() {
           </select>
         </label>
         <label>运营
-          <select value={operatorName} onChange={(event) => setOperatorName(event.target.value)}>
+          <select value={operatorId} onChange={(event) => setOperatorId(event.target.value)}>
             <option value="">全部运营</option>
-            {operatorOptions.map((operator) => <option key={operator.operatorId || operator.operatorName} value={operator.operatorName}>{operator.operatorName}</option>)}
+            {operatorOptions.map((operator) => <option key={operator.operatorId || operator.operatorName} value={getOperatorOptionValue(operator)}>{normalizeTemuOperatorName(operator.operatorName)}</option>)}
           </select>
         </label>
         <div className="boss-period-tabs" aria-label="快捷周期">
@@ -796,7 +821,7 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
     if (snapshotDate) params.snapshotDate = snapshotDate;
     if (storeId) params.storeId = storeId;
     newProductCenterDataSource.getOperatorOptions(buildQuery(params))
-      .then((data) => setOperatorOptions(data.operators || []))
+      .then((data) => setOperatorOptions((data.operators || []).map(normalizeOperatorOption)))
       .catch(() => setOperatorOptions([]));
   }, [snapshotDate, storeId]);
 
@@ -3135,7 +3160,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
   useEffect(() => {
     if (!isManager) return;
     newProductCenterDataSource.getOperatorOptions(buildQuery({ snapshotDate, storeId }))
-      .then((data) => setOperatorOptions(data.operators || []))
+      .then((data) => setOperatorOptions((data.operators || []).map(normalizeOperatorOption)))
       .catch(() => setOperatorOptions([]));
   }, [isManager, snapshotDate, storeId]);
 
@@ -3444,19 +3469,19 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
   const operatorOptionsForFilter = useMemo(() => {
     const names = new Set<string>();
     operatorOptions.forEach((operator) => {
-      const name = String(operator.operatorName || '').trim();
+      const name = normalizeTemuOperatorName(operator.operatorName);
       if (name) names.add(name);
     });
     ((adImportOverview as any).storeSummary || []).forEach((row: Record<string, any>) => {
-      const name = String(row.operatorName || row.operator_name || '').trim();
+      const name = normalizeTemuOperatorName(row.operatorName || row.operator_name);
       if (name && name !== '-') names.add(name);
     });
     allStoreAdRecords.forEach((row) => {
-      const name = String(row.operatorName || '').trim();
+      const name = normalizeTemuOperatorName(row.operatorName);
       if (name && name !== '-') names.add(name);
     });
     pending.records.forEach((row) => {
-      const name = String(row.operatorName || '').trim();
+      const name = normalizeTemuOperatorName(row.operatorName);
       if (name && name !== '-') names.add(name);
     });
     return Array.from(names).sort((first, second) => first.localeCompare(second, 'zh-CN')).map((operatorName) => ({ operatorName }));

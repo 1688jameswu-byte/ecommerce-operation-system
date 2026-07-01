@@ -1019,6 +1019,9 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
 
   const visibleStoreKeys = useMemo(() => new Set(rows.flatMap((row) => Array.from(row.storeNames))), [rows]);
   const financeStoreRows = useMemo(() => salaryRows, [salaryRows]);
+  const financePeriodSalesAmount = useMemo(() => orderDailyRecords
+    .filter((record) => String(record.orderDate || '').startsWith(financePeriod))
+    .reduce((total, record) => total + (Number(record.salesAmount) || 0), 0), [financePeriod, orderDailyRecords]);
   const financeSummary = useMemo(() => financeStoreRows.reduce((total, item) => ({
     salesAmount: total.salesAmount,
     inflowAmount: total.inflowAmount + toAmount(item.inflowAmount),
@@ -1034,7 +1037,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     operationExpenseAmount: total.operationExpenseAmount + toAmount(item.operationExpenseAmount),
     netSalesAmount: total.netSalesAmount,
   }), {
-    salesAmount: 0,
+    salesAmount: financePeriodSalesAmount,
     inflowAmount: 0,
     expenseAmount: 0,
     platformFee: 0,
@@ -1044,7 +1047,7 @@ function OperatorAnalysisCenterPage({ currentUser }: { currentUser: CurrentUser 
     deductibleAmount: 0,
     operationExpenseAmount: 0,
     netSalesAmount: 0,
-  }), [financeStoreRows]);
+  }), [financePeriodSalesAmount, financeStoreRows]);
 
   const expenseRatioRows = useMemo<ExpenseRatioRow[]>(() => financeStoreRows
     .filter((record) => storeKeyMatches(visibleStoreKeys, undefined, record.storeNames?.[0]))

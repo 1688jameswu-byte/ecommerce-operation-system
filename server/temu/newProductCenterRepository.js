@@ -193,6 +193,34 @@ function text(value) {
   return String(value ?? '').trim();
 }
 
+function normalizeTemuOperatorName(value) {
+  const operatorName = text(value);
+  if (operatorName === '\u66fe\u4f73\u5b8f') return '\u66fe\u4f73\u5f18';
+  return operatorName;
+}
+
+function getTemuOperatorNameAliases(value) {
+  const original = text(value);
+  const normalized = normalizeTemuOperatorName(original);
+  const aliases = new Set([original, normalized].filter(Boolean));
+  if (normalized === '\u66fe\u4f73\u5f18') aliases.add('\u66fe\u4f73\u5b8f');
+  return Array.from(aliases);
+}
+
+function pushOperatorNameAliases(values, where, startIndex, column, operatorName) {
+  const aliases = getTemuOperatorNameAliases(operatorName);
+  if (!aliases.length) return;
+  values.push(aliases);
+  where.push(`${column} = ANY($${startIndex + values.length - 1}::text[])`);
+}
+
+function pushOperatorNameAliasesToBuilder(whereBuilder, column, operatorName) {
+  const aliases = getTemuOperatorNameAliases(operatorName);
+  if (!aliases.length) return;
+  whereBuilder.values.push(aliases);
+  whereBuilder.where.push(`${column} = ANY($${whereBuilder.startIndex + whereBuilder.values.length - 1}::text[])`);
+}
+
 function nullableText(value) {
   const next = text(value);
   return next || null;
@@ -1507,7 +1535,7 @@ export async function rebuildNewProductSnapshots({ snapshotDate = new Date().toI
 function toCamel(row) {
   return Object.fromEntries(Object.entries(row).map(([key, value]) => [
     key.replace(/_([a-z])/g, (_, char) => char.toUpperCase()),
-    value,
+    key === 'operator_name' ? normalizeTemuOperatorName(value) : value,
   ]));
 }
 
@@ -1626,8 +1654,11 @@ function buildScopeWhere(params, startIndex = 1) {
       where.push(`s.store_name = ANY($${startIndex + values.length - 1}::text[])`);
     }
   }
-  if (params.operatorId) push('s.operator_id = ?', params.operatorId);
-  if (params.operatorName) push('s.operator_name = ?', params.operatorName);
+  if (params.operatorId) {
+    push('s.operator_id = ?', params.operatorId);
+  } else if (params.operatorName) {
+    pushOperatorNameAliases(values, where, startIndex, 's.operator_name', params.operatorName);
+  }
   if (params.categoryName) push('s.category_name = ?', params.categoryName);
   if (params.productTag) push('s.product_tag = ?', params.productTag);
   if (params.isAdEnabled !== undefined) push('s.is_ad_enabled = ?', params.isAdEnabled === 'true' || params.isAdEnabled === true);
@@ -1697,8 +1728,11 @@ function buildBaseDataScopeWhere(params, aliases, startIndex = 1) {
       where.push(`${storeAlias}.store_name = ANY($${startIndex + values.length - 1}::text[])`);
     }
   }
-  if (operatorAlias && params.operatorId) push(`${operatorAlias}.operator_id = ?`, params.operatorId);
-  if (operatorAlias && params.operatorName) push(`${operatorAlias}.operator_name = ?`, params.operatorName);
+  if (operatorAlias && params.operatorId) {
+    push(`${operatorAlias}.operator_id = ?`, params.operatorId);
+  } else if (operatorAlias && params.operatorName) {
+    pushOperatorNameAliases(values, where, startIndex, `${operatorAlias}.operator_name`, params.operatorName);
+  }
   return { where, values };
 }
 
@@ -1753,8 +1787,15 @@ async function getScopedTemuStores(params = {}, snapshotDate = null) {
       where.push(`s.store_name = ANY($${values.length}::text[])`);
     }
   }
-  if (params.operatorId) push(`rel.operator_id = ?`, params.operatorId);
-  if (params.operatorName) push(`rel.operator_name = ?`, params.operatorName);
+  if (params.operatorId) {
+    push(`rel.operator_id = ?`, params.operatorId);
+  } else if (params.operatorName) {
+    const aliases = getTemuOperatorNameAliases(params.operatorName);
+    if (aliases.length) {
+      values.push(aliases);
+      where.push(`rel.operator_name = ANY($${values.length}::text[])`);
+    }
+  }
 
   const result = await queryTemuDatabase(
     `SELECT s.id AS store_id,
@@ -2223,7 +2264,7 @@ export async function getOperatorOptions(params = {}) {
   );
   const operatorMap = new Map();
   [...relationResult.rows, ...result.rows].forEach((row) => {
-    const operatorName = text(row.operator_name);
+    const operatorName = normalizeTemuOperatorName(row.operator_name);
     if (!operatorName) return;
     const current = operatorMap.get(operatorName) || { ...row, store_count: 0, product_count: 0 };
     operatorMap.set(operatorName, {
@@ -2302,8 +2343,15 @@ export async function getRecommendations(params = {}) {
       where.push(`r.store_name = ANY($${values.length}::text[])`);
     }
   }
-  if (params.operatorId) push('r.operator_id = ?', params.operatorId);
-  if (params.operatorName) push('r.operator_name = ?', params.operatorName);
+  if (params.operatorId) {
+    push('r.operator_id = ?', params.operatorId);
+  } else if (params.operatorName) {
+    const aliases = getTemuOperatorNameAliases(params.operatorName);
+    if (aliases.length) {
+      values.push(aliases);
+      where.push(`r.operator_name = ANY($${values.length}::text[])`);
+    }
+  }
   if (params.recommendationType) push('r.recommendation_type = ?', params.recommendationType);
   if (params.priority) push('r.priority = ?', params.priority);
   if (params.status) push('r.status = ?', params.status);
@@ -2923,7 +2971,7 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
     filter.push('(product_rows.operator_id::text = ? OR product_rows.legacy_operator_id = ?)', String(params.operatorId));
   }
   if (params.operatorName) {
-    filter.push('product_rows.operator_name = ?', String(params.operatorName));
+    pushOperatorNameAliasesToBuilder(filter, 'product_rows.operator_name', params.operatorName);
   }
   const condition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : '';
   const skuCreatedTimeFromRaw = `CASE WHEN NULLIF(s.raw_data ->> '创建时间', '') ~ '^\\d{4}-\\d{1,2}-\\d{1,2}' THEN NULLIF(s.raw_data ->> '创建时间', '')::timestamptz ELSE NULL END`;
@@ -3058,24 +3106,40 @@ export async function calculateNewProductFirstOrderStats(params = {}) {
      ORDER BY scoped_products.listed_at DESC, scoped_products.store_name ASC, scoped_products.product_name ASC`,
     [observeDays, today, ...rawFilter.values, ...filter.values],
   );
-  const products = result.rows.map((row) => ({
-    productId: row.product_id || row.product_key || '',
-    productKey: row.product_key || '',
-    productName: row.product_name || '',
-    spuId: row.spu_id || '',
-    skcId: row.skc_id || '',
-    skuId: row.sku_id || '',
-    operatorId: row.operator_id || '',
-    operatorName: row.operator_name || '',
-    storeId: row.store_id || '',
-    storeName: row.store_name || '',
-    listedAt: dateText(row.listed_at),
-    observeEndAt: dateText(row.observe_end_at),
-    firstOrderAt: dateText(row.first_order_at),
-    status: row.status,
-    remainingObserveDays: Number(row.remaining_observe_days || 0),
-    updatedAt: row.updated_at,
-  }));
+  const products = result.rows.map((row) => {
+    const listedAt = dateText(row.listed_at);
+    const observationDueDate = dateText(row.observe_end_at);
+    const firstOrderAt = dateText(row.first_order_at);
+    const convertedWithin30d = row.status === 'FIRST_ORDER_SUCCESS';
+    const observationStatus = convertedWithin30d
+      ? '到期已达成'
+      : row.status === 'OBSERVING'
+        ? '观察中'
+        : '到期未达成';
+    return {
+      productId: row.product_id || row.product_key || '',
+      productKey: row.product_key || '',
+      productName: row.product_name || '',
+      spuId: row.spu_id || '',
+      skcId: row.skc_id || '',
+      skuId: row.sku_id || '',
+      operatorId: row.operator_id || '',
+      operatorName: row.operator_name || '',
+      storeId: row.store_id || '',
+      storeName: row.store_name || '',
+      listedAt,
+      firstOnlineAt: listedAt,
+      observeEndAt: observationDueDate,
+      observationDueDate,
+      kpiMonth: observationDueDate ? observationDueDate.slice(0, 7) : '',
+      firstOrderAt,
+      convertedWithin30d,
+      observationStatus,
+      status: row.status,
+      remainingObserveDays: Number(row.remaining_observe_days || 0),
+      updatedAt: row.updated_at,
+    };
+  });
   const firstOrderWithin30DaysCount = products.filter((item) => item.status === 'FIRST_ORDER_SUCCESS').length;
   const expiredNoFirstOrderCount = products.filter((item) => item.status === 'EXPIRED_NO_FIRST_ORDER').length;
   const delayedFirstOrderCount = products.filter((item) => item.status === 'DELAYED_FIRST_ORDER').length;
@@ -3156,7 +3220,7 @@ export async function getAdImportOverview(params = {}) {
   if (params.reportDate) filter.push('a.report_date = ?::date', params.reportDate);
   if (!params.reportDate && params.startDate) filter.push('a.report_date >= ?::date', params.startDate);
   if (!params.reportDate && params.endDate) filter.push('a.report_date <= ?::date', params.endDate);
-  if (params.operatorName) filter.push('a.operator_name = ?', String(params.operatorName));
+  if (params.operatorName) pushOperatorNameAliasesToBuilder(filter, 'a.operator_name', params.operatorName);
   if (params.spuId) filter.push('a.temu_spu_id ILIKE ?', `%${params.spuId}%`);
   if (params.productName) filter.push('a.product_name ILIKE ?', `%${params.productName}%`);
   if (params.matched === 'true') filter.where.push('a.product_id IS NOT NULL');
@@ -3491,7 +3555,7 @@ export async function getAdImportTrend(params = {}) {
   appendStoreScope(filter, 'a', params);
   if (params.startDate) filter.push('a.report_date >= ?::date', params.startDate);
   if (params.endDate) filter.push('a.report_date <= ?::date', params.endDate);
-  if (params.operatorName) filter.push('a.operator_name = ?', String(params.operatorName));
+  if (params.operatorName) pushOperatorNameAliasesToBuilder(filter, 'a.operator_name', params.operatorName);
 
   const manualStoreNames = parseTrendStoreNames(params.trendStoreNames || params.storeNamesForTrend);
   const rangeMode = String(params.trendStoreMode || 'topSpend5');

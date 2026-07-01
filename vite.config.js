@@ -6400,24 +6400,28 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   }).length;
   const monthlyListingConvertedProducts = newProductListingStats.products.filter((item) => Boolean(String(item?.firstOrderAt || '').slice(0, 10)));
   const observationAchievedProducts = newProductFirstOrderStats.products.filter((item) => item.status === 'FIRST_ORDER_SUCCESS');
-  const convertedProductMap = new Map();
-  for (const item of [...monthlyListingConvertedProducts, ...observationAchievedProducts]) {
+  const observationAchievedProductMap = new Map();
+  for (const item of observationAchievedProducts) {
     const key = getWorkbenchProductIdentity(item);
-    if (key) convertedProductMap.set(key, item);
+    if (key) observationAchievedProductMap.set(key, item);
   }
-  const firstOrderProductCount = convertedProductMap.size;
   const monthlyListingConvertedCount = monthlyListingConvertedProducts.length;
-  const observationAchievedCount = observationAchievedProducts.length;
-  const conversionDuplicateCount = Math.max(0, monthlyListingConvertedCount + observationAchievedCount - firstOrderProductCount);
+  const observationAchievedCount = observationAchievedProductMap.size;
+  const firstOrderProductCount = observationAchievedCount;
+  const conversionDuplicateCount = monthlyListingConvertedProducts.filter((item) => {
+    const key = getWorkbenchProductIdentity(item);
+    return key && observationAchievedProductMap.has(key);
+  }).length;
   const monthlyListingObservingCount = newProductListingStats.products.filter((item) => (
     !String(item?.firstOrderAt || '').slice(0, 10) &&
     item.status === 'OBSERVING'
   )).length;
-  const observationOverdueCount = newProductFirstOrderStats.products.filter((item) => (
+  const observationDueCount = newProductFirstOrderStats.products.length;
+  const observationOverdueCount = Math.max(observationDueCount - observationAchievedCount, 0);
+  const observationExpiredNoFirstOrderCount = newProductFirstOrderStats.products.filter((item) => (
     item.status === 'EXPIRED_NO_FIRST_ORDER' ||
     item.status === 'DELAYED_FIRST_ORDER'
   )).length;
-  const observationDueCount = observationAchievedCount + observationOverdueCount;
   const immediateConversionRate = listingProductCount > 0 ? monthlyListingConvertedCount / listingProductCount : null;
   const observationAchievementRate = observationDueCount > 0 ? observationAchievedCount / observationDueCount : null;
   const productFollowUpSource = Array.from(new Map([
@@ -6438,7 +6442,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
         ? '已延迟首单，不计入30天首单成功，需要复盘前30天转化阻力'
       : item.status === 'EXPIRED_NO_FIRST_ORDER'
         ? '已超过30天未首单，复盘标题、主图、价格、曝光和投放'
-        : '仍在30天观察期内，暂不计入首单率分母';
+        : '仍在30天观察期内，最终状态会随出单数据更新';
     return {
       skc: item.skcId || item.productKey || '',
       spuId: item.spuId || '',
@@ -6570,8 +6574,9 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   };
   const listingByStore = countProductsByStore(newProductListingStats.products);
   const listingObservingByStore = countProductsByStore(newProductListingStats.products, (item) => item.status === 'OBSERVING');
-  const firstOrderSuccessByStore = countProductsByStore(Array.from(convertedProductMap.values()));
-  const firstOrderExpiredByStore = countProductsByStore(newProductFirstOrderStats.products, (item) => item.status === 'EXPIRED_NO_FIRST_ORDER');
+  const firstOrderSuccessByStore = countProductsByStore(Array.from(observationAchievedProductMap.values()));
+  const firstOrderDueByStore = countProductsByStore(newProductFirstOrderStats.products);
+  const firstOrderExpiredByStore = countProductsByStore(newProductFirstOrderStats.products, (item) => item.status !== 'FIRST_ORDER_SUCCESS');
   const firstOrderObservingByStore = countProductsByStore(newProductFirstOrderStats.products, (item) => item.status === 'OBSERVING');
   logWorkbenchKpiTiming('storeBreakdownPreAggregate', sectionStartedAt, timings);
   sectionStartedAt = Date.now();
@@ -6586,6 +6591,9 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     const salesActual = toFiniteNumber(storeSalesMap.get(storeKey)?.salesAmount);
     const listingActual = listingByStore.get(storeKey) ?? 0;
     const firstOrderActual = firstOrderSuccessByStore.get(storeKey) ?? 0;
+    const firstOrderDueActual = firstOrderDueByStore.get(storeKey) ?? 0;
+    const firstOrderAchievementRate = firstOrderDueActual > 0 ? firstOrderActual / firstOrderDueActual : null;
+    const firstOrderRateTarget = storeTarget?.effectiveListingTarget > 0 ? storeTarget.firstOrderProductTarget / storeTarget.effectiveListingTarget : null;
     const expiredNoFirstOrder = firstOrderExpiredByStore.get(storeKey) ?? 0;
     const observingCount = (listingObservingByStore.get(storeKey) ?? 0) + (firstOrderObservingByStore.get(storeKey) ?? 0);
     const storeAdExpense = toFiniteNumber(adSpendByStore.get(storeKey));
@@ -6594,10 +6602,10 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     const storeExpenseRatio = salesActual > 0 ? storeTotalExpense / salesActual : null;
     const salesCompletionRate = storeFieldComplete('salesTarget') ? salesActual / storeTarget.salesTarget : null;
     const listingCompletionRate = storeFieldComplete('effectiveListingTarget') ? listingActual / storeTarget.effectiveListingTarget : null;
-    const firstOrderCompletionRate = storeFieldComplete('firstOrderProductTarget') ? firstOrderActual / storeTarget.firstOrderProductTarget : null;
+    const firstOrderCompletionRate = storeFieldComplete('firstOrderProductTarget') && firstOrderRateTarget ? (firstOrderAchievementRate ?? 0) / firstOrderRateTarget : null;
     const salesStoreScore = storeFieldComplete('salesTarget') ? scoreProgress(salesActual, storeTarget.salesTarget, 30) : null;
     const listingStoreScore = storeFieldComplete('effectiveListingTarget') ? scoreProgress(listingActual, storeTarget.effectiveListingTarget, 30) : null;
-    const firstOrderStoreScore = storeFieldComplete('firstOrderProductTarget') ? scoreProgress(firstOrderActual, storeTarget.firstOrderProductTarget, 20) : null;
+    const firstOrderStoreScore = storeFieldComplete('firstOrderProductTarget') && firstOrderRateTarget ? scoreProgress(firstOrderAchievementRate ?? 0, firstOrderRateTarget, 20) : null;
     const expenseStoreScore = storeFieldComplete('expenseRatioTarget') ? scoreExpenseRatio(storeExpenseRatio, storeTarget.expenseRatioTarget, 20) : null;
     const targetStatus = !storeTarget ? 'missing' : ['salesTarget', 'effectiveListingTarget', 'firstOrderProductTarget', 'expenseRatioTarget'].every(storeFieldComplete) ? 'ok' : 'partial';
     const total = targetStatus === 'ok'
@@ -6649,10 +6657,13 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const listingTargetComplete = targetFieldComplete('effectiveListingTarget');
   const firstOrderTargetComplete = targetFieldComplete('firstOrderProductTarget');
   const expenseTargetComplete = targetFieldComplete('expenseRatioTarget');
+  const firstOrderRateTarget = firstOrderTargetComplete && target?.effectiveListingTarget > 0
+    ? target.firstOrderProductTarget / target.effectiveListingTarget
+    : null;
 
   const salesScore = salesTargetComplete ? scoreProgress(salesAmount, target?.salesTarget, 30) : null;
   const listingScore = listingTargetComplete ? scoreProgress(listingProductCount, target?.effectiveListingTarget, 30) : null;
-  const firstOrderScore = firstOrderTargetComplete ? scoreProgress(firstOrderProductCount, target?.firstOrderProductTarget, 20) : null;
+  const firstOrderScore = firstOrderTargetComplete && firstOrderRateTarget ? scoreProgress(observationAchievementRate ?? 0, firstOrderRateTarget, 20) : null;
   const expenseScore = expenseTargetComplete ? scoreExpenseRatio(expenseRatio, target?.expenseRatioTarget, 20) : null;
   const scoreParts = [salesScore, listingScore, firstOrderScore, expenseScore];
   const hasConfiguredTarget = salesTargetComplete && listingTargetComplete && firstOrderTargetComplete && expenseTargetComplete;
@@ -6662,7 +6673,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const completion = {
     sales: salesTargetComplete ? salesAmount / target.salesTarget : null,
     listing: listingTargetComplete ? listingProductCount / target.effectiveListingTarget : null,
-    firstOrder: firstOrderTargetComplete ? firstOrderProductCount / target.firstOrderProductTarget : null,
+    firstOrder: firstOrderTargetComplete && firstOrderRateTarget ? (observationAchievementRate ?? 0) / firstOrderRateTarget : null,
     expense: expenseRatio,
   };
   const buildProgressMetric = (currentValue, targetValue) => {
@@ -6688,7 +6699,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   };
   const salesProgressMetric = buildProgressMetric(salesAmount, target?.salesTarget ?? null);
   const listingProgressMetric = buildProgressMetric(listingProductCount, target?.effectiveListingTarget ?? null);
-  const over7NoFirstOrder = observationOverdueCount;
+  const over7NoFirstOrder = observationExpiredNoFirstOrderCount;
   const remainingListing = Math.max((target?.effectiveListingTarget || 0) - listingProductCount, 0);
   const todaySuggestedListing = target?.effectiveListingTarget > 0 && range.timeProgress > 0 ? Math.ceil(remainingListing / range.remainingDays) : null;
   const dataUpdatedAt = [
@@ -6724,7 +6735,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   if (!hasExpenseData) warnings.push('未找到广告花费或上月售后问题金额，费用占比无法计算');
   if (salesAmount <= 0) warnings.push('本月暂无订单销售额，费用占比无法用订单销售额校验');
   const totalObservingCount = newProductListingStats.observingCount + newProductFirstOrderStats.observingCount;
-  if (totalObservingCount > 0) warnings.push(`还有 ${totalObservingCount} 个新品处于30天观察期内，暂不计入首单率分母`);
+  if (totalObservingCount > 0) warnings.push(`还有 ${totalObservingCount} 个新品处于30天观察期内，最终状态会随出单数据更新`);
   if (stores.length === 0) warnings.push('当前账号未绑定 TEMU 可见店铺');
   logWorkbenchKpiTiming('dataIntegrity', sectionStartedAt, timings);
 
@@ -6878,7 +6889,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     dataSourceMapping: [
       { kpi: '销售额目标完成率', source: '订单销售导入 + KPI目标配置', endpoint: '/api/persistent-data/orderImportStore, /api/operation-workbench/kpi-targets', confirmed: '已确认' },
       { kpi: '上新商品数', source: '商品信息导入表按创建时间统计', endpoint: '/api/data-import/temu-product-info', confirmed: newProductStatsError ? '读取失败' : '已确认' },
-      { kpi: '新品30天首单率', source: '商品信息导入表 + 订单明细按商品/SKU最早订单日期统计', endpoint: '/api/data-import/temu-product-info, temu_order_items', confirmed: newProductStatsError ? '读取失败' : '已确认' },
+      { kpi: '新品观察期到期达成率', source: '商品信息导入表按 first_online_at + 30天 归属KPI月份，订单明细按商品/SKU最早订单日期判断30天内是否出单', endpoint: '/api/data-import/temu-product-info, temu_order_items', confirmed: newProductStatsError ? '读取失败' : '已确认' },
       { kpi: '费用占比', source: '订单导入销售额 + 广告日报推广费 + 上月售后问题金额日均预估', endpoint: '/api/persistent-data/orderImportStore, /api/data-import/temu-ad-report, /api/salary/operator-analysis-store-financials', confirmed: hasExpenseData && !adSpendError ? '已确认' : '未找到可靠数据源' },
     ],
     kpiSummary: {
@@ -6887,7 +6898,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       cards: [
         { key: 'sales', name: '本月销售额', weight: 30, targetValue: target?.salesTarget ?? null, currentValue: salesAmount, completionRate: completion.sales, score: salesScore, status: targetIncompleteStatus('salesTarget') || getKpiStatus(salesScore, 30, completion.sales ?? 0, range.timeProgress), unit: '¥' },
         { key: 'listing', name: '上新商品数', weight: 30, targetValue: target?.effectiveListingTarget ?? null, currentValue: listingProductCount, completionRate: completion.listing, score: listingScore, status: targetIncompleteStatus('effectiveListingTarget') || getKpiStatus(listingScore, 30, completion.listing ?? 0, range.timeProgress), unit: '款' },
-        { key: 'firstOrder', name: '30天内首单成功数', weight: 20, targetValue: target?.firstOrderProductTarget ?? null, currentValue: firstOrderProductCount, completionRate: completion.firstOrder, score: firstOrderScore, status: targetIncompleteStatus('firstOrderProductTarget') || getKpiStatus(firstOrderScore, 20, completion.firstOrder ?? 0, range.timeProgress), unit: '款' },
+        { key: 'firstOrder', name: '本月观察期到期达成', weight: 20, targetValue: firstOrderRateTarget, currentValue: observationAchievementRate, completionRate: completion.firstOrder, score: firstOrderScore, status: targetIncompleteStatus('firstOrderProductTarget') || getKpiStatus(firstOrderScore, 20, completion.firstOrder ?? 0, range.timeProgress), unit: '%' },
         { key: 'expense', name: '费用占比', weight: 20, targetValue: target?.expenseRatioTarget ?? null, currentValue: expenseRatio, completionRate: expenseRatio, score: expenseScore, status: targetIncompleteStatus('expenseRatioTarget') || getKpiStatus(expenseScore, 20, expenseRatio, range.timeProgress, true), unit: '%' },
       ],
     },
@@ -6934,6 +6945,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       targetValue: target?.firstOrderProductTarget ?? null,
       targetCompletionRate: completion.firstOrder,
       score: firstOrderScore,
+      monthlyListingCount: listingProductCount,
       monthlyListingConvertedCount,
       observationAchievedCount,
       conversionDuplicateCount,
@@ -6941,6 +6953,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       observationOverdueCount,
       immediateConversionRate,
       observationAchievementRate,
+      observationAchievementRateTarget: firstOrderRateTarget,
       observationDueCount,
       dueProductFirstOrderRate: observationAchievementRate,
       remainingToTarget: target?.firstOrderProductTarget ? Math.max(target.firstOrderProductTarget - firstOrderProductCount, 0) : null,
