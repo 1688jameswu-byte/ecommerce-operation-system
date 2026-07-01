@@ -4,28 +4,28 @@ import type { CurrentUser } from '../../../types/auth';
 import ConfirmDeleteModal from '../ConfirmDeleteModal';
 
 const fieldLabels: Record<string, string> = {
-  storeName: '店铺',
   productName: '商品名称',
   temuProductId: '商品ID',
   temuSpuId: 'SPU ID',
   adSpend: '总花费',
   netAdSpend: '净总花费',
-  promoSalesAmount: '申报价销售额（推广）',
-  promoRoas: '投资回报率(ROAS)（推广）',
-  targetRoas: '自然周目标ROAS（推广）',
-  promoSubOrderCount: '子订单数（推广）',
-  promoUnitCount: '件数（推广）',
-  promoImpressions: '曝光（推广）',
-  promoClicks: '点击（推广）',
-  promoCtr: '点击率（推广）',
-  promoCvr: '转化率（推广）',
-  promoAddToCartCount: '加购（推广）',
   globalSalesAmount: '申报价销售额（全域）',
   globalRoas: '投资回报率(ROAS)（全域）',
+  globalAcos: '费比（全域）',
+  globalCpa: '每笔成交花费（全域）',
   globalSubOrderCount: '子订单数（全域）',
+  globalUnitCount: '件数（全域）',
   globalImpressions: '曝光（全域）',
   globalClicks: '点击（全域）',
+  globalCtr: '点击率（全域）',
+  globalCvr: '转化率（全域）',
   globalAddToCartCount: '加入购物车数（全域）',
+  netPromoSalesAmount: '净申报价销售额（全域）',
+  netPromoRoas: '净投资回报率(ROAS)（全域）',
+  netPromoAcos: '净费比（全域）',
+  netPromoCpa: '净每笔成交花费（全域）',
+  netPromoSubOrderCount: '净子订单数（全域）',
+  netPromoUnitCount: '净件数（全域）',
 };
 
 const AD_RECORD_PAGE_SIZE = 50;
@@ -49,25 +49,12 @@ const AD_RECORD_COLUMNS = [
   '点击率（全域）',
   '转化率（全域）',
   '加入购物车数（全域）',
-  '申报价销售额（推广）',
-  '投资回报率(ROAS)（推广）',
-  '自然周投资回报率(ROAS)（推广）',
-  '自然周目标ROAS（推广）',
-  '费比（推广）',
-  '每笔成交花费（推广）',
-  '子订单数（推广）',
-  '件数（推广）',
-  '曝光（推广）',
-  '点击（推广）',
-  '点击率（推广）',
-  '转化率（推广）',
-  '加购（推广）',
-  '净申报价销售额（推广）',
-  '净投资回报率(ROAS)（推广）',
-  '净费比（推广）',
-  '净每笔成交花费（推广）',
-  '净子订单数（推广）',
-  '净件数（推广）',
+  '净申报价销售额（全域）',
+  '净投资回报率(ROAS)（全域）',
+  '净费比（全域）',
+  '净每笔成交花费（全域）',
+  '净子订单数（全域）',
+  '净件数（全域）',
 ];
 
 const adRecordFallbackFields: Record<string, string> = {
@@ -87,28 +74,19 @@ const adRecordFallbackFields: Record<string, string> = {
   '点击率（全域）': 'globalCtr',
   '转化率（全域）': 'globalCvr',
   '加入购物车数（全域）': 'globalAddToCartCount',
-  '申报价销售额（推广）': 'promoSalesAmount',
-  '投资回报率(ROAS)（推广）': 'promoRoas',
-  '自然周投资回报率(ROAS)（推广）': 'promoWeekRoas',
-  '自然周目标ROAS（推广）': 'targetRoas',
-  '费比（推广）': 'promoAcos',
-  '每笔成交花费（推广）': 'promoCpa',
-  '子订单数（推广）': 'promoSubOrderCount',
-  '件数（推广）': 'promoUnitCount',
-  '曝光（推广）': 'promoImpressions',
-  '点击（推广）': 'promoClicks',
-  '点击率（推广）': 'promoCtr',
-  '转化率（推广）': 'promoCvr',
-  '加购（推广）': 'promoAddToCartCount',
-  '净申报价销售额（推广）': 'netPromoSalesAmount',
-  '净投资回报率(ROAS)（推广）': 'netPromoRoas',
-  '净费比（推广）': 'netPromoAcos',
-  '净每笔成交花费（推广）': 'netPromoCpa',
-  '净子订单数（推广）': 'netPromoSubOrderCount',
-  '净件数（推广）': 'netPromoUnitCount',
+  '净申报价销售额（全域）': 'netPromoSalesAmount',
+  '净投资回报率(ROAS)（全域）': 'netPromoRoas',
+  '净费比（全域）': 'netPromoAcos',
+  '净每笔成交花费（全域）': 'netPromoCpa',
+  '净子订单数（全域）': 'netPromoSubOrderCount',
+  '净件数（全域）': 'netPromoUnitCount',
 };
 
 const AD_RECORD_ID_COLUMNS = new Set(['商品名称', '商品ID', 'SPU ID']);
+
+function pickVisibleAdMapping(mapping: Record<string, string>) {
+  return Object.fromEntries(Object.keys(fieldLabels).map((field) => [field, mapping[field] || '']));
+}
 
 function normalizeAdRecordHeader(value: string) {
   return value.replace(/\s+/g, '').replace(/[（]/g, '(').replace(/[）]/g, ')').toLowerCase();
@@ -299,14 +277,15 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
     setResult(null);
     try {
       const next = await newProductCenterDataSource.previewAdFile(file);
+      const visibleMapping = pickVisibleAdMapping(next.mapping);
       const nextStoreName = importStoreName || storeName || inferStoreNameFromFileName(file.name);
       setPreview(next);
-      setMapping(next.mapping);
+      setMapping(visibleMapping);
       setImportStoreName(nextStoreName);
       setStoreName(nextStoreName);
       setReportDate(importReportDate);
       setMessage('预览完成，正在自动导入 PostgreSQL...');
-      await importAdPreview(next, next.mapping, nextStoreName);
+      await importAdPreview(next, visibleMapping, nextStoreName);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -352,7 +331,7 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
       setStorageStatus(status);
       setStorageError(status.ok ? '' : (status.message || 'PostgreSQL 未连接'));
       setOverview(records);
-      setMessage(`导入完成：成功 ${next.successRows} 行，失败 ${next.errorRows} 行。`);
+      setMessage(`导入完成：${next.tableType || '广告推广'}，成功 ${next.successRows} 行，跳过 ${next.skippedRows ?? 0} 行，失败 ${next.errorRows} 行。`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -363,7 +342,7 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
   const confirm = async () => {
     if (!preview) return;
     setMessage('正在按当前字段映射重新导入 PostgreSQL...');
-    await importAdPreview(preview, mapping, importStoreName || storeName);
+    await importAdPreview(preview, pickVisibleAdMapping(mapping), importStoreName || storeName);
   };
 
   const deleteSelectedBatch = async () => {
@@ -436,12 +415,12 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
           <article>
             <span>总花费</span>
             <strong>{String(summary.adSpend ?? 0)}</strong>
-            <small>推广销售额 {String(summary.promoSalesAmount ?? 0)}</small>
+            <small>全域销售额 {String(summary.globalSalesAmount ?? summary.promoSalesAmount ?? 0)}</small>
           </article>
           <article>
             <span>未匹配SPU</span>
             <strong>{summary.unmatchedCount ?? 0}</strong>
-            <small>ROAS {summary.promoRoas == null ? '-' : Number(summary.promoRoas).toFixed(2)} / 订单 {String(summary.promoSubOrderCount ?? 0)}</small>
+            <small>ROAS {summary.globalRoas == null && summary.promoRoas == null ? '-' : Number(summary.globalRoas ?? summary.promoRoas).toFixed(2)} / 订单 {String(summary.globalSubOrderCount ?? summary.promoSubOrderCount ?? 0)}</small>
           </article>
         </div>
       </section>
@@ -476,7 +455,7 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
                 {preview.fileName}，共 {preview.totalRows} 行，预览前 20 行。字段映射只用于本次导入，
                 切换查看店铺或查看日期不会改变这里的内容。
               </p>
-              <p>本次导入店铺：{importStoreName || '-'}，广告日期：{importReportDate || '-'}</p>
+              <p>本次导入店铺：{importStoreName || '-'}，广告日期：{importReportDate || '-'}，表格类型：{preview.tableType || '自动识别'}，跳过汇总行：{preview.skippedRows ?? 0} 行。</p>
             </div>
             <button type="button" disabled={confirmLoading || !reportDate} onClick={confirm}>{confirmLoading ? '导入中...' : '按当前映射重新导入'}</button>
           </header>
@@ -500,6 +479,29 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
                 ))}
               </tbody>
             </table>
+          </div>
+        </article>
+      )}
+
+      {result && (
+        <article className="excel-record-panel npc-panel temu-import-preview-panel">
+          <header className="npc-panel-header">
+            <div>
+              <span className="temu-import-step-label">导入结果</span>
+              <h2>广告数据导入摘要</h2>
+              <p>
+                导入店铺：{importStoreName || storeName || '-'}，导入日期：{importReportDate || reportDate || '-'}，
+                表格类型：{result.tableType || '自动识别'}。
+              </p>
+            </div>
+          </header>
+          <div className="npc-ad-import-result-grid">
+            <article><span>总行数</span><strong>{result.totalRows}</strong></article>
+            <article><span>成功行数</span><strong>{result.successRows}</strong></article>
+            <article><span>跳过行数</span><strong>{result.skippedRows ?? 0}</strong></article>
+            <article><span>异常行数</span><strong>{result.errorRows}</strong></article>
+            <article><span>SPU匹配率</span><strong>{result.spuMatchRate == null ? '-' : `${(result.spuMatchRate * 100).toFixed(2)}%`}</strong></article>
+            <article><span>未匹配SPU</span><strong>{result.unmatchedSpuCount ?? 0}</strong></article>
           </div>
         </article>
       )}

@@ -134,6 +134,42 @@ AD_FIELDS.netPromoUnitCount.push('净件数（推广）', '净件数(推广)');
 
 // TEMU 广告报表不同导出版的表头不完全一致。有些文件会把全域和推广列
 // 导成同名表头，xlsx 会自动追加 _1 后缀；这里只增强读取兼容，不改变口径。
+AD_FIELDS.productName.push('商品名称', '商品标题', '品名');
+AD_FIELDS.temuProductId.push('商品ID', '商品 ID');
+AD_FIELDS.temuSpuId.push('SPU ID', 'SPUID');
+AD_FIELDS.adSpend.push('总花费', '花费');
+AD_FIELDS.netAdSpend.push('净总花费', '净花费');
+AD_FIELDS.globalSalesAmount.push('申报价销售额（全域）', '申报价销售额(全域)', '全域销售额');
+AD_FIELDS.globalRoas.push('投资回报率(ROAS)（全域）', '投资回报率(ROAS)(全域)', '投资回报率ROAS（全域）', '投资回报率ROAS(全域)', '全域ROAS');
+AD_FIELDS.globalAcos.push('费比（全域）', '费比(全域)', '全域费比');
+AD_FIELDS.globalCpa.push('每笔成交花费（全域）', '每笔成交花费(全域)');
+AD_FIELDS.globalSubOrderCount.push('子订单数（全域）', '子订单数(全域)');
+AD_FIELDS.globalUnitCount.push('件数（全域）', '件数(全域)');
+AD_FIELDS.globalImpressions.push('曝光（全域）', '曝光(全域)');
+AD_FIELDS.globalClicks.push('点击（全域）', '点击(全域)');
+AD_FIELDS.globalCtr.push('点击率（全域）', '点击率(全域)');
+AD_FIELDS.globalCvr.push('转化率（全域）', '转化率(全域)');
+AD_FIELDS.globalAddToCartCount.push('加入购物车数（全域）', '加入购物车数(全域)', '加购（全域）', '加购(全域)');
+AD_FIELDS.promoSalesAmount.push('申报价销售额（推广）', '申报价销售额(推广)', '推广销售额');
+AD_FIELDS.promoRoas.push('投资回报率(ROAS)（推广）', '投资回报率(ROAS)(推广)', '投资回报率ROAS（推广）', '投资回报率ROAS(推广)', '推广ROAS');
+AD_FIELDS.promoWeekRoas.push('自然周投资回报率(ROAS)（推广）', '自然周投资回报率(ROAS)(推广)');
+AD_FIELDS.targetRoas.push('自然周目标ROAS（推广）', '自然周目标ROAS(推广)', '目标ROAS');
+AD_FIELDS.promoAcos.push('费比（推广）', '费比(推广)', '推广费比');
+AD_FIELDS.promoCpa.push('每笔成交花费（推广）', '每笔成交花费(推广)');
+AD_FIELDS.promoSubOrderCount.push('子订单数（推广）', '子订单数(推广)');
+AD_FIELDS.promoUnitCount.push('件数（推广）', '件数(推广)');
+AD_FIELDS.promoImpressions.push('曝光（推广）', '曝光(推广)');
+AD_FIELDS.promoClicks.push('点击（推广）', '点击(推广)');
+AD_FIELDS.promoCtr.push('点击率（推广）', '点击率(推广)');
+AD_FIELDS.promoCvr.push('转化率（推广）', '转化率(推广)');
+AD_FIELDS.promoAddToCartCount.push('加购（推广）', '加购(推广)', '加购');
+AD_FIELDS.netPromoSalesAmount.push('净申报价销售额（推广）', '净申报价销售额(推广)', '净申报价销售额（全域）', '净申报价销售额(全域)');
+AD_FIELDS.netPromoRoas.push('净投资回报率(ROAS)（推广）', '净投资回报率(ROAS)(推广)', '净投资回报率(ROAS)（全域）', '净投资回报率(ROAS)(全域)');
+AD_FIELDS.netPromoAcos.push('净费比（推广）', '净费比(推广)', '净费比（全域）', '净费比(全域)');
+AD_FIELDS.netPromoCpa.push('净每笔成交花费（推广）', '净每笔成交花费(推广)', '净每笔成交花费（全域）', '净每笔成交花费(全域)');
+AD_FIELDS.netPromoSubOrderCount.push('净子订单数（推广）', '净子订单数(推广)', '净子订单数（全域）', '净子订单数(全域)');
+AD_FIELDS.netPromoUnitCount.push('净件数（推广）', '净件数(推广)', '净件数（全域）', '净件数(全域)');
+
 const AD_GLOBAL_PROMO_DUPLICATE_FIELDS = [
   ['globalSalesAmount', 'promoSalesAmount', ['申报价销售额', '销售额']],
   ['globalRoas', 'promoRoas', ['投资回报率ROAS', '投资回报率(ROAS)', 'ROAS']],
@@ -199,16 +235,19 @@ function normalizeSkuCode(value) {
 
 function numberValue(value, fallback = 0) {
   const rawText = text(value);
-  const raw = rawText.replace(/[%,¥￥,\s]/g, '');
-  if (!raw || raw === '--') return fallback;
+  const normalizedText = rawText.toLowerCase();
+  if (!rawText || rawText === '--' || rawText === '-' || rawText === '∞' || normalizedText === 'null' || normalizedText === 'undefined' || normalizedText === 'nan') return fallback;
+  const raw = rawText.replace(/[,%￥¥\s]/g, '').replace(/，/g, '');
+  if (!raw || raw === '--' || raw === '∞') return fallback;
   const parsed = Number(raw);
   if (!Number.isFinite(parsed)) return fallback;
-  return rawText.includes('%') ? parsed / 100 : parsed;
+  return parsed;
 }
 
 function nullableNumber(value) {
   const raw = text(value);
-  if (!raw) return null;
+  const normalizedText = raw.toLowerCase();
+  if (!raw || raw === '--' || raw === '-' || raw === '∞' || normalizedText === 'null' || normalizedText === 'undefined' || normalizedText === 'nan') return null;
   return numberValue(raw, null);
 }
 
@@ -258,6 +297,17 @@ function headersFromRowsAndMapping(rows, mapping) {
     Object.keys(row || {}).forEach((header) => headerSet.add(header));
   }
   return Array.from(headerSet);
+}
+
+function detectAdTableType(headers = [], mapping = {}) {
+  const normalizedHeaders = new Set(headers.map((header) => normalizeHeader(header)));
+  if (mapping.globalSalesAmount || normalizedHeaders.has(normalizeHeader('申报价销售额（全域）')) || normalizedHeaders.has(normalizeHeader('申报价销售额(全域)'))) {
+    return '全域推广';
+  }
+  if (mapping.promoSalesAmount || normalizedHeaders.has(normalizeHeader('申报价销售额（推广）')) || normalizedHeaders.has(normalizeHeader('申报价销售额(推广)'))) {
+    return '兼容推广';
+  }
+  return '广告推广';
 }
 
 function validateProductStoreImportScope({ rows = [], mapping = {}, fileName = '', storeName = '' }) {
@@ -363,7 +413,9 @@ function mapRow(row, mapping) {
 
 function isAdSummaryRow(row, mapping) {
   const data = mapRow(row, mapping);
-  return !text(data.temuProductId) && /^共\d+项/.test(text(data.productName));
+  const firstText = Object.values(row || {}).map(text).find(Boolean) || '';
+  const productName = text(data.productName) || firstText;
+  return !text(data.temuProductId) && /^共\s*\d+\s*项/.test(productName);
 }
 
 export function parseExcelDataUrl(dataUrl) {
@@ -378,11 +430,15 @@ export function parseExcelDataUrl(dataUrl) {
 
 export function buildImportPreview({ rows = [], headers = [], type }) {
   const mapping = inferMapping(headers, type === 'ad' ? AD_FIELDS : PRODUCT_FIELDS);
+  const skippedRows = type === 'ad' ? rows.filter((row) => isAdSummaryRow(row, mapping)).length : 0;
   return {
     headers,
     mapping,
     previewRows: rows.slice(0, 20),
     totalRows: rows.length,
+    effectiveRows: rows.length - skippedRows,
+    skippedRows,
+    tableType: type === 'ad' ? detectAdTableType(headers, mapping) : undefined,
   };
 }
 
@@ -676,7 +732,7 @@ async function findProductForAd(client, owner, data) {
     throw new Error(`同店铺 SPU ID 匹配到多个商品主记录：${text(data.temuSpuId)}`);
   }
   if (!result.rows[0]) {
-    throw new Error(`广告 SPU ID 未匹配到商品信息：${text(data.temuSpuId)}`);
+    return null;
   }
   return result.rows[0].id;
 }
@@ -793,12 +849,13 @@ async function upsertAdRow(client, row, batchId, rowNumber, reportDate, fallback
   }
   if (productId) {
     const spend = numberValue(data.adSpend);
-    const clicks = numberValue(data.promoClicks || data.globalClicks);
-    const orders = numberValue(data.promoSubOrderCount || data.globalSubOrderCount);
+    const clicks = numberValue(data.globalClicks || data.promoClicks);
+    const orders = numberValue(data.globalSubOrderCount || data.promoSubOrderCount);
     if (spend > 0) await addTimeline(client, { productId, storeId: owner.storeId, operatorId: owner.operatorId, eventType: 'AD_FIRST_SPEND', eventDate: reportDate, title: '广告产生花费', description: String(spend), sourceType: 'ad_import', sourceId: String(batchId), rawData: row });
     if (clicks > 0) await addTimeline(client, { productId, storeId: owner.storeId, operatorId: owner.operatorId, eventType: 'AD_FIRST_CLICK', eventDate: reportDate, title: '广告产生点击', description: String(clicks), sourceType: 'ad_import', sourceId: String(batchId), rawData: row });
     if (orders > 0) await addTimeline(client, { productId, storeId: owner.storeId, operatorId: owner.operatorId, eventType: 'AD_FIRST_ORDER', eventDate: reportDate, title: '广告产生订单', description: String(orders), sourceType: 'ad_import', sourceId: String(batchId), rawData: row });
   }
+  return { productId };
 }
 
 export async function importProductRows({ rows = [], mapping = {}, fileName = '', storeName = '', currentUser = {} }) {
@@ -859,11 +916,17 @@ export async function importProductRows({ rows = [], mapping = {}, fileName = ''
 
 export async function importAdRows({ rows = [], mapping = {}, fileName = '', reportDate, storeName = '', currentUser = {} }) {
   await runTemuMigrations();
-  assertImportFileShape({ headers: headersFromRowsAndMapping(rows, mapping), mapping, type: 'ad' });
+  const headers = headersFromRowsAndMapping(rows, mapping);
+  assertImportFileShape({ headers, mapping, type: 'ad' });
   const client = await getAlibaba1688Pool().connect();
   const sourceBatchId = `ad-report-${dateText(reportDate)}-${Date.now().toString(36)}`;
   const fallbackStoreName = text(storeName) || inferStoreNameFromFileName(fileName);
+  const tableType = detectAdTableType(headers, mapping);
   const errors = [];
+  let skippedRows = 0;
+  let successRows = 0;
+  let matchedSpuCount = 0;
+  let unmatchedSpuCount = 0;
   if (!dateText(reportDate)) throw new Error('报表日期必填');
   try {
     await client.query('BEGIN');
@@ -887,15 +950,21 @@ export async function importAdRows({ rows = [], mapping = {}, fileName = '', rep
       status: 'processing',
       uploadedBy: currentUser.userId || currentUser.username,
       uploadedByName: currentUser.displayName || currentUser.username,
-      rawData: { fileName, reportDate, storeName: fallbackStoreName },
+      rawData: { fileName, reportDate, storeName: fallbackStoreName, tableType },
     });
     let rowNumber = 0;
     for (const row of rows) {
       rowNumber += 1;
-      if (isAdSummaryRow(row, mapping)) continue;
+      if (isAdSummaryRow(row, mapping)) {
+        skippedRows += 1;
+        continue;
+      }
       await client.query('SAVEPOINT import_ad_row');
       try {
-        await upsertAdRow(client, { ...row, __mapping: mapping }, batchId, rowNumber, reportDate, fallbackStoreName);
+        const rowResult = await upsertAdRow(client, { ...row, __mapping: mapping }, batchId, rowNumber, reportDate, fallbackStoreName);
+        successRows += 1;
+        if (rowResult?.productId) matchedSpuCount += 1;
+        else unmatchedSpuCount += 1;
         await client.query('RELEASE SAVEPOINT import_ad_row');
       } catch (error) {
         await client.query('ROLLBACK TO SAVEPOINT import_ad_row');
@@ -907,7 +976,7 @@ export async function importAdRows({ rows = [], mapping = {}, fileName = '', rep
     }
     await client.query(
       `UPDATE temu_import_batches SET success_rows=$1,error_rows=$2,status=$3,finished_at=NOW(),updated_at=NOW() WHERE id=$4`,
-      [rows.length - errors.length, errors.length, errors.length ? 'partial_success' : 'success', batchId],
+      [successRows, errors.length, errors.length ? 'partial_success' : 'success', batchId],
     );
     await client.query('COMMIT');
   } catch (error) {
@@ -917,7 +986,18 @@ export async function importAdRows({ rows = [], mapping = {}, fileName = '', rep
     client.release();
   }
   await rebuildNewProductSnapshots({ snapshotDate: dateText(reportDate) });
-  return { ok: true, totalRows: rows.length, successRows: rows.length - errors.length, errorRows: errors.length, errors };
+  const spuMatchRate = successRows > 0 ? matchedSpuCount / successRows : null;
+  return {
+    ok: true,
+    tableType,
+    totalRows: rows.length,
+    successRows,
+    skippedRows,
+    errorRows: errors.length,
+    spuMatchRate,
+    unmatchedSpuCount,
+    errors,
+  };
 }
 
 export async function deleteProductImportBatch(batchId) {
@@ -1276,15 +1356,15 @@ export async function rebuildNewProductSnapshots({ snapshotDate = new Date().toI
       );
       const adResult = await client.query(
         `SELECT COALESCE(SUM(ad_spend),0) AS ad_spend,
-                COALESCE(SUM(promo_sales_amount),0) AS ad_sales_amount,
-                COALESCE(SUM(promo_sub_order_count),0) AS ad_order_count,
-                COALESCE(SUM(promo_unit_count),0) AS ad_unit_count,
-                COALESCE(SUM(promo_impressions),0) AS impressions,
-                COALESCE(SUM(promo_clicks),0) AS clicks,
-                COALESCE(SUM(promo_add_to_cart_count),0) AS add_to_cart_count,
-                MAX(target_roas) AS target_roas,
-                MAX(promo_roas) AS promo_roas,
-                MAX(promo_acos) AS promo_acos
+                COALESCE(SUM(global_sales_amount),0) AS ad_sales_amount,
+                COALESCE(SUM(global_sub_order_count),0) AS ad_order_count,
+                COALESCE(SUM(global_unit_count),0) AS ad_unit_count,
+                COALESCE(SUM(global_impressions),0) AS impressions,
+                COALESCE(SUM(global_clicks),0) AS clicks,
+                COALESCE(SUM(global_add_to_cart_count),0) AS add_to_cart_count,
+                NULL::numeric AS target_roas,
+                MAX(global_roas) AS global_roas,
+                MAX(global_acos) AS global_acos
          FROM temu_ad_product_daily
          WHERE report_date = $1::date
            AND store_id = $2
@@ -1337,8 +1417,8 @@ export async function rebuildNewProductSnapshots({ snapshotDate = new Date().toI
         clicks,
         add_to_cart_count: Number(ads.add_to_cart_count || 0),
         target_roas: ads.target_roas === null ? null : Number(ads.target_roas),
-        roas: ads.promo_roas === null || ads.promo_roas === undefined ? safeDivide(adSales, adSpend) : Number(ads.promo_roas),
-        acos: ads.promo_acos === null || ads.promo_acos === undefined ? safeDivide(adSpend, adSales) : Number(ads.promo_acos),
+        roas: ads.global_roas === null || ads.global_roas === undefined ? safeDivide(adSales, adSpend) : Number(ads.global_roas),
+        acos: ads.global_acos === null || ads.global_acos === undefined ? safeDivide(adSpend, adSales) : Number(ads.global_acos),
         ctr: safeDivide(clicks, impressions),
         cvr: safeDivide(adOrderCount, clicks),
         cpc: safeDivide(adSpend, clicks),
@@ -2893,12 +2973,12 @@ export async function getAdImportOverview(params = {}) {
   if (params.productName) filter.push('a.product_name ILIKE ?', `%${params.productName}%`);
   if (params.matched === 'true') filter.where.push('a.product_id IS NOT NULL');
   if (params.matched === 'false') filter.where.push('a.product_id IS NULL');
-  if (params.roasMet === 'true') filter.where.push('a.target_roas IS NOT NULL AND a.promo_roas IS NOT NULL AND a.promo_roas >= a.target_roas');
-  if (params.roasMet === 'false') filter.where.push('a.target_roas IS NOT NULL AND a.promo_roas IS NOT NULL AND a.promo_roas < a.target_roas');
+  if (params.roasMet === 'true') filter.where.push('a.target_roas IS NOT NULL AND a.global_roas IS NOT NULL AND a.global_roas >= a.target_roas');
+  if (params.roasMet === 'false') filter.where.push('a.target_roas IS NOT NULL AND a.global_roas IS NOT NULL AND a.global_roas < a.target_roas');
   if (params.adSpendMin) filter.push('a.ad_spend >= ?', Number(params.adSpendMin));
   if (params.adSpendMax) filter.push('a.ad_spend <= ?', Number(params.adSpendMax));
-  if (params.promoOrderMin) filter.push('a.promo_sub_order_count >= ?', Number(params.promoOrderMin));
-  if (params.promoOrderMax) filter.push('a.promo_sub_order_count <= ?', Number(params.promoOrderMax));
+  if (params.promoOrderMin) filter.push('a.global_sub_order_count >= ?', Number(params.promoOrderMin));
+  if (params.promoOrderMax) filter.push('a.global_sub_order_count <= ?', Number(params.promoOrderMax));
   const adCondition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : 'WHERE 1 = 0';
   const sortColumn = AD_IMPORT_SORT_FIELDS[params.sortField] || AD_IMPORT_SORT_FIELDS.adSpend;
   const sortDirection = String(params.sortDirection || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
@@ -2958,9 +3038,13 @@ export async function getAdImportOverview(params = {}) {
     `SELECT COUNT(*)::int AS ad_product_count,
             COALESCE(SUM(a.ad_spend),0) AS ad_spend,
             COALESCE(SUM(a.global_sales_amount),0) AS global_sales_amount,
-            COALESCE(SUM(a.promo_sales_amount),0) AS promo_sales_amount,
-            COALESCE(SUM(a.promo_sub_order_count),0) AS promo_sub_order_count,
-            CASE WHEN COALESCE(SUM(a.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(a.promo_sales_amount),0) / NULLIF(SUM(a.ad_spend),0) END AS promo_roas,
+            COALESCE(SUM(a.global_sub_order_count),0) AS global_sub_order_count,
+            COALESCE(SUM(a.global_impressions),0) AS global_impressions,
+            COALESCE(SUM(a.global_clicks),0) AS global_clicks,
+            COALESCE(SUM(a.global_add_to_cart_count),0) AS global_add_to_cart_count,
+            COALESCE(SUM(a.global_unit_count),0) AS global_unit_count,
+            CASE WHEN COALESCE(SUM(a.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(a.global_sales_amount),0) / NULLIF(SUM(a.ad_spend),0) END AS global_roas,
+            CASE WHEN COALESCE(SUM(a.global_sales_amount),0) = 0 THEN NULL ELSE COALESCE(SUM(a.ad_spend),0) / NULLIF(SUM(a.global_sales_amount),0) END AS global_acos,
             COUNT(*) FILTER (WHERE a.product_id IS NULL)::int AS unmatched_count,
             COUNT(*) FILTER (WHERE a.product_id IS NOT NULL)::int AS matched_count
      FROM temu_ad_product_daily a
@@ -2973,9 +3057,15 @@ export async function getAdImportOverview(params = {}) {
             COUNT(*)::int AS ad_product_count,
             COALESCE(SUM(a.ad_spend),0) AS ad_spend,
             COALESCE(SUM(a.global_sales_amount),0) AS global_sales_amount,
-            COALESCE(SUM(a.promo_sales_amount),0) AS promo_sales_amount,
-            COALESCE(SUM(a.promo_sub_order_count),0) AS promo_sub_order_count,
-            COALESCE(SUM(a.promo_clicks),0) AS promo_clicks,
+            COALESCE(SUM(a.global_sub_order_count),0) AS global_sub_order_count,
+            COALESCE(SUM(a.global_impressions),0) AS global_impressions,
+            COALESCE(SUM(a.global_clicks),0) AS global_clicks,
+            COALESCE(SUM(a.global_add_to_cart_count),0) AS global_add_to_cart_count,
+            COALESCE(SUM(a.global_unit_count),0) AS global_unit_count,
+            CASE WHEN COALESCE(SUM(a.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(a.global_sales_amount),0) / NULLIF(SUM(a.ad_spend),0) END AS global_roas,
+            CASE WHEN COALESCE(SUM(a.global_sales_amount),0) = 0 THEN NULL ELSE COALESCE(SUM(a.ad_spend),0) / NULLIF(SUM(a.global_sales_amount),0) END AS global_acos,
+            CASE WHEN COALESCE(SUM(a.global_sub_order_count),0) = 0 THEN NULL ELSE COALESCE(SUM(a.ad_spend),0) / NULLIF(SUM(a.global_sub_order_count),0) END AS global_cpa,
+            CASE WHEN COALESCE(SUM(a.global_clicks),0) = 0 THEN NULL ELSE COALESCE(SUM(a.global_sub_order_count),0) / NULLIF(SUM(a.global_clicks),0) END AS global_cvr,
             COUNT(*) FILTER (WHERE a.product_id IS NULL)::int AS unmatched_count,
             COUNT(*) FILTER (WHERE a.product_id IS NOT NULL)::int AS matched_count
      FROM temu_ad_product_daily a
@@ -2991,9 +3081,10 @@ export async function getAdImportOverview(params = {}) {
             COUNT(*)::int AS ad_product_count,
             COALESCE(SUM(a.ad_spend),0) AS ad_spend,
             COALESCE(SUM(a.global_sales_amount),0) AS global_sales_amount,
-            COALESCE(SUM(a.promo_sales_amount),0) AS promo_sales_amount,
-            COALESCE(SUM(a.promo_sub_order_count),0) AS promo_sub_order_count,
-            COALESCE(SUM(a.promo_clicks),0) AS promo_clicks
+            COALESCE(SUM(a.global_sub_order_count),0) AS global_sub_order_count,
+            COALESCE(SUM(a.global_clicks),0) AS global_clicks,
+            CASE WHEN COALESCE(SUM(a.ad_spend),0) = 0 THEN NULL ELSE COALESCE(SUM(a.global_sales_amount),0) / NULLIF(SUM(a.ad_spend),0) END AS global_roas,
+            CASE WHEN COALESCE(SUM(a.global_sales_amount),0) = 0 THEN NULL ELSE COALESCE(SUM(a.ad_spend),0) / NULLIF(SUM(a.global_sales_amount),0) END AS global_acos
      FROM temu_ad_product_daily a
      ${adCondition}
      GROUP BY a.report_date, a.store_name

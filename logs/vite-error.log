@@ -1217,3 +1217,7 @@ At file: F:\项目\TEMU运营数据大屏\vite.config.js:5975:27
 [31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
 [2m15:52:38[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
 [2m15:52:38[22m [31m[1m[vite][22m[39m server restart failed
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":1322,"rows":4,"slow":true}
+{"scope":"new-product-center-api","endpoint":"store-options","durationMs":1325,"rows":6,"slow":true}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/pending","durationMs":1324,"rows":0,"slow":true}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":1329,"rows":13,"slow":true}

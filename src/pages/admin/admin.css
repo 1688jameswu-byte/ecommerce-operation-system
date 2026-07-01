@@ -12063,6 +12063,52 @@
   gap: 6px;
 }
 
+.npc-ad-scope-tip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  padding: 8px 12px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.npc-ad-scope-tip strong {
+  flex: 0 0 auto;
+  color: #1d4ed8;
+  font-weight: 900;
+}
+
+.npc-ad-import-result-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.npc-ad-import-result-grid article {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px 12px;
+}
+
+.npc-ad-import-result-grid span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.npc-ad-import-result-grid strong {
+  color: #0f172a;
+  font-size: 18px;
+}
+
 .npc-ad-date-filter {
   position: relative;
   min-width: 260px;

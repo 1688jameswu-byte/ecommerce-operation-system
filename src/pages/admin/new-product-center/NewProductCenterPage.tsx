@@ -35,6 +35,21 @@ function formatNumber(value: unknown) {
   return Number(value || 0).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
 }
 
+function firstFiniteNumber(...values: unknown[]) {
+  for (const value of values) {
+    if (value === null || value === undefined || value === '') continue;
+    const number = Number(value);
+    if (Number.isFinite(number)) return number;
+  }
+  return 0;
+}
+
+function normalizeAdRate(value: unknown) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return 0;
+  return number > 1 ? number / 100 : number;
+}
+
 function formatInteger(value: unknown) {
   const number = Number(value || 0);
   return Number.isFinite(number) ? Math.round(number).toLocaleString('zh-CN') : '-';
@@ -42,7 +57,8 @@ function formatInteger(value: unknown) {
 
 function formatRatio(value: unknown) {
   if (value === null || value === undefined || value === '') return '-';
-  return `${(Number(value) * 100).toFixed(2)}%`;
+  const number = Number(value);
+  return Number.isFinite(number) ? `${(number * 100).toFixed(2)}%` : '-';
 }
 
 function formatRoas(value: unknown) {
@@ -73,13 +89,13 @@ function priorityForTag(tag: string) {
 
 function reasonFor(item: ProductSnapshot) {
   const tag = item.productTag || '普通新品';
-  if (tag === '高潜新品') return `广告订单 ${item.adOrderCount} 单，ROAS ${item.roas === null ? '-' : Number(item.roas).toFixed(2)}。`;
-  if (tag === '烧钱无单') return `广告花费 ${formatMoney(item.adSpend)}，点击 ${formatNumber(item.clicks)}，广告订单 ${item.adOrderCount}。`;
-  if (tag === '有流量无转化') return `点击 ${formatNumber(item.clicks)}，加购 ${formatNumber(item.addToCartCount)}，广告订单 ${item.adOrderCount}。`;
-  if (tag === '加购未成交') return `加购 ${formatNumber(item.addToCartCount)}，广告订单 ${item.adOrderCount}。`;
-  if (tag === '自然起量') return `总订单 ${item.orderCount}，广告订单 ${item.adOrderCount}，自然订单 ${item.naturalOrderCount}。`;
-  if (tag === '高费比新品') return `ROAS ${item.roas === null ? '-' : Number(item.roas).toFixed(2)}，ACOS ${item.acos === null ? '-' : formatRatio(item.acos)}。`;
-  if (tag === '低曝光新品') return `曝光 ${formatNumber(item.impressions)}，广告花费 ${formatMoney(item.adSpend)}。`;
+  if (tag === '高潜新品') return `子订单数（全域） ${item.adOrderCount} 单，投资回报率(ROAS)（全域） ${item.roas === null ? '-' : Number(item.roas).toFixed(2)}。`;
+  if (tag === '烧钱无单') return `总花费 ${formatMoney(item.adSpend)}，点击（全域） ${formatNumber(item.clicks)}，子订单数（全域） ${item.adOrderCount}。`;
+  if (tag === '有流量无转化') return `点击（全域） ${formatNumber(item.clicks)}，加入购物车数（全域） ${formatNumber(item.addToCartCount)}，子订单数（全域） ${item.adOrderCount}。`;
+  if (tag === '加购未成交') return `加入购物车数（全域） ${formatNumber(item.addToCartCount)}，子订单数（全域） ${item.adOrderCount}。`;
+  if (tag === '自然起量') return `总订单 ${item.orderCount}，子订单数（全域） ${item.adOrderCount}，自然订单 ${item.naturalOrderCount}。`;
+  if (tag === '高费比新品') return `投资回报率(ROAS)（全域） ${item.roas === null ? '-' : Number(item.roas).toFixed(2)}，费比（全域） ${item.acos === null ? '-' : formatRatio(item.acos)}。`;
+  if (tag === '低曝光新品') return `曝光（全域） ${formatNumber(item.impressions)}，总花费 ${formatMoney(item.adSpend)}。`;
   if (tag === '数据未匹配') return '存在 SPU/SKU 匹配异常，分析结果需要先修复数据关联。';
   return '当前数据不足，继续观察。';
 }
@@ -206,7 +222,7 @@ function NewProductOverviewSection({ summary }: { summary: Record<string, number
           tone="purple"
           icon="megaphone"
           title="广告表现"
-          metrics={[['广告花费', formatMoney(summary.adSpend)], ['广告销售额', formatMoney(summary.adSalesAmount)], ['ROAS', summary.roas === null ? '-' : formatRoas(summary.roas)]]}
+          metrics={[['总花费', formatMoney(summary.adSpend)], ['申报价销售额（全域）', formatMoney(summary.adSalesAmount)], ['投资回报率(ROAS)（全域）', summary.roas === null ? '-' : formatRoas(summary.roas)]]}
           footer={<div className="npc-ad-status-bar"><i />当前广告数据正常</div>}
         />
       </div>
@@ -260,7 +276,7 @@ function RankingTable({ title, rows }: { title: string; rows: Array<Record<strin
       <h2>{title}</h2>
       <div className="npc-table-wrap">
         <table>
-          <thead><tr><th>名称</th><th>新品数</th><th>订单数</th><th>广告花费</th><th>广告销售额</th></tr></thead>
+          <thead><tr><th>名称</th><th>新品数</th><th>订单数</th><th>总花费</th><th>申报价销售额（全域）</th></tr></thead>
           <tbody>
             {rows.map((row, index) => (
               <tr key={index}>
@@ -359,7 +375,7 @@ function BossStoreTable({ rows }: { rows: Array<Record<string, unknown>> }) {
         <table>
           <thead>
             <tr>
-              <th>排名</th><th>店铺</th><th>运营</th><th>近30天新品</th><th>出单新品</th><th>出单率</th><th>广告花费</th><th>ROAS</th><th>高潜新品</th><th>烧钱无单</th><th>状态判断</th>
+              <th>排名</th><th>店铺</th><th>运营</th><th>近30天新品</th><th>出单新品</th><th>出单率</th><th>总花费</th><th>投资回报率(ROAS)（全域）</th><th>高潜新品</th><th>烧钱无单</th><th>状态判断</th>
             </tr>
           </thead>
           <tbody>
@@ -467,7 +483,7 @@ function BossBarChart({ rows }: { rows: Array<Record<string, unknown>> }) {
   return (
     <article className="boss-card boss-chart-card">
       <header>
-        <h2>店铺出单率 / ROAS 对比</h2>
+        <h2>店铺出单率 / 投资回报率(ROAS)（全域） 对比</h2>
         <a href="/new-product-center/workbench">查看更多</a>
       </header>
       <div className="boss-bar-chart">
@@ -565,10 +581,10 @@ function DashboardView() {
 
       <div className="boss-metric-grid">
         <BossMetricCard icon="cube" title={`近${periodDays}天新品数`} value={formatInteger(summary.periodNewCount)} change={`较上周期 ${newCountChange}`} tone="blue" />
-        <BossMetricCard icon="cart" title="出单新品数" value={formatInteger(summary.periodOrderedCount)} change={`广告订单 ${formatInteger(summary.adOrderCount)}`} tone="green" />
+        <BossMetricCard icon="cart" title="出单新品数" value={formatInteger(summary.periodOrderedCount)} change={`子订单数（全域） ${formatInteger(summary.adOrderCount)}`} tone="green" />
         <BossMetricCard icon="clock" title="新品出单率" value={formatRatio(summary.periodOrderedRate)} change={`较上周期 ${rateChange}`} tone="purple" />
-        <BossMetricCard icon="briefcase" title="广告花费" value={formatMoney(adSpend)} change={`销售额 ${formatMoney(adSales)}`} tone="orange" />
-        <BossMetricCard icon="trend" title="广告ROAS" value={formatRoas(summary.roas)} change={`高潜 ${formatInteger(summary.highPotentialCount)}`} tone="cyan" />
+        <BossMetricCard icon="briefcase" title="总花费" value={formatMoney(adSpend)} change={`销售额 ${formatMoney(adSales)}`} tone="orange" />
+        <BossMetricCard icon="trend" title="广告投资回报率(ROAS)（全域）" value={formatRoas(summary.roas)} change={`高潜 ${formatInteger(summary.highPotentialCount)}`} tone="cyan" />
         <BossMetricCard icon="alert" title="需关注店铺数" value={formatInteger(summary.attentionStoreCount)} change={`待处理 ${formatInteger(summary.pendingRecommendationCount)}`} tone="red" />
       </div>
 
@@ -665,7 +681,7 @@ function TaskBoard({ counts }: { counts: Record<string, number>; onSelect: (key:
   };
   return (
     <article className="excel-record-panel npc-panel npc-task-board">
-      <header className="npc-panel-header"><h2>今日待处理任务</h2><span>点击任务进入广告策略中心</span></header>
+      <header className="npc-panel-header"><h2>今日待处理任务</h2><span>点击（全域）任务进入广告策略中心</span></header>
       <div className="npc-task-groups">
         {groups.map((group) => (
           <section key={group.title} className={`npc-task-card npc-task-${group.tone}`}>
@@ -703,7 +719,7 @@ function StorePerformance({ rows }: { rows: Array<Record<string, unknown>> }) {
       <h2>我的店铺表现</h2>
       <div className="npc-table-wrap">
         <table>
-          <thead><tr><th>店铺</th><th>近7天新品</th><th>近30天新品</th><th>近60天出单数</th><th>订单明细数</th><th>广告花费</th><th>广告销售额</th></tr></thead>
+          <thead><tr><th>店铺</th><th>近7天新品</th><th>近30天新品</th><th>近60天出单数</th><th>订单明细数</th><th>总花费</th><th>申报价销售额（全域）</th></tr></thead>
           <tbody>
             {rows.map((row) => (
               <tr key={String(row.storeId || row.storeName)}>
@@ -1053,7 +1069,7 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
           <div className="npc-mini-list">
             {products.records.filter((item) => item.productTag === '高潜新品').slice(0, 6).map((item) => (
               <a key={item.id} href={`/new-product-center/products/${item.productId}`}>
-                <strong>{item.productName}</strong><span>{item.storeName} / ROAS {item.roas === null ? '-' : Number(item.roas).toFixed(2)}</span>
+                <strong>{item.productName}</strong><span>{item.storeName} / 投资回报率(ROAS)（全域） {item.roas === null ? '-' : Number(item.roas).toFixed(2)}</span>
               </a>
             ))}
             {products.records.filter((item) => item.productTag === '高潜新品').length === 0 && <span>当前筛选下暂无高潜新品。</span>}
@@ -1154,14 +1170,14 @@ function ProductTable({ records, total, title = '新品诊断列表' }: { record
             <th>订单数</th>
             <th>销量</th>
             <th>订单金额</th>
-            <th>广告花费</th>
-            <th>广告订单</th>
+            <th>总花费</th>
+            <th>子订单数（全域）</th>
             <th>自然订单</th>
-            <th>ROAS</th>
-            <th>目标ROAS</th>
-            <th>ROAS状态</th>
-            <th>点击</th>
-            <th>加购</th>
+            <th>投资回报率(ROAS)（全域）</th>
+            <th>策略目标值</th>
+            <th>投资回报率(ROAS)（全域）状态</th>
+            <th>点击（全域）</th>
+            <th>加入购物车数（全域）</th>
             <th>商品标签</th>
             <th>优先级</th>
             <th>诊断原因</th>
@@ -1312,7 +1328,7 @@ function RecommendationsView() {
         <div>
           <span className="npc-strategy-kicker">广告策略闭环中心</span>
           <h1>广告策略中心</h1>
-          <p>根据广告消耗、订单、ROAS 和出单表现，辅助运营完成广告策略调整闭环。</p>
+          <p>根据广告消耗、订单、投资回报率(ROAS)（全域） 和出单表现，辅助运营完成广告策略调整闭环。</p>
         </div>
         <div className="npc-strategy-hero-steps" aria-label="广告策略闭环流程">
           <span>发现问题</span>
@@ -1323,7 +1339,7 @@ function RecommendationsView() {
       </article>
       <article className="excel-record-panel npc-panel npc-strategy-notice">
         <strong>执行说明</strong>
-        <span>系统不会自动修改 TEMU 后台广告设置，只生成建议和执行检查。运营仍需在 TEMU 后台手动调整目标ROAS；系统通过后续广告日报中的“自然周目标ROAS（推广）”字段验证是否已执行。</span>
+        <span>系统不会自动修改 TEMU 后台广告设置，只生成建议和执行检查。运营仍需在 TEMU 后台手动调整策略目标值；系统通过后续广告日报中的“自然周策略目标值（推广）”字段验证是否已执行。</span>
       </article>
       <div className="npc-strategy-tabs">
         {tabButton('pending', '待处理建议')}
@@ -1342,7 +1358,7 @@ function RecommendationsView() {
           </div>
           <div className="npc-table-wrap npc-strategy-table-wrap">
             <table>
-              <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数</th><th>当前阶段</th><th>计划目标ROAS</th><th>实际目标ROAS</th><th>广告花费</th><th>广告订单</th><th>自然订单</th><th>ROAS</th><th>目标ROAS</th><th>诊断原因</th><th>建议动作</th><th>状态</th><th>操作</th></tr></thead>
+              <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数</th><th>当前阶段</th><th>计划策略目标值</th><th>实际策略目标值</th><th>总花费</th><th>子订单数（全域）</th><th>自然订单</th><th>投资回报率(ROAS)（全域）</th><th>策略目标值</th><th>诊断原因</th><th>建议动作</th><th>状态</th><th>操作</th></tr></thead>
               <tbody>
                 {pending.records.map((item) => (
                   <tr key={item.id}>
@@ -1394,18 +1410,18 @@ function RecommendationsView() {
                 <h3>第{index + 1}阶段：{stage.name}</h3>
                 <p>上架第 {stage.dayStart}-{stage.dayEnd} 天</p>
                 <strong>{stage.bidLevel}</strong>
-                <span>目标ROAS：{formatRoas(stage.targetRoas)}</span>
+                <span>策略目标值：{formatRoas(stage.targetRoas)}</span>
                 <small>{stage.goal}</small>
               </section>
             ))}
           </div>
           <div className="npc-threshold-grid">
             <label>烧钱无单花费阈值<input value={config?.thresholds.burnNoOrderSpend ?? 5} readOnly /></label>
-            <label>点击阈值<input value={config?.thresholds.clickThreshold ?? 30} readOnly /></label>
-            <label>加购阈值<input value={config?.thresholds.addToCartThreshold ?? 3} readOnly /></label>
-            <label>低曝光阈值<input value={config?.thresholds.lowExposureThreshold ?? 50} readOnly /></label>
-            <label>投放过保守<input value="实际目标ROAS > 计划目标ROAS × 1.2" readOnly /></label>
-            <label>投放过激进<input value="实际目标ROAS < 计划目标ROAS × 0.8" readOnly /></label>
+            <label>点击（全域）阈值<input value={config?.thresholds.clickThreshold ?? 30} readOnly /></label>
+            <label>加入购物车数（全域）阈值<input value={config?.thresholds.addToCartThreshold ?? 3} readOnly /></label>
+            <label>低曝光（全域）阈值<input value={config?.thresholds.lowExposureThreshold ?? 50} readOnly /></label>
+            <label>投放过保守<input value="实际策略目标值 > 计划策略目标值 × 1.2" readOnly /></label>
+            <label>投放过激进<input value="实际策略目标值 < 计划策略目标值 × 0.8" readOnly /></label>
           </div>
         </article>
       )}
@@ -1415,7 +1431,7 @@ function RecommendationsView() {
           <header className="npc-panel-header"><h2>阶段执行检查</h2><span>{execution.total} 条</span></header>
           <div className="npc-table-wrap npc-strategy-table-wrap">
             <table>
-              <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数</th><th>当前阶段</th><th>计划目标ROAS</th><th>实际目标ROAS</th><th>执行状态</th><th>阶段效果</th><th>下一步动作</th></tr></thead>
+              <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数</th><th>当前阶段</th><th>计划策略目标值</th><th>实际策略目标值</th><th>执行状态</th><th>阶段效果</th><th>下一步动作</th></tr></thead>
               <tbody>
                 {execution.records.map((item) => (
                   <tr key={item.id}>
@@ -1458,7 +1474,7 @@ function StageReviewTable({ rows }: { rows: AdStrategyReviewRecord[] }) {
   return (
     <div className="npc-table-wrap npc-strategy-table-wrap">
       <table>
-        <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>阶段名称</th><th>阶段日期</th><th>计划目标ROAS</th><th>实际目标ROAS</th><th>广告花费</th><th>广告销售额</th><th>广告订单</th><th>自然订单</th><th>曝光</th><th>点击</th><th>加购</th><th>ROAS</th><th>系统判断</th><th>运营动作</th></tr></thead>
+        <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>阶段名称</th><th>阶段日期</th><th>计划策略目标值</th><th>实际策略目标值</th><th>总花费</th><th>申报价销售额（全域）</th><th>子订单数（全域）</th><th>自然订单</th><th>曝光（全域）</th><th>点击（全域）</th><th>加入购物车数（全域）</th><th>投资回报率(ROAS)（全域）</th><th>系统判断</th><th>运营动作</th></tr></thead>
         <tbody>
           {rows.map((item, index) => (
             <tr key={`${item.productId || index}-${item.stageName}`}>
@@ -1518,7 +1534,7 @@ function strategyStatusTone(value?: string) {
   const normalized = String(value || '').toUpperCase();
   if (normalized === 'EXECUTED' || normalized === 'ACCEPTED' || value === '已按策略') return 'success';
   if (normalized === 'IGNORED' || normalized === 'EXPIRED') return 'muted';
-  if (value === '投放过激进' || value === '建议暂停/优化' || value === '无广告数据' || value === '无目标ROAS') return 'danger';
+  if (value === '投放过激进' || value === '建议暂停/优化' || value === '无广告数据' || value === '无策略目标') return 'danger';
   return 'warning';
 }
 
@@ -1633,18 +1649,18 @@ function StrategyOverviewCards({ counts, onSelect }: { counts: Record<string, nu
 }
 
 function getAdSalesAmount(item: AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord) {
-  return Number((item as any).adSalesAmount ?? (item as any).promoSalesAmount ?? 0) || 0;
+  return firstFiniteNumber((item as any).globalSalesAmount, (item as any).adSalesAmount);
 }
 
 function getRoasValue(item: AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord) {
-  const roas = Number(item.roas);
+  const roas = firstFiniteNumber((item as any).globalRoas, item.roas);
   if (Number.isFinite(roas) && roas > 0) return roas;
   const spend = Number(item.adSpend || 0);
   return spend > 0 ? getAdSalesAmount(item) / spend : 0;
 }
 
 function getAcosValue(item: AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord) {
-  const acos = Number((item as any).acos);
+  const acos = normalizeAdRate(firstFiniteNumber((item as any).globalAcos, (item as any).acos));
   if (Number.isFinite(acos) && acos > 0) return acos;
   const sales = getAdSalesAmount(item);
   return sales > 0 ? Number(item.adSpend || 0) / sales : 0;
@@ -1657,17 +1673,21 @@ function getStoreSalesAmount(item: AdStrategySuggestion | AdStrategyExecutionRec
 }
 
 function getConversionRateValue(item: AdStrategySuggestion | AdStrategyExecutionRecord | AdStrategyReviewRecord) {
+  const direct = normalizeAdRate(firstFiniteNumber((item as any).globalCvr, (item as any).conversionRate));
+  if (direct > 0) return direct;
   const clicks = Number((item as any).clicks || 0);
   const orders = Number(item.adOrderCount || 0);
   return clicks > 0 ? orders / clicks : 0;
 }
 
 function normalizeAdImportRecord(row: Record<string, any>): AdStrategySuggestion {
-  const adSpend = Number(row.adSpend ?? row.ad_spend ?? 0);
-  const adSalesAmount = Number(row.promoSalesAmount ?? row.netPromoSalesAmount ?? row.globalSalesAmount ?? row.adSalesAmount ?? 0);
-  const adOrderCount = Number(row.promoSubOrderCount ?? row.netPromoSubOrderCount ?? row.globalSubOrderCount ?? row.adOrderCount ?? 0);
-  const clicks = Number(row.promoClicks ?? row.globalClicks ?? row.clicks ?? 0);
-  const impressions = Number(row.promoImpressions ?? row.globalImpressions ?? row.impressions ?? 0);
+  const adSpend = firstFiniteNumber(row.totalCost, row.adSpend, row.ad_spend);
+  const adSalesAmount = firstFiniteNumber(row.globalSalesAmount, row.global_sales_amount, row.adSalesAmount);
+  const adOrderCount = firstFiniteNumber(row.globalSubOrderCount, row.global_sub_order_count, row.adOrderCount);
+  const clicks = firstFiniteNumber(row.globalClicks, row.global_clicks, row.clicks);
+  const impressions = firstFiniteNumber(row.globalImpressions, row.global_impressions, row.impressions);
+  const globalRoas = firstFiniteNumber(row.globalRoas, row.global_roas, row.roas);
+  const globalAcos = normalizeAdRate(firstFiniteNumber(row.globalAcos, row.global_acos, row.acos));
   return {
     id: String(row.id || `${row.reportDate || ''}-${row.storeName || ''}-${row.temuSpuId || row.temuProductId || row.productName || ''}`),
     recommendationDate: String(row.reportDate || '').slice(0, 10),
@@ -1681,11 +1701,15 @@ function normalizeAdImportRecord(row: Record<string, any>): AdStrategySuggestion
     adOrderCount,
     impressions,
     clicks,
-    addToCartCount: Number(row.promoAddToCartCount ?? row.globalAddToCartCount ?? row.addToCartCount ?? 0),
-    roas: row.promoRoas === null || row.promoRoas === undefined ? (adSpend > 0 ? adSalesAmount / adSpend : null) : Number(row.promoRoas),
-    acos: row.promoAcos === null || row.promoAcos === undefined ? (adSalesAmount > 0 ? adSpend / adSalesAmount : null) : Number(row.promoAcos),
+    addToCartCount: firstFiniteNumber(row.globalAddToCartCount, row.global_add_to_cart_count, row.addToCartCount),
+    roas: globalRoas > 0 ? globalRoas : (adSpend > 0 ? adSalesAmount / adSpend : null),
+    acos: globalAcos > 0 ? globalAcos : (adSalesAmount > 0 ? adSpend / adSalesAmount : null),
     storeSalesAmount: Number(row.globalSalesAmount || row.storeSalesAmount || adSalesAmount || 0),
     orderSalesAmount: Number(row.globalSalesAmount || adSalesAmount || 0),
+    globalSalesAmount: adSalesAmount,
+    globalRoas: globalRoas > 0 ? globalRoas : undefined,
+    globalAcos: globalAcos > 0 ? globalAcos : undefined,
+    globalCvr: normalizeAdRate(firstFiniteNumber(row.globalCvr, row.global_cvr, row.conversionRate)),
     generated: true,
   } as AdStrategySuggestion;
 }
@@ -1816,8 +1840,8 @@ function getAdIssueLabel(item: AdStrategySuggestion | AdStrategyExecutionRecord 
   const type = String((item as AdStrategySuggestion).problemType || (item as AdStrategySuggestion).recommendationType || '');
   if (type.includes('数据') || type.includes('匹配') || type.includes('鍖归厤')) return '数据缺失';
   if (spend > 0 && orders <= 0) return '有花费无订单';
-  if (acos >= 0.45) return '广告费率过高';
-  if (roas > 0 && roas < 1.2) return 'ROAS偏低';
+  if (acos >= 0.45) return '费比（全域）过高';
+  if (roas > 0 && roas < 1.2) return '投资回报率(ROAS)（全域）偏低';
   if (spend >= 50 && roas < 1.5) return '花费偏高';
   return '正常';
 }
@@ -1825,7 +1849,7 @@ function getAdIssueLabel(item: AdStrategySuggestion | AdStrategyExecutionRecord 
 function getAdIssueTone(label: string) {
   if (label === '正常') return 'success';
   if (label === '数据缺失') return 'muted';
-  if (label === '有花费无订单' || label === '广告费率过高') return 'danger';
+  if (label === '有花费无订单' || label === '费比（全域）过高') return 'danger';
   return 'warning';
 }
 
@@ -1834,8 +1858,8 @@ function matchesAdIssueFilter(item: AdStrategySuggestion, filter: string) {
   const issue = getAdIssueLabel(item);
   if (filter === 'normal') return issue === '正常';
   if (filter === 'highSpend') return issue === '花费偏高';
-  if (filter === 'lowRoas') return issue === 'ROAS偏低';
-  if (filter === 'highAcos') return issue === '广告费率过高';
+  if (filter === 'lowRoas') return issue === '投资回报率(ROAS)（全域）偏低';
+  if (filter === 'highAcos') return issue === '费比（全域）过高';
   if (filter === 'noOrder') return issue === '有花费无订单';
   if (filter === 'missing') return issue === '数据缺失';
   return true;
@@ -1899,11 +1923,11 @@ function AllStoreAdOverview({
   const highSpendLowReturn = sortedRows.filter((item) => Number(item.adSpend || 0) > 0 && (Number(item.adOrderCount || 0) === 0 || getRoasValue(item) < 1.2)).slice(0, 6);
   const highRoas = sortAdRecords(rows.filter((item) => getRoasValue(item) >= 2), 'roas').slice(0, 6);
   const metrics = [
-    { label: '广告花费', value: formatMoney(totalSpend) },
-    { label: '广告销售额', value: formatMoney(totalSales) },
-    { label: '广告订单数', value: formatInteger(totalOrders) },
-    { label: 'ROAS', value: totalSpend > 0 ? formatRoas(totalSales / totalSpend) : '-' },
-    { label: '广告费率', value: totalSales > 0 ? formatRatio(totalSpend / totalSales) : '-' },
+    { label: '总花费', value: formatMoney(totalSpend) },
+    { label: '申报价销售额（全域）', value: formatMoney(totalSales) },
+    { label: '子订单数（全域）', value: formatInteger(totalOrders) },
+    { label: '投资回报率(ROAS)（全域）', value: totalSpend > 0 ? formatRoas(totalSales / totalSpend) : '-' },
+    { label: '费比（全域）', value: totalSales > 0 ? formatRatio(totalSpend / totalSales) : '-' },
     { label: '异常店铺数', value: formatInteger(abnormalStores), tone: abnormalStores > 0 ? 'warning' : 'success' },
     { label: 'SPU匹配率', value: formatRatio(matchRate), tone: matchRate < 0.95 ? 'warning' : 'success' },
   ];
@@ -1930,10 +1954,10 @@ function AllStoreAdOverview({
         </header>
         <div className="npc-ad-sortbar" aria-label="广告排序">
           {[
-            { key: 'adSpend' as const, label: '广告花费' },
-            { key: 'roas' as const, label: 'ROAS' },
-            { key: 'acos' as const, label: '广告费率' },
-            { key: 'adSalesAmount' as const, label: '广告销售额' },
+            { key: 'adSpend' as const, label: '总花费' },
+            { key: 'roas' as const, label: '投资回报率(ROAS)（全域）' },
+            { key: 'acos' as const, label: '费比（全域）' },
+            { key: 'adSalesAmount' as const, label: '申报价销售额（全域）' },
           ].map((item) => (
             <button key={item.key} type="button" className={sortKey === item.key ? 'is-active' : ''} onClick={() => onSort(item.key)}>
               {item.label}
@@ -1942,7 +1966,7 @@ function AllStoreAdOverview({
         </div>
         <div className="npc-table-wrap npc-ad-overview-table">
           <table>
-            <thead><tr><th>店铺</th><th>运营</th><th>广告花费</th><th>广告销售额</th><th>广告订单数</th><th>ROAS</th><th>广告费率</th><th>异常商品</th><th>状态</th></tr></thead>
+            <thead><tr><th>店铺</th><th>运营</th><th>总花费</th><th>申报价销售额（全域）</th><th>子订单数（全域）</th><th>投资回报率(ROAS)（全域）</th><th>费比（全域）</th><th>异常商品</th><th>状态</th></tr></thead>
             <tbody>
               {storeRows.map((item) => {
                 const roas = item.adSpend > 0 ? item.adSalesAmount / item.adSpend : 0;
@@ -1969,8 +1993,8 @@ function AllStoreAdOverview({
       </article>
 
       <section className="npc-ad-overview-grid">
-        <AdProductList title="高花费低回报商品" rows={highSpendLowReturn} sortKey={sortKey} empty="暂无高花费低回报商品" />
-        <AdProductList title="高ROAS商品" rows={highRoas} sortKey="roas" empty="暂无高ROAS商品" />
+        <AdProductList title="高总花费低回报商品" rows={highSpendLowReturn} sortKey={sortKey} empty="暂无高总花费低回报商品" />
+        <AdProductList title="高投资回报率(ROAS)（全域）商品" rows={highRoas} sortKey="roas" empty="暂无高投资回报率(ROAS)（全域）商品" />
       </section>
 
       <article className="excel-record-panel npc-panel npc-ad-diagnosis-panel">
@@ -2009,10 +2033,10 @@ function AdProductList({
 }) {
   return (
     <article className="excel-record-panel npc-panel npc-ad-product-list">
-      <header className="npc-panel-header"><h2>{title}</h2><span>按{sortKey === 'acos' ? '广告费率' : sortKey === 'roas' ? 'ROAS' : sortKey === 'adSalesAmount' ? '广告销售额' : '广告花费'}排序</span></header>
+      <header className="npc-panel-header"><h2>{title}</h2><span>按{sortKey === 'acos' ? '费比（全域）' : sortKey === 'roas' ? '投资回报率(ROAS)（全域）' : sortKey === 'adSalesAmount' ? '申报价销售额（全域）' : '总花费'}排序</span></header>
       <div className="npc-table-wrap">
         <table>
-          <thead><tr><th>商品</th><th>店铺</th><th>花费</th><th>销售额</th><th>订单</th><th>ROAS</th><th>状态</th></tr></thead>
+          <thead><tr><th>商品</th><th>店铺</th><th>总花费</th><th>申报价销售额（全域）</th><th>子订单数（全域）</th><th>投资回报率(ROAS)（全域）</th><th>状态</th></tr></thead>
           <tbody>
             {rows.map((item) => {
               const issue = getAdIssueLabel(item);
@@ -2045,16 +2069,16 @@ function getAdIssueLabelV2(item: AdStrategySuggestion | AdStrategyExecutionRecor
   const type = String((item as AdStrategySuggestion).problemType || (item as AdStrategySuggestion).recommendationType || '');
   if (type.includes('数据') || type.includes('匹配') || type.includes('鍖归厤')) return '数据缺失';
   if (spend > 0 && orders <= 0) return '有花费无订单';
-  if (clicks >= 200 && getConversionRateValue(item) < 0.015) return '点击高转化低';
-  if (acos >= 0.32) return '广告费率过高';
-  if (roas > 0 && roas < 2) return 'ROAS偏低';
+  if (clicks >= 200 && getConversionRateValue(item) < 0.015) return '点击（全域）高转化低';
+  if (acos >= 0.32) return '费比（全域）过高';
+  if (roas > 0 && roas < 2) return '投资回报率(ROAS)（全域）偏低';
   if (spend >= 500 && roas < 2.5) return '花费偏高';
   return '正常';
 }
 
 function getAdIssueToneV2(label: string) {
   if (label === '正常' || label === '健康') return 'success';
-  if (label === '严重' || label === '广告费率过高' || label === '有花费无订单') return 'danger';
+  if (label === '严重' || label === '费比（全域）过高' || label === '有花费无订单') return 'danger';
   if (label === '数据缺失' || label === 'SPU匹配异常' || label === '暂无广告数据' || label === '暂无数据') return 'muted';
   return 'warning';
 }
@@ -2065,8 +2089,8 @@ function matchesAdIssueFilterV2(item: AdStrategySuggestion, filter: string) {
   if (filter === 'normal') return issue === '正常';
   if (filter === 'abnormal') return issue !== '正常';
   if (filter === 'highSpend') return issue === '花费偏高';
-  if (filter === 'lowRoas') return issue === 'ROAS偏低';
-  if (filter === 'highAcos') return issue === '广告费率过高';
+  if (filter === 'lowRoas') return issue === '投资回报率(ROAS)（全域）偏低';
+  if (filter === 'highAcos') return issue === '费比（全域）过高';
   if (filter === 'noOrder') return issue === '有花费无订单';
   if (filter === 'missing') return issue === '数据缺失';
   return true;
@@ -2146,12 +2170,14 @@ function MiniLineTrend({ stores, metric }: { stores: Array<{ storeName: string; 
 }
 
 function getAdTrendValue(row: Record<string, any>, metric: TrendMetricKey) {
-  const adSpend = Number(row.adSpend ?? row.ad_spend ?? 0) || 0;
-  const adSalesAmount = Number(row.promoSalesAmount ?? row.promo_sales_amount ?? row.adSalesAmount ?? row.ad_sales_amount ?? 0) || 0;
-  const storeSalesAmount = Number(row.globalSalesAmount ?? row.global_sales_amount ?? row.storeSalesAmount ?? row.store_sales_amount ?? adSalesAmount) || 0;
+  const adSpend = firstFiniteNumber(row.totalCost, row.adSpend, row.ad_spend);
+  const adSalesAmount = firstFiniteNumber(row.globalSalesAmount, row.global_sales_amount, row.adSalesAmount, row.ad_sales_amount);
+  const storeSalesAmount = firstFiniteNumber(row.storeSalesAmount, row.store_sales_amount, row.globalSalesAmount, row.global_sales_amount, adSalesAmount);
+  const directRoas = firstFiniteNumber(row.globalRoas, row.global_roas, row.roas);
+  const directAcos = normalizeAdRate(firstFiniteNumber(row.globalAcos, row.global_acos, row.acos));
   if (metric === 'adSalesAmount') return adSalesAmount;
-  if (metric === 'roas') return adSpend > 0 ? adSalesAmount / adSpend : 0;
-  if (metric === 'acos') return storeSalesAmount > 0 ? adSpend / storeSalesAmount : 0;
+  if (metric === 'roas') return directRoas > 0 ? directRoas : (adSpend > 0 ? adSalesAmount / adSpend : 0);
+  if (metric === 'acos') return directAcos > 0 ? directAcos : (storeSalesAmount > 0 ? adSpend / storeSalesAmount : 0);
   return adSpend;
 }
 
@@ -2339,16 +2365,18 @@ function AllStoreAdOverviewBoard({
     return { ...item, roas, acos, conversionRate, status, healthScore, healthStatus };
   }), [rows]);
   const summarizedStoreRows = useMemo(() => (storeSummary || []).map((row) => {
-    const adSpend = Number(row.adSpend || 0);
-    const adSalesAmount = Number(row.promoSalesAmount || row.adSalesAmount || 0);
-    const adOrderCount = Number(row.promoSubOrderCount || row.adOrderCount || 0);
-    const clicks = Number(row.promoClicks || row.clicks || 0);
-    const storeSalesAmount = Number(row.globalSalesAmount || row.storeSalesAmount || adSalesAmount || 0);
+    const adSpend = firstFiniteNumber(row.adSpend);
+    const adSalesAmount = firstFiniteNumber(row.globalSalesAmount, row.adSalesAmount);
+    const adOrderCount = firstFiniteNumber(row.globalSubOrderCount, row.adOrderCount);
+    const clicks = firstFiniteNumber(row.globalClicks, row.clicks);
+    const storeSalesAmount = firstFiniteNumber(row.storeSalesAmount, row.globalSalesAmount, adSalesAmount);
     const unmatchedCount = Number(row.unmatchedCount || 0);
-    const roas = adSpend > 0 ? adSalesAmount / adSpend : 0;
-    const acos = storeSalesAmount > 0 ? adSpend / storeSalesAmount : 0;
-    const conversionRate = clicks > 0 ? adOrderCount / clicks : 0;
-    const status = unmatchedCount > 0 ? 'SPU匹配异常' : adSpend > 0 && adOrderCount <= 0 ? '有花费无订单' : roas > 0 && roas < 2 ? 'ROAS偏低' : acos >= 0.32 ? '广告费率过高' : '正常';
+    const directRoas = firstFiniteNumber(row.globalRoas, row.roas);
+    const directAcos = normalizeAdRate(firstFiniteNumber(row.globalAcos, row.acos));
+    const roas = directRoas > 0 ? directRoas : (adSpend > 0 ? adSalesAmount / adSpend : 0);
+    const acos = directAcos > 0 ? directAcos : (storeSalesAmount > 0 ? adSpend / storeSalesAmount : 0);
+    const conversionRate = normalizeAdRate(firstFiniteNumber(row.globalCvr, row.conversionRate)) || (clicks > 0 ? adOrderCount / clicks : 0);
+    const status = unmatchedCount > 0 ? 'SPU匹配异常' : adSpend > 0 && adOrderCount <= 0 ? '有花费无订单' : roas > 0 && roas < 2 ? '投资回报率(ROAS)（全域）偏低' : acos >= 0.32 ? '费比（全域）过高' : '正常';
     const abnormalCount = status === '正常' ? 0 : 1;
     const healthScore = Math.max(30, Math.round(96 - Math.min(30, acos * 80) - Math.max(0, 2.5 - roas) * 10 - abnormalCount * 7));
     const healthStatus = healthScore >= 85 ? '健康' : healthScore >= 70 ? '注意' : healthScore >= 45 ? '风险' : '严重';
@@ -2409,9 +2437,9 @@ function AllStoreAdOverviewBoard({
   }), [sortKey, storeRows]);
 
   const totalSpend = Number(summary?.adSpend ?? rows.reduce((sum, item) => sum + Number(item.adSpend || 0), 0));
-  const totalAdSales = Number(summary?.promoSalesAmount ?? summary?.adSalesAmount ?? rows.reduce((sum, item) => sum + getAdSalesAmount(item), 0));
-  const totalStoreSales = rows.reduce((sum, item) => sum + getStoreSalesAmount(item), 0);
-  const totalOrders = Number(summary?.promoSubOrderCount ?? summary?.adOrderCount ?? rows.reduce((sum, item) => sum + Number(item.adOrderCount || 0), 0));
+  const totalAdSales = Number(summary?.globalSalesAmount ?? summary?.adSalesAmount ?? rows.reduce((sum, item) => sum + getAdSalesAmount(item), 0));
+  const totalStoreSales = firstFiniteNumber(summary?.storeSalesAmount, summary?.globalSalesAmount, rows.reduce((sum, item) => sum + getStoreSalesAmount(item), 0));
+  const totalOrders = Number(summary?.globalSubOrderCount ?? summary?.adOrderCount ?? rows.reduce((sum, item) => sum + Number(item.adOrderCount || 0), 0));
   const abnormalStores = storeRows.filter((item) => item.status !== '正常' && item.status !== '暂无广告数据');
   const unmatchedCount = Number(summary?.unmatchedCount ?? counts.unmatched ?? 0);
   const matchedCount = Number(summary?.matchedCount ?? 0);
@@ -2420,22 +2448,22 @@ function AllStoreAdOverviewBoard({
   const highSpendLowReturn = sortAdRecordsV2(rows.filter((item) => Number(item.adSpend || 0) > 0 && (Number(item.adOrderCount || 0) === 0 || getRoasValue(item) < 2)), 'adSpend').slice(0, 8);
   const highRoas = sortAdRecordsV2(rows.filter((item) => getRoasValue(item) >= 2), 'roas').reverse().slice(0, 10);
   const metricCards = [
-    { label: '广告花费', value: formatMoney(totalSpend), icon: 'briefcase', change: changeMeta(rows.length + 1, false) },
-    { label: '广告销售额', value: formatMoney(totalAdSales), icon: 'cart', change: changeMeta(rows.length + 2) },
-    { label: '广告订单数', value: formatInteger(totalOrders), icon: 'message', change: changeMeta(rows.length + 3) },
-    { label: 'ROAS', value: totalSpend > 0 ? formatRoas(totalAdSales / totalSpend) : '-', icon: 'dashboard', change: changeMeta(rows.length + 4) },
-    { label: '广告费率', value: totalStoreSales > 0 ? formatRatio(totalSpend / totalStoreSales) : '-', icon: 'trend', change: changeMeta(rows.length + 5, false) },
+    { label: '总花费', value: formatMoney(totalSpend), icon: 'briefcase', change: changeMeta(rows.length + 1, false) },
+    { label: '申报价销售额（全域）', value: formatMoney(totalAdSales), icon: 'cart', change: changeMeta(rows.length + 2) },
+    { label: '子订单数（全域）', value: formatInteger(totalOrders), icon: 'message', change: changeMeta(rows.length + 3) },
+    { label: '投资回报率(ROAS)（全域）', value: formatRoas(firstFiniteNumber(summary?.globalRoas, totalSpend > 0 ? totalAdSales / totalSpend : 0)), icon: 'dashboard', change: changeMeta(rows.length + 4) },
+    { label: '费比（全域）', value: formatRatio(normalizeAdRate(firstFiniteNumber(summary?.globalAcos, totalStoreSales > 0 ? totalSpend / totalStoreSales : 0))), icon: 'trend', change: changeMeta(rows.length + 5, false) },
     { label: '异常店铺数', value: formatInteger(abnormalStores.length), icon: 'alert', change: { text: `${abnormalStores.length > 0 ? '+' : ''}${Math.max(0, abnormalStores.length - 1)}`, tone: abnormalStores.length > 0 ? 'bad' : 'good', arrow: abnormalStores.length > 0 ? '↑' : '↓' } },
   ];
   const diagnoses = abnormalStores.slice(0, 5).map((item, index) => {
     const level = index < 1 || item.healthStatus === '严重' ? '高' : index < 3 ? '中' : '低';
     const message = item.status === '有花费无订单'
-      ? `${item.storeName}：今日广告花费${formatMoney(item.adSpend)}，广告订单为0`
-      : item.status === '广告费率过高'
-        ? `${item.storeName}：广告费率达到${formatRatio(item.acos)}，超过预警线`
+      ? `${item.storeName}：今日总花费${formatMoney(item.adSpend)}，子订单数（全域）为0`
+      : item.status === '费比（全域）过高'
+        ? `${item.storeName}：费比（全域）达到${formatRatio(item.acos)}，超过预警线`
         : item.status === '数据缺失'
           ? `${item.storeName}：昨日广告数据未导入或SPU匹配异常`
-          : `${item.storeName}：${item.status}，当前ROAS ${formatRoas(item.roas)}`;
+          : `${item.storeName}：${item.status}，当前投资回报率(ROAS)（全域） ${formatRoas(item.roas)}`;
     return { level, message };
   });
 
@@ -2466,13 +2494,13 @@ function AllStoreAdOverviewBoard({
                   <th>店铺</th><th>运营</th>
                   {[
                     ['storeSalesAmount', '店铺销售额'],
-                    ['adSpend', '广告花费'],
-                    ['adSalesAmount', '广告销售额'],
-                    ['adOrderCount', '广告订单数'],
-                    ['roas', 'ROAS'],
-                    ['acos', '广告费率'],
-                    ['clicks', '点击量'],
-                    ['conversionRate', '转化率'],
+                    ['adSpend', '总花费'],
+                    ['adSalesAmount', '申报价销售额（全域）'],
+                    ['adOrderCount', '子订单数（全域）'],
+                    ['roas', '投资回报率(ROAS)（全域）'],
+                    ['acos', '费比（全域）'],
+                    ['clicks', '点击（全域）'],
+                    ['conversionRate', '转化率（全域）'],
                   ].map(([key, label]) => (
                     <th key={key}><button type="button" onClick={() => key !== 'storeSalesAmount' && onSort(key as AdStrategySortKey)}>{label}</button></th>
                   ))}
@@ -2569,10 +2597,10 @@ function AllStoreAdOverviewBoard({
             </div>
             <div className="npc-ad-metric-switch">
               {[
-                ['adSpend', '广告花费'],
-                ['adSalesAmount', '广告销售额'],
-                ['roas', 'ROAS'],
-                ['acos', '广告费率'],
+                ['adSpend', '总花费'],
+                ['adSalesAmount', '申报价销售额（全域）'],
+                ['roas', '投资回报率(ROAS)（全域）'],
+                ['acos', '费比（全域）'],
               ].map(([key, label]) => <button key={key} type="button" className={trendMetric === key ? 'is-active' : ''} onClick={() => onTrendMetricChange(key as TrendMetricKey)}>{label}</button>)}
             </div>
           </header>
@@ -2585,13 +2613,13 @@ function AllStoreAdOverviewBoard({
           />
         </article>
         <article className="excel-record-panel npc-panel npc-ad-low-return-card">
-          <header className="npc-panel-header"><h2>高花费低回报商品榜</h2><span>Top {highSpendLowReturn.length}</span></header>
+          <header className="npc-panel-header"><h2>高总花费低回报商品榜</h2><span>Top {highSpendLowReturn.length}</span></header>
           <AdCompactProductTable rows={highSpendLowReturn} mode="risk" />
         </article>
       </section>
 
       <article className="excel-record-panel npc-panel npc-ad-high-roas-card">
-        <header className="npc-panel-header"><h2>高ROAS商品榜</h2><span>Top {highRoas.length}</span></header>
+        <header className="npc-panel-header"><h2>高投资回报率(ROAS)（全域）商品榜</h2><span>Top {highRoas.length}</span></header>
         <AdCompactProductTable rows={highRoas} mode="good" />
       </article>
     </section>
@@ -2616,7 +2644,7 @@ function AdCompactProductTable({ rows, mode }: { rows: AdStrategySuggestion[]; m
   return (
     <div className="npc-table-wrap npc-ad-product-compact-wrap">
       <table>
-        <thead><tr><th>SPU ID</th><th>SKC ID</th><th>SKU ID</th><th>店铺</th><th>广告花费</th><th>广告销售额</th><th>{mode === 'good' ? '广告订单数' : 'ROAS'}</th><th>{mode === 'good' ? 'ROAS' : '状态'}</th>{mode === 'good' && <th>广告费率</th>}<th>操作</th></tr></thead>
+        <thead><tr><th>SPU ID</th><th>SKC ID</th><th>SKU ID</th><th>店铺</th><th>总花费</th><th>申报价销售额（全域）</th><th>{mode === 'good' ? '子订单数（全域）' : '投资回报率(ROAS)（全域）'}</th><th>{mode === 'good' ? '投资回报率(ROAS)（全域）' : '状态'}</th>{mode === 'good' && <th>费比（全域）</th>}<th>操作</th></tr></thead>
         <tbody>
           {rows.map((item) => {
             const issue = mode === 'good' ? '值得继续投放' : getAdIssueLabelV2(item);
@@ -2658,11 +2686,11 @@ function StrategyDrawer({
   if (!item) return null;
   const recentAds = (detail?.ads || []).slice(0, 7);
   const adSpend7 = recentAds.reduce((sum, row) => sum + Number(row.adSpend || row.ad_spend || 0), 0);
-  const clicks7 = recentAds.reduce((sum, row) => sum + Number(row.promoClicks || row.clicks || row.promo_clicks || 0), 0);
-  const addToCart7 = recentAds.reduce((sum, row) => sum + Number(row.addToCartCount || row.add_to_cart_count || 0), 0);
-  const adOrders7 = recentAds.reduce((sum, row) => sum + Number(row.promoSubOrderCount || row.adOrderCount || row.promo_sub_order_count || 0), 0);
+  const clicks7 = recentAds.reduce((sum, row) => sum + firstFiniteNumber(row.globalClicks, row.global_clicks, row.clicks), 0);
+  const addToCart7 = recentAds.reduce((sum, row) => sum + firstFiniteNumber(row.globalAddToCartCount, row.global_add_to_cart_count, row.addToCartCount, row.add_to_cart_count), 0);
+  const adOrders7 = recentAds.reduce((sum, row) => sum + firstFiniteNumber(row.globalSubOrderCount, row.global_sub_order_count, row.adOrderCount), 0);
   const naturalOrders = Number(item.naturalOrderCount || 0);
-  const roas7 = adSpend7 > 0 ? recentAds.reduce((sum, row) => sum + Number(row.promoSalesAmount || row.adSalesAmount || row.promo_sales_amount || 0), 0) / adSpend7 : item.roas;
+  const roas7 = adSpend7 > 0 ? recentAds.reduce((sum, row) => sum + firstFiniteNumber(row.globalSalesAmount, row.global_sales_amount, row.adSalesAmount), 0) / adSpend7 : item.roas;
   const history = detail?.recommendations || [];
   return (
     <div className="npc-strategy-drawer-backdrop" role="presentation" onMouseDown={onClose}>
@@ -2684,8 +2712,8 @@ function StrategyDrawer({
         <section className="npc-strategy-drawer-block">
           <h3>阶段策略</h3>
           <div className="npc-strategy-drawer-metrics three">
-            <span><small>计划目标ROAS</small><strong>{formatRoas(item.plannedTargetRoas)}</strong></span>
-            <span><small>实际目标ROAS</small><strong>{formatRoas(item.actualTargetRoas)}</strong></span>
+            <span><small>计划策略目标值</small><strong>{formatRoas(item.plannedTargetRoas)}</strong></span>
+            <span><small>实际策略目标值</small><strong>{formatRoas(item.actualTargetRoas)}</strong></span>
             <span><small>执行结论</small><strong>{String(item.problemType || strategyDeviationText(item))}</strong></span>
           </div>
         </section>
@@ -2694,18 +2722,18 @@ function StrategyDrawer({
           {loading ? <p className="npc-muted">正在加载详情...</p> : (
             <div className="npc-strategy-drawer-metrics">
               <span><small>花费</small><strong>{formatMoney(adSpend7 || item.adSpend)}</strong></span>
-              <span><small>点击</small><strong>{formatInteger(clicks7 || item.clicks)}</strong></span>
-              <span><small>加购</small><strong>{formatInteger(addToCart7 || item.addToCartCount)}</strong></span>
-              <span><small>广告订单</small><strong>{formatInteger(adOrders7 || item.adOrderCount)}</strong></span>
+              <span><small>点击（全域）</small><strong>{formatInteger(clicks7 || item.clicks)}</strong></span>
+              <span><small>加入购物车数（全域）</small><strong>{formatInteger(addToCart7 || item.addToCartCount)}</strong></span>
+              <span><small>子订单数（全域）</small><strong>{formatInteger(adOrders7 || item.adOrderCount)}</strong></span>
               <span><small>自然订单</small><strong>{formatInteger(naturalOrders)}</strong></span>
-              <span><small>ROAS</small><strong>{formatRoas(roas7)}</strong></span>
+              <span><small>投资回报率(ROAS)（全域）</small><strong>{formatRoas(roas7)}</strong></span>
             </div>
           )}
         </section>
         <section className="npc-strategy-drawer-block">
           <h3>系统判断</h3>
           <p><strong>诊断原因：</strong>{item.reasonText || item.problemType || '-'}</p>
-          <p><strong>影响：</strong>如果不及时调整，可能影响新品冷启动曝光、转化验证或广告成本控制。</p>
+          <p><strong>影响：</strong>如果不及时调整，可能影响新品冷启动曝光（全域）、转化验证或广告成本控制。</p>
         </section>
         <section className="npc-strategy-drawer-block">
           <h3>建议动作</h3>
@@ -2910,7 +2938,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           ...baseFilters,
           startDate,
           endDate,
-          sortField: sortKey === 'adSalesAmount' ? 'promoSalesAmount' : sortKey === 'adOrderCount' ? 'promoSubOrderCount' : sortKey === 'clicks' ? 'promoClicks' : sortKey === 'roas' ? 'promoRoas' : sortKey === 'acos' ? 'promoAcos' : 'adSpend',
+          sortField: sortKey === 'adSalesAmount' ? 'globalSalesAmount' : sortKey === 'adOrderCount' ? 'globalSubOrderCount' : sortKey === 'clicks' ? 'globalClicks' : sortKey === 'roas' ? 'globalRoas' : sortKey === 'acos' ? 'globalAcos' : 'adSpend',
           sortDirection: sortKey === 'roas' || sortKey === 'conversionRate' ? 'asc' : 'desc',
         });
         if (!cancelled) setAdImportOverview({ ...overview, reportDate: startDate === endDate ? endDate : `${startDate} 至 ${endDate}` });
@@ -3018,7 +3046,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
       (row as any).adSpend ?? '',
       (row as any).roas ?? '',
     ].map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([`\ufeff商品,店铺,运营,阶段,计划ROAS,实际ROAS,广告花费,ROAS\n${csv}`], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob([`\ufeff商品,店铺,运营,阶段,策略计划值,后台执行值,总花费,投资回报率(ROAS)（全域）\n${csv}`], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -3072,7 +3100,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
       </div>
       <article className="excel-record-panel npc-panel npc-strategy-notice">
         <strong>执行说明</strong>
-        <span>系统不会自动修改 TEMU 后台广告设置，只生成建议和执行检查。运营仍需在 TEMU 后台手动调整目标ROAS；系统通过后续广告日报中的“自然周目标ROAS（推广）”字段验证是否已执行。</span>
+        <span>系统不会自动修改 TEMU 后台广告设置，只生成建议和执行检查。运营仍需在 TEMU 后台手动调整策略目标值；系统通过后续广告日报中的“自然周策略目标值（推广）”字段验证是否已执行。</span>
       </article>
       <div className="npc-ad-dimension-tabs" role="tablist" aria-label="广告策略中心视图">
         <button type="button" className={dimensionTab === 'allStores' ? 'is-active' : ''} onClick={() => { setDimensionTab('allStores'); setProductType('all'); setPage(1); }}>
@@ -3139,13 +3167,17 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           <button type="button" onClick={resetFilters}>重置</button>
         </div>
       </article>
+      <div className="npc-ad-scope-tip">
+        <strong>当前数据口径：全域推广</strong>
+        <span>申报价销售额（全域）、投资回报率(ROAS)（全域）、子订单数（全域）、曝光（全域）、点击（全域）、转化率（全域）均来自全域推广报表；页面统计与明细读取均按全域推广字段展示。</span>
+      </div>
       <article className="excel-record-panel npc-panel npc-ad-workbench-filter npc-ad-legacy-filter">
         <label>日期范围<input type="date" value={snapshotDate} onChange={(event) => { setSnapshotDate(event.target.value); setPage(1); }} /></label>
         <label>店铺<select value={storeId} onChange={(event) => { setStoreId(event.target.value); setPage(1); }}><option value="">全部店铺</option>{storeOptions.map((store) => <option key={store.storeId || store.storeName} value={store.storeId || store.storeName}>{store.storeName}</option>)}</select></label>
         <label>运营{isManager ? <select value={operatorName} onChange={(event) => { setOperatorName(event.target.value); setPage(1); }}><option value="">全部运营</option>{operatorOptions.map((operator) => <option key={operator.operatorName} value={operator.operatorName}>{operator.operatorName}</option>)}</select> : <input value={currentOperatorName || '当前运营'} readOnly />}</label>
         <label>广告类型<select value={adType} onChange={(event) => { setAdType(event.target.value); setPage(1); }}><option value="">全部广告</option><option value="商品推广">商品推广</option><option value="搜索广告">搜索广告</option><option value="场景广告">场景广告</option></select></label>
         <label>商品类型<select value={productType} onChange={(event) => { setProductType(event.target.value); setDimensionTab(event.target.value === 'new' ? 'newProducts' : 'allStores'); setPage(1); }}><option value="all">全部商品</option><option value="new">新品</option></select></label>
-        <label>异常状态<select value={abnormalStatus} onChange={(event) => { setAbnormalStatus(event.target.value); setPage(1); }}><option value="">全部状态</option><option value="normal">正常</option><option value="highSpend">花费偏高</option><option value="lowRoas">ROAS偏低</option><option value="highAcos">广告费率过高</option><option value="noOrder">有花费无订单</option><option value="missing">数据缺失</option></select></label>
+        <label>异常状态<select value={abnormalStatus} onChange={(event) => { setAbnormalStatus(event.target.value); setPage(1); }}><option value="">全部状态</option><option value="normal">正常</option><option value="highSpend">花费偏高</option><option value="lowRoas">投资回报率(ROAS)（全域）偏低</option><option value="highAcos">费比（全域）过高</option><option value="noOrder">有花费无订单</option><option value="missing">数据缺失</option></select></label>
         <div className="npc-ad-workbench-filter-actions">
           <span>数据截止 {dataCutoffDate || '-'}</span>
           <button type="button" onClick={resetFilters}>重置</button>
@@ -3185,11 +3217,11 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           {loading.counts ? <PanelSkeleton title="新品广告效果总览" rows={2} /> : <StrategyOverviewCards counts={counts} onSelect={applyOverviewFilter} />}
           <section className="npc-ad-overview-metrics npc-ad-new-product-metrics">
             {[
-              { label: '新品广告花费', value: formatMoney(filteredPendingRecords.reduce((sum, item) => sum + Number(item.adSpend || 0), 0)) },
-              { label: '新品广告销售额', value: formatMoney(filteredPendingRecords.reduce((sum, item) => sum + getAdSalesAmount(item), 0)) },
-              { label: '新品广告订单数', value: formatInteger(filteredPendingRecords.reduce((sum, item) => sum + Number(item.adOrderCount || 0), 0)) },
-              { label: '新品ROAS', value: filteredPendingRecords.reduce((sum, item) => sum + Number(item.adSpend || 0), 0) > 0 ? formatRoas(filteredPendingRecords.reduce((sum, item) => sum + getAdSalesAmount(item), 0) / filteredPendingRecords.reduce((sum, item) => sum + Number(item.adSpend || 0), 0)) : '-' },
-              { label: '新品广告费率', value: filteredPendingRecords.reduce((sum, item) => sum + getAdSalesAmount(item), 0) > 0 ? formatRatio(filteredPendingRecords.reduce((sum, item) => sum + Number(item.adSpend || 0), 0) / filteredPendingRecords.reduce((sum, item) => sum + getAdSalesAmount(item), 0)) : '-' },
+              { label: '新品总花费', value: formatMoney(filteredPendingRecords.reduce((sum, item) => sum + Number(item.adSpend || 0), 0)) },
+              { label: '新品申报价销售额（全域）', value: formatMoney(filteredPendingRecords.reduce((sum, item) => sum + getAdSalesAmount(item), 0)) },
+              { label: '新品子订单数（全域）', value: formatInteger(filteredPendingRecords.reduce((sum, item) => sum + Number(item.adOrderCount || 0), 0)) },
+              { label: '新品投资回报率(ROAS)（全域）', value: filteredPendingRecords.reduce((sum, item) => sum + Number(item.adSpend || 0), 0) > 0 ? formatRoas(filteredPendingRecords.reduce((sum, item) => sum + getAdSalesAmount(item), 0) / filteredPendingRecords.reduce((sum, item) => sum + Number(item.adSpend || 0), 0)) : '-' },
+              { label: '新品费比（全域）', value: filteredPendingRecords.reduce((sum, item) => sum + getAdSalesAmount(item), 0) > 0 ? formatRatio(filteredPendingRecords.reduce((sum, item) => sum + Number(item.adSpend || 0), 0) / filteredPendingRecords.reduce((sum, item) => sum + getAdSalesAmount(item), 0)) : '-' },
               { label: '新品首单数', value: formatInteger(counts.ordered || 0) },
               { label: '新品首单率', value: counts.all ? formatRatio((counts.ordered || 0) / counts.all) : '-' },
             ].map((item) => (
@@ -3222,7 +3254,7 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           </div>
           <div className="npc-table-wrap npc-strategy-table-wrap npc-pending-strategy-table-wrap">
             <table className="npc-pending-strategy-table">
-              <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数 / 当前阶段</th><th>优先级</th><th>计划ROAS</th><th>实际ROAS</th><th>执行偏差</th><th>广告花费</th><th>点击</th><th>加购</th><th>广告订单</th><th>自然订单</th><th>ROAS</th><th>目标ROAS</th><th>诊断原因</th><th>建议动作</th><th>状态</th><th>操作</th></tr></thead>
+              <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数 / 当前阶段</th><th>优先级</th><th>策略计划值</th><th>后台执行值</th><th>执行偏差</th><th>总花费</th><th>点击（全域）</th><th>加入购物车数（全域）</th><th>子订单数（全域）</th><th>自然订单</th><th>投资回报率(ROAS)（全域）</th><th>策略目标值</th><th>诊断原因</th><th>建议动作</th><th>状态</th><th>操作</th></tr></thead>
               <tbody>
                 {loading.pending && pending.records.length === 0 && <tr className="npc-strategy-empty-row"><td colSpan={19}><PanelSkeleton title="待处理建议加载中" rows={4} /></td></tr>}
                 {!loading.pending && filteredPendingRecords.map((item) => (
@@ -3268,18 +3300,18 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
                 <h3>第{index + 1}阶段：{stage.name}</h3>
                 <p>上架第 {stage.dayStart}-{stage.dayEnd} 天</p>
                 <strong>{stage.bidLevel}</strong>
-                <span>目标ROAS：{formatRoas(stage.targetRoas)}</span>
+                <span>策略目标值：{formatRoas(stage.targetRoas)}</span>
                 <small>{stage.goal}</small>
               </section>
             ))}
           </div>
           <div className="npc-threshold-grid">
             <label>烧钱无单花费阈值<input value={config?.thresholds.burnNoOrderSpend ?? 5} readOnly /></label>
-            <label>点击阈值<input value={config?.thresholds.clickThreshold ?? 30} readOnly /></label>
-            <label>加购阈值<input value={config?.thresholds.addToCartThreshold ?? 3} readOnly /></label>
-            <label>低曝光阈值<input value={config?.thresholds.lowExposureThreshold ?? 50} readOnly /></label>
-            <label>投放过保守阈值<input value="实际目标ROAS > 计划目标ROAS × 1.2" readOnly /></label>
-            <label>投放过激进阈值<input value="实际目标ROAS < 计划目标ROAS × 0.8" readOnly /></label>
+            <label>点击（全域）阈值<input value={config?.thresholds.clickThreshold ?? 30} readOnly /></label>
+            <label>加入购物车数（全域）阈值<input value={config?.thresholds.addToCartThreshold ?? 3} readOnly /></label>
+            <label>低曝光（全域）阈值<input value={config?.thresholds.lowExposureThreshold ?? 50} readOnly /></label>
+            <label>投放过保守阈值<input value="实际策略目标值 > 计划策略目标值 × 1.2" readOnly /></label>
+            <label>投放过激进阈值<input value="实际策略目标值 < 计划策略目标值 × 0.8" readOnly /></label>
           </div>
         </article>
       )}
@@ -3288,11 +3320,11 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
         <article className="excel-record-panel npc-panel">
           <header className="npc-panel-header"><h2>阶段执行检查</h2><span>{execution.total} 条</span></header>
           <div className="npc-ad-execution-summary">
-            {['已按策略', '投放过保守', '投放过激进', '无广告数据', '无目标ROAS'].map((item) => <section key={item}><small>{item}</small><strong>{formatInteger(executionSummary[item] || 0)}</strong></section>)}
+            {['已按策略', '投放过保守', '投放过激进', '无广告数据', '无策略目标'].map((item) => <section key={item}><small>{item}</small><strong>{formatInteger(executionSummary[item] || 0)}</strong></section>)}
           </div>
           <div className="npc-table-wrap npc-strategy-table-wrap">
             <table className="npc-execution-strategy-table">
-              <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数</th><th>当前阶段</th><th>计划目标ROAS</th><th>实际目标ROAS</th><th>执行状态</th><th>阶段效果</th><th>下一步动作</th></tr></thead>
+              <thead><tr><th>商品</th><th>店铺</th><th>运营</th><th>上架天数</th><th>当前阶段</th><th>计划策略目标值</th><th>实际策略目标值</th><th>执行状态</th><th>阶段效果</th><th>下一步动作</th></tr></thead>
               <tbody>
                 {execution.records.map((item) => (
                   <tr key={item.id}>
@@ -3350,7 +3382,7 @@ function DetailView({ productId }: { productId: string }) {
       </article>
       <div className="npc-two-columns">
         <SimpleTable title="订单趋势" rows={data.orders} columns={['orderDate','orderCount','quantity','salesAmount']} />
-        <SimpleTable title="广告趋势" rows={data.ads} columns={['reportDate','adSpend','promoSalesAmount','promoClicks','promoSubOrderCount']} />
+        <SimpleTable title="广告趋势" rows={data.ads} columns={['reportDate','adSpend','globalSalesAmount','globalClicks','globalSubOrderCount']} />
       </div>
       <article className="excel-record-panel npc-panel">
         <header className="npc-panel-header"><h2>广告阶段复盘</h2><span>{data.adStageReview?.length || 0} 个阶段</span></header>

@@ -175,11 +175,14 @@ export interface ImportPreview {
   ok: boolean;
   previewId?: string;
   fileName: string;
+  tableType?: string;
   headers: string[];
   mapping: Record<string, string>;
   previewRows: Record<string, unknown>[];
   rows?: Record<string, unknown>[];
   totalRows: number;
+  effectiveRows?: number;
+  skippedRows?: number;
 }
 
 export interface ConfirmImportPayload {
@@ -192,9 +195,13 @@ export interface ConfirmImportPayload {
 
 export interface ImportResult {
   ok: boolean;
+  tableType?: string;
   totalRows: number;
   successRows: number;
+  skippedRows?: number;
   errorRows: number;
+  spuMatchRate?: number | null;
+  unmatchedSpuCount?: number;
   errors: Array<{ rowNumber: number; errorReason: string; rawData: Record<string, unknown> }>;
 }
 
