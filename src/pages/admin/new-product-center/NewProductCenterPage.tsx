@@ -2055,7 +2055,7 @@ function getAdIssueLabelV2(item: AdStrategySuggestion | AdStrategyExecutionRecor
 function getAdIssueToneV2(label: string) {
   if (label === '正常' || label === '健康') return 'success';
   if (label === '严重' || label === '广告费率过高' || label === '有花费无订单') return 'danger';
-  if (label === '数据缺失' || label === 'SPU匹配异常') return 'muted';
+  if (label === '数据缺失' || label === 'SPU匹配异常' || label === '暂无广告数据' || label === '暂无数据') return 'muted';
   return 'warning';
 }
 
@@ -2265,6 +2265,7 @@ function AllStoreAdOverviewBoard({
   totalRecords,
   storeSummary,
   storeTrend,
+  visibleStores,
   trendDateKeys,
   selectedTrendStoreNames,
   onSort,
@@ -2282,6 +2283,7 @@ function AllStoreAdOverviewBoard({
   totalRecords?: number;
   storeSummary?: Array<Record<string, any>>;
   storeTrend?: Array<Record<string, any>>;
+  visibleStores?: StoreScopeOption[];
   trendDateKeys?: string[];
   selectedTrendStoreNames: string[];
   onSort: (key: AdStrategySortKey) => void;
@@ -2368,7 +2370,31 @@ function AllStoreAdOverviewBoard({
       healthStatus,
     };
   }), [storeSummary]);
-  const storeRows = summarizedStoreRows.length ? summarizedStoreRows : detailStoreRows;
+  const storeRows = useMemo(() => {
+    const sourceRows = summarizedStoreRows.length ? summarizedStoreRows : detailStoreRows;
+    const rowMap = new Map(sourceRows.map((row) => [row.storeName, row]));
+    const visibleStoreNames = Array.from(new Set((visibleStores || [])
+      .map((store) => String(store.storeName || '').trim())
+      .filter(Boolean)));
+    if (!visibleStoreNames.length) return sourceRows;
+    return visibleStoreNames.map((storeName) => rowMap.get(storeName) || {
+      storeName,
+      operatorName: '-',
+      storeSalesAmount: 0,
+      adSpend: 0,
+      adSalesAmount: 0,
+      adOrderCount: 0,
+      clicks: 0,
+      productCount: 0,
+      abnormalCount: 0,
+      roas: 0,
+      acos: 0,
+      conversionRate: 0,
+      status: '暂无广告数据',
+      healthScore: 0,
+      healthStatus: '暂无数据',
+    });
+  }, [detailStoreRows, summarizedStoreRows, visibleStores]);
   const trendStoreNames = useMemo(() => Array.from(new Set((storeTrend || [])
     .map((row) => String(row.storeName || row.store_name || '').trim())
     .filter(Boolean))).sort(), [storeTrend]);
@@ -2386,7 +2412,7 @@ function AllStoreAdOverviewBoard({
   const totalAdSales = Number(summary?.promoSalesAmount ?? summary?.adSalesAmount ?? rows.reduce((sum, item) => sum + getAdSalesAmount(item), 0));
   const totalStoreSales = rows.reduce((sum, item) => sum + getStoreSalesAmount(item), 0);
   const totalOrders = Number(summary?.promoSubOrderCount ?? summary?.adOrderCount ?? rows.reduce((sum, item) => sum + Number(item.adOrderCount || 0), 0));
-  const abnormalStores = storeRows.filter((item) => item.status !== '正常');
+  const abnormalStores = storeRows.filter((item) => item.status !== '正常' && item.status !== '暂无广告数据');
   const unmatchedCount = Number(summary?.unmatchedCount ?? counts.unmatched ?? 0);
   const matchedCount = Number(summary?.matchedCount ?? 0);
   const matchBase = matchedCount + unmatchedCount;
@@ -3139,6 +3165,9 @@ function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) 
           totalRecords={adImportOverview.total}
           storeSummary={(adImportOverview as any).storeSummary || []}
           storeTrend={(adImportOverview as any).storeTrend || []}
+          visibleStores={storeId
+            ? storeOptions.filter((store) => String(store.storeId || store.storeName || '') === String(storeId))
+            : storeOptions}
           trendDateKeys={trendDateKeys}
           selectedTrendStoreNames={selectedTrendStoreNames}
           onOpenStore={(storeName) => {

@@ -12343,7 +12343,8 @@
 }
 
 .npc-ad-store-table-wrap {
-  max-height: 360px;
+  max-height: none;
+  overflow-y: visible;
 }
 
 .npc-ad-store-table-wrap table,
