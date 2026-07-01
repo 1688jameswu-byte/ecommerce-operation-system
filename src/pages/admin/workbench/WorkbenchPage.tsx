@@ -49,6 +49,9 @@ type StoreKpiBreakdown = {
       actual: number;
       completionRate: number | null;
       score: number | null;
+      observationDueCount?: number;
+      observationAchievementRate?: number | null;
+      observationAchievementRateTarget?: number | null;
       expiredNoFirstOrder: number;
       observingCount: number;
     };
@@ -83,6 +86,8 @@ type KpiTarget = {
   salesTarget: number;
   effectiveListingTarget: number;
   firstOrderProductTarget: number;
+  observationAchievementRateTarget?: number;
+  observationDueCount?: number;
   expenseRatioTarget: number;
   enabled: boolean;
   remark: string;
@@ -211,15 +216,16 @@ const defaultTarget: KpiTarget = {
   salesTarget: 0,
   effectiveListingTarget: 0,
   firstOrderProductTarget: 0,
+  observationAchievementRateTarget: 0,
   expenseRatioTarget: 0.12,
   enabled: true,
   remark: '',
 };
 
-function calculateFirstOrderProductTarget(effectiveListingTarget: number, ratePercent: number) {
-  const effectiveTarget = Number.isFinite(effectiveListingTarget) ? Math.max(0, effectiveListingTarget) : 0;
+function calculateFirstOrderProductTarget(observationDueCount: number, ratePercent: number) {
+  const effectiveTarget = Number.isFinite(observationDueCount) ? Math.max(0, observationDueCount) : 0;
   const normalizedRate = Number.isFinite(ratePercent) ? Math.max(0, ratePercent) : 0;
-  return Math.round(effectiveTarget * normalizedRate / 100);
+  return Math.ceil(effectiveTarget * normalizedRate / 100);
 }
 
 function currentPeriod() {
@@ -426,7 +432,8 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
   const observationOverdueCount = data.firstOrderKpi.observationOverdueCount ?? data.firstOrderKpi.expiredNoFirstOrderCount ?? 0;
   const immediateConversionRate = data.firstOrderKpi.immediateConversionRate;
   const observationAchievementRate = data.firstOrderKpi.observationAchievementRate ?? firstOrderRate;
-  const firstOrderRateTarget = data.firstOrderKpi.observationAchievementRateTarget ?? (data.firstOrderKpi.target && data.firstOrderKpi.effectiveListingCount ? data.firstOrderKpi.target / data.firstOrderKpi.effectiveListingCount : firstOrderTarget);
+  const firstOrderRateTarget = data.firstOrderKpi.observationAchievementRateTarget
+    ?? (data.firstOrderKpi.target && firstOrderDueCount ? data.firstOrderKpi.target / firstOrderDueCount : firstOrderTarget);
   const expenseTargetRatio = data.expenseKpi.targetExpenseRatio ?? data.expenseKpi.targetRatio;
   const expenseCurrentRatio = data.expenseKpi.currentExpenseRatio ?? data.expenseKpi.expenseRatio;
   const promotionExpense = data.expenseKpi.promotionExpense ?? data.expenseKpi.adExpense;
@@ -495,8 +502,8 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
       mainValue: `本月观察期达成率 ${formatFirstOrderRate(firstOrderCurrent)}`,
       progress: cardProgress(firstOrderCard),
       summaryRows: [
-        ['目标达成率', formatFirstOrderRate(firstOrderRateTarget)],
-        ['目标达成数', formatNumber(data.firstOrderKpi.target, '款')],
+        ['观察期达成率目标', formatFirstOrderRate(firstOrderRateTarget)],
+        ['首单商品目标（自动）', formatNumber(data.firstOrderKpi.target, '款')],
         ['目标完成率', formatPercent(firstOrderCompletionRate)],
         ['得分', scoreText(firstOrderCard)],
       ],
@@ -802,14 +809,24 @@ function TargetEditor({
   useEffect(() => {
     if (!target) return;
     const nextForm = { ...defaultTarget, ...target, period: target.period || data.filters.period };
-    setForm(nextForm);
-    setFirstOrderRateTarget(
-      nextForm.effectiveListingTarget > 0
-        ? Number(((nextForm.firstOrderProductTarget / nextForm.effectiveListingTarget) * 100).toFixed(1))
-        : 0,
-    );
+    const observationDueCount = Number(nextForm.observationDueCount ?? data.firstOrderKpi.observationDueCount ?? 0);
+    const configuredRate = Number(nextForm.observationAchievementRateTarget || 0);
+    const nextRateTarget = configuredRate > 0
+      ? Number(((configuredRate > 1 ? configuredRate / 100 : configuredRate) * 100).toFixed(1))
+      : observationDueCount > 0 && nextForm.firstOrderProductTarget > 0
+        ? Number(((nextForm.firstOrderProductTarget / observationDueCount) * 100).toFixed(1))
+        : nextForm.effectiveListingTarget > 0
+          ? Number(((nextForm.firstOrderProductTarget / nextForm.effectiveListingTarget) * 100).toFixed(1))
+          : 0;
+    setFirstOrderRateTarget(nextRateTarget);
+    setForm({
+      ...nextForm,
+      observationDueCount,
+      firstOrderProductTarget: calculateFirstOrderProductTarget(observationDueCount, nextRateTarget),
+      observationAchievementRateTarget: nextRateTarget / 100,
+    });
     setMessage('');
-  }, [data.filters.period, target]);
+  }, [data.filters.period, data.firstOrderKpi.observationDueCount, target]);
 
   const storeOptions = useMemo(() => {
     const allStoreOptions = data.filters.storeOptions ?? data.filters.stores;
@@ -822,9 +839,12 @@ function TargetEditor({
 
   const save = async () => {
     setMessage('');
+    const observationDueCount = Number(form.observationDueCount ?? data.firstOrderKpi.observationDueCount ?? 0);
     const payload = {
       ...form,
-      firstOrderProductTarget: calculateFirstOrderProductTarget(form.effectiveListingTarget, firstOrderRateTarget),
+      observationDueCount,
+      observationAchievementRateTarget: firstOrderRateTarget / 100,
+      firstOrderProductTarget: calculateFirstOrderProductTarget(observationDueCount, firstOrderRateTarget),
     };
     const response = await fetch('/api/operation-workbench/kpi-targets', {
       method: 'POST',
@@ -865,26 +885,26 @@ function TargetEditor({
             setForm({ ...form, storeId: event.target.value, storeName: store?.storeName || '' });
           }}><option value="">全部店铺</option>{storeOptions.map((item) => <option value={item.id} key={item.id}>{item.storeName}</option>)}</select></label>
           <label>销售额目标<input type="number" value={form.salesTarget} onChange={(event) => setForm({ ...form, salesTarget: Number(event.target.value) })} /></label>
-          <label>有效上新目标<input type="number" value={form.effectiveListingTarget} onChange={(event) => {
-            const effectiveListingTarget = Number(event.target.value);
-            setForm({
-              ...form,
-              effectiveListingTarget,
-              firstOrderProductTarget: calculateFirstOrderProductTarget(effectiveListingTarget, firstOrderRateTarget),
-            });
-          }} /></label>
-          <label>首单率目标(%)<input type="number" min="0" max="100" step="0.1" value={firstOrderRateTarget} onChange={(event) => {
+          <label>有效上新目标<input type="number" value={form.effectiveListingTarget} onChange={(event) => setForm({ ...form, effectiveListingTarget: Number(event.target.value) })} /></label>
+          <label>本月观察期到期商品<input type="number" value={form.observationDueCount ?? data.firstOrderKpi.observationDueCount ?? 0} readOnly /></label>
+          <label>观察期达成率目标(%)<input type="number" min="0" max="100" step="0.1" value={firstOrderRateTarget} onChange={(event) => {
             const rateTarget = Number(event.target.value);
+            const observationDueCount = Number(form.observationDueCount ?? data.firstOrderKpi.observationDueCount ?? 0);
             setFirstOrderRateTarget(rateTarget);
             setForm({
               ...form,
-              firstOrderProductTarget: calculateFirstOrderProductTarget(form.effectiveListingTarget, rateTarget),
+              observationDueCount,
+              observationAchievementRateTarget: rateTarget / 100,
+              firstOrderProductTarget: calculateFirstOrderProductTarget(observationDueCount, rateTarget),
             });
           }} /></label>
-          <label>首单商品目标<input type="number" value={form.firstOrderProductTarget} readOnly /></label>
+          <label>首单商品目标（自动）<input type="number" value={form.firstOrderProductTarget} readOnly /></label>
           <label>费用占比目标<input type="number" step="0.001" value={form.expenseRatioTarget} onChange={(event) => setForm({ ...form, expenseRatioTarget: Number(event.target.value) })} /></label>
           <label className="operator-form-wide">备注<input value={form.remark} onChange={(event) => setForm({ ...form, remark: event.target.value })} /></label>
         </section>
+        <p className="workbench-target-note">
+          观察期达成率目标作用于本月观察期到期商品，不作用于本月有效上新目标，避免上新数量和转化考核混用。
+        </p>
         <div className="workbench-modal-actions">
           <button type="button" className="workbench-modal-button workbench-modal-button-secondary" onClick={onClose}>取消</button>
           <button type="button" className="workbench-modal-button workbench-modal-button-primary" onClick={save}>保存目标</button>
@@ -942,6 +962,10 @@ function KpiTargetLedger({
 
   const rows = data.filters.stores.map((store) => {
     const storeKeys = [store.id, store.storeName].map(normalizeKey).filter(Boolean);
+    const storeBreakdown = data.storeBreakdown?.find((item) => {
+      const breakdownKeys = [item.storeId, item.storeName].map(normalizeKey).filter(Boolean);
+      return breakdownKeys.some((key) => storeKeys.includes(key));
+    });
     const matched = periodTargets.find((target) => {
       const targetStoreKeys = [target.storeId, target.storeName].map(normalizeKey).filter(Boolean);
       const storeMatched = targetStoreKeys.some((key) => storeKeys.includes(key));
@@ -949,9 +973,18 @@ function KpiTargetLedger({
       if (!data.filters.selectedOperatorId) return true;
       return target.operatorId === data.filters.selectedOperatorId || target.operatorName === operatorNameById.get(data.filters.selectedOperatorId);
     });
-    const firstOrderRate = matched?.effectiveListingTarget
-      ? matched.firstOrderProductTarget / matched.effectiveListingTarget
-      : null;
+    const observationDueCount = Number(storeBreakdown?.kpis?.firstOrder?.observationDueCount ?? 0);
+    const configuredRate = Number(matched?.observationAchievementRateTarget || 0);
+    const firstOrderRate = configuredRate > 0
+      ? (configuredRate > 1 ? configuredRate / 100 : configuredRate)
+      : matched?.firstOrderProductTarget && observationDueCount > 0
+        ? matched.firstOrderProductTarget / observationDueCount
+        : matched?.effectiveListingTarget
+          ? matched.firstOrderProductTarget / matched.effectiveListingTarget
+          : null;
+    const firstOrderProductTarget = firstOrderRate && observationDueCount > 0
+      ? calculateFirstOrderProductTarget(observationDueCount, firstOrderRate * 100)
+      : matched?.firstOrderProductTarget ?? 0;
     const relatedOperators = [
       ...(operatorRefsByStoreKey.get(normalizeKey(store.id)) ?? []),
       ...(operatorRefsByStoreKey.get(normalizeKey(store.storeName)) ?? []),
@@ -964,13 +997,16 @@ function KpiTargetLedger({
       : selectedOperator
         ? { id: selectedOperator.id, name: selectedOperator.operatorName }
         : relatedOperators[0] ?? { id: '', name: '' };
-    const targetForEdit: KpiTarget = matched ?? {
-      ...defaultTarget,
+    const targetForEdit: KpiTarget = {
+      ...(matched ?? defaultTarget),
       period: ledgerPeriod,
-      operatorId: primaryOperator.id,
-      operatorName: primaryOperator.name,
+      operatorId: matched?.operatorId ?? primaryOperator.id,
+      operatorName: matched?.operatorName ?? primaryOperator.name,
       storeId: store.id,
       storeName: store.storeName || store.id,
+      observationDueCount,
+      observationAchievementRateTarget: firstOrderRate ?? matched?.observationAchievementRateTarget ?? 0,
+      firstOrderProductTarget,
     };
     const operatorNames = matched?.operatorName
       ? [matched.operatorName]
@@ -982,6 +1018,8 @@ function KpiTargetLedger({
       target: matched,
       targetForEdit,
       firstOrderRate,
+      observationDueCount,
+      firstOrderProductTarget,
     };
   });
 
@@ -1004,8 +1042,9 @@ function KpiTargetLedger({
               <th>配置状态</th>
               <th>销售额目标</th>
               <th>有效上新目标</th>
-              <th>首单率目标</th>
-              <th>首单商品目标</th>
+              <th>本月观察期到期</th>
+              <th>观察期达成率目标</th>
+              <th>首单商品目标（自动）</th>
               <th>费用占比目标</th>
               <th>更新时间</th>
             </tr>
@@ -1027,8 +1066,9 @@ function KpiTargetLedger({
                 </td>
                 <td>{formatAmount(row.target?.salesTarget)}</td>
                 <td>{formatNumber(row.target?.effectiveListingTarget, '款')}</td>
+                <td>{formatNumber(row.observationDueCount, '款')}</td>
                 <td>{formatPercent(row.firstOrderRate)}</td>
-                <td>{formatNumber(row.target?.firstOrderProductTarget, '款')}</td>
+                <td>{formatNumber(row.firstOrderProductTarget, '款')}</td>
                 <td>{formatPercent(row.target?.expenseRatioTarget)}</td>
                 <td>{row.target?.updatedAt ? row.target.updatedAt.replace('T', ' ').slice(0, 19) : '-'}</td>
               </tr>

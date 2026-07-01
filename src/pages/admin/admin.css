@@ -15332,6 +15332,17 @@ td.workbench-follow-title-col strong {
   gap: 12px;
 }
 
+.workbench-target-note {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 @media (max-width: 1280px) {
   .workbench-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));

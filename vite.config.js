@@ -5874,6 +5874,7 @@ function normalizeWorkbenchTarget(payload, current = {}) {
     salesTarget: toFiniteNumber(payload?.salesTarget ?? current?.salesTarget),
     effectiveListingTarget: toFiniteNumber(payload?.effectiveListingTarget ?? current?.effectiveListingTarget),
     firstOrderProductTarget: toFiniteNumber(payload?.firstOrderProductTarget ?? current?.firstOrderProductTarget),
+    observationAchievementRateTarget: toFiniteNumber(payload?.observationAchievementRateTarget ?? current?.observationAchievementRateTarget),
     expenseRatioTarget: toFiniteNumber(payload?.expenseRatioTarget ?? current?.expenseRatioTarget),
     enabled: payload?.enabled ?? current?.enabled ?? true,
     remark: String(payload?.remark ?? current?.remark ?? '').trim(),
@@ -5891,6 +5892,31 @@ function scoreExpenseRatio(currentRatio, targetRatio, weight) {
   if (!targetRatio || targetRatio <= 0 || currentRatio === null) return null;
   if (currentRatio <= targetRatio) return weight;
   return Math.max(0, 1 - ((currentRatio - targetRatio) / targetRatio)) * weight;
+}
+
+function normalizeRateTarget(value) {
+  const numeric = toFiniteNumber(value);
+  if (!numeric || numeric <= 0) return null;
+  return numeric > 1 ? numeric / 100 : numeric;
+}
+
+function getObservationAchievementRateTarget(target, observationDueCount = 0) {
+  const configuredRate = normalizeRateTarget(target?.observationAchievementRateTarget);
+  if (configuredRate) return configuredRate;
+  const manualCountTarget = toFiniteNumber(target?.firstOrderProductTarget);
+  const dueCount = toFiniteNumber(observationDueCount);
+  if (manualCountTarget > 0 && dueCount > 0) return manualCountTarget / dueCount;
+  const legacyListingTarget = toFiniteNumber(target?.effectiveListingTarget);
+  if (manualCountTarget > 0 && legacyListingTarget > 0) return manualCountTarget / legacyListingTarget;
+  return null;
+}
+
+function getFirstOrderProductTarget(target, observationDueCount = 0) {
+  const dueCount = toFiniteNumber(observationDueCount);
+  const rateTarget = getObservationAchievementRateTarget(target, dueCount);
+  if (rateTarget && dueCount > 0) return Math.ceil(dueCount * rateTarget);
+  const manualCountTarget = toFiniteNumber(target?.firstOrderProductTarget);
+  return manualCountTarget > 0 ? manualCountTarget : null;
 }
 
 function getKpiStatus(score, weight, completionRate, timeProgress, inverseOverTarget = false) {
@@ -6593,7 +6619,8 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     const firstOrderActual = firstOrderSuccessByStore.get(storeKey) ?? 0;
     const firstOrderDueActual = firstOrderDueByStore.get(storeKey) ?? 0;
     const firstOrderAchievementRate = firstOrderDueActual > 0 ? firstOrderActual / firstOrderDueActual : null;
-    const firstOrderRateTarget = storeTarget?.effectiveListingTarget > 0 ? storeTarget.firstOrderProductTarget / storeTarget.effectiveListingTarget : null;
+    const firstOrderRateTarget = getObservationAchievementRateTarget(storeTarget, firstOrderDueActual);
+    const firstOrderTargetValue = getFirstOrderProductTarget(storeTarget, firstOrderDueActual);
     const expiredNoFirstOrder = firstOrderExpiredByStore.get(storeKey) ?? 0;
     const observingCount = (listingObservingByStore.get(storeKey) ?? 0) + (firstOrderObservingByStore.get(storeKey) ?? 0);
     const storeAdExpense = toFiniteNumber(adSpendByStore.get(storeKey));
@@ -6602,12 +6629,13 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     const storeExpenseRatio = salesActual > 0 ? storeTotalExpense / salesActual : null;
     const salesCompletionRate = storeFieldComplete('salesTarget') ? salesActual / storeTarget.salesTarget : null;
     const listingCompletionRate = storeFieldComplete('effectiveListingTarget') ? listingActual / storeTarget.effectiveListingTarget : null;
-    const firstOrderCompletionRate = storeFieldComplete('firstOrderProductTarget') && firstOrderRateTarget ? (firstOrderAchievementRate ?? 0) / firstOrderRateTarget : null;
+    const firstOrderTargetComplete = Boolean(storeTarget && firstOrderRateTarget && firstOrderTargetValue);
+    const firstOrderCompletionRate = firstOrderTargetComplete ? firstOrderActual / firstOrderTargetValue : null;
     const salesStoreScore = storeFieldComplete('salesTarget') ? scoreProgress(salesActual, storeTarget.salesTarget, 30) : null;
     const listingStoreScore = storeFieldComplete('effectiveListingTarget') ? scoreProgress(listingActual, storeTarget.effectiveListingTarget, 30) : null;
-    const firstOrderStoreScore = storeFieldComplete('firstOrderProductTarget') && firstOrderRateTarget ? scoreProgress(firstOrderAchievementRate ?? 0, firstOrderRateTarget, 20) : null;
+    const firstOrderStoreScore = firstOrderTargetComplete ? scoreProgress(firstOrderActual, firstOrderTargetValue, 20) : null;
     const expenseStoreScore = storeFieldComplete('expenseRatioTarget') ? scoreExpenseRatio(storeExpenseRatio, storeTarget.expenseRatioTarget, 20) : null;
-    const targetStatus = !storeTarget ? 'missing' : ['salesTarget', 'effectiveListingTarget', 'firstOrderProductTarget', 'expenseRatioTarget'].every(storeFieldComplete) ? 'ok' : 'partial';
+    const targetStatus = !storeTarget ? 'missing' : (['salesTarget', 'effectiveListingTarget', 'expenseRatioTarget'].every(storeFieldComplete) && firstOrderTargetComplete) ? 'ok' : 'partial';
     const total = targetStatus === 'ok'
       ? Number([salesStoreScore, listingStoreScore, firstOrderStoreScore, expenseStoreScore].reduce((sum, value) => sum + (value ?? 0), 0).toFixed(1))
       : null;
@@ -6628,10 +6656,13 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
         sales: { target: storeTarget?.salesTarget ?? null, actual: salesActual, completionRate: salesCompletionRate, score: salesStoreScore },
         listing: { target: storeTarget?.effectiveListingTarget ?? null, actual: listingActual, completionRate: listingCompletionRate, score: listingStoreScore },
         firstOrder: {
-          target: storeTarget?.firstOrderProductTarget ?? null,
+          target: firstOrderTargetValue,
           actual: firstOrderActual,
           completionRate: firstOrderCompletionRate,
           score: firstOrderStoreScore,
+          observationDueCount: firstOrderDueActual,
+          observationAchievementRate: firstOrderAchievementRate,
+          observationAchievementRateTarget: firstOrderRateTarget,
           expiredNoFirstOrder,
           observingCount,
         },
@@ -6655,15 +6686,14 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   };
   const salesTargetComplete = targetFieldComplete('salesTarget');
   const listingTargetComplete = targetFieldComplete('effectiveListingTarget');
-  const firstOrderTargetComplete = targetFieldComplete('firstOrderProductTarget');
+  const firstOrderRateTarget = getObservationAchievementRateTarget(target, observationDueCount);
+  const firstOrderProductTargetValue = getFirstOrderProductTarget(target, observationDueCount);
+  const firstOrderTargetComplete = Boolean(target && firstOrderRateTarget && firstOrderProductTargetValue);
   const expenseTargetComplete = targetFieldComplete('expenseRatioTarget');
-  const firstOrderRateTarget = firstOrderTargetComplete && target?.effectiveListingTarget > 0
-    ? target.firstOrderProductTarget / target.effectiveListingTarget
-    : null;
 
   const salesScore = salesTargetComplete ? scoreProgress(salesAmount, target?.salesTarget, 30) : null;
   const listingScore = listingTargetComplete ? scoreProgress(listingProductCount, target?.effectiveListingTarget, 30) : null;
-  const firstOrderScore = firstOrderTargetComplete && firstOrderRateTarget ? scoreProgress(observationAchievementRate ?? 0, firstOrderRateTarget, 20) : null;
+  const firstOrderScore = firstOrderTargetComplete ? scoreProgress(firstOrderProductCount, firstOrderProductTargetValue, 20) : null;
   const expenseScore = expenseTargetComplete ? scoreExpenseRatio(expenseRatio, target?.expenseRatioTarget, 20) : null;
   const scoreParts = [salesScore, listingScore, firstOrderScore, expenseScore];
   const hasConfiguredTarget = salesTargetComplete && listingTargetComplete && firstOrderTargetComplete && expenseTargetComplete;
@@ -6673,7 +6703,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const completion = {
     sales: salesTargetComplete ? salesAmount / target.salesTarget : null,
     listing: listingTargetComplete ? listingProductCount / target.effectiveListingTarget : null,
-    firstOrder: firstOrderTargetComplete && firstOrderRateTarget ? (observationAchievementRate ?? 0) / firstOrderRateTarget : null,
+    firstOrder: firstOrderTargetComplete ? firstOrderProductCount / firstOrderProductTargetValue : null,
     expense: expenseRatio,
   };
   const buildProgressMetric = (currentValue, targetValue) => {
@@ -6898,7 +6928,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       cards: [
         { key: 'sales', name: '本月销售额', weight: 30, targetValue: target?.salesTarget ?? null, currentValue: salesAmount, completionRate: completion.sales, score: salesScore, status: targetIncompleteStatus('salesTarget') || getKpiStatus(salesScore, 30, completion.sales ?? 0, range.timeProgress), unit: '¥' },
         { key: 'listing', name: '上新商品数', weight: 30, targetValue: target?.effectiveListingTarget ?? null, currentValue: listingProductCount, completionRate: completion.listing, score: listingScore, status: targetIncompleteStatus('effectiveListingTarget') || getKpiStatus(listingScore, 30, completion.listing ?? 0, range.timeProgress), unit: '款' },
-        { key: 'firstOrder', name: '本月观察期到期达成', weight: 20, targetValue: firstOrderRateTarget, currentValue: observationAchievementRate, completionRate: completion.firstOrder, score: firstOrderScore, status: targetIncompleteStatus('firstOrderProductTarget') || getKpiStatus(firstOrderScore, 20, completion.firstOrder ?? 0, range.timeProgress), unit: '%' },
+        { key: 'firstOrder', name: '本月观察期到期达成', weight: 20, targetValue: firstOrderRateTarget, currentValue: observationAchievementRate, completionRate: completion.firstOrder, score: firstOrderScore, status: firstOrderTargetComplete ? getKpiStatus(firstOrderScore, 20, completion.firstOrder ?? 0, range.timeProgress) : '目标未配置', unit: '%' },
         { key: 'expense', name: '费用占比', weight: 20, targetValue: target?.expenseRatioTarget ?? null, currentValue: expenseRatio, completionRate: expenseRatio, score: expenseScore, status: targetIncompleteStatus('expenseRatioTarget') || getKpiStatus(expenseScore, 20, expenseRatio, range.timeProgress, true), unit: '%' },
       ],
     },
@@ -6942,7 +6972,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     },
     firstOrderKpi: {
       currentValue: firstOrderProductCount,
-      targetValue: target?.firstOrderProductTarget ?? null,
+      targetValue: firstOrderProductTargetValue,
       targetCompletionRate: completion.firstOrder,
       score: firstOrderScore,
       monthlyListingCount: listingProductCount,
@@ -6956,9 +6986,9 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       observationAchievementRateTarget: firstOrderRateTarget,
       observationDueCount,
       dueProductFirstOrderRate: observationAchievementRate,
-      remainingToTarget: target?.firstOrderProductTarget ? Math.max(target.firstOrderProductTarget - firstOrderProductCount, 0) : null,
+      remainingToTarget: firstOrderProductTargetValue ? Math.max(firstOrderProductTargetValue - firstOrderProductCount, 0) : null,
       dueIn7DaysCount,
-      target: target?.firstOrderProductTarget ?? null,
+      target: firstOrderProductTargetValue,
       completed: firstOrderProductCount,
       completionRate: completion.firstOrder,
       effectiveListingCount: listingProductCount,

@@ -1063,6 +1063,7 @@ function toWorkbenchTarget(row) {
     salesTarget: numberValue(row.sales_target),
     effectiveListingTarget: numberValue(row.effective_listing_target),
     firstOrderProductTarget: numberValue(row.first_order_product_target),
+    observationAchievementRateTarget: numberValue(row.observation_achievement_rate_target),
     expenseRatioTarget: numberValue(row.expense_ratio_target),
     enabled: row.enabled !== false,
     remark: row.remark || '',
@@ -1074,7 +1075,7 @@ function toWorkbenchTarget(row) {
 export async function readWorkbenchKpiTargetsFromPostgres() {
   const result = await queryTemuDatabase(
     `SELECT legacy_id, period, legacy_operator_id, operator_name, legacy_store_id, store_name,
-            sales_target, effective_listing_target, first_order_product_target, expense_ratio_target,
+            sales_target, effective_listing_target, first_order_product_target, observation_achievement_rate_target, expense_ratio_target,
             enabled, remark, created_at, updated_at
      FROM temu_operation_workbench_kpi_targets
      ORDER BY period DESC, operator_name, store_name, updated_at DESC`,
@@ -1106,10 +1107,10 @@ export async function upsertWorkbenchKpiTargetToPostgres(target) {
   const result = await queryTemuDatabase(
     `INSERT INTO temu_operation_workbench_kpi_targets (
        legacy_id, period, operator_id, legacy_operator_id, operator_name, store_id, legacy_store_id, store_name,
-       sales_target, effective_listing_target, first_order_product_target, expense_ratio_target,
+       sales_target, effective_listing_target, first_order_product_target, observation_achievement_rate_target, expense_ratio_target,
        enabled, remark, raw_data, created_at, updated_at
      )
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb,COALESCE($16::timestamptz,NOW()),NOW())
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,COALESCE($17::timestamptz,NOW()),NOW())
      ON CONFLICT (legacy_id)
      DO UPDATE SET
        period = EXCLUDED.period,
@@ -1122,13 +1123,14 @@ export async function upsertWorkbenchKpiTargetToPostgres(target) {
        sales_target = EXCLUDED.sales_target,
        effective_listing_target = EXCLUDED.effective_listing_target,
        first_order_product_target = EXCLUDED.first_order_product_target,
+       observation_achievement_rate_target = EXCLUDED.observation_achievement_rate_target,
        expense_ratio_target = EXCLUDED.expense_ratio_target,
        enabled = EXCLUDED.enabled,
        remark = EXCLUDED.remark,
        raw_data = EXCLUDED.raw_data,
        updated_at = NOW()
      RETURNING legacy_id, period, legacy_operator_id, operator_name, legacy_store_id, store_name,
-       sales_target, effective_listing_target, first_order_product_target, expense_ratio_target,
+       sales_target, effective_listing_target, first_order_product_target, observation_achievement_rate_target, expense_ratio_target,
        enabled, remark, created_at, updated_at`,
     [
       legacyId,
@@ -1142,6 +1144,7 @@ export async function upsertWorkbenchKpiTargetToPostgres(target) {
       numberValue(target?.salesTarget),
       numberValue(target?.effectiveListingTarget),
       numberValue(target?.firstOrderProductTarget),
+      numberValue(target?.observationAchievementRateTarget),
       numberValue(target?.expenseRatioTarget),
       target?.enabled !== false,
       nullableText(target?.remark),
