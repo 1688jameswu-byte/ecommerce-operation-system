@@ -925,7 +925,7 @@ export async function readOrderSalesSummaryFromPostgres(params = {}) {
   const endDate = dateValue(params.endDate) || startDate;
   const storeNames = Array.from(new Set((params.storeNames ?? []).map((name) => text(name)).filter(Boolean)));
   if (!startDate || !endDate || storeNames.length === 0) {
-    return { rows: [], totalSalesAmount: 0, orderCount: 0, quantity: 0, dataUpdatedAt: '' };
+    return { rows: [], totalSalesAmount: 0, orderCount: 0, quantity: 0, dataUpdatedAt: '', dataCutoffDate: '' };
   }
 
   const result = await queryTemuDatabase(
@@ -934,6 +934,7 @@ export async function readOrderSalesSummaryFromPostgres(params = {}) {
        COALESCE(SUM(o.item_amount), 0)::numeric AS sales_amount,
        COUNT(*)::int AS order_count,
        COALESCE(SUM(o.quantity), 0)::numeric AS quantity,
+       MAX(o.order_date) AS data_cutoff_date,
        MAX(o.updated_at) AS data_updated_at
      FROM temu_order_items o
      WHERE o.order_date >= $1::date
@@ -948,6 +949,7 @@ export async function readOrderSalesSummaryFromPostgres(params = {}) {
     salesAmount: numberValue(row.sales_amount),
     orderCount: numberValue(row.order_count),
     quantity: numberValue(row.quantity),
+    dataCutoffDate: row.data_cutoff_date?.toISOString?.().slice(0, 10) || String(row.data_cutoff_date || '').slice(0, 10),
     dataUpdatedAt: row.data_updated_at?.toISOString?.() || '',
   }));
   return {
@@ -956,6 +958,7 @@ export async function readOrderSalesSummaryFromPostgres(params = {}) {
     orderCount: rows.reduce((total, row) => total + row.orderCount, 0),
     quantity: rows.reduce((total, row) => total + row.quantity, 0),
     dataUpdatedAt: rows.map((row) => row.dataUpdatedAt).filter(Boolean).sort().at(-1) || '',
+    dataCutoffDate: rows.map((row) => row.dataCutoffDate).filter(Boolean).sort().at(-1) || '',
   };
 }
 

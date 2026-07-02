@@ -106,6 +106,8 @@ type WorkbenchData = {
     selectedStoreId: string;
   };
   dataUpdatedAt: string;
+  dataCutoffDate?: string;
+  latestDataDate?: string;
   dataIntegrityStatus: string;
   dataSourceMapping: Array<{ kpi: string; source: string; endpoint: string; confirmed: string }>;
   kpiSummary: { totalScore: number | null; scoreText: string; cards: KpiCard[] };
@@ -123,6 +125,8 @@ type WorkbenchData = {
     salesAmount: number;
     completionRate: number | null;
     timeProgress: number;
+    dataCutoffDate?: string;
+    timeProgressBasis?: string;
     progressGap: number | null;
     remainingSales: number | null;
     requiredDailySales: number | null;
@@ -188,6 +192,8 @@ type WorkbenchData = {
     accrualBasisLabel?: string;
     gapToTarget?: number | null;
     mainExpenseSource?: string;
+    promotionRecordCount?: number;
+    promotionReportDayCount?: number;
     salesAmount: number;
     adExpense: number;
     afterSaleExpense: number;
@@ -226,6 +232,25 @@ function calculateFirstOrderProductTarget(observationDueCount: number, ratePerce
   const effectiveTarget = Number.isFinite(observationDueCount) ? Math.max(0, observationDueCount) : 0;
   const normalizedRate = Number.isFinite(ratePercent) ? Math.max(0, ratePercent) : 0;
   return Math.ceil(effectiveTarget * normalizedRate / 100);
+}
+
+function formatShanghaiDateTime(value?: string | null) {
+  if (!value) return '-';
+  const normalized = value.includes('T') || /Z$|[+-]\d{2}:?\d{2}$/.test(value)
+    ? value
+    : value.replace(' ', 'T');
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return String(value).replace('T', ' ').slice(0, 19);
+  return new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(date).replace(/\//g, '-');
 }
 
 function currentPeriod() {
@@ -438,10 +463,16 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
   const expenseCurrentRatio = data.expenseKpi.currentExpenseRatio ?? data.expenseKpi.expenseRatio;
   const promotionExpense = data.expenseKpi.promotionExpense ?? data.expenseKpi.adExpense;
   const promotionExpenseRatio = data.expenseKpi.promotionExpenseRatio ?? data.expenseKpi.adRatio;
+  const promotionRecordCount = data.expenseKpi.promotionRecordCount ?? 0;
+  const promotionReportDayCount = data.expenseKpi.promotionReportDayCount ?? 0;
   const afterSalesAccrual = data.expenseKpi.afterSalesAccrual ?? data.expenseKpi.afterSaleExpense;
   const afterSalesAccrualRatio = data.expenseKpi.afterSalesAccrualRatio ?? data.expenseKpi.afterSaleRatio;
   const expenseGap = data.expenseKpi.gapToTarget ?? (expenseCurrentRatio !== null && expenseTargetRatio ? expenseTargetRatio - expenseCurrentRatio : null);
   const mainExpenseSource = data.expenseKpi.mainExpenseSource || '-';
+  const salesDataCutoffDate = data.salesKpi.dataCutoffDate || data.dataCutoffDate || data.latestDataDate || '';
+  const salesTimeProgressText = salesDataCutoffDate
+    ? `${formatPercent(data.salesKpi.timeProgress)}（按 ${salesDataCutoffDate}）`
+    : formatPercent(data.salesKpi.timeProgress);
 
   return [
     {
@@ -459,7 +490,7 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
         ['得分', scoreText(salesCard)],
       ],
       detailRows: [
-        ['时间进度', formatPercent(data.salesKpi.timeProgress)],
+        ['时间进度', salesTimeProgressText],
         ['按时间应完成', formatAmount(salesExpectedByTime)],
         progressGapRow(data.salesKpi.progressGapValue ?? null, formatAmount),
         remainingOrExceededRow(data.salesKpi.remainingToTarget ?? data.salesKpi.remainingSales, data.salesKpi.exceededTarget, formatAmount),
@@ -541,6 +572,7 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
         ['总费用', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.totalExpense) : '暂无费用数据'],
         ['本月推广费', data.expenseKpi.hasExpenseData ? formatAmount(promotionExpense) : '暂无费用数据'],
         ['推广费占比', data.expenseKpi.hasExpenseData ? formatPercent(promotionExpenseRatio) : '-'],
+        ['推广费记录', `${formatNumber(promotionRecordCount, '条')} / ${formatNumber(promotionReportDayCount, '天')}`],
         ['售后费用计提', data.expenseKpi.hasExpenseData ? formatAmount(afterSalesAccrual) : '暂无费用数据'],
         ['售后计提占比', data.expenseKpi.hasExpenseData ? formatPercent(afterSalesAccrualRatio) : '-'],
         ['计提口径', data.expenseKpi.accrualBasisLabel || '按上月售后费用'],
@@ -1198,7 +1230,8 @@ function WorkbenchPage({ currentUser }: { currentUser: CurrentUser; visibleStore
           <option value="">全部店铺</option>
           {(data?.filters.storeOptions ?? data?.filters.stores ?? []).map((item) => <option key={item.id} value={item.id}>{item.storeName}</option>)}
         </select></label>
-        <span>数据更新时间<strong>{data?.dataUpdatedAt ? data.dataUpdatedAt.replace('T', ' ').slice(0, 19) : '-'}</strong></span>
+        <span>数据更新时间<strong>{formatShanghaiDateTime(data?.dataUpdatedAt)}</strong></span>
+        <span>数据截止日期<strong>{data?.dataCutoffDate || data?.salesKpi.dataCutoffDate || data?.latestDataDate || '-'}</strong></span>
       </section>
 
       {loading && !data && <WorkbenchInitialSkeleton />}

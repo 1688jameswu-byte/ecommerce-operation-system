@@ -2587,7 +2587,19 @@ function createWhereBuilder(startIndex = 1) {
 
 function appendStoreScope(whereBuilder, alias, params = {}) {
   if (params.storeId) whereBuilder.push(`${alias}.store_id = ?::uuid`, params.storeId);
-  if (params.storeName) whereBuilder.push(`${alias}.store_name = ?`, params.storeName);
+  if (params.storeName) {
+    whereBuilder.values.push(params.storeName);
+    const placeholder = `$${whereBuilder.startIndex + whereBuilder.values.length - 1}`;
+    whereBuilder.where.push(`(
+      ${alias}.store_name = ${placeholder}
+      OR ${alias}.store_id = (
+        SELECT id
+        FROM temu_stores
+        WHERE store_name = ${placeholder} OR legacy_id = ${placeholder}
+        LIMIT 1
+      )
+    )`);
+  }
   if (Array.isArray(params.storeIds)) {
     if (params.storeIds.length === 0) {
       whereBuilder.where.push('1 = 0');
@@ -2601,7 +2613,16 @@ function appendStoreScope(whereBuilder, alias, params = {}) {
       whereBuilder.where.push('1 = 0');
     } else {
       whereBuilder.values.push(params.storeNames);
-      whereBuilder.where.push(`${alias}.store_name = ANY($${whereBuilder.startIndex + whereBuilder.values.length - 1}::text[])`);
+      const placeholder = `$${whereBuilder.startIndex + whereBuilder.values.length - 1}`;
+      whereBuilder.where.push(`(
+        ${alias}.store_name = ANY(${placeholder}::text[])
+        OR ${alias}.store_id IN (
+          SELECT id
+          FROM temu_stores
+          WHERE store_name = ANY(${placeholder}::text[])
+             OR legacy_id = ANY(${placeholder}::text[])
+        )
+      )`);
     }
   }
 }
@@ -3640,7 +3661,8 @@ export async function getAdSpendSummary(params = {}) {
   const summary = await queryTemuDatabase(
     `SELECT COUNT(*)::int AS record_count,
             COUNT(DISTINCT a.report_date)::int AS report_day_count,
-            COALESCE(SUM(a.ad_spend),0) AS ad_spend
+            COALESCE(SUM(a.ad_spend),0) AS ad_spend,
+            MAX(a.updated_at) AS data_updated_at
      FROM temu_ad_product_daily a
      ${condition}`,
     filter.values,

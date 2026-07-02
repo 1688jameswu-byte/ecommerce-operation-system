@@ -5735,6 +5735,19 @@ function getWorkbenchMonthRange(period) {
   };
 }
 
+function getWorkbenchProgressByDate(range, dateValue) {
+  const date = String(dateValue || '').slice(0, 10);
+  if (!date || date < range.start || date > range.end) {
+    return { dataCutoffDate: '', elapsedDays: 0, timeProgress: 0 };
+  }
+  const elapsedDays = Math.min(Math.max(Number(date.slice(8, 10)) || 0, 0), range.daysInMonth);
+  return {
+    dataCutoffDate: date,
+    elapsedDays,
+    timeProgress: Math.min(Math.max(elapsedDays / range.daysInMonth, 0), 1),
+  };
+}
+
 function getPreviousWorkbenchPeriod(period) {
   const [year, month] = String(period || '').split('-').map((value) => Number(value));
   if (!year || !month) return '';
@@ -6069,6 +6082,7 @@ async function readWorkbenchSalesSummary(range, scope) {
     quantity: 0,
     storeSalesMap: new Map(),
     dataUpdatedAt: '',
+    dataCutoffDate: '',
     source: 'empty',
   };
   const storeNames = Array.from(scope.storeNames ?? []).filter(Boolean);
@@ -6078,11 +6092,13 @@ async function readWorkbenchSalesSummary(range, scope) {
     let salesAmountRaw = 0;
     let orderCount = 0;
     let quantity = 0;
+    let dataCutoffDate = '';
     const storeSalesMap = new Map();
     for (const batch of orderStore?.batches ?? []) {
       for (const order of batch?.orders ?? []) {
         const date = getOrderDateKey(order);
         if (!date || date < range.start || date > range.end || !itemMatchesWorkbenchScope(order, scope)) continue;
+        if (date > dataCutoffDate) dataCutoffDate = date;
         const orderSalesAmount = getDashboardOrderSalesAmount(order);
         salesAmountRaw += orderSalesAmount;
         orderCount += 1;
@@ -6101,6 +6117,7 @@ async function readWorkbenchSalesSummary(range, scope) {
       quantity,
       storeSalesMap,
       dataUpdatedAt: (orderStore?.batches ?? []).map((batch) => batch.importedAt).filter(Boolean).sort().at(-1) || '',
+      dataCutoffDate,
       source: 'json',
     };
   };
@@ -6127,6 +6144,7 @@ async function readWorkbenchSalesSummary(range, scope) {
         quantity: toFiniteNumber(summary.quantity),
         storeSalesMap,
         dataUpdatedAt: summary.dataUpdatedAt || '',
+        dataCutoffDate: summary.dataCutoffDate || '',
         source: 'postgres',
       };
       if (postgresSummary.salesAmount > 0 || postgresSummary.orderCount > 0 || postgresSummary.quantity > 0) {
@@ -6400,6 +6418,9 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const orderCount = salesSummary.orderCount;
   const quantity = salesSummary.quantity;
   const storeSalesMap = salesSummary.storeSalesMap;
+  const salesDataProgress = getWorkbenchProgressByDate(range, salesSummary.dataCutoffDate);
+  const salesDataCutoffDate = salesDataProgress.dataCutoffDate;
+  const salesTimeProgress = salesDataProgress.timeProgress;
   logWorkbenchKpiTiming('sales', sectionStartedAt, timings);
 
   const emptyNewProductStats = {
@@ -6719,7 +6740,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     firstOrder: firstOrderTargetComplete ? firstOrderProductCount / firstOrderProductTargetValue : null,
     expense: expenseRatio,
   };
-  const buildProgressMetric = (currentValue, targetValue) => {
+  const buildProgressMetric = (currentValue, targetValue, timeProgress = range.timeProgress) => {
     if (!targetValue || targetValue <= 0) {
       return {
         currentValue,
@@ -6740,7 +6761,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       exceededTarget: Number(Math.max(currentValue - targetValue, 0).toFixed(2)),
     };
   };
-  const salesProgressMetric = buildProgressMetric(salesAmount, target?.salesTarget ?? null);
+  const salesProgressMetric = buildProgressMetric(salesAmount, target?.salesTarget ?? null, salesTimeProgress);
   const listingProgressMetric = buildProgressMetric(listingProductCount, target?.effectiveListingTarget ?? null);
   const over7NoFirstOrder = observationExpiredNoFirstOrderCount;
   const remainingListing = Math.max((target?.effectiveListingTarget || 0) - listingProductCount, 0);
@@ -6749,6 +6770,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     salesSummary.dataUpdatedAt,
     newProductListingStats.dataUpdatedAt,
     newProductFirstOrderStats.dataUpdatedAt,
+    adSpendSummary.dataUpdatedAt,
   ].filter(Boolean).sort().at(-1) || '';
   const warnings = [];
   const pushWarning = (message, type = 'DATA_INTEGRITY', level = 'warning') => warnings.push({ type, level, message });
@@ -6777,6 +6799,18 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   if (baseDataReadError) warnings.push(baseDataReadError);
   if (!hasExpenseData) warnings.push('未找到广告花费或上月售后问题金额，费用占比无法计算');
   if (salesAmount <= 0) warnings.push('本月暂无订单销售额，费用占比无法用订单销售额校验');
+  const isCurrentWorkbenchPeriod = range.today >= range.start && range.today <= range.end;
+  const isSalesDataBehindToday = Boolean(salesDataCutoffDate && isCurrentWorkbenchPeriod && salesDataCutoffDate < range.today);
+  if (isSalesDataBehindToday) {
+    const currentHour = new Date().getHours();
+    pushWarning(
+      currentHour >= 16
+        ? `今日数据暂未导入，当前按 ${salesDataCutoffDate} 数据评估。`
+        : `今日数据待导入，当前按 ${salesDataCutoffDate} 数据评估。`,
+      'SALES_DATA_CUTOFF',
+      currentHour >= 16 ? 'warning' : 'info',
+    );
+  }
   const totalObservingCount = newProductListingStats.observingCount + newProductFirstOrderStats.observingCount;
   if (totalObservingCount > 0) warnings.push(`还有 ${totalObservingCount} 个新品处于30天观察期内，最终状态会随出单数据更新`);
   if (stores.length === 0) warnings.push('当前账号未绑定 TEMU 可见店铺');
@@ -6785,13 +6819,14 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   sectionStartedAt = Date.now();
   let todayActions = [];
   const shouldShowProgressActions = range.timeProgress > 0;
+  const shouldShowSalesProgressActions = salesTimeProgress > 0;
   const scopedStore = stores.length === 1 ? stores[0] : null;
   const scopedStoreId = scopedStore ? String(scopedStore.id || scopedStore.storeName || '').trim() : '';
   const scopedStoreName = scopedStore ? String(scopedStore.storeName || scopedStore.id || '').trim() : '';
-  if (shouldShowProgressActions && completion.sales !== null && completion.sales < range.timeProgress) {
+  if (shouldShowSalesProgressActions && completion.sales !== null && completion.sales < salesTimeProgress) {
     todayActions.push({
-      priority: completion.sales < range.timeProgress - 0.2 ? '高' : '中',
-      title: `${scopedStoreName ? `${scopedStoreName}` : ''}销售进度落后${Math.abs((completion.sales - range.timeProgress) * 100).toFixed(1)}%，请优先查看销售明细`,
+      priority: completion.sales < salesTimeProgress - 0.2 ? '高' : '中',
+      title: `${scopedStoreName ? `${scopedStoreName}` : ''}销售进度落后${Math.abs((completion.sales - salesTimeProgress) * 100).toFixed(1)}%，请优先查看销售明细`,
       kpi: '本月销售额',
       impact: '影响销售额目标完成率和综合 KPI 得分',
       actionLabel: scopedStoreId ? '查看店铺' : '查看销售进度',
@@ -6928,6 +6963,8 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       selectedStoreId: String(searchParams.get('storeId') ?? ''),
     },
     dataUpdatedAt,
+    dataCutoffDate: salesDataCutoffDate,
+    latestDataDate: salesDataCutoffDate,
     dataIntegrityStatus: warnings.length === 0 ? '数据完整' : '存在提醒',
     dataSourceMapping: [
       { kpi: '销售额目标完成率', source: '订单销售导入 + KPI目标配置', endpoint: '/api/persistent-data/orderImportStore, /api/operation-workbench/kpi-targets', confirmed: '已确认' },
@@ -6939,7 +6976,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       totalScore,
       scoreText: totalScore === null ? '待配置' : `${totalScore.toFixed(1)} 分`,
       cards: [
-        { key: 'sales', name: '本月销售额', weight: 30, targetValue: target?.salesTarget ?? null, currentValue: salesAmount, completionRate: completion.sales, score: salesScore, status: targetIncompleteStatus('salesTarget') || getKpiStatus(salesScore, 30, completion.sales ?? 0, range.timeProgress), unit: '¥' },
+        { key: 'sales', name: '本月销售额', weight: 30, targetValue: target?.salesTarget ?? null, currentValue: salesAmount, completionRate: completion.sales, score: salesScore, status: targetIncompleteStatus('salesTarget') || getKpiStatus(salesScore, 30, completion.sales ?? 0, salesTimeProgress), unit: '¥' },
         { key: 'listing', name: '上新商品数', weight: 30, targetValue: target?.effectiveListingTarget ?? null, currentValue: listingProductCount, completionRate: completion.listing, score: listingScore, status: targetIncompleteStatus('effectiveListingTarget') || getKpiStatus(listingScore, 30, completion.listing ?? 0, range.timeProgress), unit: '款' },
         { key: 'firstOrder', name: '本月观察期到期达成', weight: 20, targetValue: firstOrderRateTarget, currentValue: observationAchievementRate, completionRate: completion.firstOrder, score: firstOrderScore, status: firstOrderTargetComplete ? getKpiStatus(firstOrderScore, 20, completion.firstOrder ?? 0, range.timeProgress) : '目标未配置', unit: '%' },
         { key: 'expense', name: '费用占比', weight: 20, targetValue: target?.expenseRatioTarget ?? null, currentValue: expenseRatio, completionRate: expenseRatio, score: expenseScore, status: targetIncompleteStatus('expenseRatioTarget') || getKpiStatus(expenseScore, 20, expenseRatio, range.timeProgress, true), unit: '%' },
@@ -6958,8 +6995,10 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       salesTarget: target?.salesTarget ?? null,
       salesAmount,
       completionRate: completion.sales,
-      timeProgress: range.timeProgress,
-      progressGap: completion.sales === null ? null : completion.sales - range.timeProgress,
+      timeProgress: salesTimeProgress,
+      dataCutoffDate: salesDataCutoffDate,
+      timeProgressBasis: 'salesDataCutoffDate',
+      progressGap: completion.sales === null ? null : completion.sales - salesTimeProgress,
       remainingSales: target?.salesTarget ? Math.max(target.salesTarget - salesAmount, 0) : null,
       requiredDailySales: target?.salesTarget ? Math.max(target.salesTarget - salesAmount, 0) / range.remainingDays : null,
       orderCount,
