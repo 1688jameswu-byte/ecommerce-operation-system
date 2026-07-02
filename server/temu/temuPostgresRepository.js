@@ -1036,7 +1036,7 @@ export async function readOrderImportStoreFromPostgres() {
         duplicateRows: row.error_rows,
         orders,
       };
-    }),
+    }).filter((batch) => (batch.orders ?? []).length > 0),
   };
 }
 

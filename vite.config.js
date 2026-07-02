@@ -2882,6 +2882,71 @@ function summarizeOrderImportStore(data) {
   };
 }
 
+function normalizeOrderImportStoreName(value) {
+  return String(value ?? '').replace(/\s+/g, '').trim().toLowerCase();
+}
+
+function getOrderImportDeleteRequest(rawParsed, parsed) {
+  const batchId = String(rawParsed?.__deleteBatchId ?? parsed?.batchId ?? parsed?.id ?? '').trim();
+  const rawScope = rawParsed?.__deleteScope ?? parsed?.scope ?? {};
+  const scope = {
+    date: String(rawScope?.date ?? '').slice(0, 10),
+    storeName: String(rawScope?.storeName ?? '').trim(),
+  };
+
+  return {
+    batchIds: batchId ? [batchId] : [],
+    scope: scope.date || scope.storeName ? scope : null,
+  };
+}
+
+function deleteOrderImportDataFromStore(existingData, parsed, rawParsed) {
+  const existing = existingData && typeof existingData === 'object' ? existingData : { batches: [] };
+  const deleteRequest = getOrderImportDeleteRequest(rawParsed, parsed);
+
+  if (deleteRequest.batchIds.length > 0) {
+    const deleteBatchIds = new Set(deleteRequest.batchIds);
+    return {
+      data: {
+        ...existing,
+        batches: (existing.batches ?? []).filter((batch) => !deleteBatchIds.has(String(batch?.batchId ?? batch?.id ?? '').trim())),
+      },
+      deleteRequest,
+    };
+  }
+
+  if (deleteRequest.scope) {
+    const scopeDate = deleteRequest.scope.date;
+    const scopeStoreName = normalizeOrderImportStoreName(deleteRequest.scope.storeName);
+    return {
+      data: {
+        ...existing,
+        batches: (existing.batches ?? [])
+          .map((batch) => {
+            const orders = (batch?.orders ?? []).filter((order) => {
+              const matchedDate = !scopeDate || String(order?.orderDate ?? order?.date ?? '').slice(0, 10) === scopeDate;
+              const matchedStore = !scopeStoreName || normalizeOrderImportStoreName(order?.storeName) === scopeStoreName;
+              return !(matchedDate && matchedStore);
+            });
+            return {
+              ...batch,
+              orders,
+              validRows: orders.length,
+              duplicateRows: 0,
+            };
+          })
+          .filter((batch) => (batch?.orders ?? []).length > 0),
+      },
+      deleteRequest,
+    };
+  }
+
+  return {
+    data: Array.isArray(parsed?.batches) ? parsed : existing,
+    deleteRequest,
+  };
+}
+
 function getTrafficRecordKeys(record) {
   const date = String(record?.date ?? '').trim();
   return unique([
@@ -7928,7 +7993,10 @@ function localDataPlugin() {
               const orderImportPayload = isOrderImportDelete ? parsed : stripOrderImportDebugFields(parsed);
               const currentData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
               const deleteBefore = isOrderImportDelete ? summarizeOrderImportStore(currentData) : null;
-              const nextData = isOrderImportDelete ? orderImportPayload : mergeOrderImportAppendWithExisting(currentData, orderImportPayload);
+              const orderDeleteResult = isOrderImportDelete
+                ? deleteOrderImportDataFromStore(currentData, orderImportPayload, rawParsed)
+                : null;
+              const nextData = isOrderImportDelete ? orderDeleteResult.data : mergeOrderImportAppendWithExisting(currentData, orderImportPayload);
               const deleteAfter = isOrderImportDelete ? summarizeOrderImportStore(nextData) : null;
               fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
               jsonReadCache.delete(name);
@@ -7954,8 +8022,18 @@ function localDataPlugin() {
                 console.log('[order-import-delete:json]', deleteSummary);
               }
               let mirrorWarning = null;
+              let postgresDeleteSummary = null;
               try {
-                await mirrorPersistentTemuDataToPostgres(name, nextData);
+                if (isOrderImportDelete && (orderDeleteResult?.deleteRequest?.batchIds?.length || orderDeleteResult?.deleteRequest?.scope)) {
+                  postgresDeleteSummary = await deleteOrderImportDataFromPostgres(orderDeleteResult.deleteRequest);
+                  if ((postgresDeleteSummary?.affectedDates ?? []).length > 0) {
+                    for (const snapshotDate of postgresDeleteSummary.affectedDates) {
+                      await rebuildNewProductSnapshots({ snapshotDate });
+                    }
+                  }
+                } else {
+                  await mirrorPersistentTemuDataToPostgres(name, nextData);
+                }
               } catch (mirrorError) {
                 mirrorWarning = `已保存到 JSON，PostgreSQL 同步失败：${mirrorError instanceof Error ? mirrorError.message : String(mirrorError)}`;
                 console.warn('[TEMU PostgreSQL] orderImportStore mirror skipped after JSON save:', mirrorError instanceof Error ? mirrorError.message : mirrorError);
@@ -7967,6 +8045,7 @@ function localDataPlugin() {
                 storage: 'json',
                 warning: mirrorWarning,
                 deleteSummary,
+                postgresDeleteSummary,
                 savedCount: Array.isArray(parsed) ? parsed.length : undefined,
                 totalCount: Array.isArray(nextData) ? nextData.length : undefined,
               }));
