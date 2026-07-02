@@ -3701,6 +3701,7 @@ export async function getAdSpendSummary(params = {}) {
   const spendExpression = 'COALESCE(NULLIF(a.ad_spend,0), NULLIF(a.net_ad_spend,0), 0)';
   const filter = createWhereBuilder(1);
   appendStoreScope(filter, 'a', params);
+  if (params.operatorName) pushOperatorNameAliasesToBuilder(filter, 'a.operator_name', params.operatorName);
   if (params.startDate) filter.push('a.report_date >= ?::date', params.startDate);
   if (params.endDate) filter.push('a.report_date <= ?::date', params.endDate);
   const condition = filter.where.length ? `WHERE ${filter.where.join(' AND ')}` : '';

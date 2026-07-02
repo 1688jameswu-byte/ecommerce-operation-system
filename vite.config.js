@@ -6534,11 +6534,26 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   let adSpendError = '';
   sectionStartedAt = Date.now();
   try {
+    const adStoreNames = stores.map((store) => String(store?.storeName || store?.id || '').trim()).filter(Boolean);
     adSpendSummary = await getAdSpendSummary({
       startDate: range.start,
       endDate: expenseEndDate,
-      storeNames: stores.map((store) => String(store?.storeName || store?.id || '').trim()).filter(Boolean),
+      storeNames: adStoreNames,
     });
+    const hasScopedAdData = toFiniteNumber(adSpendSummary.recordCount) > 0 || toFiniteNumber(adSpendSummary.importBatchCount) > 0 || toFiniteNumber(adSpendSummary.adSpend) > 0;
+    const hasAnyAdData = toFiniteNumber(adSpendSummary.allRangeRecordCount) > 0 || toFiniteNumber(adSpendSummary.allRangeImportBatchCount) > 0 || toFiniteNumber(adSpendSummary.allRangeAdSpend) > 0;
+    const canFallbackToOperator = Boolean(scope.operatorName) && !searchParams.get('storeId') && !hasScopedAdData && hasAnyAdData;
+    if (canFallbackToOperator) {
+      const operatorAdSpendSummary = await getAdSpendSummary({
+        startDate: range.start,
+        endDate: expenseEndDate,
+        operatorName: scope.operatorName,
+      });
+      const hasOperatorAdData = toFiniteNumber(operatorAdSpendSummary.recordCount) > 0 || toFiniteNumber(operatorAdSpendSummary.adSpend) > 0;
+      if (hasOperatorAdData) {
+        adSpendSummary = { ...operatorAdSpendSummary, scopeFallback: 'operatorName' };
+      }
+    }
   } catch (error) {
     adSpendError = error instanceof Error ? error.message : String(error);
     console.warn('[TEMU PostgreSQL] workbench ad spend summary failed:', adSpendError);
