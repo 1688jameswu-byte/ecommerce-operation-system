@@ -13066,22 +13066,23 @@
   position: absolute;
   top: 26px;
   z-index: 3;
-  min-width: 180px;
-  max-width: 260px;
+  min-width: 168px;
+  max-width: 240px;
   transform: translateX(-50%);
   display: grid;
   gap: 6px;
-  padding: 10px 12px;
-  border: 1px solid rgba(37, 99, 235, 0.16);
+  padding: 8px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.38);
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.92);
-  color: #e2e8f0;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+  background: rgba(255, 255, 255, 0.88);
+  color: #334155;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(2px);
   pointer-events: none;
 }
 
 .npc-ad-trend-tooltip strong {
-  color: #ffffff;
+  color: #0f172a;
   font-size: 12px;
 }
 
@@ -13102,7 +13103,7 @@
 }
 
 .npc-ad-trend-tooltip b {
-  color: #93c5fd;
+  color: #0f172a;
   font-weight: 900;
 }
 
