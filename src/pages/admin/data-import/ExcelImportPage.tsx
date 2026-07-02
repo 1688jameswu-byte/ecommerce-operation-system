@@ -56,6 +56,9 @@ const emptySummary: TemuOrderImportSummary = {
   missingOrderItems: [],
   storeOptions: [],
   dateOptions: [],
+  stockQuantityDate: '',
+  stockQuantityTotal: 0,
+  storeStockQuantityItems: [],
 };
 
 function formatMoney(value: number) {
@@ -220,6 +223,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const [error, setError] = useState<string | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [dateFilter, setDateFilter] = useState('');
+  const [stockDateFilter, setStockDateFilter] = useState('');
   const [storeFilter, setStoreFilter] = useState('');
   const [importDateFilter, setImportDateFilter] = useState('');
   const [fileNameFilter, setFileNameFilter] = useState('');
@@ -235,6 +239,9 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const storeOptions = summary.storeOptions;
   const totalPages = Math.max(1, Math.ceil(totalRows / IMPORT_RECORD_PAGE_SIZE));
   const overview = summary;
+  const stockQuantityTotal = Number(overview.stockQuantityTotal) || 0;
+  const stockQuantityItems = summary.storeStockQuantityItems ?? [];
+  const visibleStockQuantityItems = stockQuantityItems.filter((item) => item.stockQuantity > 0 || item.orderCount > 0);
   const scopeDeleteLabel =
     dateFilter && storeFilter
       ? '删除当前日期 + 店铺数据'
@@ -261,6 +268,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
       pageSize: IMPORT_RECORD_PAGE_SIZE,
       storeName: storeFilter,
       orderDate: dateFilter,
+      stockDate: stockDateFilter,
       importDate: importDateFilter,
       fileName: fileNameFilter,
       status: statusFilter,
@@ -281,7 +289,7 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
 
   useEffect(() => {
     void refreshSavedData(1);
-  }, [dateFilter, fileNameFilter, importDateFilter, statusFilter, storeFilter]);
+  }, [dateFilter, fileNameFilter, importDateFilter, statusFilter, stockDateFilter, storeFilter]);
 
   const importFiles = async (files: File[]) => {
     if (files.length === 0) {
@@ -423,6 +431,32 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
         <article>
           <span>异常店铺数量</span>
           <strong>{overview.abnormalStoreCount}</strong>
+        </article>
+        <article className="order-stock-summary-card">
+          <div className="order-stock-summary-header">
+            <span>{overview.stockQuantityDate ? `${overview.stockQuantityDate} 店铺备货数量` : '店铺备货数量'}</span>
+            <label>
+              统计日期
+              <select value={stockDateFilter} onChange={(event) => setStockDateFilter(event.target.value)}>
+                <option value="">最新日期</option>
+                {dateOptions.map((date) => (
+                  <option key={date} value={date}>
+                    {date}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <strong>{stockQuantityTotal.toLocaleString('zh-CN')} 件</strong>
+          <div className="order-stock-summary-list">
+            {(visibleStockQuantityItems.length > 0 ? visibleStockQuantityItems : stockQuantityItems).map((item) => (
+              <span key={item.storeName}>
+                <b>{item.storeName}</b>
+                <em>{(Number(item.stockQuantity) || 0).toLocaleString('zh-CN')}件</em>
+              </span>
+            ))}
+            {stockQuantityItems.length === 0 && <small>暂无备货数据</small>}
+          </div>
         </article>
       </section>
 

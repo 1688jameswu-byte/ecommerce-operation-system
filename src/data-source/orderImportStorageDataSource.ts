@@ -283,6 +283,7 @@ export const orderImportStorageDataSource = {
     pageSize?: number;
     storeName?: string;
     orderDate?: string;
+    stockDate?: string;
     importDate?: string;
     fileName?: string;
     status?: string;
@@ -295,6 +296,7 @@ export const orderImportStorageDataSource = {
 
     if (options.storeName) params.set('storeName', options.storeName);
     if (options.orderDate) params.set('orderDate', options.orderDate);
+    if (options.stockDate) params.set('stockDate', options.stockDate);
     if (options.importDate) params.set('importDate', options.importDate);
     if (options.fileName) params.set('fileName', options.fileName);
     if (options.status) params.set('status', options.status);
@@ -325,6 +327,9 @@ export const orderImportStorageDataSource = {
           missingOrderItems: [],
           storeOptions: [],
           dateOptions: [],
+          stockQuantityDate: '',
+          stockQuantityTotal: 0,
+          storeStockQuantityItems: [],
         },
         filteredSummary: {
           dateCount: 0,

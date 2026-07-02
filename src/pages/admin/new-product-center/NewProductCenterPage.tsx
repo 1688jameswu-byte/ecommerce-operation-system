@@ -2312,6 +2312,7 @@ function RealAdTrendChart({
   error?: string;
   onSwitchRecent7: () => void;
 }) {
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const colors = ['#2563eb', '#10b981', '#f97316', '#8b5cf6', '#ef4444'];
   const dates = dateKeys?.length
     ? dateKeys
@@ -2341,6 +2342,19 @@ function RealAdTrendChart({
   const plotWidth = width - left - right;
   const plotHeight = height - top - bottom;
   const yFor = (value: number) => top + plotHeight - (value / max) * plotHeight;
+  const xFor = (index: number) => dates.length === 1 ? left + plotWidth / 2 : left + (index / (dates.length - 1)) * plotWidth;
+  const activeIndex = hoverIndex !== null && hoverIndex >= 0 && hoverIndex < dates.length ? hoverIndex : null;
+  const activeDate = activeIndex !== null ? dates[activeIndex] : '';
+  const activeX = activeIndex !== null ? xFor(activeIndex) : 0;
+  const tooltipLeft = activeIndex !== null ? Math.min(82, Math.max(14, (activeX / width) * 100)) : 0;
+  const handleChartPointerMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (dates.length === 0) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const innerPadding = 12;
+    const viewX = ((event.clientX - rect.left - innerPadding) / Math.max(rect.width - innerPadding * 2, 1)) * width;
+    const ratio = Math.max(0, Math.min(1, (viewX - left) / plotWidth));
+    setHoverIndex(dates.length === 1 ? 0 : Math.round(ratio * (dates.length - 1)));
+  };
 
   if (loading) {
     return <div className="npc-ad-trend-chart npc-ad-trend-loading"><span /><span /><span /></div>;
@@ -2359,7 +2373,7 @@ function RealAdTrendChart({
   }
 
   return (
-    <div className="npc-ad-trend-chart">
+    <div className="npc-ad-trend-chart" onMouseMove={handleChartPointerMove} onMouseLeave={() => setHoverIndex(null)}>
       {dates.length === 0 || visibleStoreNames.length === 0 ? (
         <div className="npc-ad-trend-empty">暂无广告趋势数据。</div>
       ) : (
@@ -2371,32 +2385,55 @@ function RealAdTrendChart({
             </g>
           ))}
           {dates.map((date, index) => {
-            const x = dates.length === 1 ? left + plotWidth / 2 : left + (index / (dates.length - 1)) * plotWidth;
+            const x = xFor(index);
             const shouldShow = dates.length <= 12 || index === 0 || index === dates.length - 1 || index % Math.ceil(dates.length / 8) === 0;
             return shouldShow ? <text key={date} className="npc-ad-trend-axis" x={x - 16} y={height - 10}>{date.slice(5)}</text> : null;
           })}
           {series.map((item) => {
             const path = item.values.map((value, index) => {
-              const x = dates.length === 1 ? left + plotWidth / 2 : left + (index / (dates.length - 1)) * plotWidth;
+              const x = xFor(index);
               return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)},${yFor(value).toFixed(1)}`;
             }).join(' ');
             return (
               <g key={item.storeName}>
                 <path className="npc-ad-trend-line" d={path} style={{ stroke: item.color }} />
                 {item.values.map((value, index) => {
-                  const x = dates.length === 1 ? left + plotWidth / 2 : left + (index / (dates.length - 1)) * plotWidth;
-                  const previous = index > 0 ? item.values[index - 1] : 0;
+                  const x = xFor(index);
+                  const isActive = activeIndex === index;
                   return (
-                    <circle className="npc-ad-trend-dot" key={`${item.storeName}-${dates[index]}`} cx={x} cy={yFor(value)} r="3" style={{ stroke: item.color }}>
-                      <title>{`${dates[index]} ${item.storeName} ${getTrendMetricLabel(metric)} ${formatTrendTooltipValue(value, metric)}，${getTrendMetricChangeText(value, previous)}`}</title>
-                    </circle>
+                    <circle className="npc-ad-trend-dot" key={`${item.storeName}-${dates[index]}`} cx={x} cy={yFor(value)} r={isActive ? 4 : 3} style={{ stroke: item.color }} />
                   );
                 })}
               </g>
             );
           })}
+          {activeIndex !== null && (
+            <line
+              className="npc-ad-trend-hover-line"
+              x1={activeX}
+              x2={activeX}
+              y1={top}
+              y2={top + plotHeight}
+            />
+          )}
+          <rect className="npc-ad-trend-hit-area" x={left} y={top} width={plotWidth} height={plotHeight} />
         </svg>
       )}
+      {activeIndex !== null && activeDate ? (
+        <div className="npc-ad-trend-tooltip" style={{ left: `${tooltipLeft}%` }}>
+          <strong>{activeDate.slice(5)} · {getTrendMetricLabel(metric)}</strong>
+          {series.map((item) => {
+            const hasData = valueMap.has(`${activeDate}::${item.storeName}`);
+            const value = item.values[activeIndex] ?? 0;
+            return (
+              <span key={item.storeName}>
+                <i style={{ background: item.color }} />
+                {item.storeName}：<b>{hasData ? formatTrendTooltipValue(value, metric) : '无数据'}</b>
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
       <div className="npc-ad-trend-legend">
         {series.map((item) => <span key={item.storeName}><i style={{ background: item.color }} />{item.storeName}</span>)}
       </div>

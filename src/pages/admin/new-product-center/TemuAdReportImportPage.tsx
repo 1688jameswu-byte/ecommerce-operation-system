@@ -158,6 +158,18 @@ function getMissingAdMappings(mapping: Record<string, string>) {
   return missing;
 }
 
+function formatAdMoney(value: unknown) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '0.00';
+  return number.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatAdInteger(value: unknown) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '0';
+  return Math.round(number).toLocaleString('zh-CN');
+}
+
 export default function TemuAdReportImportPage({ currentUser }: { currentUser: CurrentUser }) {
   const initialParams = new URLSearchParams(window.location.search);
   const [reportDate, setReportDate] = useState(initialParams.get('reportDate') || '');
@@ -414,13 +426,13 @@ export default function TemuAdReportImportPage({ currentUser }: { currentUser: C
           </article>
           <article>
             <span>总花费</span>
-            <strong>{String(summary.adSpend ?? 0)}</strong>
-            <small>全域销售额 {String(summary.globalSalesAmount ?? summary.promoSalesAmount ?? 0)}</small>
+            <strong>{formatAdMoney(summary.adSpend)}</strong>
+            <small>全域销售额 {formatAdMoney(summary.globalSalesAmount ?? summary.promoSalesAmount)}</small>
           </article>
           <article>
             <span>未匹配SPU</span>
             <strong>{summary.unmatchedCount ?? 0}</strong>
-            <small>ROAS {summary.globalRoas == null && summary.promoRoas == null ? '-' : Number(summary.globalRoas ?? summary.promoRoas).toFixed(2)} / 订单 {String(summary.globalSubOrderCount ?? summary.promoSubOrderCount ?? 0)}</small>
+            <small>ROAS {summary.globalRoas == null && summary.promoRoas == null ? '-' : Number(summary.globalRoas ?? summary.promoRoas).toFixed(2)} / 订单 {formatAdInteger(summary.globalSubOrderCount ?? summary.promoSubOrderCount)}</small>
           </article>
         </div>
       </section>

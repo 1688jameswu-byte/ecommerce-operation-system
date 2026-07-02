@@ -736,6 +736,65 @@
   white-space: nowrap;
 }
 
+.import-overview-grid .order-stock-summary-card {
+  grid-column: 1 / -1;
+}
+
+.order-stock-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-stock-summary-header label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #8eaac8;
+  font-size: 12px;
+}
+
+.order-stock-summary-header select {
+  min-width: 132px;
+  border: 1px solid rgba(86, 154, 230, 0.26);
+  border-radius: 8px;
+  background: rgba(8, 25, 55, 0.72);
+  color: #ffffff;
+  padding: 6px 10px;
+}
+
+.order-stock-summary-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-stock-summary-list span,
+.order-stock-summary-list small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(86, 154, 230, 0.22);
+  border-radius: 999px;
+  background: rgba(86, 154, 230, 0.08);
+  padding: 5px 10px;
+  color: #c7ddf5;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.order-stock-summary-list b {
+  color: inherit;
+  font-weight: 700;
+}
+
+.order-stock-summary-list em {
+  color: #ffffff;
+  font-style: normal;
+  font-weight: 800;
+}
+
 .import-missing-card {
   display: grid;
   gap: 10px;
@@ -12410,12 +12469,82 @@
 .npc-ad-store-table-wrap {
   max-height: none;
   overflow-y: visible;
+  overflow-x: hidden;
 }
 
 .npc-ad-store-table-wrap table,
 .npc-ad-product-compact-wrap table {
-  min-width: 980px;
   border-spacing: 0;
+}
+
+.npc-ad-product-compact-wrap table {
+  min-width: 980px;
+}
+
+.npc-ad-store-compare-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.npc-ad-store-compare-table th,
+.npc-ad-store-compare-table td {
+  padding: 7px 6px;
+  font-size: 11.5px;
+  line-height: 1.25;
+}
+
+.npc-ad-store-compare-table th,
+.npc-ad-store-compare-table th button {
+  white-space: normal;
+}
+
+.npc-ad-store-compare-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.npc-ad-store-compare-table th:nth-child(1),
+.npc-ad-store-compare-table td:nth-child(1) {
+  width: 5.5%;
+}
+
+.npc-ad-store-compare-table th:nth-child(2),
+.npc-ad-store-compare-table td:nth-child(2) {
+  width: 6%;
+}
+
+.npc-ad-store-compare-table th:nth-child(3),
+.npc-ad-store-compare-table td:nth-child(3),
+.npc-ad-store-compare-table th:nth-child(5),
+.npc-ad-store-compare-table td:nth-child(5) {
+  width: 10%;
+}
+
+.npc-ad-store-compare-table th:nth-child(4),
+.npc-ad-store-compare-table td:nth-child(4),
+.npc-ad-store-compare-table th:nth-child(8),
+.npc-ad-store-compare-table td:nth-child(8),
+.npc-ad-store-compare-table th:nth-child(9),
+.npc-ad-store-compare-table td:nth-child(9),
+.npc-ad-store-compare-table th:nth-child(10),
+.npc-ad-store-compare-table td:nth-child(10) {
+  width: 7.5%;
+}
+
+.npc-ad-store-compare-table th:nth-child(6),
+.npc-ad-store-compare-table td:nth-child(6) {
+  width: 8.5%;
+}
+
+.npc-ad-store-compare-table th:nth-child(7),
+.npc-ad-store-compare-table td:nth-child(7) {
+  width: 12%;
+}
+
+.npc-ad-store-compare-table th:nth-child(11),
+.npc-ad-store-compare-table td:nth-child(11) {
+  width: 12%;
 }
 
 .npc-ad-store-table-wrap th,
@@ -12865,6 +12994,7 @@
 }
 
 .npc-ad-trend-chart {
+  position: relative;
   min-height: 278px;
   margin-top: 12px;
   border: 1px solid #e2e8f0;
@@ -12914,9 +13044,66 @@
   stroke-width: 2;
 }
 
+.npc-ad-trend-hover-line {
+  stroke: #2563eb;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.npc-ad-trend-hit-area {
+  fill: transparent;
+  pointer-events: all;
+}
+
 .npc-ad-trend-axis {
   fill: #64748b;
   font-size: 11px;
+}
+
+.npc-ad-trend-tooltip {
+  position: absolute;
+  top: 26px;
+  z-index: 3;
+  min-width: 180px;
+  max-width: 260px;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #e2e8f0;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+  pointer-events: none;
+}
+
+.npc-ad-trend-tooltip strong {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.npc-ad-trend-tooltip span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.npc-ad-trend-tooltip i {
+  width: 14px;
+  height: 3px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.npc-ad-trend-tooltip b {
+  color: #93c5fd;
+  font-weight: 900;
 }
 
 .npc-ad-trend-legend {
@@ -16300,6 +16487,27 @@ td.workbench-follow-title-col strong {
 .import-overview-grid article {
   border-color: #dce5ef;
   background: #ffffff;
+}
+
+.admin-main .excel-import-page .order-stock-summary-list span,
+.admin-main .excel-import-page .order-stock-summary-list small {
+  border-color: #dbeafe;
+  background: #eff6ff;
+  color: #475569;
+}
+
+.admin-main .excel-import-page .order-stock-summary-header label {
+  color: #64748b;
+}
+
+.admin-main .excel-import-page .order-stock-summary-header select {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.admin-main .excel-import-page .order-stock-summary-list em {
+  color: #0f172a;
 }
 
 .admin-home-quick-links a {

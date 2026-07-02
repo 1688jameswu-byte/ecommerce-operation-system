@@ -42,6 +42,13 @@ export interface TemuOrderImportMissingItem {
   date: string;
 }
 
+export interface TemuOrderImportStoreStockSummary {
+  storeName: string;
+  stockQuantity: number;
+  orderCount: number;
+  salesAmount: number;
+}
+
 export interface TemuOrderImportRecord {
   id: string;
   batchId: string;
@@ -66,6 +73,9 @@ export interface TemuOrderImportSummary {
   missingOrderItems: TemuOrderImportMissingItem[];
   storeOptions: string[];
   dateOptions: string[];
+  stockQuantityDate: string;
+  stockQuantityTotal: number;
+  storeStockQuantityItems: TemuOrderImportStoreStockSummary[];
 }
 
 export interface TemuOrderImportScopeSummary {

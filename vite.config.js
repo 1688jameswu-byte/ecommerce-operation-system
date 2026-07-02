@@ -3938,7 +3938,73 @@ function filterOrderImportRecords(records, searchParams) {
   );
 }
 
-function buildOrderImportSummary(data, records, currentUser) {
+function getOrderStockQuantity(order) {
+  const value = Number(order?.quantity ?? order?.stockQuantity ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function buildOrderImportStockQuantitySummary(data, records, currentUser, stockDate) {
+  const visibleStoreNames = getVisibleOrderStoreNames(currentUser, data);
+  const visibleStoreSet = new Set(visibleStoreNames.map((storeName) => normalizeOrderImportStoreName(storeName)));
+  const targetDate = String(stockDate || records[0]?.orderDate || '').slice(0, 10);
+  const groups = new Map(visibleStoreNames.map((storeName) => [
+    normalizeOrderImportStoreName(storeName),
+    {
+      storeName: normalizeOrderImportStoreName(storeName),
+      stockQuantity: 0,
+      orderCount: 0,
+      salesAmount: 0,
+    },
+  ]));
+
+  if (!targetDate) {
+    return {
+      stockQuantityDate: '',
+      stockQuantityTotal: 0,
+      storeStockQuantityItems: Array.from(groups.values()),
+    };
+  }
+
+  for (const batch of data?.batches ?? []) {
+    for (const order of batch.orders ?? []) {
+      if (!itemMatchesTemuImportStore(order) || getOrderDateKey(order) !== targetDate) {
+        continue;
+      }
+
+      const storeName = normalizeOrderImportStoreName(order?.storeName);
+      if (visibleStoreSet.size > 0 && !visibleStoreSet.has(storeName)) {
+        continue;
+      }
+
+      const current = groups.get(storeName) ?? {
+        storeName,
+        stockQuantity: 0,
+        orderCount: 0,
+        salesAmount: 0,
+      };
+      current.stockQuantity += getOrderStockQuantity(order);
+      current.orderCount += 1;
+      current.salesAmount += Number(order?.salesAmount) || 0;
+      groups.set(storeName, current);
+    }
+  }
+
+  const storeStockQuantityItems = Array.from(groups.values())
+    .map((item) => ({
+      ...item,
+      stockQuantity: Number(item.stockQuantity.toFixed(2)),
+      salesAmount: Number(item.salesAmount.toFixed(2)),
+    }))
+    .sort((first, second) => second.stockQuantity - first.stockQuantity || first.storeName.localeCompare(second.storeName));
+
+  return {
+    stockQuantityDate: targetDate,
+    stockQuantityTotal: Number(storeStockQuantityItems.reduce((total, item) => total + item.stockQuantity, 0).toFixed(2)),
+    storeStockQuantityItems,
+  };
+}
+
+function buildOrderImportSummary(data, records, currentUser, searchParams = new URLSearchParams()) {
   const today = formatOrderDateKey(new Date());
   const todayRows = records.filter((row) => row.orderDate === today);
   const importedKeys = new Set(records.map((row) => `${normalizeOrderImportStoreName(row.storeName)}|${row.orderDate}`));
@@ -3950,6 +4016,8 @@ function buildOrderImportSummary(data, records, currentUser) {
     getRecentOrderCheckDates(7, checkEndDate).filter((date) => !importedKeys.has(`${normalizeOrderImportStoreName(storeName)}|${date}`))
       .map((date) => ({ storeName, date })),
   );
+  const selectedStockDate = searchParams.get('stockDate') || searchParams.get('orderDate') || searchParams.get('date') || dateOptions[0] || today;
+  const stockQuantitySummary = buildOrderImportStockQuantitySummary(data, records, currentUser, selectedStockDate);
 
   return {
     todayStoreCount: new Set(todayRows.map((row) => row.storeName)).size,
@@ -3960,6 +4028,7 @@ function buildOrderImportSummary(data, records, currentUser) {
     missingOrderItems,
     storeOptions,
     dateOptions,
+    ...stockQuantitySummary,
   };
 }
 
@@ -4798,7 +4867,7 @@ function filterOrderImportStoreByQuery(data, searchParams, currentUser) {
       total: filteredRecords.length,
       page,
       pageSize,
-      summary: buildOrderImportSummary(data, allRecords, currentUser),
+      summary: buildOrderImportSummary(data, allRecords, currentUser, searchParams),
       filteredSummary: summarizeOrderImportRecords(filteredRecords),
     };
   }
