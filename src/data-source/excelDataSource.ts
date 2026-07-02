@@ -3,6 +3,7 @@ import type { ExcelImportPreview, ExcelSheetPreview } from '../types/import';
 import type { TemuOrderDetail, TemuOrderImportResult } from '../types/order';
 import { storeDataSource } from './storeDataSource';
 import type { ExternalDataSourceAdapter } from './sourceTypes';
+import type { StoreRecord } from '../types/store';
 
 const PREVIEW_ROW_LIMIT = 5;
 
@@ -207,7 +208,28 @@ function normalizeImportedStoreName(value: unknown, stores: ReturnType<typeof lo
   return name;
 }
 
-function logStoreNameNormalization(mappings: Map<string, string>) {
+function getMatchedStore(value: string, normalizedStoreName: string, stores: StoreRecord[]) {
+  const keys = [value, normalizedStoreName].map(normalizeStoreKey).filter(Boolean);
+  return stores.find((store) =>
+    [store.storeName, store.id, store.platformStoreId]
+      .filter(Boolean)
+      .some((key) => keys.includes(normalizeStoreKey(String(key)))),
+  );
+}
+
+function buildStoreNameMappings(mappings: Map<string, string>, stores: StoreRecord[]) {
+  return Array.from(mappings.entries()).map(([rawStoreName, normalizedStoreName]) => {
+    const matchedStore = getMatchedStore(rawStoreName, normalizedStoreName, stores);
+    return {
+      rawStoreName,
+      normalizedStoreName,
+      matchedStoreId: matchedStore?.id,
+      matchedPlatformStoreId: matchedStore?.platformStoreId,
+    };
+  });
+}
+
+function logStoreNameNormalization(mappings: Map<string, string>, stores: StoreRecord[]) {
   const isDev = Boolean((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV);
 
   if (!isDev || mappings.size === 0) {
@@ -216,7 +238,7 @@ function logStoreNameNormalization(mappings: Map<string, string>) {
 
   console.info(
     '[订单导入] 原始店铺名称 -> 标准化店铺名称',
-    Array.from(mappings.entries()).map(([rawName, normalizedName]) => `${rawName || '(空)'} -> ${normalizedName}`),
+    buildStoreNameMappings(mappings, stores),
   );
 }
 
@@ -326,7 +348,7 @@ export async function parseTemuOrderExcelFile(file: File): Promise<TemuOrderImpo
   const orders = rows
     .map((row, index) => normalizeOrderRow(row, index, stores, storeNameMappings))
     .filter((order): order is TemuOrderDetail => Boolean(order));
-  logStoreNameNormalization(storeNameMappings);
+  logStoreNameNormalization(storeNameMappings, stores);
 
   if (orders.length === 0) {
     throw new Error('未解析到有效订单明细，请检查订单表头和数据行是否为空。');
@@ -339,6 +361,7 @@ export async function parseTemuOrderExcelFile(file: File): Promise<TemuOrderImpo
     validRows: orders.length,
     duplicateRows: 0,
     orders,
+    storeNameMappings: buildStoreNameMappings(storeNameMappings, stores),
   };
 }
 

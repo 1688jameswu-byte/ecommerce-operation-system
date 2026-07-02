@@ -27,6 +27,12 @@ export interface TemuOrderImportResult {
   duplicateRows: number;
   orders: TemuOrderDetail[];
   displayOrders?: TemuOrderDetail[];
+  storeNameMappings?: Array<{
+    rawStoreName: string;
+    normalizedStoreName: string;
+    matchedStoreId?: string;
+    matchedPlatformStoreId?: string;
+  }>;
 }
 
 export interface TemuOrderImportBatch extends TemuOrderImportResult {

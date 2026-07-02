@@ -3530,3 +3530,97 @@
 [2m17:55:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/data-import/ExcelImportPage.tsx[22m
 [2m17:55:48[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
 [2m17:55:48[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:03:40[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:03:40[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:03:58[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:03:58[22m [36m[1m[vite][22m[39m server restarted.
+[order-import-debug] permissionCheck {
+  userId: 'user-admin',
+  username: 'admin',
+  role: 'admin',
+  operatorId: '',
+  operatorName: '管理员',
+  storeMappings: [
+    {
+      rawStoreName: 'C店',
+      normalizedStoreName: 'C店',
+      matchedStoreId: 'store-1779250608720-3y40xd',
+      matchedPlatformStoreId: '634418214977923'
+    }
+  ],
+  parsedStoreKeys: [
+    {
+      storeKey: 'C店',
+      normalizedStoreName: 'C店',
+      matchedStoreId: 'store-1779250608720-3y40xd',
+      matchedPlatformStoreId: '634418214977923'
+    },
+    {
+      storeKey: 'store-1779250608720-3y40xd',
+      normalizedStoreName: 'C店',
+      matchedStoreId: 'store-1779250608720-3y40xd',
+      matchedPlatformStoreId: '634418214977923'
+    },
+    {
+      storeKey: '634418214977923',
+      normalizedStoreName: 'C店',
+      matchedStoreId: 'store-1779250608720-3y40xd',
+      matchedPlatformStoreId: '634418214977923'
+    }
+  ],
+  visibleStoreIds: [
+    'store-1779189685728-5d0o88',
+    'store-1779189704925-n37kk8',
+    'store-1779250535504-oe7pn2',
+    'store-1779250571842-ap1dc1',
+    'store-1779250608720-3y40xd',
+    'store-1779250617735-mrgeer',
+    'store-1779250673329-f6ao3r',
+    'store-1779250680437-doqtlc',
+    'store-1779250687680-o0326k',
+    'store-1779250695491-3z7kwi',
+    'store-1779250703920-yl2wme',
+    'store-1779250710562-bij0ve',
+    'store-1779250716950-i7x6ep'
+  ],
+  visibleStoreNames: [
+    'B店', 'F店', 'K店',
+    'U店', 'C店', 'S店',
+    'A店', 'X店', 'O店',
+    'M店', 'L店', 'H店',
+    'Q店'
+  ],
+  visiblePlatformStoreIds: [
+    '634418211441811',
+    '634418211885101',
+    '6289862801038',
+    '634418212168942',
+    '634418214977923',
+    '634418217704953',
+    '634418218135287',
+    '634418213117065',
+    '634418225642688',
+    '634418225641224',
+    '634418225070391',
+    '634418225638311',
+    '634418225639828'
+  ],
+  unmatchedKeys: [],
+  unauthorizedKeys: [],
+  canWrite: true
+}
+[order-import-save] {
+  incomingShape: 'batches',
+  existingBatchCount: 40,
+  removedBatchCount: 0,
+  incomingBatchCount: 1,
+  finalBatchCount: 41,
+  existingDataCount: 4507,
+  removedDataCount: 0,
+  newDataCount: 138,
+  finalDataCount: 4645,
+  affectedStores: [ 'C店' ],
+  affectedDates: [ '2026-07-02' ]
+}
+[2m18:04:13[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:04:13[22m [36m[1m[vite][22m[39m server restarted.

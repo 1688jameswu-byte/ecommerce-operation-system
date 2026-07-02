@@ -2711,7 +2711,21 @@ function getStoreKeysFromItems(items) {
 
 function getImportStoreKeys(name, data) {
   if (name === 'orderImportStore') {
-    return getStoreKeysFromItems((data?.batches ?? []).flatMap((batch) => batch.orders ?? []));
+    return unique([
+      ...getStoreKeysFromItems((data?.batches ?? []).flatMap((batch) => batch.orders ?? [])),
+      ...(data?.storeNameMappings ?? []).flatMap((item) => [
+        String(item?.rawStoreName ?? '').trim(),
+        String(item?.normalizedStoreName ?? '').trim(),
+        String(item?.matchedStoreId ?? '').trim(),
+        String(item?.matchedPlatformStoreId ?? '').trim(),
+      ]),
+      ...(data?.batches ?? []).flatMap((batch) => (batch.storeNameMappings ?? []).flatMap((item) => [
+        String(item?.rawStoreName ?? '').trim(),
+        String(item?.normalizedStoreName ?? '').trim(),
+        String(item?.matchedStoreId ?? '').trim(),
+        String(item?.matchedPlatformStoreId ?? '').trim(),
+      ])),
+    ]);
   }
 
   if (name === 'trafficConversionStore') {
@@ -2719,6 +2733,70 @@ function getImportStoreKeys(name, data) {
   }
 
   return [];
+}
+
+function describeStoreKey(storeKey) {
+  const store = findKnownStoreByKey(storeKey);
+  return {
+    storeKey,
+    normalizedStoreName: store?.storeName ?? '',
+    matchedStoreId: store?.id ?? '',
+    matchedPlatformStoreId: store?.platformStoreId ?? '',
+  };
+}
+
+function summarizeOrderImportDebug(name, data, currentUser) {
+  if (name !== 'orderImportStore') {
+    return null;
+  }
+
+  const visibleStores = getTemuVisibleStores(currentUser);
+  const visibleStoreIds = visibleStores.map((store) => store.id).filter(Boolean);
+  const visibleStoreNames = visibleStores.map((store) => store.storeName).filter(Boolean);
+  const visiblePlatformStoreIds = visibleStores.map((store) => store.platformStoreId).filter(Boolean);
+  const visibleStoreKeys = getTemuVisibleStoreKeys(currentUser);
+  const storeKeys = getImportStoreKeys(name, data);
+  const storeMappings = unique([
+    ...(data?.storeNameMappings ?? []),
+    ...(data?.batches ?? []).flatMap((batch) => batch.storeNameMappings ?? []),
+  ].map((item) => JSON.stringify(item))).map((item) => JSON.parse(item));
+  const unmatchedKeys = storeKeys.filter((storeKey) => !findKnownStoreByKey(storeKey));
+  const unauthorizedKeys = storeKeys.filter((storeKey) => !visibleStoreKeys.has(storeKey));
+
+  return {
+    userId: currentUser?.userId ?? currentUser?.id ?? '',
+    username: currentUser?.username ?? '',
+    role: currentUser?.role ?? '',
+    operatorId: currentUser?.operatorId ?? '',
+    operatorName: currentUser?.operatorName ?? '',
+    storeMappings,
+    parsedStoreKeys: storeKeys.map(describeStoreKey),
+    visibleStoreIds,
+    visibleStoreNames,
+    visiblePlatformStoreIds,
+    unmatchedKeys,
+    unauthorizedKeys: unauthorizedKeys.map(describeStoreKey),
+    canWrite: unmatchedKeys.length === 0 && unauthorizedKeys.length === 0,
+  };
+}
+
+function stripOrderImportDebugFields(data) {
+  if (!data || typeof data !== 'object') {
+    return data;
+  }
+
+  const stripBatch = (batch) => {
+    if (!batch || typeof batch !== 'object') {
+      return batch;
+    }
+    const { storeNameMappings, ...rest } = batch;
+    return rest;
+  };
+  const { storeNameMappings, ...rest } = data;
+  return {
+    ...rest,
+    batches: Array.isArray(data.batches) ? data.batches.map(stripBatch) : data.batches,
+  };
 }
 
 function mergeOrderImportAppendWithExisting(existingData, incoming) {
@@ -2979,6 +3057,11 @@ function assertImportDataMatchesTemu(name, data) {
 }
 
 function assertCanWriteImportData(name, data, currentUser, searchableText = '') {
+  const orderImportDebug = summarizeOrderImportDebug(name, data, currentUser);
+  if (orderImportDebug) {
+    console.info('[order-import-debug] permissionCheck', orderImportDebug);
+  }
+
   assertImportDataMatchesTemu(name, data);
 
   if (String(currentUser?.role ?? '').toLowerCase() === 'admin' || !['orderImportStore', 'trafficConversionStore'].includes(name)) {
@@ -2991,12 +3074,25 @@ function assertCanWriteImportData(name, data, currentUser, searchableText = '') 
 
   const visibleStoreKeys = getTemuVisibleStoreKeys(currentUser);
   if (visibleStoreKeys.size === 0) {
+    if (orderImportDebug) {
+      console.warn('[order-import-debug] permissionDenied', {
+        ...orderImportDebug,
+        reason: 'NO_VISIBLE_STORE_KEYS',
+      });
+    }
     throw new Error('当前账号未配置可导入店铺，请联系管理员。');
   }
 
   const blockedStore = getImportStoreKeys(name, data).find((storeKey) => !visibleStoreKeys.has(storeKey));
 
   if (blockedStore) {
+    if (orderImportDebug) {
+      console.warn('[order-import-debug] permissionDenied', {
+        ...orderImportDebug,
+        reason: 'STORE_NOT_IN_VISIBLE_SCOPE',
+        blockedStore: describeStoreKey(blockedStore),
+      });
+    }
     throw new Error('当前账号无权导入该店铺数据');
   }
 }
@@ -7828,9 +7924,10 @@ function localDataPlugin() {
               assertCanWriteImportData(name, parsed, currentUser, searchableText);
             }
             if (name === 'orderImportStore') {
+              const orderImportPayload = isOrderImportDelete ? parsed : stripOrderImportDebugFields(parsed);
               const currentData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
               const deleteBefore = isOrderImportDelete ? summarizeOrderImportStore(currentData) : null;
-              const nextData = isOrderImportDelete ? parsed : mergeOrderImportAppendWithExisting(currentData, parsed);
+              const nextData = isOrderImportDelete ? orderImportPayload : mergeOrderImportAppendWithExisting(currentData, orderImportPayload);
               const deleteAfter = isOrderImportDelete ? summarizeOrderImportStore(nextData) : null;
               fs.writeFileSync(filePath, JSON.stringify(nextData, null, 2), 'utf-8');
               jsonReadCache.delete(name);
