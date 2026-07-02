@@ -194,6 +194,11 @@ type WorkbenchData = {
     mainExpenseSource?: string;
     promotionRecordCount?: number;
     promotionReportDayCount?: number;
+    promotionSpendRecordCount?: number;
+    promotionSpendReportDayCount?: number;
+    promotionImportBatchCount?: number;
+    promotionImportBatchDayCount?: number;
+    promotionDataWarning?: string;
     salesAmount: number;
     adExpense: number;
     afterSaleExpense: number;
@@ -465,6 +470,16 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
   const promotionExpenseRatio = data.expenseKpi.promotionExpenseRatio ?? data.expenseKpi.adRatio;
   const promotionRecordCount = data.expenseKpi.promotionRecordCount ?? 0;
   const promotionReportDayCount = data.expenseKpi.promotionReportDayCount ?? 0;
+  const promotionSpendRecordCount = data.expenseKpi.promotionSpendRecordCount ?? promotionRecordCount;
+  const promotionSpendReportDayCount = data.expenseKpi.promotionSpendReportDayCount ?? promotionReportDayCount;
+  const promotionImportBatchCount = data.expenseKpi.promotionImportBatchCount ?? 0;
+  const promotionImportBatchDayCount = data.expenseKpi.promotionImportBatchDayCount ?? 0;
+  const promotionDataWarning = data.expenseKpi.promotionDataWarning || '';
+  const promotionRecordText = promotionRecordCount > 0
+    ? `${formatNumber(promotionSpendRecordCount, '条')} / ${formatNumber(promotionSpendReportDayCount, '天')}`
+    : promotionImportBatchCount > 0
+      ? `0条 / 0天（批次 ${formatNumber(promotionImportBatchCount, '个')} / ${formatNumber(promotionImportBatchDayCount, '天')}）`
+      : '0条 / 0天';
   const afterSalesAccrual = data.expenseKpi.afterSalesAccrual ?? data.expenseKpi.afterSaleExpense;
   const afterSalesAccrualRatio = data.expenseKpi.afterSalesAccrualRatio ?? data.expenseKpi.afterSaleRatio;
   const expenseGap = data.expenseKpi.gapToTarget ?? (expenseCurrentRatio !== null && expenseTargetRatio ? expenseTargetRatio - expenseCurrentRatio : null);
@@ -572,7 +587,8 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
         ['总费用', data.expenseKpi.hasExpenseData ? formatAmount(data.expenseKpi.totalExpense) : '暂无费用数据'],
         ['本月推广费', data.expenseKpi.hasExpenseData ? formatAmount(promotionExpense) : '暂无费用数据'],
         ['推广费占比', data.expenseKpi.hasExpenseData ? formatPercent(promotionExpenseRatio) : '-'],
-        ['推广费记录', `${formatNumber(promotionRecordCount, '条')} / ${formatNumber(promotionReportDayCount, '天')}`],
+        ['推广费记录', promotionRecordText, promotionDataWarning ? 'warning' : undefined],
+        ...(promotionDataWarning ? [['广告费提示', promotionDataWarning, 'warning'] as [string, string, string]] : []),
         ['售后费用计提', data.expenseKpi.hasExpenseData ? formatAmount(afterSalesAccrual) : '暂无费用数据'],
         ['售后计提占比', data.expenseKpi.hasExpenseData ? formatPercent(afterSalesAccrualRatio) : '-'],
         ['计提口径', data.expenseKpi.accrualBasisLabel || '按上月售后费用'],

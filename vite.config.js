@@ -6558,6 +6558,20 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const lastMonthAfterSaleAmount = previousFinanceRecords.reduce((total, record) => total + toFiniteNumber(record.afterSaleIssueAmount), 0);
   const estimatedAfterSaleAmount = Number(((lastMonthAfterSaleAmount / 30) * expenseElapsedDays).toFixed(2));
   const adExpenseAmount = Number(toFiniteNumber(adSpendSummary.adSpend).toFixed(2));
+  const adRecordCount = toFiniteNumber(adSpendSummary.recordCount);
+  const adReportDayCount = toFiniteNumber(adSpendSummary.reportDayCount);
+  const adSpendRecordCount = toFiniteNumber(adSpendSummary.spendRecordCount);
+  const adSpendReportDayCount = toFiniteNumber(adSpendSummary.spendReportDayCount);
+  const adImportBatchCount = toFiniteNumber(adSpendSummary.importBatchCount);
+  const adImportBatchDayCount = toFiniteNumber(adSpendSummary.importBatchDayCount);
+  const hasAdImportSignal = adRecordCount > 0 || adImportBatchCount > 0;
+  const promotionDataWarning = adSpendError
+    ? `广告花费统计读取失败：${adSpendError}`
+    : adExpenseAmount <= 0 && hasAdImportSignal
+      ? '检测到广告导入记录，但推广费汇总为0，请检查字段映射或店铺匹配。'
+      : !hasAdImportSignal
+        ? '本月暂无广告数据。'
+        : '';
   const totalExpenseAmount = Number((adExpenseAmount + estimatedAfterSaleAmount).toFixed(2));
   const expenseSalesBase = salesAmount;
   const expenseRatio = expenseSalesBase > 0 ? totalExpenseAmount / expenseSalesBase : null;
@@ -6751,7 +6765,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
         exceededTarget: null,
       };
     }
-    const expectedByTime = Number((targetValue * range.timeProgress).toFixed(2));
+    const expectedByTime = Number((targetValue * timeProgress).toFixed(2));
     return {
       currentValue,
       targetValue,
@@ -7063,6 +7077,13 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       accrualBasisLabel: previousFinancePeriod ? `按${previousFinancePeriod}售后费用` : '按上月售后费用',
       gapToTarget: expenseGapToTarget,
       mainExpenseSource,
+      promotionRecordCount: adRecordCount,
+      promotionReportDayCount: adReportDayCount,
+      promotionSpendRecordCount: adSpendRecordCount,
+      promotionSpendReportDayCount: adSpendReportDayCount,
+      promotionImportBatchCount: adImportBatchCount,
+      promotionImportBatchDayCount: adImportBatchDayCount,
+      promotionDataWarning,
       salesAmount: expenseSalesBase,
       adExpense: adExpenseAmount,
       afterSaleExpense: estimatedAfterSaleAmount,

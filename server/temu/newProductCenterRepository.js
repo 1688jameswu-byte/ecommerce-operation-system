@@ -2586,7 +2586,20 @@ function createWhereBuilder(startIndex = 1) {
 }
 
 function appendStoreScope(whereBuilder, alias, params = {}) {
-  if (params.storeId) whereBuilder.push(`${alias}.store_id = ?::uuid`, params.storeId);
+  if (params.storeId) {
+    whereBuilder.values.push(String(params.storeId));
+    const placeholder = `$${whereBuilder.startIndex + whereBuilder.values.length - 1}`;
+    whereBuilder.where.push(`(
+      ${alias}.store_id::text = ${placeholder}
+      OR ${alias}.store_id = (
+        SELECT id
+        FROM temu_stores
+        WHERE id::text = ${placeholder} OR legacy_id = ${placeholder} OR store_name = ${placeholder}
+        LIMIT 1
+      )
+      OR ${alias}.store_name = ${placeholder}
+    )`);
+  }
   if (params.storeName) {
     whereBuilder.values.push(params.storeName);
     const placeholder = `$${whereBuilder.startIndex + whereBuilder.values.length - 1}`;
@@ -3460,7 +3473,7 @@ export async function getAdImportOverview(params = {}) {
      FROM temu_ad_product_daily a
      ${adCondition}
      GROUP BY a.store_name
-     ORDER BY ad_spend DESC NULLS LAST, a.store_name`,
+     ORDER BY ad_spend DESC NULLS LAST, store_name`,
     filter.values,
   );
   const storeTrend = await queryTemuDatabase(
@@ -3653,6 +3666,7 @@ export async function getAdImportTrend(params = {}) {
 
 export async function getAdSpendSummary(params = {}) {
   await runTemuMigrations();
+  const spendExpression = 'COALESCE(NULLIF(a.ad_spend,0), NULLIF(a.net_ad_spend,0), 0)';
   const filter = createWhereBuilder(1);
   appendStoreScope(filter, 'a', params);
   if (params.startDate) filter.push('a.report_date >= ?::date', params.startDate);
@@ -3661,24 +3675,44 @@ export async function getAdSpendSummary(params = {}) {
   const summary = await queryTemuDatabase(
     `SELECT COUNT(*)::int AS record_count,
             COUNT(DISTINCT a.report_date)::int AS report_day_count,
-            COALESCE(SUM(a.ad_spend),0) AS ad_spend,
+            COUNT(*) FILTER (WHERE ${spendExpression} > 0)::int AS spend_record_count,
+            COUNT(DISTINCT a.report_date) FILTER (WHERE ${spendExpression} > 0)::int AS spend_report_day_count,
+            COALESCE(SUM(${spendExpression}),0) AS ad_spend,
             MAX(a.updated_at) AS data_updated_at
      FROM temu_ad_product_daily a
      ${condition}`,
     filter.values,
   );
   const stores = await queryTemuDatabase(
-    `SELECT a.store_name,
+    `SELECT COALESCE(NULLIF(a.store_name, ''), s.store_name, a.store_id::text) AS store_name,
             COUNT(DISTINCT a.report_date)::int AS report_day_count,
-            COALESCE(SUM(a.ad_spend),0) AS ad_spend
+            COUNT(*) FILTER (WHERE ${spendExpression} > 0)::int AS spend_record_count,
+            COUNT(DISTINCT a.report_date) FILTER (WHERE ${spendExpression} > 0)::int AS spend_report_day_count,
+            COALESCE(SUM(${spendExpression}),0) AS ad_spend
      FROM temu_ad_product_daily a
+     LEFT JOIN temu_stores s ON s.id = a.store_id
      ${condition}
-     GROUP BY a.store_name
-     ORDER BY ad_spend DESC NULLS LAST, a.store_name`,
+     GROUP BY COALESCE(NULLIF(a.store_name, ''), s.store_name, a.store_id::text)
+     ORDER BY ad_spend DESC NULLS LAST, store_name`,
     filter.values,
+  );
+  const batchFilter = createWhereBuilder(1);
+  batchFilter.push(`b.import_type = ?`, 'ad_product_daily');
+  appendStoreScope(batchFilter, 'b', params);
+  if (params.startDate) batchFilter.push('b.report_date >= ?::date', params.startDate);
+  if (params.endDate) batchFilter.push('b.report_date <= ?::date', params.endDate);
+  const batchCondition = batchFilter.where.length ? `WHERE ${batchFilter.where.join(' AND ')}` : '';
+  const batches = await queryTemuDatabase(
+    `SELECT COUNT(*)::int AS import_batch_count,
+            COUNT(DISTINCT b.report_date)::int AS import_batch_day_count,
+            MAX(b.updated_at) AS latest_import_updated_at
+     FROM temu_import_batches b
+     ${batchCondition}`,
+    batchFilter.values,
   );
   return {
     ...toCamel(summary.rows[0] || {}),
+    ...toCamel(batches.rows[0] || {}),
     stores: stores.rows.map(toCamel),
   };
 }
