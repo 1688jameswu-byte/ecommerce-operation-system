@@ -6073,6 +6073,38 @@ async function readWorkbenchSalesSummary(range, scope) {
   };
   const storeNames = Array.from(scope.storeNames ?? []).filter(Boolean);
 
+  const buildJsonSummary = async () => {
+    const orderStore = await readWorkbenchOrderStore();
+    let salesAmountRaw = 0;
+    let orderCount = 0;
+    let quantity = 0;
+    const storeSalesMap = new Map();
+    for (const batch of orderStore?.batches ?? []) {
+      for (const order of batch?.orders ?? []) {
+        const date = getOrderDateKey(order);
+        if (!date || date < range.start || date > range.end || !itemMatchesWorkbenchScope(order, scope)) continue;
+        const orderSalesAmount = getDashboardOrderSalesAmount(order);
+        salesAmountRaw += orderSalesAmount;
+        orderCount += 1;
+        quantity += Number(order?.quantity) || 0;
+        const storeName = normalizeOrderImportStoreName(order?.storeName);
+        const current = storeSalesMap.get(storeName) ?? { storeName, salesAmount: 0, orderCount: 0 };
+        current.salesAmount += orderSalesAmount;
+        current.orderCount += 1;
+        storeSalesMap.set(storeName, current);
+      }
+    }
+    return {
+      ...empty,
+      salesAmount: Number(salesAmountRaw.toFixed(2)),
+      orderCount,
+      quantity,
+      storeSalesMap,
+      dataUpdatedAt: (orderStore?.batches ?? []).map((batch) => batch.importedAt).filter(Boolean).sort().at(-1) || '',
+      source: 'json',
+    };
+  };
+
   if (preferTemuPostgresReads() && isTemuPostgresConfigured()) {
     try {
       const summary = await readOrderSalesSummaryFromPostgres({
@@ -6089,7 +6121,7 @@ async function readWorkbenchSalesSummary(range, scope) {
           orderCount: toFiniteNumber(row.orderCount),
         });
       }
-      return {
+      const postgresSummary = {
         salesAmount: Number(toFiniteNumber(summary.totalSalesAmount).toFixed(2)),
         orderCount: toFiniteNumber(summary.orderCount),
         quantity: toFiniteNumber(summary.quantity),
@@ -6097,40 +6129,21 @@ async function readWorkbenchSalesSummary(range, scope) {
         dataUpdatedAt: summary.dataUpdatedAt || '',
         source: 'postgres',
       };
+      if (postgresSummary.salesAmount > 0 || postgresSummary.orderCount > 0 || postgresSummary.quantity > 0) {
+        return postgresSummary;
+      }
+      const jsonSummary = await buildJsonSummary();
+      if (jsonSummary.salesAmount > 0 || jsonSummary.orderCount > 0 || jsonSummary.quantity > 0) {
+        console.warn('[workbench-kpi] PG sales summary empty, fallback to JSON order import data');
+        return { ...jsonSummary, source: 'json-fallback' };
+      }
+      return postgresSummary;
     } catch (error) {
       console.warn('[workbench-kpi] PG sales summary failed, fallback to JSON:', error instanceof Error ? error.message : error);
     }
   }
 
-  const orderStore = await readWorkbenchOrderStore();
-  let salesAmountRaw = 0;
-  let orderCount = 0;
-  let quantity = 0;
-  const storeSalesMap = new Map();
-  for (const batch of orderStore?.batches ?? []) {
-    for (const order of batch?.orders ?? []) {
-      const date = getOrderDateKey(order);
-      if (!date || date < range.start || date > range.end || !itemMatchesWorkbenchScope(order, scope)) continue;
-      const orderSalesAmount = getDashboardOrderSalesAmount(order);
-      salesAmountRaw += orderSalesAmount;
-      orderCount += 1;
-      quantity += Number(order?.quantity) || 0;
-      const storeName = normalizeOrderImportStoreName(order?.storeName);
-      const current = storeSalesMap.get(storeName) ?? { storeName, salesAmount: 0, orderCount: 0 };
-      current.salesAmount += orderSalesAmount;
-      current.orderCount += 1;
-      storeSalesMap.set(storeName, current);
-    }
-  }
-  return {
-    ...empty,
-    salesAmount: Number(salesAmountRaw.toFixed(2)),
-    orderCount,
-    quantity,
-    storeSalesMap,
-    dataUpdatedAt: (orderStore?.batches ?? []).map((batch) => batch.importedAt).filter(Boolean).sort().at(-1) || '',
-    source: 'json',
-  };
+  return buildJsonSummary();
 }
 
 async function readWorkbenchKpiTargets() {
@@ -7688,6 +7701,7 @@ function localDataPlugin() {
                 mirrorWarning = `已保存到 JSON，PostgreSQL 同步失败：${mirrorError instanceof Error ? mirrorError.message : String(mirrorError)}`;
                 console.warn('[TEMU PostgreSQL] orderImportStore mirror skipped after JSON save:', mirrorError instanceof Error ? mirrorError.message : mirrorError);
               }
+              clearOperationWorkbenchDashboardCache();
               res.end(JSON.stringify({
                 ok: true,
                 success: true,

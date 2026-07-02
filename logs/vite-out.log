@@ -3256,3 +3256,22 @@
 [2m19:14:29[22m [36m[1m[vite][22m[39m server restarted.
 [2m19:15:02[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/admin.css[22m
 [2m19:15:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/workbench/WorkbenchPage.tsx[22m
+
+> ecommerce-operations-center@0.1.0 dev
+> vite --configLoader runner --host 127.0.0.1 --port 5176
+
+
+  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m68725[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m08:51:02[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:51:03[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:51:26[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:51:26[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:52:53[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:52:53[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:53:07[22m [36m[1m[vite][22m[39m [32mserver/temu/temuPostgresRepository.js changed, restarting server...[39m
+[2m08:53:08[22m [36m[1m[vite][22m[39m server restarted.
+[2m08:53:21[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m08:53:21[22m [36m[1m[vite][22m[39m server restarted.

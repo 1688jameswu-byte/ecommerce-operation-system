@@ -938,7 +938,7 @@ export async function readOrderSalesSummaryFromPostgres(params = {}) {
      FROM temu_order_items o
      WHERE o.order_date >= $1::date
        AND o.order_date <= $2::date
-       AND o.store_name = ANY($3::text[])
+       AND btrim(o.store_name) = ANY($3::text[])
      GROUP BY o.store_name
      ORDER BY o.store_name`,
     [startDate, endDate, storeNames],
