@@ -6,6 +6,7 @@ import path from 'path';
 import { handleAlibaba1688Api } from './server/alibaba1688/api/alibaba1688ApiHandler.js';
 import { handleDailyRecordsApi } from './server/dailyRecords/dailyRecordsApiHandler.js';
 import {
+  deleteOrderImportDataFromPostgres,
   readOrderImportStoreFromPostgres,
   readOrderSalesSummaryFromPostgres,
   readTemuCollectionFromPostgres,

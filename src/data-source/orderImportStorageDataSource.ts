@@ -457,17 +457,17 @@ export const orderImportStorageDataSource = {
       throw new Error('未找到对应导入批次，请刷新页面后重试。');
     }
 
-    const batches = store.batches.filter((batch) => batch.batchId !== batchId);
-    const requestPayload = { batches } satisfies TemuOrderImportStore;
     console.log('[order-import-delete-request]', {
       batchId,
       fileName: target.fileName,
       importedAt: target.importedAt,
       stores: Array.from(new Set(target.orders.map((order) => order.storeName))),
       dates: Array.from(new Set(target.orders.map((order) => order.orderDate))),
-      requestPayload,
     });
-    const responseText = writePersistentJson(ORDER_IMPORT_FILE_KEY, requestPayload, { deleteImportData: true });
+    const responseText = writePersistentJson(ORDER_IMPORT_FILE_KEY, { batchId }, {
+      deleteImportData: true,
+      deleteBatchId: batchId,
+    });
     const response = responseText ? JSON.parse(responseText) as { deleteSummary?: { removedRecordCount?: number; removedOrderCount?: number } } : null;
     console.log('[order-import-delete-response]', response);
     if (response?.deleteSummary && !response.deleteSummary.removedRecordCount && !response.deleteSummary.removedOrderCount) {
@@ -483,17 +483,17 @@ export const orderImportStorageDataSource = {
       throw new Error('未找到对应导入批次，请刷新页面后重试。');
     }
 
-    const batches = store.batches.filter((batch) => batch.batchId !== batchId);
-    const requestPayload = { batches } satisfies TemuOrderImportStore;
     console.log('[order-import-delete-request]', {
       batchId,
       fileName: target.fileName,
       importedAt: target.importedAt,
       stores: Array.from(new Set(target.orders.map((order) => order.storeName))),
       dates: Array.from(new Set(target.orders.map((order) => order.orderDate))),
-      requestPayload,
     });
-    const responseText = await writePersistentJsonAsync(ORDER_IMPORT_FILE_KEY, requestPayload, { deleteImportData: true });
+    const responseText = await writePersistentJsonAsync(ORDER_IMPORT_FILE_KEY, { batchId }, {
+      deleteImportData: true,
+      deleteBatchId: batchId,
+    });
     const response = responseText ? JSON.parse(responseText) as { deleteSummary?: { removedRecordCount?: number; removedOrderCount?: number } } : null;
     console.log('[order-import-delete-response]', response);
     if (response?.deleteSummary && !response.deleteSummary.removedRecordCount && !response.deleteSummary.removedOrderCount) {
@@ -507,20 +507,10 @@ export const orderImportStorageDataSource = {
       return;
     }
 
-    const batches = this.loadStore().batches
-      .map((batch) =>
-        recalcBatch({
-          ...batch,
-          orders: batch.orders.filter((order) => {
-            const matchedDate = !scope.date || order.orderDate === scope.date;
-            const matchedStore = !scope.storeName || order.storeName === scope.storeName;
-            return !(matchedDate && matchedStore);
-          }),
-        }),
-      )
-      .filter((batch) => batch.orders.length > 0);
-
-    writePersistentJson(ORDER_IMPORT_FILE_KEY, { batches }, { deleteImportData: true });
+    writePersistentJson(ORDER_IMPORT_FILE_KEY, { scope }, {
+      deleteImportData: true,
+      deleteScope: scope,
+    });
     notifyStorageChange();
   },
 
@@ -529,20 +519,10 @@ export const orderImportStorageDataSource = {
       return;
     }
 
-    const batches = (await this.loadStoreAsync()).batches
-      .map((batch) =>
-        recalcBatch({
-          ...batch,
-          orders: batch.orders.filter((order) => {
-            const matchedDate = !scope.date || order.orderDate === scope.date;
-            const matchedStore = !scope.storeName || order.storeName === scope.storeName;
-            return !(matchedDate && matchedStore);
-          }),
-        }),
-      )
-      .filter((batch) => batch.orders.length > 0);
-
-    await writePersistentJsonAsync(ORDER_IMPORT_FILE_KEY, { batches }, { deleteImportData: true });
+    await writePersistentJsonAsync(ORDER_IMPORT_FILE_KEY, { scope }, {
+      deleteImportData: true,
+      deleteScope: scope,
+    });
     notifyStorageChange();
   },
 

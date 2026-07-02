@@ -425,6 +425,126 @@ export async function replaceOrderStoreInPostgres(orderStore = { batches: [] }, 
   });
 }
 
+export async function deleteOrderImportDataFromPostgres({ batchIds = [], scope = null } = {}) {
+  const cleanBatchIds = Array.from(new Set((batchIds ?? []).map((value) => text(value)).filter(Boolean)));
+  const date = text(scope?.date).slice(0, 10);
+  const storeName = text(scope?.storeName);
+
+  if (cleanBatchIds.length === 0 && !date && !storeName) {
+    return { deletedBatchCount: 0, deletedOrderCount: 0, affectedDates: [] };
+  }
+
+  return withClient(async (client) => {
+    const affectedDates = new Set();
+    let deletedBatchCount = 0;
+    let deletedOrderCount = 0;
+
+    if (cleanBatchIds.length > 0) {
+      const affectedDateResult = await client.query(
+        `SELECT DISTINCT order_date::text AS order_date
+         FROM temu_order_items
+         WHERE source_batch_id = ANY($1::text[]) AND order_date IS NOT NULL`,
+        [cleanBatchIds],
+      );
+      affectedDateResult.rows.forEach((row) => {
+        if (row.order_date) affectedDates.add(row.order_date);
+      });
+
+      const orderResult = await client.query(
+        `DELETE FROM temu_order_items
+         WHERE source_batch_id = ANY($1::text[])`,
+        [cleanBatchIds],
+      );
+      deletedOrderCount += orderResult.rowCount || 0;
+
+      await client.query(
+        `DELETE FROM temu_import_errors
+         WHERE batch_id IN (
+           SELECT id FROM temu_import_batches
+           WHERE import_type = 'order_sales' AND source_batch_id = ANY($1::text[])
+         )`,
+        [cleanBatchIds],
+      );
+      const batchResult = await client.query(
+        `DELETE FROM temu_import_batches
+         WHERE import_type = 'order_sales' AND source_batch_id = ANY($1::text[])`,
+        [cleanBatchIds],
+      );
+      deletedBatchCount += batchResult.rowCount || 0;
+    }
+
+    if (date || storeName) {
+      const conditions = [`b.import_type = 'order_sales'`];
+      const params = [];
+      if (date) {
+        params.push(date);
+        conditions.push(`o.order_date = $${params.length}::date`);
+      }
+      if (storeName) {
+        params.push(storeName);
+        conditions.push(`COALESCE(o.store_name, '') = $${params.length}`);
+      }
+
+      const affectedResult = await client.query(
+        `SELECT DISTINCT o.import_batch_id, o.order_date::text AS order_date
+         FROM temu_order_items o
+         JOIN temu_import_batches b ON b.id = o.import_batch_id
+         WHERE ${conditions.join(' AND ')}`,
+        params,
+      );
+      const affectedBatchIds = Array.from(new Set(affectedResult.rows.map((row) => row.import_batch_id).filter(Boolean)));
+      affectedResult.rows.forEach((row) => {
+        if (row.order_date) affectedDates.add(row.order_date);
+      });
+
+      if (affectedBatchIds.length > 0) {
+        const deleteResult = await client.query(
+          `DELETE FROM temu_order_items o
+           USING temu_import_batches b
+           WHERE o.import_batch_id = b.id AND ${conditions.join(' AND ')}`,
+          params,
+        );
+        deletedOrderCount += deleteResult.rowCount || 0;
+
+        const remainingResult = await client.query(
+          `SELECT
+             b.id,
+             COUNT(o.id)::int AS order_count,
+             COALESCE(jsonb_agg(o.raw_data ORDER BY o.source_row_number) FILTER (WHERE o.id IS NOT NULL), '[]'::jsonb) AS orders
+           FROM temu_import_batches b
+           LEFT JOIN temu_order_items o ON o.import_batch_id = b.id
+           WHERE b.id = ANY($1::uuid[])
+           GROUP BY b.id`,
+          [affectedBatchIds],
+        );
+
+        for (const row of remainingResult.rows) {
+          if (!row.order_count) {
+            await client.query('DELETE FROM temu_import_batches WHERE id = $1::uuid', [row.id]);
+            deletedBatchCount += 1;
+          } else {
+            await client.query(
+              `UPDATE temu_import_batches
+               SET total_rows = $2::int,
+                   success_rows = $2::int,
+                   raw_data = jsonb_set(COALESCE(raw_data, '{}'::jsonb), '{orders}', $3::jsonb, true),
+                   updated_at = NOW()
+               WHERE id = $1::uuid`,
+              [row.id, row.order_count, row.orders],
+            );
+          }
+        }
+      }
+    }
+
+    return {
+      deletedBatchCount,
+      deletedOrderCount,
+      affectedDates: Array.from(affectedDates).sort(),
+    };
+  });
+}
+
 async function syncOrderStoreWithClient(client, orderStore, { sourceType = 'json_migration' } = {}) {
   const summary = { orderBatches: 0, orderItems: 0, errors: 0 };
   for (const batch of orderStore?.batches ?? []) {

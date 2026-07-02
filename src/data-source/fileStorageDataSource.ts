@@ -4,6 +4,8 @@ let dataPathLogged = false;
 interface WritePersistentOptions {
   trafficImportSearchableText?: string;
   deleteImportData?: boolean;
+  deleteBatchId?: string;
+  deleteScope?: { date?: string; storeName?: string };
   appendImportBatch?: boolean;
 }
 
@@ -107,7 +109,14 @@ export function writePersistentJson(name: string, value: unknown, options?: Writ
 
   logPersistentDataPath();
   return request('PUT', name, options?.trafficImportSearchableText || options?.deleteImportData || options?.appendImportBatch
-    ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText, __deleteImportData: options.deleteImportData, __appendImportBatch: options.appendImportBatch }
+    ? {
+      __payload: value,
+      __trafficImportSearchableText: options.trafficImportSearchableText,
+      __deleteImportData: options.deleteImportData,
+      __deleteBatchId: options.deleteBatchId,
+      __deleteScope: options.deleteScope,
+      __appendImportBatch: options.appendImportBatch,
+    }
     : value);
 }
 
@@ -133,6 +142,13 @@ export async function writePersistentJsonAsync(name: string, value: unknown, opt
 
   logPersistentDataPath();
   return requestAsync('PUT', name, options?.trafficImportSearchableText || options?.deleteImportData || options?.appendImportBatch
-    ? { __payload: value, __trafficImportSearchableText: options.trafficImportSearchableText, __deleteImportData: options.deleteImportData, __appendImportBatch: options.appendImportBatch }
+    ? {
+      __payload: value,
+      __trafficImportSearchableText: options.trafficImportSearchableText,
+      __deleteImportData: options.deleteImportData,
+      __deleteBatchId: options.deleteBatchId,
+      __deleteScope: options.deleteScope,
+      __appendImportBatch: options.appendImportBatch,
+    }
     : value);
 }

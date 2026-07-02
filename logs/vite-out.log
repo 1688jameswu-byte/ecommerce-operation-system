@@ -3624,3 +3624,432 @@
 }
 [2m18:04:13[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
 [2m18:04:13[22m [36m[1m[vite][22m[39m server restarted.
+[order-import-debug] permissionCheck {
+  userId: 'user-admin',
+  username: 'admin',
+  role: 'admin',
+  operatorId: '',
+  operatorName: '管理员',
+  storeMappings: [
+    {
+      rawStoreName: 'C店',
+      normalizedStoreName: 'C店',
+      matchedStoreId: 'store-1779250608720-3y40xd',
+      matchedPlatformStoreId: '634418214977923'
+    }
+  ],
+  parsedStoreKeys: [
+    {
+      storeKey: 'C店',
+      normalizedStoreName: 'C店',
+      matchedStoreId: 'store-1779250608720-3y40xd',
+      matchedPlatformStoreId: '634418214977923'
+    },
+    {
+      storeKey: 'store-1779250608720-3y40xd',
+      normalizedStoreName: 'C店',
+      matchedStoreId: 'store-1779250608720-3y40xd',
+      matchedPlatformStoreId: '634418214977923'
+    },
+    {
+      storeKey: '634418214977923',
+      normalizedStoreName: 'C店',
+      matchedStoreId: 'store-1779250608720-3y40xd',
+      matchedPlatformStoreId: '634418214977923'
+    }
+  ],
+  visibleStoreIds: [
+    'store-1779189685728-5d0o88',
+    'store-1779189704925-n37kk8',
+    'store-1779250535504-oe7pn2',
+    'store-1779250571842-ap1dc1',
+    'store-1779250608720-3y40xd',
+    'store-1779250617735-mrgeer',
+    'store-1779250673329-f6ao3r',
+    'store-1779250680437-doqtlc',
+    'store-1779250687680-o0326k',
+    'store-1779250695491-3z7kwi',
+    'store-1779250703920-yl2wme',
+    'store-1779250710562-bij0ve',
+    'store-1779250716950-i7x6ep'
+  ],
+  visibleStoreNames: [
+    'B店', 'F店', 'K店',
+    'U店', 'C店', 'S店',
+    'A店', 'X店', 'O店',
+    'M店', 'L店', 'H店',
+    'Q店'
+  ],
+  visiblePlatformStoreIds: [
+    '634418211441811',
+    '634418211885101',
+    '6289862801038',
+    '634418212168942',
+    '634418214977923',
+    '634418217704953',
+    '634418218135287',
+    '634418213117065',
+    '634418225642688',
+    '634418225641224',
+    '634418225070391',
+    '634418225638311',
+    '634418225639828'
+  ],
+  unmatchedKeys: [],
+  unauthorizedKeys: [],
+  canWrite: true
+}
+[order-import-save] {
+  incomingShape: 'batches',
+  existingBatchCount: 41,
+  removedBatchCount: 1,
+  incomingBatchCount: 1,
+  finalBatchCount: 41,
+  existingDataCount: 4645,
+  removedDataCount: 138,
+  newDataCount: 138,
+  finalDataCount: 4645,
+  affectedStores: [ 'C店' ],
+  affectedDates: [ '2026-07-02' ]
+}
+[order-import-delete:json] {
+  user: 'admin',
+  isAdmin: true,
+  payload: [
+    {
+      batchId: '1779266327442-27ezcz',
+      fileName: 'X店5.20订单.xlsx',
+      importedAt: '2026-05-20T08:38:47.442Z',
+      stores: [Array],
+      dates: [Array],
+      count: 143
+    },
+    {
+      batchId: '1779270996447-9k6iuw',
+      fileName: 'M店销售数据5.20.xlsx',
+      importedAt: '2026-05-20T09:56:36.447Z',
+      stores: [Array],
+      dates: [Array],
+      count: 37
+    },
+    {
+      batchId: '1779273488374-31yui6',
+      fileName: 'X店5.19订单.xlsx',
+      importedAt: '2026-05-20T10:38:08.374Z',
+      stores: [Array],
+      dates: [Array],
+      count: 132
+    },
+    {
+      batchId: '1779273524208-2mzbhu',
+      fileName: 'X店5.17订单.xlsx',
+      importedAt: '2026-05-20T10:38:44.208Z',
+      stores: [Array],
+      dates: [Array],
+      count: 132
+    },
+    {
+      batchId: '1779273527411-w1dakn',
+      fileName: 'X店5.16订单.xlsx',
+      importedAt: '2026-05-20T10:38:47.411Z',
+      stores: [Array],
+      dates: [Array],
+      count: 132
+    },
+    {
+      batchId: '1779273530842-dyjahj',
+      fileName: 'X店5.15订单.xlsx',
+      importedAt: '2026-05-20T10:38:50.842Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779273533776-hy3htg',
+      fileName: 'X店5.14订单.xlsx',
+      importedAt: '2026-05-20T10:38:53.776Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779273537443-yozeax',
+      fileName: 'X店5.13订单.xlsx',
+      importedAt: '2026-05-20T10:38:57.443Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276314741-3qst0h',
+      fileName: 'X店5.12订单.xlsx',
+      importedAt: '2026-05-20T11:25:14.740Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340006-9b0gkt',
+      fileName: 'X店4.20订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.006Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340060-cb1ak6',
+      fileName: 'X店4.21订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.060Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340232-8c9x1e',
+      fileName: 'X店4.24订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.232Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340292-lz8k7o',
+      fileName: 'X店4.25订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.287Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340352-ano81z',
+      fileName: 'X店4.26订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.347Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340416-n8g7vl',
+      fileName: 'X店4.27订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.416Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340476-0g0wxz',
+      fileName: 'X店4.28订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.471Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340546-k3ch3g',
+      fileName: 'X店4.29订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.546Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340613-eeiji7',
+      fileName: 'X店4.30订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.608Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340683-zrijkw',
+      fileName: 'X店5.1订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.683Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340740-zyu8tm',
+      fileName: 'X店5.2订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.740Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340895-m1cq0l',
+      fileName: 'X店5.4订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.895Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276340958-b5xac9',
+      fileName: 'X店5.5订单.xlsx',
+      importedAt: '2026-05-20T11:25:40.958Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276341061-sa90xp',
+      fileName: 'X店5.6订单.xlsx',
+      importedAt: '2026-05-20T11:25:41.061Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276341123-7qvz49',
+      fileName: 'X店5.7订单.xlsx',
+      importedAt: '2026-05-20T11:25:41.123Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276341193-18ggd2',
+      fileName: 'X店5.8订单.xlsx',
+      importedAt: '2026-05-20T11:25:41.193Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276341252-3vrz8e',
+      fileName: 'X店5.9订单.xlsx',
+      importedAt: '2026-05-20T11:25:41.252Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276341343-w2ma9z',
+      fileName: 'X店5.10订单.xlsx',
+      importedAt: '2026-05-20T11:25:41.343Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276341413-xgz48y',
+      fileName: 'X店5.11订单.xlsx',
+      importedAt: '2026-05-20T11:25:41.413Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276369999-odaysl',
+      fileName: 'X店5.3订单.xlsx',
+      importedAt: '2026-05-20T11:26:09.999Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276385846-5k5amo',
+      fileName: 'X店4.22订单.xlsx',
+      importedAt: '2026-05-20T11:26:25.838Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779276385971-bf4dq0',
+      fileName: 'X店4.23订单.xlsx',
+      importedAt: '2026-05-20T11:26:25.971Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779277088445-4ezmk3',
+      fileName: 'F店5.20订单.xlsx',
+      importedAt: '2026-05-20T11:38:08.445Z',
+      stores: [Array],
+      dates: [Array],
+      count: 143
+    },
+    {
+      batchId: '1779277135880-q7f5be',
+      fileName: 'X店5.18订单.xlsx',
+      importedAt: '2026-05-20T11:38:55.880Z',
+      stores: [Array],
+      dates: [Array],
+      count: 126
+    },
+    {
+      batchId: '1779897897903-gxyw8s',
+      fileName: 'M店5.27订单.xlsx',
+      importedAt: '2026-05-27T16:04:57.903Z',
+      stores: [Array],
+      dates: [Array],
+      count: 30
+    },
+    {
+      batchId: '1779897928677-tb66qm',
+      fileName: 'O店5.27订单.xlsx',
+      importedAt: '2026-05-27T16:05:28.677Z',
+      stores: [Array],
+      dates: [Array],
+      count: 20
+    },
+    {
+      batchId: '1779958631230-nbqcsj',
+      fileName: 'H店5.27订单.xlsx',
+      importedAt: '2026-05-28T08:57:11.230Z',
+      stores: [Array],
+      dates: [Array],
+      count: 55
+    },
+    {
+      batchId: '1779958647657-l3skqj',
+      fileName: 'H店5.28号店铺订单.xlsx',
+      importedAt: '2026-05-28T08:57:27.657Z',
+      stores: [Array],
+      dates: [Array],
+      count: 63
+    },
+    {
+      batchId: '1779960493369-ciovj9',
+      fileName: 'L店5.28号店铺订单.xlsx',
+      importedAt: '2026-05-28T09:28:13.369Z',
+      stores: [Array],
+      dates: [Array],
+      count: 44
+    },
+    {
+      batchId: '1782541469565-4i6xnf',
+      fileName: 'A店订单数据1.xlsx',
+      importedAt: '2026-06-27T06:24:29.565Z',
+      stores: [Array],
+      dates: [Array],
+      count: 78
+    },
+    {
+      batchId: '1782566223618-mp1ofu',
+      fileName: '订单.xlsx',
+      importedAt: '2026-06-27T13:17:03.618Z',
+      stores: [Array],
+      dates: [Array],
+      count: 96
+    }
+  ],
+  beforeRecordCount: 41,
+  beforeOrderCount: 4645,
+  removedRecordCount: 1,
+  removedOrderCount: 138,
+  afterRecordCount: 40,
+  afterOrderCount: 4507,
+  storage: 'json'
+}
+[2m18:10:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/data-import/ExcelImportPage.tsx[22m
+[2m18:10:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/data-import/ExcelImportPage.tsx[22m
+[2m18:12:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/data-import/ExcelImportPage.tsx[22m
+[2m18:12:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/data-import/ExcelImportPage.tsx[22m
+[2m18:13:05[22m [36m[1m[vite][22m[39m [32mserver/temu/temuPostgresRepository.js changed, restarting server...[39m
+[2m18:13:05[22m [36m[1m[vite][22m[39m server restarted.
+[2m18:13:27[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m18:13:28[22m [36m[1m[vite][22m[39m server restarted.

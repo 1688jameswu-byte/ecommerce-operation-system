@@ -66,7 +66,7 @@ type OrderField = keyof typeof orderFieldMap;
 
 const requiredOrderFields: OrderField[] = ['orderId', 'orderTime', 'storeName', 'declarePrice', 'quantity'];
 const orderHeaderAliases: Record<OrderField, string[]> = {
-  orderId: ['订单号', '父订单号', '子订单号', '订单编号', '订单ID', 'Order ID', 'Parent Order ID', 'Sub Order ID'],
+  orderId: ['订单号', '父订单号', '子订单号', '订单编号', '订单ID', '订单编码', '平台订单号', '销售订单号', '主订单编号', 'Order ID', 'Parent Order ID', 'Sub Order ID'],
   isFirstOrder: ['是否首单', '首单'],
   skc: ['SKC'],
   skcCode: ['SKC货号', 'SKC 货号'],
@@ -74,11 +74,11 @@ const orderHeaderAliases: Record<OrderField, string[]> = {
   skuCode: ['SKU货号', 'SKU 货号', 'SKU编码'],
   productSku: ['SKU ID', 'SKUID', '商品SKU', '商品 SKU'],
   productName: ['商品名称', '商品名'],
-  declarePrice: ['申报价格', '申报价', '商品申报价格', '商品申报价', '申报价格(CNY)', '申报价格（CNY）', '申报金额', '商品单价', '单价', '价格'],
-  quantity: ['备货数量', '备货数', '备货件数', '购买数量', '商品数量', '数量', '件数', '销量'],
-  orderTime: ['下单时间', '下单日期', '订单时间', '订单创建时间', '付款时间', '支付时间', '创建时间'],
+  declarePrice: ['申报价格', '申报价', '商品申报价格', '商品申报价', '申报价格(CNY)', '申报价格（CNY）', '商品申报价(CNY)', '商品申报价（CNY）', '申报单价', '申报金额', '商品单价', '单价', '价格'],
+  quantity: ['备货数量', '备货数', '备货件数', '购买数量', '购买件数', '商品数量', '商品件数', '下单数量', '销售数量', '数量', '件数', '销量'],
+  orderTime: ['下单时间', '下单日期', '订单时间', '订单创建时间', '订单提交时间', '付款时间', '付款日期', '支付时间', '支付日期', '成交时间', '创建时间', '创建日期'],
   status: ['状态', '订单状态'],
-  storeName: ['店铺', '店铺名称', '店铺名', '所属店铺', '店铺账号', '店铺主体'],
+  storeName: ['店铺', '店铺名称', '店铺名', '所属店铺', '店铺账号', '店铺主体', '店铺简称', '店名', '账号'],
 };
 
 function normalizeHeader(value: unknown) {
@@ -101,6 +101,40 @@ function headerMatches(header: unknown, alias: string) {
   return normalizedHeader === normalizedAlias || normalizedHeader.includes(normalizedAlias);
 }
 
+function semanticHeaderMatches(field: OrderField, header: unknown) {
+  const key = normalizeHeader(header);
+
+  if (!key) {
+    return false;
+  }
+
+  if (field === 'orderId') {
+    return (key.includes('订单') || key.includes('order')) && (key.includes('号') || key.includes('id') || key.includes('编号') || key.includes('编码'));
+  }
+
+  if (field === 'orderTime') {
+    return ['下单', '订单', '付款', '支付', '成交', '创建'].some((word) => key.includes(word)) && ['时间', '日期'].some((word) => key.includes(word));
+  }
+
+  if (field === 'storeName') {
+    return key.includes('店铺') || key.includes('店名') || key.includes('店铺账号');
+  }
+
+  if (field === 'declarePrice') {
+    return (key.includes('申报') && (key.includes('价格') || key.includes('价') || key.includes('金额'))) || key.includes('商品单价') || key === '单价';
+  }
+
+  if (field === 'quantity') {
+    return ['备货', '购买', '商品', '下单', '销售'].some((word) => key.includes(word)) && ['数量', '件数', '数'].some((word) => key.includes(word));
+  }
+
+  return false;
+}
+
+function fieldHeaderMatches(field: OrderField, header: unknown) {
+  return orderHeaderAliases[field].some((alias) => headerMatches(header, alias)) || semanticHeaderMatches(field, header);
+}
+
 function getCell(row: Record<string, unknown>, field: OrderField) {
   const aliases = orderHeaderAliases[field] ?? [orderFieldMap[field]];
   const normalizedEntries = Object.entries(row).map(([key, value]) => [normalizeHeader(key), value] as const);
@@ -112,7 +146,7 @@ function getCell(row: Record<string, unknown>, field: OrderField) {
     }
 
     const normalizedAlias = normalizeHeader(alias);
-    const matched = normalizedEntries.find(([key]) => key === normalizedAlias || key.includes(normalizedAlias));
+    const matched = normalizedEntries.find(([key]) => key === normalizedAlias || key.includes(normalizedAlias) || semanticHeaderMatches(field, key));
     if (matched) {
       return matched[1];
     }
@@ -128,17 +162,27 @@ function buildRowsFromSheet(sheet: XLSX.WorkSheet) {
   });
   const headerIndex = rawRows.findIndex((row) => {
     return requiredOrderFields.every((field) =>
-      orderHeaderAliases[field].some((alias) => row.some((header) => headerMatches(header, alias))),
+      row.some((header) => fieldHeaderMatches(field, header)),
     );
   });
 
   if (headerIndex < 0) {
-    return { rows: [], missingHeaders: requiredOrderFields.map((field) => orderFieldMap[field]) };
+    const bestRow = rawRows
+      .map((row) => ({
+        row,
+        score: requiredOrderFields.filter((field) => row.some((header) => fieldHeaderMatches(field, header))).length,
+      }))
+      .sort((a, b) => b.score - a.score)[0];
+    return {
+      rows: [],
+      missingHeaders: requiredOrderFields.map((field) => orderFieldMap[field]),
+      detectedHeaders: bestRow?.score > 0 ? bestRow.row.map((header) => String(header ?? '').trim()).filter(Boolean) : [],
+    };
   }
 
   const headers = rawRows[headerIndex].map((header) => String(header ?? '').trim());
   const missingHeaders = requiredOrderFields
-    .filter((field) => !orderHeaderAliases[field].some((alias) => headers.some((header) => headerMatches(header, alias))))
+    .filter((field) => !headers.some((header) => fieldHeaderMatches(field, header)))
     .map((field) => orderFieldMap[field]);
   const rows = rawRows.slice(headerIndex + 1).map((rawRow) =>
     Object.fromEntries(headers.map((header, index) => [header, rawRow[index] ?? ''])),
@@ -340,7 +384,9 @@ export async function parseTemuOrderExcelFile(file: File): Promise<TemuOrderImpo
 
   if (rows.length === 0) {
     const missingHeaders = Array.from(new Set(parsedSheets.flatMap((sheet) => sheet.missingHeaders)));
-    throw new Error(`未识别到订单表头：${missingHeaders.join('、')}。请确认上传的是订单销售 Excel。`);
+    const detectedHeaders = Array.from(new Set(parsedSheets.flatMap((sheet) => sheet.detectedHeaders ?? []))).slice(0, 12);
+    const detectedMessage = detectedHeaders.length > 0 ? ` 已识别到的候选表头：${detectedHeaders.join('、')}。` : '';
+    throw new Error(`未识别到订单表头：${missingHeaders.join('、')}。请确认上传的是订单销售 Excel。${detectedMessage}`);
   }
 
   const stores = loadStoreRecords();
