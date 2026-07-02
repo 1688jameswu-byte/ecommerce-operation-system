@@ -15,6 +15,15 @@ function normalizeOperatorOption(operator: OperatorOption): OperatorOption {
   return { ...operator, operatorName: normalizeTemuOperatorName(operator.operatorName) };
 }
 
+function getCurrentTemuOperatorName(currentUser: CurrentUser) {
+  const rawName = String(currentUser.displayName || currentUser.username || '').trim();
+  const cleanedName = rawName
+    .replace(/^(?:temu|TEMU|Temu)?\s*运营\s*[-_：:]\s*/i, '')
+    .replace(/^运营\s*[-_：:]\s*/i, '')
+    .trim();
+  return normalizeTemuOperatorName(cleanedName || rawName);
+}
+
 function getOperatorOptionValue(operator: OperatorOption) {
   return String(operator.operatorId || operator.operatorName || '');
 }
@@ -938,8 +947,12 @@ function WorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   const displayedDate = appliedSnapshotDate || products.dataCutoffDate || dashboard?.dataCutoffDate || products.snapshotDate || dashboard?.snapshotDate || '';
   const totalPages = Math.max(1, Math.ceil((products.total || 0) / 50));
   const isAdmin = currentUser.role === 'admin';
-  const readonlyOperator = operatorOptions[0];
-  const readonlyOperatorName = readonlyOperator?.operatorName || currentUser.displayName || currentUser.username || '-';
+  const currentOperatorName = getCurrentTemuOperatorName(currentUser);
+  const readonlyOperator = operatorOptions.find((operator) =>
+    String(operator.operatorId || '') === String(currentUser.operatorId || '') ||
+    normalizeTemuOperatorName(operator.operatorName) === currentOperatorName
+  );
+  const readonlyOperatorName = readonlyOperator?.operatorName || currentOperatorName || '-';
   const readonlyOperatorStoreCount = visibleStoreOptions.length || readonlyOperator?.storeCount || 0;
   const applyStoreFilter = (nextStoreId: string, nextStoreName = '') => {
     setStoreId(nextStoreId);
@@ -2991,7 +3004,7 @@ function StrategyDrawer({
 function AdStrategyWorkbenchView({ currentUser }: { currentUser: CurrentUser }) {
   const initialType = new URLSearchParams(window.location.search).get('type') || '';
   const isManager = currentUser.role === 'admin' || currentUser.role === 'leader';
-  const currentOperatorName = currentUser.displayName || currentUser.username || '';
+  const currentOperatorName = getCurrentTemuOperatorName(currentUser);
   const [dimensionTab, setDimensionTab] = useState<AdStrategyDimensionTab>(initialType ? 'newProducts' : 'allStores');
   const [activeTab, setActiveTab] = useState<StrategyTabKey>('pending');
   const [snapshotDate, setSnapshotDate] = useState('');
