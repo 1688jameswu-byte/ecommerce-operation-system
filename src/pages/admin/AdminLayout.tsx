@@ -603,7 +603,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   }, []);
 
   return (
-    <main className="admin-shell">
+    <main className={`admin-shell ${activeRoute.menuKey === menuKeys.dailyRecords ? 'admin-shell-daily-records' : ''}`}>
       <aside className="admin-sidebar">
         <div className="admin-brand">
           <span>电商</span>

@@ -6537,7 +6537,6 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
     adSpendSummary = await getAdSpendSummary({
       startDate: range.start,
       endDate: expenseEndDate,
-      storeIds: resolvedStoreIds,
       storeNames: stores.map((store) => String(store?.storeName || store?.id || '').trim()).filter(Boolean),
     });
   } catch (error) {

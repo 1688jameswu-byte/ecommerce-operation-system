@@ -3412,3 +3412,7 @@
 [2m13:23:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
 [2m13:25:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mindex.html[22m
 [2m13:25:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/main.tsx[22m
+[2m16:35:12[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m16:35:12[22m [36m[1m[vite][22m[39m server restarted.
+[2m16:35:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m16:35:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/daily-records/dailyRecords.css[22m

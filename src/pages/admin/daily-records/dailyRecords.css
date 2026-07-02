@@ -375,6 +375,46 @@
 }
 
 @media (max-width: 720px) {
+  .admin-shell-daily-records {
+    display: block;
+    min-height: 100vh;
+    background: #f5f7fb;
+  }
+
+  .admin-shell-daily-records .admin-sidebar {
+    display: none;
+  }
+
+  .admin-shell-daily-records .admin-main {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 100vh;
+    background: #f5f7fb;
+    padding: 10px;
+  }
+
+  .admin-shell-daily-records .admin-header {
+    display: block;
+    border: 0;
+    padding: 0 0 10px;
+  }
+
+  .admin-shell-daily-records .admin-header h1 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 22px;
+    line-height: 1.2;
+  }
+
+  .admin-shell-daily-records .admin-user-bar {
+    display: none;
+  }
+
+  .admin-shell-daily-records .admin-content {
+    gap: 10px;
+    padding-top: 0;
+  }
+
   .daily-records-page {
     gap: 12px;
   }
@@ -387,7 +427,7 @@
   }
 
   .daily-record-quick-panel textarea {
-    min-height: 42vh;
+    min-height: 46vh;
   }
 
   .daily-record-controls,
