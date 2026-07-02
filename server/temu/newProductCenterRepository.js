@@ -2617,8 +2617,24 @@ function appendStoreScope(whereBuilder, alias, params = {}) {
     if (params.storeIds.length === 0) {
       whereBuilder.where.push('1 = 0');
     } else {
-      whereBuilder.values.push(params.storeIds);
-      whereBuilder.where.push(`${alias}.store_id = ANY($${whereBuilder.startIndex + whereBuilder.values.length - 1}::uuid[])`);
+      const storeIds = params.storeIds.map((id) => String(id || '').trim()).filter(Boolean);
+      if (storeIds.length === 0) {
+        whereBuilder.where.push('1 = 0');
+      } else {
+        whereBuilder.values.push(storeIds);
+        const placeholder = `$${whereBuilder.startIndex + whereBuilder.values.length - 1}`;
+        whereBuilder.where.push(`(
+          ${alias}.store_id::text = ANY(${placeholder}::text[])
+          OR ${alias}.store_id IN (
+            SELECT id
+            FROM temu_stores
+            WHERE id::text = ANY(${placeholder}::text[])
+               OR legacy_id = ANY(${placeholder}::text[])
+               OR store_name = ANY(${placeholder}::text[])
+          )
+          OR ${alias}.store_name = ANY(${placeholder}::text[])
+        )`);
+      }
     }
   }
   if (Array.isArray(params.storeNames)) {
@@ -3710,9 +3726,35 @@ export async function getAdSpendSummary(params = {}) {
      ${batchCondition}`,
     batchFilter.values,
   );
+  const dateOnlyFilter = createWhereBuilder(1);
+  if (params.startDate) dateOnlyFilter.push('a.report_date >= ?::date', params.startDate);
+  if (params.endDate) dateOnlyFilter.push('a.report_date <= ?::date', params.endDate);
+  const dateOnlyCondition = dateOnlyFilter.where.length ? `WHERE ${dateOnlyFilter.where.join(' AND ')}` : '';
+  const allRangeSummary = await queryTemuDatabase(
+    `SELECT COUNT(*)::int AS all_range_record_count,
+            COUNT(DISTINCT a.report_date)::int AS all_range_report_day_count,
+            COALESCE(SUM(${spendExpression}),0) AS all_range_ad_spend
+     FROM temu_ad_product_daily a
+     ${dateOnlyCondition}`,
+    dateOnlyFilter.values,
+  );
+  const batchDateOnlyFilter = createWhereBuilder(1);
+  batchDateOnlyFilter.push(`b.import_type = ?`, 'ad_product_daily');
+  if (params.startDate) batchDateOnlyFilter.push('b.report_date >= ?::date', params.startDate);
+  if (params.endDate) batchDateOnlyFilter.push('b.report_date <= ?::date', params.endDate);
+  const batchDateOnlyCondition = batchDateOnlyFilter.where.length ? `WHERE ${batchDateOnlyFilter.where.join(' AND ')}` : '';
+  const allRangeBatches = await queryTemuDatabase(
+    `SELECT COUNT(*)::int AS all_range_import_batch_count,
+            COUNT(DISTINCT b.report_date)::int AS all_range_import_batch_day_count
+     FROM temu_import_batches b
+     ${batchDateOnlyCondition}`,
+    batchDateOnlyFilter.values,
+  );
   return {
     ...toCamel(summary.rows[0] || {}),
     ...toCamel(batches.rows[0] || {}),
+    ...toCamel(allRangeSummary.rows[0] || {}),
+    ...toCamel(allRangeBatches.rows[0] || {}),
     stores: stores.rows.map(toCamel),
   };
 }

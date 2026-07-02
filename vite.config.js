@@ -6527,13 +6527,14 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
 
   const expenseEndDate = range.today >= range.start && range.today <= range.end ? range.today : range.end;
   const expenseElapsedDays = Math.max(range.elapsedDays || 0, 1);
-  let adSpendSummary = { adSpend: 0, recordCount: 0, reportDayCount: 0, stores: [] };
+  let adSpendSummary = { adSpend: 0, recordCount: 0, reportDayCount: 0, importBatchCount: 0, stores: [] };
   let adSpendError = '';
   sectionStartedAt = Date.now();
   try {
     adSpendSummary = await getAdSpendSummary({
       startDate: range.start,
       endDate: expenseEndDate,
+      storeIds: resolvedStoreIds,
       storeNames: stores.map((store) => String(store?.storeName || store?.id || '').trim()).filter(Boolean),
     });
   } catch (error) {
@@ -6564,14 +6565,23 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
   const adSpendReportDayCount = toFiniteNumber(adSpendSummary.spendReportDayCount);
   const adImportBatchCount = toFiniteNumber(adSpendSummary.importBatchCount);
   const adImportBatchDayCount = toFiniteNumber(adSpendSummary.importBatchDayCount);
+  const allRangeAdSpend = toFiniteNumber(adSpendSummary.allRangeAdSpend);
+  const allRangeRecordCount = toFiniteNumber(adSpendSummary.allRangeRecordCount);
+  const allRangeImportBatchCount = toFiniteNumber(adSpendSummary.allRangeImportBatchCount);
   const hasAdImportSignal = adRecordCount > 0 || adImportBatchCount > 0;
-  const promotionDataWarning = adSpendError
-    ? `广告花费统计读取失败：${adSpendError}`
-    : adExpenseAmount <= 0 && hasAdImportSignal
-      ? '检测到广告导入记录，但推广费汇总为0，请检查字段映射或店铺匹配。'
-      : !hasAdImportSignal
-        ? '本月暂无广告数据。'
-        : '';
+  const hasAnyAdImportSignalInPeriod = allRangeRecordCount > 0 || allRangeImportBatchCount > 0 || allRangeAdSpend > 0;
+  let promotionDataWarningMessage = '';
+  if (adSpendError) {
+    promotionDataWarningMessage = `广告花费统计读取失败：${adSpendError}`;
+  } else if (adExpenseAmount <= 0 && adImportBatchCount > 0 && adRecordCount <= 0) {
+    promotionDataWarningMessage = `检测到${range.period}广告导入批次，但明细未入库。`;
+  } else if (adExpenseAmount <= 0 && adRecordCount > 0) {
+    promotionDataWarningMessage = `检测到${range.period}广告明细，但总花费汇总为0，请检查字段映射。`;
+  } else if (!hasAdImportSignal && hasAnyAdImportSignalInPeriod) {
+    promotionDataWarningMessage = `${range.period}广告数据存在，但当前账号可见店铺范围未匹配。`;
+  } else if (!hasAdImportSignal) {
+    promotionDataWarningMessage = `${range.period}暂无广告数据。`;
+  }
   const totalExpenseAmount = Number((adExpenseAmount + estimatedAfterSaleAmount).toFixed(2));
   const expenseSalesBase = salesAmount;
   const expenseRatio = expenseSalesBase > 0 ? totalExpenseAmount / expenseSalesBase : null;
@@ -7083,7 +7093,7 @@ async function buildOperationWorkbenchDashboardUncached(searchParams, currentUse
       promotionSpendReportDayCount: adSpendReportDayCount,
       promotionImportBatchCount: adImportBatchCount,
       promotionImportBatchDayCount: adImportBatchDayCount,
-      promotionDataWarning,
+      promotionDataWarning: promotionDataWarningMessage,
       salesAmount: expenseSalesBase,
       adExpense: adExpenseAmount,
       afterSaleExpense: estimatedAfterSaleAmount,

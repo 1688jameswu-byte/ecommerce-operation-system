@@ -450,7 +450,6 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
   const salesExpectedByTime = data.salesKpi.expectedByTime ?? (salesTarget ? salesTarget * data.salesKpi.timeProgress : null);
   const listingTimeProgress = data.listingKpi.timeProgress ?? data.salesKpi.timeProgress;
   const listingExpectedByTime = data.listingKpi.expectedByTime ?? (listingTarget ? listingTarget * listingTimeProgress : null);
-  const firstOrderCurrent = data.firstOrderKpi.currentValue ?? data.firstOrderKpi.observationAchievementRate ?? data.firstOrderKpi.firstOrderRate;
   const firstOrderCompletionRate = data.firstOrderKpi.targetCompletionRate ?? data.firstOrderKpi.completionRate;
   const firstOrderDueCount = data.firstOrderKpi.observationDueCount ?? data.firstOrderKpi.decidableCount;
   const firstOrderRate = data.firstOrderKpi.dueProductFirstOrderRate ?? data.firstOrderKpi.firstOrderRate;
@@ -462,6 +461,7 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
   const observationOverdueCount = data.firstOrderKpi.observationOverdueCount ?? data.firstOrderKpi.expiredNoFirstOrderCount ?? 0;
   const immediateConversionRate = data.firstOrderKpi.immediateConversionRate;
   const observationAchievementRate = data.firstOrderKpi.observationAchievementRate ?? firstOrderRate;
+  const firstOrderMainRate = observationAchievementRate;
   const firstOrderRateTarget = data.firstOrderKpi.observationAchievementRateTarget
     ?? (data.firstOrderKpi.target && firstOrderDueCount ? data.firstOrderKpi.target / firstOrderDueCount : firstOrderTarget);
   const expenseTargetRatio = data.expenseKpi.targetExpenseRatio ?? data.expenseKpi.targetRatio;
@@ -545,7 +545,7 @@ function buildIntegratedKpiCards(data: WorkbenchData): IntegratedKpiCardModel[] 
       weight: 20,
       status: firstOrderCard?.status ?? '数据缺失',
       statusClassName: statusClass(firstOrderCard?.status ?? '数据缺失'),
-      mainValue: `本月观察期达成率 ${formatFirstOrderRate(firstOrderCurrent)}`,
+      mainValue: `本月观察期达成率 ${formatFirstOrderRate(firstOrderMainRate)}`,
       progress: cardProgress(firstOrderCard),
       summaryRows: [
         ['观察期达成率目标', formatFirstOrderRate(firstOrderRateTarget)],
