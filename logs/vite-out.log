@@ -3378,3 +3378,37 @@
 [2m10:13:33[22m [36m[1m[vite][22m[39m server restarted.
 [2m10:14:25[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
 [2m10:14:25[22m [36m[1m[vite][22m[39m server restarted.
+{"scope":"new-product-center-api","endpoint":"products","durationMs":541,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":5,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":557,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":10,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":774,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":341,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":893,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":456,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":324,"rows":50,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":21,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":9,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":22,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":10,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"boss-dashboard","durationMs":157,"rows":1,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":3,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-options","durationMs":2,"rows":6,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":19,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":21,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"ad-strategy/counts","durationMs":3,"rows":13,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":12,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"products","durationMs":11,"rows":50,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":66,"rows":0,"slow":false}
+{"scope":"new-product-center-api","endpoint":"operator-dashboard","durationMs":60,"rows":0,"slow":false}
+[2m13:22:06[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m13:22:06[22m [36m[1m[vite][22m[39m server restarted.
+[2m13:22:10[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[2m13:22:10[22m [36m[1m[vite][22m[39m server restarted.
+[2m13:22:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m13:22:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m13:22:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m13:23:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
+[2m13:23:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m13:25:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mindex.html[22m
+[2m13:25:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/main.tsx[22m

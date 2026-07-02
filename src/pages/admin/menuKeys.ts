@@ -27,6 +27,7 @@ export const menuKeys = {
   business1688Images: '1688-images',
   business1688Suppliers: '1688-suppliers',
   business1688Settings: '1688-settings',
+  dailyRecords: 'daily-records',
   storeBusinessCenter: 'store-business-center',
   operatorAnalysisCenter: 'operator-analysis-center',
   operationDiagnosis: 'operation-diagnosis',
@@ -127,6 +128,11 @@ export const menuGroups: { key: MenuKey; label: string; children: { key: MenuKey
       { key: menuKeys.business1688Suppliers, label: '供应商管理' },
       { key: menuKeys.business1688Settings, label: '1688设置' },
     ],
+  },
+  {
+    key: menuKeys.dailyRecords,
+    label: '每日记录',
+    children: [{ key: menuKeys.dailyRecords, label: '每日记录' }],
   },
   {
     key: menuKeys.operationTools,

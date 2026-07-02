@@ -1569,3 +1569,22 @@ At file: F:\项目\TEMU运营数据大屏\vite.config.js:5975:27
 [31mfailed to load config from F:\项目\TEMU运营数据大屏\vite.config.js[39m
 [2m09:20:55[22m [31m[1m[vite][22m[39m Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
 [2m09:20:55[22m [31m[1m[vite][22m[39m server restart failed
+[2m13:23:04[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "./daily-records/DailyRecordsPage" from "src/pages/admin/AdminLayout.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mF:/项目/TEMU运营数据大屏/src/pages/admin/AdminLayout.tsx[39m:38:43
+[33m  53 |  const Alibaba1688SettingsPage = lazy(_c41 = () => import("./alibaba1688/Alibaba1688SettingsPage"));
+  54 |  _c42 = Alibaba1688SettingsPage;
+  55 |  const DailyRecordsPage = lazy(_c43 = () => import("./daily-records/DailyRecordsPage"));
+     |                                                    ^
+  56 |  _c44 = DailyRecordsPage;
+  57 |  const SalaryEmployeesPage = lazy(_c45 = () => import("./salary/SalaryEmployeesPage"));[39m
+      at TransformPluginContext._formatLog (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:29019:43)
+      at TransformPluginContext.error (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:29016:14)
+      at normalizeUrl (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:27139:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:27197:32
+      at async Promise.all (index 31)
+      at async TransformPluginContext.transform (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:27165:4)
+      at async EnvironmentPluginContainer.transform (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:28817:14)
+      at async loadAndTransform (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:22686:26)
+      at async viteTransformMiddleware (file:///F:/%E9%A1%B9%E7%9B%AE/TEMU%E8%BF%90%E8%90%A5%E6%95%B0%E6%8D%AE%E5%A4%A7%E5%B1%8F/node_modules/vite/dist/node/chunks/config.js:24562:20)

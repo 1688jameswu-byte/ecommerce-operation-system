@@ -125,6 +125,32 @@ CREATE TABLE IF NOT EXISTS "1688_settings" (
   UNIQUE (setting_group, setting_key)
 );
 
+CREATE TABLE IF NOT EXISTS daily_records (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  record_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  content TEXT NOT NULL DEFAULT '',
+  business_category TEXT NOT NULL DEFAULT '其他',
+  record_type TEXT NOT NULL DEFAULT '工作动作',
+  importance TEXT NOT NULL DEFAULT '普通',
+  ai_memory_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  ai_memory_note TEXT,
+  source_device TEXT NOT NULL DEFAULT '电脑端',
+  status TEXT NOT NULL DEFAULT 'active',
+  created_by TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS daily_record_attachments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  record_id UUID NOT NULL REFERENCES daily_records(id) ON DELETE CASCADE,
+  file_url TEXT NOT NULL DEFAULT '',
+  file_name TEXT NOT NULL DEFAULT '',
+  file_type TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -153,3 +179,8 @@ CREATE INDEX IF NOT EXISTS idx_1688_listing_tasks_product ON "1688_listing_tasks
 CREATE INDEX IF NOT EXISTS idx_1688_listing_tasks_status ON "1688_listing_tasks" (task_status);
 CREATE INDEX IF NOT EXISTS idx_1688_listing_tasks_assignee ON "1688_listing_tasks" (assignee_user_id);
 CREATE INDEX IF NOT EXISTS idx_1688_settings_group ON "1688_settings" (setting_group);
+CREATE INDEX IF NOT EXISTS idx_daily_records_date ON daily_records (record_date);
+CREATE INDEX IF NOT EXISTS idx_daily_records_created_by ON daily_records (created_by);
+CREATE INDEX IF NOT EXISTS idx_daily_records_type ON daily_records (record_type);
+CREATE INDEX IF NOT EXISTS idx_daily_records_category ON daily_records (business_category);
+CREATE INDEX IF NOT EXISTS idx_daily_record_attachments_record ON daily_record_attachments (record_id);

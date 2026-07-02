@@ -122,6 +122,7 @@ export function getDefaultPermissionsForRoleCode(roleCode: UserRoleCode) {
         menuKeys.business1688Images,
         menuKeys.business1688Suppliers,
         menuKeys.business1688Settings,
+        menuKeys.dailyRecords,
         menuKeys.aiImagePromptCenter,
       ],
       fieldPermissionKeys: allFieldPermissionKeys,

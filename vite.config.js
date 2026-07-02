@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { handleAlibaba1688Api } from './server/alibaba1688/api/alibaba1688ApiHandler.js';
+import { handleDailyRecordsApi } from './server/dailyRecords/dailyRecordsApiHandler.js';
 import {
   readOrderImportStoreFromPostgres,
   readOrderSalesSummaryFromPostgres,
@@ -381,6 +382,7 @@ const menuKeys = {
   business1688Images: '1688-images',
   business1688Suppliers: '1688-suppliers',
   business1688Settings: '1688-settings',
+  dailyRecords: 'daily-records',
   storeBusinessCenter: 'store-business-center',
   operatorAnalysisCenter: 'operator-analysis-center',
   operationDiagnosis: 'operation-diagnosis',
@@ -517,6 +519,7 @@ const roleDefinitions = {
       menuKeys.business1688Images,
       menuKeys.business1688Suppliers,
       menuKeys.business1688Settings,
+      menuKeys.dailyRecords,
       menuKeys.aiImagePromptCenter,
     ],
     fieldPermissionKeys,
@@ -7610,6 +7613,10 @@ function localDataPlugin() {
         readBody,
         requireOperation,
         syncStore: syncCommonStoreFromAlibabaStore,
+      }));
+      server.middlewares.use('/api/daily-records', (req, res) => handleDailyRecordsApi(req, res, {
+        getCurrentUser: () => toCurrentUser(findCurrentUser(req)),
+        readBody,
       }));
       server.middlewares.use('/api/stores', (req, res) => handleCollectionApi(req, res, 'stores', 'store'));
       server.middlewares.use('/api/operators', (req, res) => handleCollectionApi(req, res, 'operators', 'operator'));

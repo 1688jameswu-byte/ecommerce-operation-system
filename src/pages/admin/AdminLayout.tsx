@@ -35,6 +35,7 @@ const Alibaba1688ListingTasksPage = lazy(() => import('./alibaba1688/Alibaba1688
 const Alibaba1688ImagesPage = lazy(() => import('./alibaba1688/Alibaba1688ImagesPage'));
 const Alibaba1688SuppliersPage = lazy(() => import('./alibaba1688/Alibaba1688SuppliersPage'));
 const Alibaba1688SettingsPage = lazy(() => import('./alibaba1688/Alibaba1688SettingsPage'));
+const DailyRecordsPage = lazy(() => import('./daily-records/DailyRecordsPage'));
 const SalaryEmployeesPage = lazy(() => import('./salary/SalaryEmployeesPage'));
 const SalaryPeriodsPage = lazy(() => import('./salary/SalaryPeriodsPage'));
 const SalaryImportTemplatesPage = lazy(() => import('./salary/SalaryImportTemplatesPage'));
@@ -516,7 +517,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
       ? `可见店铺：${visibleStoreNames.join('、')}`
       : `可见店铺 ${visibleStoreNames.length} 个`;
   const dashboardRoute = menuAdminRoutes.find((route) => route.menuKey === 'dashboard');
-  const groupOrder = ['数据', '新品中心', '经营分析', '运营闭环', '1688业务', '运营工具', '基础资料', '规则中心', '数据源', '薪资绩效'];
+  const groupOrder = ['数据', '新品中心', '经营分析', '运营闭环', '1688业务', '每日记录', '运营工具', '基础资料', '规则中心', '数据源', '薪资绩效'];
   const groupLabels: Record<string, string> = { 数据: '数据中心' };
   const groups = groupOrder.filter((group) => menuAdminRoutes.some((route) => route.group === group));
   const activeRouteGroup = groups.includes(activeRoute.group) ? activeRoute.group : null;
@@ -551,6 +552,7 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
   const isAlibaba1688ImagesPage = activeRoute.path === '/admin/1688-business/images';
   const isAlibaba1688SuppliersPage = activeRoute.path === '/admin/1688-business/suppliers';
   const isAlibaba1688SettingsPage = activeRoute.path === '/admin/1688-business/settings' || window.location.pathname === '/admin/1688-business';
+  const isDailyRecordsPage = activeRoute.path === '/admin/daily-records';
   const isSalaryEmployeesPage = activeRoute.path === '/admin/salary/employees';
   const isSalaryPeriodsPage = activeRoute.path === '/admin/salary/periods';
   const isSalaryImportTemplatesPage = activeRoute.path === '/admin/salary/import-templates';
@@ -778,6 +780,8 @@ function AdminLayout({ currentUser }: { currentUser: CurrentUser }) {
             <Alibaba1688SuppliersPage currentUser={currentUser} />
           ) : isAlibaba1688SettingsPage ? (
             <Alibaba1688SettingsPage currentUser={currentUser} />
+          ) : isDailyRecordsPage ? (
+            <DailyRecordsPage currentUser={currentUser} />
           ) : isSalaryEmployeesPage ? (
             <SalaryEmployeesPage />
           ) : isSalaryPeriodsPage ? (

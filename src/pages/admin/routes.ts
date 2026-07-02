@@ -202,6 +202,13 @@ export const adminRoutes: AdminRoute[] = [
     description: '维护 1688 店铺映射和产品分类、材质、工艺、颜色、尺寸单位、发货地、发货时间、运费模板等基础配置。',
   },
   {
+    path: '/admin/daily-records',
+    menuKey: menuKeys.dailyRecords,
+    label: '每日记录',
+    group: '每日记录',
+    description: '老板日常经营动作、想法、问题、决策和系统需求的极简记录本。',
+  },
+  {
     path: '/admin/store-business',
     menuKey: menuKeys.storeBusinessCenter,
     parentMenuKey: menuKeys.businessAnalysis,

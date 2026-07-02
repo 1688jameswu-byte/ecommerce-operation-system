@@ -1,0 +1,18 @@
+{
+  "name": "电商运营中心",
+  "short_name": "运营记录",
+  "description": "每日经营记录本",
+  "start_url": "/admin/daily-records",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
