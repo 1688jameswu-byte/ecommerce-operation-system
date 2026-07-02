@@ -3416,3 +3416,5 @@
 [2m16:35:12[22m [36m[1m[vite][22m[39m server restarted.
 [2m16:35:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminLayout.tsx[22m
 [2m16:35:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/admin/daily-records/dailyRecords.css[22m
+[2m16:42:46[22m [36m[1m[vite][22m[39m [32mserver/temu/newProductCenterRepository.js changed, restarting server...[39m
+[2m16:42:46[22m [36m[1m[vite][22m[39m server restarted.

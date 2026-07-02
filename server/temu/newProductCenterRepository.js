@@ -2594,21 +2594,21 @@ function appendStoreScope(whereBuilder, alias, params = {}) {
       OR ${alias}.store_id = (
         SELECT id
         FROM temu_stores
-        WHERE id::text = ${placeholder} OR legacy_id = ${placeholder} OR store_name = ${placeholder}
+        WHERE id::text = ${placeholder} OR legacy_id = ${placeholder} OR btrim(store_name) = btrim(${placeholder})
         LIMIT 1
       )
-      OR ${alias}.store_name = ${placeholder}
+      OR btrim(${alias}.store_name) = btrim(${placeholder})
     )`);
   }
   if (params.storeName) {
     whereBuilder.values.push(params.storeName);
     const placeholder = `$${whereBuilder.startIndex + whereBuilder.values.length - 1}`;
     whereBuilder.where.push(`(
-      ${alias}.store_name = ${placeholder}
+      btrim(${alias}.store_name) = btrim(${placeholder})
       OR ${alias}.store_id = (
         SELECT id
         FROM temu_stores
-        WHERE store_name = ${placeholder} OR legacy_id = ${placeholder}
+        WHERE btrim(store_name) = btrim(${placeholder}) OR legacy_id = ${placeholder}
         LIMIT 1
       )
     )`);
@@ -2630,9 +2630,17 @@ function appendStoreScope(whereBuilder, alias, params = {}) {
             FROM temu_stores
             WHERE id::text = ANY(${placeholder}::text[])
                OR legacy_id = ANY(${placeholder}::text[])
-               OR store_name = ANY(${placeholder}::text[])
+               OR btrim(store_name) IN (
+                 SELECT btrim(value)
+                 FROM unnest(${placeholder}::text[]) AS value
+                 WHERE btrim(value) <> ''
+               )
           )
-          OR ${alias}.store_name = ANY(${placeholder}::text[])
+          OR btrim(${alias}.store_name) IN (
+            SELECT btrim(value)
+            FROM unnest(${placeholder}::text[]) AS value
+            WHERE btrim(value) <> ''
+          )
         )`);
       }
     }
@@ -2644,11 +2652,19 @@ function appendStoreScope(whereBuilder, alias, params = {}) {
       whereBuilder.values.push(params.storeNames);
       const placeholder = `$${whereBuilder.startIndex + whereBuilder.values.length - 1}`;
       whereBuilder.where.push(`(
-        ${alias}.store_name = ANY(${placeholder}::text[])
+        btrim(${alias}.store_name) IN (
+          SELECT btrim(value)
+          FROM unnest(${placeholder}::text[]) AS value
+          WHERE btrim(value) <> ''
+        )
         OR ${alias}.store_id IN (
           SELECT id
           FROM temu_stores
-          WHERE store_name = ANY(${placeholder}::text[])
+          WHERE btrim(store_name) IN (
+              SELECT btrim(value)
+              FROM unnest(${placeholder}::text[]) AS value
+              WHERE btrim(value) <> ''
+            )
              OR legacy_id = ANY(${placeholder}::text[])
         )
       )`);
