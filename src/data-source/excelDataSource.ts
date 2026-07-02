@@ -168,31 +168,35 @@ function normalizeStoreAlias(value: string) {
   return value;
 }
 
-function loadStoreNames() {
+function loadStoreRecords() {
   try {
-    return storeDataSource.load().map((store) => store.storeName).filter(Boolean);
+    return storeDataSource.load();
   } catch {
     return [];
   }
 }
 
-function normalizeImportedStoreName(value: unknown, storeNames: string[]) {
+function normalizeImportedStoreName(value: unknown, stores: ReturnType<typeof loadStoreRecords>) {
   const rawName = cleanStoreName(value);
   const name = normalizeStoreAlias(rawName || UNKNOWN_STORE_NAME);
   const normalizedKey = normalizeStoreKey(name);
-  const exactMatch = storeNames.find((storeName) => normalizeStoreKey(storeName) === normalizedKey);
+  const exactMatch = stores.find((store) =>
+    [store.storeName, store.id, store.platformStoreId]
+      .filter(Boolean)
+      .some((key) => normalizeStoreKey(String(key)) === normalizedKey),
+  );
 
   if (exactMatch) {
-    return exactMatch;
+    return exactMatch.storeName;
   }
 
   if (name.includes('�')) {
     const fallbackName = cleanStoreName(name.replace(/�+/g, ''));
     const fallbackKey = normalizeStoreKey(fallbackName);
-    const fallbackMatches = storeNames.filter((storeName) => normalizeStoreKey(storeName).startsWith(fallbackKey));
+    const fallbackMatches = stores.filter((store) => normalizeStoreKey(store.storeName).startsWith(fallbackKey));
 
     if (fallbackKey && fallbackMatches.length === 1) {
-      return fallbackMatches[0];
+      return fallbackMatches[0].storeName;
     }
 
     if (/^[a-z0-9]+$/i.test(fallbackName)) {
@@ -259,7 +263,7 @@ function isBlankRow(row: Record<string, unknown>) {
 function normalizeOrderRow(
   row: Record<string, unknown>,
   rowIndex: number,
-  storeNames: string[],
+  stores: ReturnType<typeof loadStoreRecords>,
   storeNameMappings: Map<string, string>,
 ): TemuOrderDetail | null {
   if (isBlankRow(row)) {
@@ -267,7 +271,7 @@ function normalizeOrderRow(
   }
 
   const rawStoreName = cleanStoreName(getCell(row, 'storeName'));
-  const storeName = normalizeImportedStoreName(rawStoreName, storeNames);
+  const storeName = normalizeImportedStoreName(rawStoreName, stores);
   storeNameMappings.set(rawStoreName, storeName);
 
   const orderTimeDate = parseOrderTime(getCell(row, 'orderTime'));
@@ -317,10 +321,10 @@ export async function parseTemuOrderExcelFile(file: File): Promise<TemuOrderImpo
     throw new Error(`未识别到订单表头：${missingHeaders.join('、')}。请确认上传的是订单销售 Excel。`);
   }
 
-  const storeNames = loadStoreNames();
+  const stores = loadStoreRecords();
   const storeNameMappings = new Map<string, string>();
   const orders = rows
-    .map((row, index) => normalizeOrderRow(row, index, storeNames, storeNameMappings))
+    .map((row, index) => normalizeOrderRow(row, index, stores, storeNameMappings))
     .filter((order): order is TemuOrderDetail => Boolean(order));
   logStoreNameNormalization(storeNameMappings);
 

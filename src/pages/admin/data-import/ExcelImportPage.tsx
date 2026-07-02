@@ -551,6 +551,11 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
             文件名
             <input value={fileNameFilter} onChange={(event) => setFileNameFilter(event.target.value)} placeholder="输入文件名" />
           </label>
+          {isAdmin && scopeDeleteLabel && (
+            <button type="button" className="danger-action-button" onClick={openDeleteScopeConfirm} disabled={isDeleting || filteredSummary.detailCount === 0}>
+              {scopeDeleteLabel}
+            </button>
+          )}
         </section>
 
         <div className="import-record-table-wrap">
@@ -601,6 +606,11 @@ function ExcelImportPage({ currentUser }: { currentUser: CurrentUser }) {
                             <button type="button" className="batch-view-button" onClick={() => toggleDetail(row)}>
                               {detailOpen ? '收起明细' : '查看明细'}
                             </button>
+                            {isAdmin && (
+                              <button type="button" className="batch-delete-button" onClick={() => setDeleteBatchRow(row)} disabled={isDeleting}>
+                                删除
+                              </button>
+                            )}
                           </td>
                         </tr>
                         {detailOpen && (

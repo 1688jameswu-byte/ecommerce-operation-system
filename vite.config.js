@@ -2610,11 +2610,11 @@ function getTemuVisibleStores(currentUser) {
 }
 
 function getVisibleStoreKeys(currentUser) {
-  return new Set(getVisibleStores(currentUser).flatMap((store) => [store.id, store.storeName].filter(Boolean)));
+  return new Set(getVisibleStores(currentUser).flatMap((store) => [store.id, store.storeName, store.platformStoreId].filter(Boolean)));
 }
 
 function getTemuVisibleStoreKeys(currentUser) {
-  return new Set(getTemuVisibleStores(currentUser).flatMap((store) => [store.id, store.storeName].filter(Boolean)));
+  return new Set(getTemuVisibleStores(currentUser).flatMap((store) => [store.id, store.storeName, store.platformStoreId].filter(Boolean)));
 }
 
 function normalizeSearchText(value) {
@@ -2629,7 +2629,8 @@ function findKnownStoreByKey(storeKey) {
 
   return getStores().find((store) =>
     normalizeSearchText(store?.id) === normalizedKey ||
-    normalizeSearchText(store?.storeName) === normalizedKey,
+    normalizeSearchText(store?.storeName) === normalizedKey ||
+    normalizeSearchText(store?.platformStoreId) === normalizedKey,
   ) ?? null;
 }
 
